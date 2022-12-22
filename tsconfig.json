@@ -1,10 +1,27 @@
 {
   "compilerOptions": {
+    "target": "esnext",
+    "module": "es2022",
+    "moduleResolution": "node",
+    "lib": ["es2015", "DOM"],
     "types": ["mocha", "chai"],
     "typeRoots": ["./node_modules/@types"],
-    "lib": ["es2015"],
-    "module": "commonjs",
-    "target": "es6",
+    "allowJs": true,
     "esModuleInterop": true
+  },
+  // Most ts-node options can be specified here using their programmatic names.
+  "ts-node": {
+    // It is faster to skip typechecking.
+    // Remove if you want ts-node to do typechecking.
+    "transpileOnly": true,
+
+    "files": true,
+
+    "compilerOptions": {
+      // compilerOptions specified here will override those declared below,
+      // but *only* in ts-node.  Useful if you want ts-node and tsc to use
+      // different options with a single tsconfig.json.
+      "module": "commonjs"
+    },
   }
 }

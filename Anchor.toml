@@ -9,7 +9,8 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "/home/sean/.config/solana/id.json"
+wallet = "./.keys/upgrade-authority.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+#test = "node -r ts-mocha/register -t 1000000 tests/**/*.ts"
+test = "npx mocha --node-option require=ts-node/register --extension ts -t 1000000 tests/**/*.ts"
