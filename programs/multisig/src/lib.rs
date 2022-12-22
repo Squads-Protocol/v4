@@ -24,8 +24,29 @@ pub struct Ms {
     pub bump: u8,                       // bump for the multisig seed
     pub create_key: Pubkey,             // random key(or not) used to seed the multisig pda
     pub allow_external_execute: bool,   // allow non-member keys to execute txs
-    pub keys: Vec<Pubkey>,              // keys of the members
+    pub keys: Vec<Member>,              // keys of the members
     pub config_authority: Pubkey               // the external multisig authority
+}
+
+#[derive(AnchorDeserialize, AnchorSerialize)]
+pub struct Member {
+    pub key: Pubkey,
+    pub role: Role,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Debug)]
+pub enum Role {
+    All,
+    Initiate,
+    Vote,
+    Execute,
+    InitiateAndExecute,
+    InitiateAndVote,
+    VoteAndExecute,
+}
+
+impl Role {
+    pub const MAXIMUM_SIZE: usize = 1 + 18;
 }
 
 #[derive(Accounts)]
@@ -94,3 +115,16 @@ pub struct Create<'info> {
     pub system_program: Program<'info, System>
 }
 
+/*
+    THIS WOULD BE A VALIDATION FUNCTIOn
+    #[account(
+        seeds = [
+            b"squad",
+            multisig.key().as_ref(),
+            &user.role_index.to_le_bytes(),
+            b"user-role"
+        ], bump = user.bump,
+        constraint = user.role == Role::Initiate || user.role == Role::InitiateAndExecute || user.role == Role::InitiateAndVote @RolesError::InvalidRole
+    )]
+    pub user: Account<'info, Member>,
+*/
