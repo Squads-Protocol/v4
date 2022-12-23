@@ -6,37 +6,44 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod multisig {
     use super::*;
 
-    // // instruction to create a multisig
-    // pub fn create(ctx: Context<Create>, external_authority: Pubkey, threshold:u16, create_key: Pubkey, members: Vec<Pubkey>, _meta: String) -> Result<()> {
-    //     // sort the members and remove duplicates
-    //     let mut members = members;
-    //     members.sort();
-    //     members.dedup();
-    //
-    //     // check we don't exceed u16
-    //     let total_members = members.len();
-    //     if total_members < 1 {
-    //         return err!(GraphsError::EmptyMembers);
-    //     }
-    //
-    //     // make sure we don't exceed u16 on first call
-    //     if total_members > usize::from(u16::MAX) {
-    //         return err!(GraphsError::MaxMembersReached);
-    //     }
-    //
-    //     // make sure threshold is valid
-    //     if usize::from(threshold) < 1 || usize::from(threshold) > total_members {
-    //         return err!(GraphsError::InvalidThreshold);
-    //     }
-    //
-    //     ctx.accounts.multisig.init(
-    //         external_authority,
-    //         threshold,
-    //         create_key,
-    //         members,
-    //         *ctx.bumps.get("multisig").unwrap(),
-    //     )
-    // }
+    /// Creates a multisig.
+    pub fn create(ctx: Context<Create>, args: CreateArgs) -> Result<()> {
+        // // sort the members and remove duplicates
+        // let mut members = members;
+        // members.sort();
+        // members.dedup();
+        //
+        // // check we don't exceed u16
+        // let total_members = members.len();
+        // if total_members < 1 {
+        //     return err!(GraphsError::EmptyMembers);
+        // }
+        //
+        // // make sure we don't exceed u16 on first call
+        // if total_members > usize::from(u16::MAX) {
+        //     return err!(GraphsError::MaxMembersReached);
+        // }
+        //
+        // // make sure threshold is valid
+        // if usize::from(threshold) < 1 || usize::from(threshold) > total_members {
+        //     return err!(GraphsError::InvalidThreshold);
+        // }
+        //
+        // ctx.accounts.multisig.init(
+        //     external_authority,
+        //     threshold,
+        //     create_key,
+        //     members,
+        //     *ctx.bumps.get("multisig").unwrap(),
+        // )
+
+        emit!(CreatedEvent {
+            multisig: ctx.accounts.creator.to_account_info().key.clone(),
+            memo: args.memo,
+        });
+
+        Ok(())
+    }
     //
     // pub fn add_member(ctx: Context<MsAuthRealloc>, new_member: Pubkey) -> Result<()> {
     //     // if max is already reached, we can't have more members
@@ -153,6 +160,45 @@ pub mod multisig {
     // }
 }
 
+#[derive(Accounts)]
+#[instruction(args: CreateArgs)]
+pub struct Create<'info> {
+    // #[account(
+    //     init,
+    //     payer = creator,
+    //     space = Ms::SIZE_WITHOUT_MEMBERS + (members.len() * 32),
+    //     seeds = [b"squad", create_key.as_ref(), b"multisig"], bump
+    // )]
+    // pub multisig: Account<'info, Ms>,
+    /// The creator of the multisig.
+    #[account(mut)]
+    pub creator: Signer<'info>,
+    // pub system_program: Program<'info, System>
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct CreateArgs {
+    /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
+    config_authority: Pubkey,
+    /// The number of signatures required to execute a transaction.
+    threshold: u16,
+    /// Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning.
+    create_key: Pubkey,
+    /// The members of the multisig.
+    members: Vec<Pubkey>,
+    /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
+    memo: Option<String>,
+}
+
+#[event]
+pub struct CreatedEvent {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    #[index]
+    /// Memo that was added by the creator.
+    pub memo: Option<String>,
+}
+
 // #[derive(Accounts)]
 // pub struct Initialize {}
 //
@@ -225,37 +271,6 @@ pub mod multisig {
 //     pub system_program: Program<'info, System>
 // }
 //
-// #[derive(Accounts)]
-// #[instruction(external_authority: Pubkey, threshold: u16, create_key: Pubkey, members: Vec<Pubkey>)]
-// pub struct Create<'info> {
-//     #[account(
-//         init,
-//         payer = creator,
-//         space = Ms::SIZE_WITHOUT_MEMBERS + (members.len() * 32),
-//         seeds = [b"squad", create_key.as_ref(), b"multisig"], bump
-//     )]
-//     pub multisig: Account<'info, Ms>,
-//
-//     #[account(mut)]
-//     pub creator: Signer<'info>,
-//     pub system_program: Program<'info, System>
-// }
-//
-// #[derive(Accounts)]
-// #[instruction(config_authority: Pubkey, threshold: u16, create_key: Pubkey, members: Vec<Pubkey>, meta: String)]
-// pub struct Create<'info> {
-//     #[account(
-//         init,
-//         payer = creator,
-//         space = Ms::SIZE_WITHOUT_MEMBERS + (members.len() * 32),
-//         seeds = [b"squad", create_key.as_ref(), b"multisig"], bump
-//     )]
-//     pub multisig: Account<'info, Ms>,
-//
-//     #[account(mut)]
-//     pub creator: Signer<'info>,
-//     pub system_program: Program<'info, System>
-// }
 
 /*
     THIS WOULD BE A VALIDATION FUNCTIOn
@@ -271,8 +286,7 @@ pub mod multisig {
     pub user: Account<'info, Member>,
 */
 
-
-/* TX META 
+/* TX META
 
 pub mod txmeta {
     use super::*;

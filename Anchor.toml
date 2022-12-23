@@ -1,6 +1,7 @@
 [features]
 seeds = false
 skip-lint = false
+
 [programs.localnet]
 multisig = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
 
@@ -12,5 +13,4 @@ cluster = "localnet"
 wallet = "./.keys/upgrade-authority.json"
 
 [scripts]
-#test = "node -r ts-mocha/register -t 1000000 tests/**/*.ts"
 test = "npx mocha --node-option require=ts-node/register --extension ts -t 1000000 tests/**/*.ts"

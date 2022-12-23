@@ -7,7 +7,8 @@
     "types": ["mocha", "chai"],
     "typeRoots": ["./node_modules/@types"],
     "allowJs": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "strict": true,
   },
   // Most ts-node options can be specified here using their programmatic names.
   "ts-node": {

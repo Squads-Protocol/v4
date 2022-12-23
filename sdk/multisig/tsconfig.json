@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "es2022",
+    "moduleResolution": "node",
+    "lib": ["es2015", "DOM"],
+    "allowJs": true,
+    "esModuleInterop": true,
+    "outDir": "lib",
+    "declaration": true,
+    "strict": true
+  },
+  "include": ["src/**/*"],
+}

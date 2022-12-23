@@ -1,0 +1,104 @@
+{
+  "version": "0.1.0",
+  "name": "multisig",
+  "instructions": [
+    {
+      "name": "create",
+      "docs": [
+        "Creates a multisig."
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The creator of the multisig."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "CreateArgs"
+          }
+        }
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "CreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "configAuthority",
+            "docs": [
+              "The authority that can configure the multisig: add/remove members, change the threshold, etc."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "threshold",
+            "docs": [
+              "The number of signatures required to execute a transaction."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "createKey",
+            "docs": [
+              "Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "members",
+            "docs": [
+              "The members of the multisig."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "CreatedEvent",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "address": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+    "origin": "anchor",
+    "binaryVersion": "0.26.0",
+    "libVersion": "0.26.0"
+  }
+}
