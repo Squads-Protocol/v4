@@ -1,5 +1,7 @@
 import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
+import { Multisig, Role } from "@sqds/multisig";
+import * as assert from "assert";
 
 describe("multisig", () => {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
@@ -40,14 +42,60 @@ describe("multisig", () => {
 
   describe("create", () => {
     it("new multisig", async () => {
+      const createKey = Keypair.generate().publicKey;
+
+      const [multisigPda, multisigBump] = multisig.getMultisigPda({
+        createKey,
+      });
+      const [configAuthority] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 0,
+      });
+
       const signature = await multisig.rpc.create({
         connection,
         creator,
-        configAuthority: creator.publicKey,
-        members: members.map((m) => m.publicKey),
+        multisigPda,
+        configAuthority,
+        threshold: 1,
+        members: members.map((m) => ({ key: m.publicKey, role: Role.All })),
+        createKey,
+        allowExternalSigners: false,
       });
 
       await connection.confirmTransaction(signature);
+
+      const multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      assert.strictEqual(
+        multisigAccount.configAuthority.toBase58(),
+        configAuthority.toBase58()
+      );
+      assert.strictEqual(multisigAccount.threshold, 1);
+      assert.deepEqual(
+        multisigAccount.members,
+        members
+          .map((m) => ({ key: m.publicKey, role: Role.All }))
+          .sort((a, b) => a.key.toBuffer().compare(b.key.toBuffer()))
+      );
+      assert.strictEqual(multisigAccount.authorityIndex, 1);
+      assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
+      assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "0");
+      assert.strictEqual(multisigAccount.allowExternalExecute, false);
+      assert.strictEqual(
+        multisigAccount.createKey.toBase58(),
+        createKey.toBase58()
+      );
+      assert.strictEqual(multisigAccount.bump, multisigBump);
     });
+
+    it("error: duplicate member");
+    it("error: empty members");
+    it("error: too many members");
+    it("error: invalid threshold (< 1)");
+    it("error: invalid threshold (> members.length)");
   });
 });

@@ -36,13 +36,16 @@ export const createStruct = new beet.FixableBeetArgsStruct<
 /**
  * Accounts required by the _create_ instruction
  *
+ * @property [_writable_] multisig
  * @property [_writable_, **signer**] creator
  * @category Instructions
  * @category Create
  * @category generated
  */
 export type CreateInstructionAccounts = {
+  multisig: web3.PublicKey
   creator: web3.PublicKey
+  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
@@ -69,9 +72,19 @@ export function createCreateInstruction(
   })
   const keys: web3.AccountMeta[] = [
     {
+      pubkey: accounts.multisig,
+      isWritable: true,
+      isSigner: false,
+    },
+    {
       pubkey: accounts.creator,
       isWritable: true,
       isSigner: true,
+    },
+    {
+      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
+      isWritable: false,
+      isSigner: false,
     },
   ]
 

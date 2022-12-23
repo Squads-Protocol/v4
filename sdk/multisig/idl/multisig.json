@@ -9,12 +9,22 @@
       ],
       "accounts": [
         {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "creator",
           "isMut": true,
           "isSigner": true,
           "docs": [
             "The creator of the multisig."
           ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -27,7 +37,113 @@
       ]
     }
   ],
+  "accounts": [
+    {
+      "name": "Multisig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "configAuthority",
+            "docs": [
+              "The authority that can change the multisig config.",
+              "This is a very important parameter as this authority can change the members and threshold.",
+              "",
+              "The convention is to set this to a PDA derived from the multisig address and an authority index (typically 0)",
+              "using the following seeds: [\"multisig\", multisig_address, authority_index, \"authority\"].",
+              "In this case, the multisig becomes autonomous, so every config change goes through",
+              "the normal process of voting by the members.",
+              "",
+              "However, this parameter can be set to any key. This allows for the multisig to be controlled",
+              "by a higher central authority or even another multisig."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "threshold",
+            "docs": [
+              "Threshold for signatures."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "members",
+            "docs": [
+              "Members of the multisig."
+            ],
+            "type": {
+              "vec": {
+                "defined": "Member"
+              }
+            }
+          },
+          {
+            "name": "authorityIndex",
+            "docs": [
+              "Index to seed other authorities under this multisig."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "transactionIndex",
+            "docs": [
+              "Last transaction index. 0 means no transactions have been created."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "staleTransactionIndex",
+            "docs": [
+              "Last stale transaction index. All transactions up until this index are stale.",
+              "This index is updated when multisig config (members/threshold) changes."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "allowExternalExecute",
+            "docs": [
+              "Whether to allow non-member keys to execute txs."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "createKey",
+            "docs": [
+              "Key that is used to seed the multisig PDA.",
+              "Used solely as bytes for the seed, doesn't have any other meaning or function."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for the multisig PDA seed."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
   "types": [
+    {
+      "name": "Member",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key",
+            "type": "publicKey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": "Role"
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "CreateArgs",
       "type": {
@@ -48,6 +164,17 @@
             "type": "u16"
           },
           {
+            "name": "members",
+            "docs": [
+              "The members of the multisig."
+            ],
+            "type": {
+              "vec": {
+                "defined": "Member"
+              }
+            }
+          },
+          {
             "name": "createKey",
             "docs": [
               "Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning."
@@ -55,12 +182,12 @@
             "type": "publicKey"
           },
           {
-            "name": "members",
+            "name": "allowExternalSigners",
             "docs": [
-              "The members of the multisig."
+              "Whether to allow non-member keys to execute txs."
             ],
             "type": {
-              "vec": "publicKey"
+              "option": "bool"
             }
           },
           {
@@ -71,6 +198,35 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Role",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "All"
+          },
+          {
+            "name": "Initiate"
+          },
+          {
+            "name": "Vote"
+          },
+          {
+            "name": "Execute"
+          },
+          {
+            "name": "InitiateAndExecute"
+          },
+          {
+            "name": "InitiateAndVote"
+          },
+          {
+            "name": "VoteAndExecute"
           }
         ]
       }
@@ -95,10 +251,32 @@
       ]
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "DuplicateMember",
+      "msg": "Found multiple members with the same pubkey"
+    },
+    {
+      "code": 6001,
+      "name": "EmptyMembers",
+      "msg": "Members array is empty"
+    },
+    {
+      "code": 6002,
+      "name": "TooManyMembers",
+      "msg": "Too many members, can be up to 65535"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidThreshold",
+      "msg": "Invalid threshold, must be between 1 and number of members"
+    }
+  ],
   "metadata": {
     "address": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
     "origin": "anchor",
     "binaryVersion": "0.26.0",
-    "libVersion": "0.26.0"
+    "libVersion": "=0.26.0"
   }
 }

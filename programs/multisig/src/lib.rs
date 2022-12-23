@@ -1,5 +1,11 @@
 use anchor_lang::prelude::*;
 
+use errors::*;
+use state::*;
+
+mod errors;
+mod state;
+
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 #[program]
@@ -8,37 +14,39 @@ pub mod multisig {
 
     /// Creates a multisig.
     pub fn create(ctx: Context<Create>, args: CreateArgs) -> Result<()> {
-        // // sort the members and remove duplicates
-        // let mut members = members;
-        // members.sort();
-        // members.dedup();
-        //
-        // // check we don't exceed u16
-        // let total_members = members.len();
-        // if total_members < 1 {
-        //     return err!(GraphsError::EmptyMembers);
-        // }
-        //
-        // // make sure we don't exceed u16 on first call
-        // if total_members > usize::from(u16::MAX) {
-        //     return err!(GraphsError::MaxMembersReached);
-        // }
-        //
-        // // make sure threshold is valid
-        // if usize::from(threshold) < 1 || usize::from(threshold) > total_members {
-        //     return err!(GraphsError::InvalidThreshold);
-        // }
-        //
-        // ctx.accounts.multisig.init(
-        //     external_authority,
-        //     threshold,
-        //     create_key,
-        //     members,
-        //     *ctx.bumps.get("multisig").unwrap(),
-        // )
+        // Sort the members by pubkey.
+        let mut members = args.members;
+        members.sort_by_key(|m| m.key);
+
+        // Make sure there is no members with duplicate keys.
+        for i in (1..members.len()).rev() {
+            if members[i].key == members[i - 1].key {
+                err!(MultisigError::DuplicateMember)?;
+            }
+        }
+
+        // Make sure length of members is within bounds.
+        let num_members = members.len();
+        let max_members = usize::from(u16::MAX);
+        require!(num_members > 0, MultisigError::EmptyMembers);
+        require!(num_members <= max_members, MultisigError::TooManyMembers);
+
+        // Make sure threshold is within bounds.
+        let threshold = usize::from(args.threshold);
+        require!(threshold > 0, MultisigError::InvalidThreshold);
+        require!(threshold <= num_members, MultisigError::InvalidThreshold);
+
+        ctx.accounts.multisig.init(
+            args.config_authority,
+            args.threshold,
+            members,
+            args.create_key,
+            args.allow_external_signers.unwrap_or(false),
+            *ctx.bumps.get("multisig").unwrap(),
+        );
 
         emit!(CreatedEvent {
-            multisig: ctx.accounts.creator.to_account_info().key.clone(),
+            multisig: ctx.accounts.multisig.to_account_info().key.clone(),
             memo: args.memo,
         });
 
@@ -163,17 +171,20 @@ pub mod multisig {
 #[derive(Accounts)]
 #[instruction(args: CreateArgs)]
 pub struct Create<'info> {
-    // #[account(
-    //     init,
-    //     payer = creator,
-    //     space = Ms::SIZE_WITHOUT_MEMBERS + (members.len() * 32),
-    //     seeds = [b"squad", create_key.as_ref(), b"multisig"], bump
-    // )]
-    // pub multisig: Account<'info, Ms>,
+    #[account(
+        init,
+        payer = creator,
+        space = Multisig::size(args.members.len()),
+        seeds = [b"multisig", args.create_key.as_ref(), b"multisig"],
+        bump
+    )]
+    pub multisig: Account<'info, Multisig>,
+
     /// The creator of the multisig.
     #[account(mut)]
     pub creator: Signer<'info>,
-    // pub system_program: Program<'info, System>
+
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -182,10 +193,12 @@ pub struct CreateArgs {
     config_authority: Pubkey,
     /// The number of signatures required to execute a transaction.
     threshold: u16,
+    /// The members of the multisig.
+    members: Vec<Member>,
     /// Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning.
     create_key: Pubkey,
-    /// The members of the multisig.
-    members: Vec<Pubkey>,
+    /// Whether to allow non-member keys to execute txs.
+    allow_external_signers: Option<bool>,
     /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
     memo: Option<String>,
 }
@@ -203,24 +216,6 @@ pub struct CreatedEvent {
 // pub struct Initialize {}
 //
 //
-// #[account]
-// pub struct Ms {
-//     pub threshold: u16,                 // threshold for signatures
-//     pub authority_index: u16,           // index to seed other authorities under this multisig
-//     pub transaction_index: u32,         // look up and seed reference for transactions
-//     pub ms_change_index: u32,           // the last executed/closed transaction
-//     pub bump: u8,                       // bump for the multisig seed
-//     pub create_key: Pubkey,             // random key(or not) used to seed the multisig pda
-//     pub allow_external_execute: bool,   // allow non-member keys to execute txs
-//     pub keys: Vec<Member>,              // keys of the members
-//     pub config_authority: Pubkey               // the external multisig authority
-// }
-//
-// #[derive(AnchorDeserialize, AnchorSerialize)]
-// pub struct Member {
-//     pub key: Pubkey,
-//     pub role: Role,
-// }
 //
 // #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Debug)]
 // pub enum Role {

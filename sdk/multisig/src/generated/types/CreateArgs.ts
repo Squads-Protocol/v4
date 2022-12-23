@@ -8,11 +8,13 @@
 import * as web3 from '@solana/web3.js'
 import * as beet from '@metaplex-foundation/beet'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
+import { Member, memberBeet } from './Member'
 export type CreateArgs = {
   configAuthority: web3.PublicKey
   threshold: number
+  members: Member[]
   createKey: web3.PublicKey
-  members: web3.PublicKey[]
+  allowExternalSigners: beet.COption<boolean>
   memo: beet.COption<string>
 }
 
@@ -24,8 +26,9 @@ export const createArgsBeet = new beet.FixableBeetArgsStruct<CreateArgs>(
   [
     ['configAuthority', beetSolana.publicKey],
     ['threshold', beet.u16],
+    ['members', beet.array(memberBeet)],
     ['createKey', beetSolana.publicKey],
-    ['members', beet.array(beetSolana.publicKey)],
+    ['allowExternalSigners', beet.coption(beet.bool)],
     ['memo', beet.coption(beet.utf8String)],
   ],
   'CreateArgs'
