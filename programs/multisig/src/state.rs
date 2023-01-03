@@ -1,3 +1,4 @@
+use crate::CreateArgs;
 use anchor_lang::prelude::*;
 
 #[account]
@@ -34,12 +35,12 @@ pub struct Multisig {
 }
 
 impl Multisig {
-    pub fn size(num_members: usize) -> usize {
+    pub fn size(args: &CreateArgs) -> usize {
         8  + // anchor account discriminator
         32 + // config_authority
         2  + // threshold
         4  + // members vector length
-        num_members * Member::size()  + // members
+        args.members.len() * Member::size()  + // members
         2  + // authority_index
         8  + // transaction_index
         8  + // stale_transaction_index

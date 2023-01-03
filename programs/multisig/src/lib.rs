@@ -174,7 +174,7 @@ pub struct Create<'info> {
     #[account(
         init,
         payer = creator,
-        space = Multisig::size(args.members.len()),
+        space = Multisig::size(&args),
         seeds = [b"multisig", args.create_key.as_ref(), b"multisig"],
         bump
     )]

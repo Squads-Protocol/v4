@@ -1,6 +1,5 @@
 import {
   Connection,
-  Keypair,
   PublicKey,
   SendOptions,
   Signer,
@@ -8,6 +7,7 @@ import {
 } from "@solana/web3.js";
 import * as transactions from "./transactions.js";
 import { Member } from "./generated";
+import { translateAndThrowAnchorError } from "./errors";
 
 /** Creates a new multisig. */
 export async function create({
@@ -49,5 +49,9 @@ export async function create({
 
   tx.sign([creator]);
 
-  return await connection.sendTransaction(tx, sendOptions);
+  try {
+    return await connection.sendTransaction(tx, sendOptions);
+  } catch (err) {
+    translateAndThrowAnchorError(err);
+  }
 }
