@@ -14,4 +14,11 @@ module.exports = {
   sdkDir,
   binaryInstallDir,
   programDir,
+  idlHook: (idl) => {
+    return {
+      ...idl,
+      // Exclude `Permission` enum from the IDL because it is not correctly represented there.
+      types: idl.types.filter((type) => type.name !== "Permission"),
+    };
+  },
 };

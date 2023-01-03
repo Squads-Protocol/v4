@@ -1,4 +1,7 @@
-export * from "./generated/index.js";
+export * as generated from "./generated/index.js";
+export { PROGRAM_ID, PROGRAM_ADDRESS } from "./generated/index.js";
+/** Program accounts */
+export * as accounts from "./accounts.js";
 /** Error parsing utils for the multisig program. */
 export * as errors from "./errors.js";
 /** PDA utils. */
@@ -7,3 +10,5 @@ export * from "./pda.js";
 export * as rpc from "./rpc.js";
 /** Transactions for the multisig program. */
 export * as transactions from "./transactions.js";
+/** Additional types */
+export * as types from "./types.js";

@@ -6,25 +6,15 @@
  */
 
 import * as beet from '@metaplex-foundation/beet'
-/**
- * @category enums
- * @category generated
- */
-export enum Role {
-  All,
-  Initiate,
-  Vote,
-  Execute,
-  InitiateAndExecute,
-  InitiateAndVote,
-  VoteAndExecute,
+export type Permissions = {
+  mask: number
 }
 
 /**
  * @category userTypes
  * @category generated
  */
-export const roleBeet = beet.fixedScalarEnum(Role) as beet.FixedSizeBeet<
-  Role,
-  Role
->
+export const permissionsBeet = new beet.BeetArgsStruct<Permissions>(
+  [['mask', beet.u8]],
+  'Permissions'
+)

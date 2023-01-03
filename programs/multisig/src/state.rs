@@ -73,7 +73,7 @@ impl Multisig {
 #[derive(AnchorDeserialize, AnchorSerialize, Eq, PartialEq, Clone)]
 pub struct Member {
     pub key: Pubkey,
-    pub role: Role,
+    pub permissions: Permissions,
 }
 
 impl Member {
@@ -83,13 +83,68 @@ impl Member {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Eq, PartialEq, Debug)]
-pub enum Role {
-    All,
-    Initiate,
-    Vote,
-    Execute,
-    InitiateAndExecute,
-    InitiateAndVote,
-    VoteAndExecute,
+#[derive(Clone, Copy)]
+pub enum Permission {
+    Initiate = 1 << 0,
+    Vote = 1 << 1,
+    Execute = 1 << 2,
+}
+
+/// Bitmask for permissions.
+#[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy, Default, Debug)]
+pub struct Permissions {
+    mask: u8,
+}
+
+impl Permissions {
+    pub fn from_vec(permissions: &[Permission]) -> Self {
+        let mut mask = 0;
+        for permission in permissions {
+            mask |= *permission as u8;
+        }
+        Self { mask }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test() {
+        assert_eq!(
+            Permissions::from_vec(&[Permission::Initiate]),
+            Permissions {
+                mask: Permission::Initiate as u8
+            }
+        );
+        assert_eq!(
+            Permissions::from_vec(&[Permission::Initiate, Permission::Vote]),
+            Permissions {
+                mask: Permission::Initiate as u8 | Permission::Vote as u8
+            }
+        );
+        assert_eq!(
+            Permissions::from_vec(&[Permission::Initiate, Permission::Vote, Permission::Execute]),
+            Permissions {
+                mask: Permission::Initiate as u8
+                    | Permission::Vote as u8
+                    | Permission::Execute as u8
+            }
+        );
+        // assert!(Permission::All.has_all(&[Permission::Initiate, Permission::Vote]));
+        // assert!(Permission::All.has_all(&[
+        //     Permission::Initiate,
+        //     Permission::Vote,
+        //     Permission::Execute
+        // ]));
+        // assert_eq!(Permission::Initiate.try_to_vec().unwrap(), vec![1]);
+        // assert_eq!(Permission::Vote.try_to_vec().unwrap(), vec![2]);
+        // assert_eq!(Permission::Execute.try_to_vec().unwrap(), vec![4]);
+        // assert_eq!(Permission::All.try_to_vec().unwrap(), vec![255]);
+        // assert_eq!(
+        //     Permission::try_from_slice(&vec![255]).unwrap(),
+        //     Permission::All
+        // );
+    }
 }

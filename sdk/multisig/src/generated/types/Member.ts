@@ -8,10 +8,10 @@
 import * as web3 from '@solana/web3.js'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
 import * as beet from '@metaplex-foundation/beet'
-import { Role, roleBeet } from './Role'
+import { Permissions, permissionsBeet } from './Permissions'
 export type Member = {
   key: web3.PublicKey
-  role: Role
+  permissions: Permissions
 }
 
 /**
@@ -21,7 +21,7 @@ export type Member = {
 export const memberBeet = new beet.BeetArgsStruct<Member>(
   [
     ['key', beetSolana.publicKey],
-    ['role', roleBeet],
+    ['permissions', permissionsBeet],
   ],
   'Member'
 )

@@ -1,7 +1,9 @@
 import { Connection, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
-import { Multisig, Role } from "@sqds/multisig";
 import * as assert from "assert";
+
+const { Multisig } = multisig.accounts;
+const { Permission, Permissions } = multisig.types;
 
 describe("multisig", () => {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
@@ -43,7 +45,6 @@ describe("multisig", () => {
   describe("create", () => {
     it("new multisig", async () => {
       const createKey = Keypair.generate().publicKey;
-
       const [multisigPda, multisigBump] = multisig.getMultisigPda({
         createKey,
       });
@@ -58,7 +59,10 @@ describe("multisig", () => {
         multisigPda,
         configAuthority,
         threshold: 1,
-        members: members.map((m) => ({ key: m.publicKey, role: Role.All })),
+        members: members.map((m) => ({
+          key: m.publicKey,
+          permissions: Permissions.all(),
+        })),
         createKey,
         allowExternalSigners: false,
       });
@@ -78,7 +82,12 @@ describe("multisig", () => {
       assert.deepEqual(
         multisigAccount.members,
         members
-          .map((m) => ({ key: m.publicKey, role: Role.All }))
+          .map((m) => ({
+            key: m.publicKey,
+            permissions: {
+              mask: Permission.Initiate | Permission.Vote | Permission.Execute,
+            },
+          }))
           .sort((a, b) => a.key.toBuffer().compare(b.key.toBuffer()))
       );
       assert.strictEqual(multisigAccount.authorityIndex, 1);
@@ -92,10 +101,125 @@ describe("multisig", () => {
       assert.strictEqual(multisigAccount.bump, multisigBump);
     });
 
-    it("error: duplicate member");
-    it("error: empty members");
+    it("error: duplicate member", async () => {
+      const createKey = Keypair.generate().publicKey;
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey,
+      });
+      const [configAuthority] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 0,
+      });
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.create({
+            connection,
+            creator,
+            multisigPda,
+            configAuthority,
+            threshold: 1,
+            members: [
+              {
+                key: members[0].publicKey,
+                permissions: Permissions.all(),
+              },
+              {
+                key: members[0].publicKey,
+                permissions: Permissions.all(),
+              },
+            ],
+            createKey,
+            allowExternalSigners: false,
+          }),
+        /Found multiple members with the same pubkey/
+      );
+    });
+
+    it("error: empty members", async () => {
+      const createKey = Keypair.generate().publicKey;
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey,
+      });
+      const [configAuthority] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 0,
+      });
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.create({
+            connection,
+            creator,
+            multisigPda,
+            configAuthority,
+            threshold: 1,
+            members: [],
+            createKey,
+            allowExternalSigners: false,
+          }),
+        /Members array is empty/
+      );
+    });
+
+    // We cannot really test it because we can't pass u16::MAX members to the instruction.
     it("error: too many members");
-    it("error: invalid threshold (< 1)");
-    it("error: invalid threshold (> members.length)");
+
+    it("error: invalid threshold (< 1)", async () => {
+      const createKey = Keypair.generate().publicKey;
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey,
+      });
+      const [configAuthority] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 0,
+      });
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.create({
+            connection,
+            creator,
+            multisigPda,
+            configAuthority,
+            threshold: 0,
+            members: members.map((m) => ({
+              key: m.publicKey,
+              permissions: Permissions.all(),
+            })),
+            createKey,
+            allowExternalSigners: false,
+          }),
+        /Invalid threshold, must be between 1 and number of members/
+      );
+    });
+    it("error: invalid threshold (> members.length)", async () => {
+      const createKey = Keypair.generate().publicKey;
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey,
+      });
+      const [configAuthority] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 0,
+      });
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.create({
+            connection,
+            creator,
+            multisigPda,
+            configAuthority,
+            threshold: members.length + 1,
+            members: members.map((m) => ({
+              key: m.publicKey,
+              permissions: Permissions.all(),
+            })),
+            createKey,
+            allowExternalSigners: false,
+          }),
+        /Invalid threshold, must be between 1 and number of members/
+      );
+    });
   });
 });
