@@ -55,7 +55,7 @@ describe("multisig", () => {
     );
   });
 
-  describe("create", () => {
+  describe("multisig_create", () => {
     it("error: duplicate member", async () => {
       const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
@@ -68,7 +68,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.create({
+          multisig.rpc.multisigCreate({
             connection,
             creator,
             multisigPda,
@@ -104,7 +104,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.create({
+          multisig.rpc.multisigCreate({
             connection,
             creator,
             multisigPda,
@@ -134,7 +134,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.create({
+          multisig.rpc.multisigCreate({
             connection,
             creator,
             multisigPda,
@@ -164,7 +164,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.create({
+          multisig.rpc.multisigCreate({
             connection,
             creator,
             multisigPda,
@@ -193,7 +193,7 @@ describe("multisig", () => {
         index: 0,
       });
 
-      const signature = await multisig.rpc.create({
+      const signature = await multisig.rpc.multisigCreate({
         connection,
         creator,
         multisigPda,
@@ -252,7 +252,7 @@ describe("multisig", () => {
         createKey: controlledMultisigCreateKey,
       });
 
-      const signature = await multisig.rpc.create({
+      const signature = await multisig.rpc.multisigCreate({
         connection,
         creator,
         multisigPda,
@@ -283,7 +283,7 @@ describe("multisig", () => {
     });
   });
 
-  describe("add_member", () => {
+  describe("multisig_add_member", () => {
     const newMember = {
       key: Keypair.generate().publicKey,
       permissions: Permissions.all(),
@@ -292,6 +292,72 @@ describe("multisig", () => {
       key: Keypair.generate().publicKey,
       permissions: Permissions.all(),
     } as const;
+
+    it("error: adding an existing member", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: controlledMultisigCreateKey,
+      });
+
+      // Adding the same member again should fail.
+      await assert.rejects(
+        multisig.rpc.multisigAddMember({
+          connection,
+          feePayer,
+          multisigPda,
+          configAuthority: controlledMultisigConfigAuthority.publicKey,
+          newMember: {
+            key: members[0].publicKey,
+            permissions: Permissions.all(),
+          },
+          signers: [controlledMultisigConfigAuthority],
+          sendOptions: { skipPreflight: true },
+        }),
+        /Member is already in multisig/
+      );
+    });
+
+    it("error: missing authority signature", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: controlledMultisigCreateKey,
+      });
+
+      await assert.rejects(
+        multisig.rpc.multisigAddMember({
+          connection,
+          feePayer,
+          multisigPda,
+          configAuthority: controlledMultisigConfigAuthority.publicKey,
+          newMember,
+          signers: [
+            /* missing authority signature */
+          ],
+          sendOptions: { skipPreflight: true },
+        }),
+        /Transaction signature verification failure/
+      );
+    });
+
+    it("error: invalid authority", async () => {
+      const fakeAuthority = await generateFundedKeypair(connection);
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: controlledMultisigCreateKey,
+      });
+
+      await assert.rejects(
+        multisig.rpc.multisigAddMember({
+          connection,
+          feePayer: fakeAuthority,
+          multisigPda,
+          configAuthority: fakeAuthority.publicKey,
+          newMember,
+          signers: [fakeAuthority],
+          sendOptions: { skipPreflight: true },
+        }),
+        /Invalid authority/
+      );
+    });
 
     it("add a new member to a controlled multisig", async () => {
       // feePayer can be anyone.
@@ -315,7 +381,7 @@ describe("multisig", () => {
       // Right after the creation of the multisig, the allocated account space is fully utilized.
       assert.equal(initialOccupiedSize, initialAllocatedSize);
 
-      let signature = await multisig.rpc.addMember({
+      let signature = await multisig.rpc.multisigAddMember({
         connection,
         feePayer,
         multisigPda,
@@ -354,7 +420,7 @@ describe("multisig", () => {
       );
 
       // Adding one more member shouldn't increase the allocated size.
-      signature = await multisig.rpc.addMember({
+      signature = await multisig.rpc.multisigAddMember({
         connection,
         feePayer,
         multisigPda,
@@ -386,69 +452,6 @@ describe("multisig", () => {
       assert.strictEqual(
         multisigAccountInfo!.data.length,
         initialAllocatedSize + 10 * multisig.generated.memberBeet.byteSize
-      );
-    });
-
-    it("error: adding an existing member", async () => {
-      const feePayer = await generateFundedKeypair(connection);
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: controlledMultisigCreateKey,
-      });
-
-      // Adding the same member again should fail.
-      await assert.rejects(
-        multisig.rpc.addMember({
-          connection,
-          feePayer,
-          multisigPda,
-          configAuthority: controlledMultisigConfigAuthority.publicKey,
-          newMember,
-          signers: [controlledMultisigConfigAuthority],
-          sendOptions: { skipPreflight: true },
-        }),
-        /Member is already in multisig/
-      );
-    });
-
-    it("error: missing authority signature", async () => {
-      const feePayer = await generateFundedKeypair(connection);
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: controlledMultisigCreateKey,
-      });
-
-      await assert.rejects(
-        multisig.rpc.addMember({
-          connection,
-          feePayer,
-          multisigPda,
-          configAuthority: controlledMultisigConfigAuthority.publicKey,
-          newMember,
-          signers: [
-            /* missing authority signature */
-          ],
-          sendOptions: { skipPreflight: true },
-        }),
-        /Transaction signature verification failure/
-      );
-    });
-
-    it("error: invalid authority", async () => {
-      const fakeAuthority = await generateFundedKeypair(connection);
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: controlledMultisigCreateKey,
-      });
-
-      await assert.rejects(
-        multisig.rpc.addMember({
-          connection,
-          feePayer: fakeAuthority,
-          multisigPda,
-          configAuthority: fakeAuthority.publicKey,
-          newMember,
-          signers: [fakeAuthority],
-          sendOptions: { skipPreflight: true },
-        }),
-        /Invalid authority/
       );
     });
   });

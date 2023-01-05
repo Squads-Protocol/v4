@@ -6,14 +6,14 @@ use crate::events::ConfigUpdateType;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct AddMemberArgs {
+pub struct MultisigAddMemberArgs {
     new_member: Member,
     /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
     pub memo: Option<String>,
 }
 
 #[derive(Accounts)]
-pub struct Config<'info> {
+pub struct MultisigConfig<'info> {
     #[account(
         mut,
         seeds = [b"multisig", multisig.create_key.as_ref(), b"multisig"],
@@ -29,12 +29,12 @@ pub struct Config<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl Config<'_> {
+impl MultisigConfig<'_> {
     /// Add a member/key to the multisig and reallocate space if necessary.
-    pub fn add_member(ctx: Context<Self>, args: AddMemberArgs) -> Result<()> {
+    pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
 
-        let AddMemberArgs { new_member, memo } = args;
+        let MultisigAddMemberArgs { new_member, memo } = args;
 
         require!(
             multisig.is_member(new_member.key).is_none(),

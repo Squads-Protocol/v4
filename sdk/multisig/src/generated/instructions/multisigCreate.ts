@@ -7,67 +7,72 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
-import { CreateArgs, createArgsBeet } from '../types/CreateArgs'
+import {
+  MultisigCreateArgs,
+  multisigCreateArgsBeet,
+} from '../types/MultisigCreateArgs'
 
 /**
  * @category Instructions
- * @category Create
+ * @category MultisigCreate
  * @category generated
  */
-export type CreateInstructionArgs = {
-  args: CreateArgs
+export type MultisigCreateInstructionArgs = {
+  args: MultisigCreateArgs
 }
 /**
  * @category Instructions
- * @category Create
+ * @category MultisigCreate
  * @category generated
  */
-export const createStruct = new beet.FixableBeetArgsStruct<
-  CreateInstructionArgs & {
+export const multisigCreateStruct = new beet.FixableBeetArgsStruct<
+  MultisigCreateInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', createArgsBeet],
+    ['args', multisigCreateArgsBeet],
   ],
-  'CreateInstructionArgs'
+  'MultisigCreateInstructionArgs'
 )
 /**
- * Accounts required by the _create_ instruction
+ * Accounts required by the _multisigCreate_ instruction
  *
  * @property [_writable_] multisig
  * @property [_writable_, **signer**] creator
  * @category Instructions
- * @category Create
+ * @category MultisigCreate
  * @category generated
  */
-export type CreateInstructionAccounts = {
+export type MultisigCreateInstructionAccounts = {
   multisig: web3.PublicKey
   creator: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const createInstructionDiscriminator = [24, 30, 200, 40, 5, 28, 7, 119]
+export const multisigCreateInstructionDiscriminator = [
+  122, 77, 80, 159, 84, 88, 90, 197,
+]
 
 /**
- * Creates a _Create_ instruction.
+ * Creates a _MultisigCreate_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category Create
+ * @category MultisigCreate
  * @category generated
  */
-export function createCreateInstruction(
-  accounts: CreateInstructionAccounts,
-  args: CreateInstructionArgs,
+export function createMultisigCreateInstruction(
+  accounts: MultisigCreateInstructionAccounts,
+  args: MultisigCreateInstructionArgs,
   programId = new web3.PublicKey('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS')
 ) {
-  const [data] = createStruct.serialize({
-    instructionDiscriminator: createInstructionDiscriminator,
+  const [data] = multisigCreateStruct.serialize({
+    instructionDiscriminator: multisigCreateInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [

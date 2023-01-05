@@ -1,10 +1,16 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "pipeline": {
-    "generate": {},
+    "generate": {
+      "cache": false
+    },
     "build": {
       "dependsOn": ["^build", "generate"],
       "outputs": ["lib/**"]
+    },
+    "ts": {
+      "inputs": ["src/**/*.ts", "tests/**/*.ts", "package.json"],
+      "outputs": []
     }
   }
 }

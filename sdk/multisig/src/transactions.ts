@@ -4,13 +4,13 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import {
-  createAddMemberInstruction,
-  createCreateInstruction,
+  createMultisigAddMemberInstruction,
+  createMultisigCreateInstruction,
   Member,
 } from "./generated";
 
 /** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` before sending it. */
-export function create({
+export function multisigCreate({
   blockhash,
   configAuthority,
   creator,
@@ -35,7 +35,7 @@ export function create({
     payerKey: creator,
     recentBlockhash: blockhash,
     instructions: [
-      createCreateInstruction(
+      createMultisigCreateInstruction(
         {
           creator,
           multisig: multisigPda,
@@ -57,7 +57,11 @@ export function create({
   return new VersionedTransaction(message);
 }
 
-export function addMember({
+/**
+ * Returns unsigned `VersionedTransaction` that needs to be
+ * signed by `configAuthority` and `feePayer` before sending it.
+ */
+export function multisigAddMember({
   blockhash,
   feePayer,
   multisigPda,
@@ -76,7 +80,7 @@ export function addMember({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      createAddMemberInstruction(
+      createMultisigAddMemberInstruction(
         {
           multisig: multisigPda,
           configAuthority,

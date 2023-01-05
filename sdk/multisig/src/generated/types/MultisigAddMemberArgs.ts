@@ -7,7 +7,7 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import { Member, memberBeet } from './Member'
-export type AddMemberArgs = {
+export type MultisigAddMemberArgs = {
   newMember: Member
   memo: beet.COption<string>
 }
@@ -16,10 +16,11 @@ export type AddMemberArgs = {
  * @category userTypes
  * @category generated
  */
-export const addMemberArgsBeet = new beet.FixableBeetArgsStruct<AddMemberArgs>(
-  [
-    ['newMember', memberBeet],
-    ['memo', beet.coption(beet.utf8String)],
-  ],
-  'AddMemberArgs'
-)
+export const multisigAddMemberArgsBeet =
+  new beet.FixableBeetArgsStruct<MultisigAddMemberArgs>(
+    [
+      ['newMember', memberBeet],
+      ['memo', beet.coption(beet.utf8String)],
+    ],
+    'MultisigAddMemberArgs'
+  )

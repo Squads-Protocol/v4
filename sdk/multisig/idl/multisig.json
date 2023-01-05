@@ -3,7 +3,7 @@
   "name": "multisig",
   "instructions": [
     {
-      "name": "create",
+      "name": "multisigCreate",
       "docs": [
         "Creates a multisig."
       ],
@@ -31,13 +31,13 @@
         {
           "name": "args",
           "type": {
-            "defined": "CreateArgs"
+            "defined": "MultisigCreateArgs"
           }
         }
       ]
     },
     {
-      "name": "addMember",
+      "name": "multisigAddMember",
       "docs": [
         "Adds a new member to the multisig."
       ],
@@ -65,7 +65,7 @@
         {
           "name": "args",
           "type": {
-            "defined": "AddMemberArgs"
+            "defined": "MultisigAddMemberArgs"
           }
         }
       ]
@@ -161,7 +161,7 @@
   ],
   "types": [
     {
-      "name": "AddMemberArgs",
+      "name": "MultisigAddMemberArgs",
       "type": {
         "kind": "struct",
         "fields": [
@@ -184,7 +184,7 @@
       }
     },
     {
-      "name": "CreateArgs",
+      "name": "MultisigCreateArgs",
       "type": {
         "kind": "struct",
         "fields": [

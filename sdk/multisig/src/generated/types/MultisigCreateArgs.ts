@@ -9,7 +9,7 @@ import * as web3 from '@solana/web3.js'
 import * as beet from '@metaplex-foundation/beet'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
 import { Member, memberBeet } from './Member'
-export type CreateArgs = {
+export type MultisigCreateArgs = {
   configAuthority: web3.PublicKey
   threshold: number
   members: Member[]
@@ -22,14 +22,15 @@ export type CreateArgs = {
  * @category userTypes
  * @category generated
  */
-export const createArgsBeet = new beet.FixableBeetArgsStruct<CreateArgs>(
-  [
-    ['configAuthority', beetSolana.publicKey],
-    ['threshold', beet.u16],
-    ['members', beet.array(memberBeet)],
-    ['createKey', beetSolana.publicKey],
-    ['allowExternalExecute', beet.coption(beet.bool)],
-    ['memo', beet.coption(beet.utf8String)],
-  ],
-  'CreateArgs'
-)
+export const multisigCreateArgsBeet =
+  new beet.FixableBeetArgsStruct<MultisigCreateArgs>(
+    [
+      ['configAuthority', beetSolana.publicKey],
+      ['threshold', beet.u16],
+      ['members', beet.array(memberBeet)],
+      ['createKey', beetSolana.publicKey],
+      ['allowExternalExecute', beet.coption(beet.bool)],
+      ['memo', beet.coption(beet.utf8String)],
+    ],
+    'MultisigCreateArgs'
+  )

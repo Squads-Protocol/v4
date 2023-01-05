@@ -5,7 +5,7 @@ use crate::events::*;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct CreateArgs {
+pub struct MultisigCreateArgs {
     /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
     pub config_authority: Pubkey,
     /// The number of signatures required to execute a transaction.
@@ -21,8 +21,8 @@ pub struct CreateArgs {
 }
 
 #[derive(Accounts)]
-#[instruction(args: CreateArgs)]
-pub struct Create<'info> {
+#[instruction(args: MultisigCreateArgs)]
+pub struct MultisigCreate<'info> {
     #[account(
         init,
         payer = creator,
@@ -39,9 +39,9 @@ pub struct Create<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl Create<'_> {
+impl MultisigCreate<'_> {
     /// Creates a multisig.
-    pub fn create(ctx: Context<Self>, args: CreateArgs) -> Result<()> {
+    pub fn multisig_create(ctx: Context<Self>, args: MultisigCreateArgs) -> Result<()> {
         // Sort the members by pubkey.
         let mut members = args.members;
         members.sort_by_key(|m| m.key);

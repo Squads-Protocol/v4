@@ -1,5 +1,5 @@
-export * from './AddMemberArgs'
 export * from './ConfigUpdateType'
-export * from './CreateArgs'
 export * from './Member'
+export * from './MultisigAddMemberArgs'
+export * from './MultisigCreateArgs'
 export * from './Permissions'

@@ -5,7 +5,8 @@
     ],
     "scripts": {
         "build": "turbo run build",
-        "test": "turbo run build && anchor test"
+        "test": "turbo run build && anchor test",
+        "ts": "turbo run ts && yarn tsc --noEmit"
     },
     "devDependencies": {
         "@solana/spl-token": "0.3.6",

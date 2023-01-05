@@ -14,13 +14,16 @@ pub mod multisig {
     use super::*;
 
     /// Creates a multisig.
-    pub fn create(ctx: Context<Create>, args: CreateArgs) -> Result<()> {
-        Create::create(ctx, args)
+    pub fn multisig_create(ctx: Context<MultisigCreate>, args: MultisigCreateArgs) -> Result<()> {
+        MultisigCreate::multisig_create(ctx, args)
     }
 
     /// Adds a new member to the multisig.
-    pub fn add_member(ctx: Context<Config>, args: AddMemberArgs) -> Result<()> {
-        Config::add_member(ctx, args)
+    pub fn multisig_add_member(
+        ctx: Context<MultisigConfig>,
+        args: MultisigAddMemberArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_add_member(ctx, args)
     }
 
     // // instruction to remove a member/key from the multisig

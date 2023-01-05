@@ -10,7 +10,7 @@ import { Member } from "./generated";
 import { translateAndThrowAnchorError } from "./errors";
 
 /** Creates a new multisig. */
-export async function create({
+export async function multisigCreate({
   connection,
   creator,
   multisigPda,
@@ -35,7 +35,7 @@ export async function create({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.create({
+  const tx = transactions.multisigCreate({
     blockhash,
     creator: creator.publicKey,
     multisigPda,
@@ -57,13 +57,13 @@ export async function create({
 }
 
 /** Add a member/key to the multisig and reallocate space if necessary. */
-export async function addMember({
+export async function multisigAddMember({
   connection,
   feePayer,
   multisigPda,
   configAuthority,
   newMember,
-    memo,
+  memo,
   signers,
   sendOptions,
 }: {
@@ -78,13 +78,13 @@ export async function addMember({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.addMember({
+  const tx = transactions.multisigAddMember({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
     configAuthority,
     newMember,
-    memo
+    memo,
   });
 
   tx.sign([feePayer, ...(signers ?? [])]);

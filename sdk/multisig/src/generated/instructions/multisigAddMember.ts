@@ -7,69 +7,72 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
-import { AddMemberArgs, addMemberArgsBeet } from '../types/AddMemberArgs'
+import {
+  MultisigAddMemberArgs,
+  multisigAddMemberArgsBeet,
+} from '../types/MultisigAddMemberArgs'
 
 /**
  * @category Instructions
- * @category AddMember
+ * @category MultisigAddMember
  * @category generated
  */
-export type AddMemberInstructionArgs = {
-  args: AddMemberArgs
+export type MultisigAddMemberInstructionArgs = {
+  args: MultisigAddMemberArgs
 }
 /**
  * @category Instructions
- * @category AddMember
+ * @category MultisigAddMember
  * @category generated
  */
-export const addMemberStruct = new beet.FixableBeetArgsStruct<
-  AddMemberInstructionArgs & {
+export const multisigAddMemberStruct = new beet.FixableBeetArgsStruct<
+  MultisigAddMemberInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', addMemberArgsBeet],
+    ['args', multisigAddMemberArgsBeet],
   ],
-  'AddMemberInstructionArgs'
+  'MultisigAddMemberInstructionArgs'
 )
 /**
- * Accounts required by the _addMember_ instruction
+ * Accounts required by the _multisigAddMember_ instruction
  *
  * @property [_writable_] multisig
  * @property [_writable_, **signer**] configAuthority
  * @category Instructions
- * @category AddMember
+ * @category MultisigAddMember
  * @category generated
  */
-export type AddMemberInstructionAccounts = {
+export type MultisigAddMemberInstructionAccounts = {
   multisig: web3.PublicKey
   configAuthority: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const addMemberInstructionDiscriminator = [
-  13, 116, 123, 130, 126, 198, 57, 34,
+export const multisigAddMemberInstructionDiscriminator = [
+  1, 219, 215, 108, 184, 229, 214, 8,
 ]
 
 /**
- * Creates a _AddMember_ instruction.
+ * Creates a _MultisigAddMember_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category AddMember
+ * @category MultisigAddMember
  * @category generated
  */
-export function createAddMemberInstruction(
-  accounts: AddMemberInstructionAccounts,
-  args: AddMemberInstructionArgs,
+export function createMultisigAddMemberInstruction(
+  accounts: MultisigAddMemberInstructionAccounts,
+  args: MultisigAddMemberInstructionArgs,
   programId = new web3.PublicKey('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS')
 ) {
-  const [data] = addMemberStruct.serialize({
-    instructionDiscriminator: addMemberInstructionDiscriminator,
+  const [data] = multisigAddMemberStruct.serialize({
+    instructionDiscriminator: multisigAddMemberInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
