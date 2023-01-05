@@ -1,3 +1,5 @@
+export * from './AddMemberArgs'
+export * from './ConfigUpdateType'
 export * from './CreateArgs'
 export * from './Member'
 export * from './Permissions'

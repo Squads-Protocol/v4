@@ -1,9 +1,10 @@
 use anchor_lang::prelude::*;
 
-use errors::*;
-use state::*;
+use instructions::*;
 
 mod errors;
+mod events;
+mod instructions;
 mod state;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
@@ -14,85 +15,14 @@ pub mod multisig {
 
     /// Creates a multisig.
     pub fn create(ctx: Context<Create>, args: CreateArgs) -> Result<()> {
-        // Sort the members by pubkey.
-        let mut members = args.members;
-        members.sort_by_key(|m| m.key);
-
-        // Make sure there is no members with duplicate keys.
-        for i in (1..members.len()).rev() {
-            if members[i].key == members[i - 1].key {
-                err!(MultisigError::DuplicateMember)?;
-            }
-        }
-
-        // Make sure length of members is within bounds.
-        let num_members = members.len();
-        let max_members = usize::from(u16::MAX);
-        require!(num_members > 0, MultisigError::EmptyMembers);
-        require!(num_members <= max_members, MultisigError::TooManyMembers);
-
-        // Make sure threshold is within bounds.
-        let threshold = usize::from(args.threshold);
-        require!(threshold > 0, MultisigError::InvalidThreshold);
-        require!(threshold <= num_members, MultisigError::InvalidThreshold);
-
-        ctx.accounts.multisig.init(
-            args.config_authority,
-            args.threshold,
-            members,
-            args.create_key,
-            args.allow_external_signers.unwrap_or(false),
-            *ctx.bumps.get("multisig").unwrap(),
-        );
-
-        emit!(CreatedEvent {
-            multisig: ctx.accounts.multisig.to_account_info().key.clone(),
-            memo: args.memo,
-        });
-
-        Ok(())
+        Create::create(ctx, args)
     }
-    //
-    // pub fn add_member(ctx: Context<MsAuthRealloc>, new_member: Pubkey) -> Result<()> {
-    //     // if max is already reached, we can't have more members
-    //     if ctx.accounts.multisig.keys.len() >= usize::from(u16::MAX) {
-    //         return err!(MsError::MaxMembersReached);
-    //     }
-    //
-    //     // check if realloc is needed
-    //     let multisig_account_info = ctx.accounts.multisig.to_account_info();
-    //     if *multisig_account_info.owner != squads_mpl::ID {
-    //         return err!(MsError::InvalidInstructionAccount);
-    //     }
-    //     let curr_data_size = multisig_account_info.data.borrow().len();
-    //     let spots_left = ((curr_data_size - Ms::SIZE_WITHOUT_MEMBERS) / 32 ) - ctx.accounts.multisig.keys.len();
-    //
-    //     // if not enough, add (10 * 32) to size - bump it up by 10 accounts
-    //     if spots_left < 1 {
-    //         // add space for 10 more keys
-    //         let needed_len = curr_data_size + ( 10 * 32 );
-    //         // reallocate more space
-    //         AccountInfo::realloc(&multisig_account_info, needed_len, false)?;
-    //         // if more lamports are needed, transfer them to the account
-    //         let rent_exempt_lamports = ctx.accounts.rent.minimum_balance(needed_len).max(1);
-    //         let top_up_lamports = rent_exempt_lamports.saturating_sub(ctx.accounts.multisig.to_account_info().lamports());
-    //         if top_up_lamports > 0 {
-    //             invoke(
-    //                 &transfer(ctx.accounts.member.key, &ctx.accounts.multisig.key(), top_up_lamports),
-    //                 &[
-    //                     ctx.accounts.member.to_account_info().clone(),
-    //                     multisig_account_info.clone(),
-    //                     ctx.accounts.system_program.to_account_info().clone(),
-    //                 ],
-    //             )?;
-    //         }
-    //     }
-    //     ctx.accounts.multisig.reload()?;
-    //     ctx.accounts.multisig.add_member(new_member)?;
-    //     let new_index = ctx.accounts.multisig.transaction_index;
-    //     ctx.accounts.multisig.set_change_index(new_index)
-    // }
-    //
+
+    /// Adds a new member to the multisig.
+    pub fn add_member(ctx: Context<Config>, args: AddMemberArgs) -> Result<()> {
+        Config::add_member(ctx, args)
+    }
+
     // // instruction to remove a member/key from the multisig
     // pub fn remove_member(ctx: Context<MsAuth>, old_member: Pubkey) -> Result<()> {
     //     // if there is only one key in this multisig, reject the removal
@@ -168,70 +98,6 @@ pub mod multisig {
     // }
 }
 
-#[derive(Accounts)]
-#[instruction(args: CreateArgs)]
-pub struct Create<'info> {
-    #[account(
-        init,
-        payer = creator,
-        space = Multisig::size(&args),
-        seeds = [b"multisig", args.create_key.as_ref(), b"multisig"],
-        bump
-    )]
-    pub multisig: Account<'info, Multisig>,
-
-    /// The creator of the multisig.
-    #[account(mut)]
-    pub creator: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct CreateArgs {
-    /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
-    config_authority: Pubkey,
-    /// The number of signatures required to execute a transaction.
-    threshold: u16,
-    /// The members of the multisig.
-    members: Vec<Member>,
-    /// Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning.
-    create_key: Pubkey,
-    /// Whether to allow non-member keys to execute txs.
-    allow_external_signers: Option<bool>,
-    /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
-    memo: Option<String>,
-}
-
-#[event]
-pub struct CreatedEvent {
-    /// The multisig account.
-    pub multisig: Pubkey,
-    #[index]
-    /// Memo that was added by the creator.
-    pub memo: Option<String>,
-}
-
-// #[derive(Accounts)]
-// pub struct Initialize {}
-//
-//
-//
-// #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Debug)]
-// pub enum Role {
-//     All,
-//     Initiate,
-//     Vote,
-//     Execute,
-//     InitiateAndExecute,
-//     InitiateAndVote,
-//     VoteAndExecute,
-// }
-//
-// impl Role {
-//     pub const MAXIMUM_SIZE: usize = 1 + 18;
-// }
-//
 // #[derive(Accounts)]
 // pub struct MsAuth<'info> {
 //     #[account(

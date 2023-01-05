@@ -14,7 +14,7 @@ export type CreateArgs = {
   threshold: number
   members: Member[]
   createKey: web3.PublicKey
-  allowExternalSigners: beet.COption<boolean>
+  allowExternalExecute: beet.COption<boolean>
   memo: beet.COption<string>
 }
 
@@ -28,7 +28,7 @@ export const createArgsBeet = new beet.FixableBeetArgsStruct<CreateArgs>(
     ['threshold', beet.u16],
     ['members', beet.array(memberBeet)],
     ['createKey', beetSolana.publicKey],
-    ['allowExternalSigners', beet.coption(beet.bool)],
+    ['allowExternalExecute', beet.coption(beet.bool)],
     ['memo', beet.coption(beet.utf8String)],
   ],
   'CreateArgs'

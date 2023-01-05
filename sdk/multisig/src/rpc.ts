@@ -18,7 +18,7 @@ export async function create({
   threshold,
   members,
   createKey,
-  allowExternalSigners,
+  allowExternalExecute,
   memo,
   sendOptions,
 }: {
@@ -29,7 +29,7 @@ export async function create({
   threshold: number;
   members: Member[];
   createKey: PublicKey;
-  allowExternalSigners?: boolean;
+  allowExternalExecute?: boolean;
   memo?: string;
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
@@ -43,11 +43,51 @@ export async function create({
     threshold,
     members,
     createKey,
-    allowExternalSigners,
+    allowExternalExecute,
     memo,
   });
 
   tx.sign([creator]);
+
+  try {
+    return await connection.sendTransaction(tx, sendOptions);
+  } catch (err) {
+    translateAndThrowAnchorError(err);
+  }
+}
+
+/** Add a member/key to the multisig and reallocate space if necessary. */
+export async function addMember({
+  connection,
+  feePayer,
+  multisigPda,
+  configAuthority,
+  newMember,
+    memo,
+  signers,
+  sendOptions,
+}: {
+  connection: Connection;
+  feePayer: Signer;
+  multisigPda: PublicKey;
+  configAuthority: PublicKey;
+  newMember: Member;
+  memo?: string;
+  signers?: Signer[];
+  sendOptions?: SendOptions;
+}): Promise<TransactionSignature> {
+  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  const tx = transactions.addMember({
+    blockhash,
+    feePayer: feePayer.publicKey,
+    multisigPda,
+    configAuthority,
+    newMember,
+    memo
+  });
+
+  tx.sign([feePayer, ...(signers ?? [])]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

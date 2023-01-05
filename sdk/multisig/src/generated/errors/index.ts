@@ -35,13 +35,36 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * MemberAlreadyExists: 'Member is already in multisig'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class MemberAlreadyExistsError extends Error {
+  readonly code: number = 0x1771
+  readonly name: string = 'MemberAlreadyExists'
+  constructor() {
+    super('Member is already in multisig')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, MemberAlreadyExistsError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1771, () => new MemberAlreadyExistsError())
+createErrorFromNameLookup.set(
+  'MemberAlreadyExists',
+  () => new MemberAlreadyExistsError()
+)
+
+/**
  * EmptyMembers: 'Members array is empty'
  *
  * @category Errors
  * @category generated
  */
 export class EmptyMembersError extends Error {
-  readonly code: number = 0x1771
+  readonly code: number = 0x1772
   readonly name: string = 'EmptyMembers'
   constructor() {
     super('Members array is empty')
@@ -51,7 +74,7 @@ export class EmptyMembersError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1771, () => new EmptyMembersError())
+createErrorFromCodeLookup.set(0x1772, () => new EmptyMembersError())
 createErrorFromNameLookup.set('EmptyMembers', () => new EmptyMembersError())
 
 /**
@@ -61,7 +84,7 @@ createErrorFromNameLookup.set('EmptyMembers', () => new EmptyMembersError())
  * @category generated
  */
 export class TooManyMembersError extends Error {
-  readonly code: number = 0x1772
+  readonly code: number = 0x1773
   readonly name: string = 'TooManyMembers'
   constructor() {
     super('Too many members, can be up to 65535')
@@ -71,8 +94,31 @@ export class TooManyMembersError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1772, () => new TooManyMembersError())
+createErrorFromCodeLookup.set(0x1773, () => new TooManyMembersError())
 createErrorFromNameLookup.set('TooManyMembers', () => new TooManyMembersError())
+
+/**
+ * MaxMembersReached: 'Maximum number of members already reached'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class MaxMembersReachedError extends Error {
+  readonly code: number = 0x1774
+  readonly name: string = 'MaxMembersReached'
+  constructor() {
+    super('Maximum number of members already reached')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, MaxMembersReachedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1774, () => new MaxMembersReachedError())
+createErrorFromNameLookup.set(
+  'MaxMembersReached',
+  () => new MaxMembersReachedError()
+)
 
 /**
  * InvalidThreshold: 'Invalid threshold, must be between 1 and number of members'
@@ -81,7 +127,7 @@ createErrorFromNameLookup.set('TooManyMembers', () => new TooManyMembersError())
  * @category generated
  */
 export class InvalidThresholdError extends Error {
-  readonly code: number = 0x1773
+  readonly code: number = 0x1775
   readonly name: string = 'InvalidThreshold'
   constructor() {
     super('Invalid threshold, must be between 1 and number of members')
@@ -91,11 +137,31 @@ export class InvalidThresholdError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1773, () => new InvalidThresholdError())
+createErrorFromCodeLookup.set(0x1775, () => new InvalidThresholdError())
 createErrorFromNameLookup.set(
   'InvalidThreshold',
   () => new InvalidThresholdError()
 )
+
+/**
+ * Unauthorized: 'Invalid authority'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class UnauthorizedError extends Error {
+  readonly code: number = 0x1776
+  readonly name: string = 'Unauthorized'
+  constructor() {
+    super('Invalid authority')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, UnauthorizedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1776, () => new UnauthorizedError())
+createErrorFromNameLookup.set('Unauthorized', () => new UnauthorizedError())
 
 /**
  * Attempts to resolve a custom program error from the provided error code.

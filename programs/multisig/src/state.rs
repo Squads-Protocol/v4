@@ -1,5 +1,6 @@
-use crate::CreateArgs;
 use anchor_lang::prelude::*;
+
+use crate::events::*;
 
 #[account]
 pub struct Multisig {
@@ -35,38 +36,49 @@ pub struct Multisig {
 }
 
 impl Multisig {
-    pub fn size(args: &CreateArgs) -> usize {
+    pub fn size(members_length: usize) -> usize {
         8  + // anchor account discriminator
         32 + // config_authority
         2  + // threshold
         4  + // members vector length
-        args.members.len() * Member::size()  + // members
+        members_length * Member::size()  + // members
         2  + // authority_index
         8  + // transaction_index
-        8  + // stale_transaction_index
+        8  + // stale_transaction_index 
         1  + // allow_external_execute
         32 + // create_key
         1 // bump
     }
 
-    pub fn init(
+    /// Captures the fact that the multisig config has changed in the multisig state
+    /// and emits a `ConfigUpdatedEvent`.
+    pub fn config_updated(
         &mut self,
-        config_authority: Pubkey,
-        threshold: u16,
-        members: Vec<Member>,
-        create_key: Pubkey,
-        allow_external_execute: bool,
-        bump: u8,
+        multisig_address: Pubkey,
+        update: ConfigUpdateType,
+        memo: Option<String>,
     ) {
-        self.config_authority = config_authority;
-        self.threshold = threshold;
-        self.members = members;
-        self.authority_index = 1; // Default vault is the first authority.
-        self.transaction_index = 0;
-        self.stale_transaction_index = 0;
-        self.allow_external_execute = allow_external_execute;
-        self.create_key = create_key;
-        self.bump = bump;
+        self.stale_transaction_index = self.transaction_index;
+
+        emit!(ConfigUpdatedEvent {
+            multisig: multisig_address,
+            update,
+            memo
+        })
+    }
+
+    pub fn is_member(&self, member_pubkey: Pubkey) -> Option<usize> {
+        match self.members.binary_search_by_key(&member_pubkey, |m| m.key) {
+            Ok(index) => Some(index),
+            _ => None,
+        }
+    }
+
+    pub fn add_member_if_not_exists(&mut self, new_member: Member) {
+        if self.is_member(new_member.key).is_none() {
+            self.members.push(new_member);
+            self.members.sort_by_key(|m| m.key);
+        }
     }
 }
 

@@ -35,6 +35,40 @@
           }
         }
       ]
+    },
+    {
+      "name": "addMember",
+      "docs": [
+        "Adds a new member to the multisig."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "AddMemberArgs"
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -127,34 +161,24 @@
   ],
   "types": [
     {
-      "name": "Member",
+      "name": "AddMemberArgs",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "key",
-            "type": "publicKey"
+            "name": "newMember",
+            "type": {
+              "defined": "Member"
+            }
           },
           {
-            "name": "permissions",
+            "name": "memo",
+            "docs": [
+              "Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed."
+            ],
             "type": {
-              "defined": "Permissions"
+              "option": "string"
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Permissions",
-      "docs": [
-        "Bitmask for permissions."
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mask",
-            "type": "u8"
           }
         ]
       }
@@ -197,7 +221,7 @@
             "type": "publicKey"
           },
           {
-            "name": "allowExternalSigners",
+            "name": "allowExternalExecute",
             "docs": [
               "Whether to allow non-member keys to execute txs."
             ],
@@ -213,6 +237,68 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Member",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key",
+            "type": "publicKey"
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": "Permissions"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Permissions",
+      "docs": [
+        "Bitmask for permissions."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mask",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigUpdateType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "AddMember",
+            "fields": [
+              {
+                "name": "reallocated",
+                "type": "bool"
+              }
+            ]
+          },
+          {
+            "name": "RemoveMember"
+          },
+          {
+            "name": "ChangeThreshold"
+          },
+          {
+            "name": "ChangeConfigAuthority"
+          },
+          {
+            "name": "ChangeAllowExternalExecute"
           }
         ]
       }
@@ -235,6 +321,30 @@
           "index": true
         }
       ]
+    },
+    {
+      "name": "ConfigUpdatedEvent",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "update",
+          "type": {
+            "defined": "ConfigUpdateType"
+          },
+          "index": true
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
     }
   ],
   "errors": [
@@ -245,18 +355,33 @@
     },
     {
       "code": 6001,
+      "name": "MemberAlreadyExists",
+      "msg": "Member is already in multisig"
+    },
+    {
+      "code": 6002,
       "name": "EmptyMembers",
       "msg": "Members array is empty"
     },
     {
-      "code": 6002,
+      "code": 6003,
       "name": "TooManyMembers",
       "msg": "Too many members, can be up to 65535"
     },
     {
-      "code": 6003,
+      "code": 6004,
+      "name": "MaxMembersReached",
+      "msg": "Maximum number of members already reached"
+    },
+    {
+      "code": 6005,
       "name": "InvalidThreshold",
       "msg": "Invalid threshold, must be between 1 and number of members"
+    },
+    {
+      "code": 6006,
+      "name": "Unauthorized",
+      "msg": "Invalid authority"
     }
   ],
   "metadata": {

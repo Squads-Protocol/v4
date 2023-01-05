@@ -3,7 +3,11 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { createCreateInstruction, Member } from "./generated";
+import {
+  createAddMemberInstruction,
+  createCreateInstruction,
+  Member,
+} from "./generated";
 
 /** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` before sending it. */
 export function create({
@@ -14,7 +18,7 @@ export function create({
   threshold,
   members,
   createKey,
-  allowExternalSigners,
+  allowExternalExecute,
   memo,
 }: {
   blockhash: string;
@@ -24,7 +28,7 @@ export function create({
   threshold: number;
   members: Member[];
   createKey: PublicKey;
-  allowExternalSigners?: boolean;
+  allowExternalExecute?: boolean;
   memo?: string;
 }): VersionedTransaction {
   const message = new TransactionMessage({
@@ -42,10 +46,42 @@ export function create({
             threshold,
             members,
             createKey,
-            allowExternalSigners: allowExternalSigners ?? null,
+            allowExternalExecute: allowExternalExecute ?? null,
             memo: memo ?? null,
           },
         }
+      ),
+    ],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(message);
+}
+
+export function addMember({
+  blockhash,
+  feePayer,
+  multisigPda,
+  configAuthority,
+  newMember,
+  memo,
+}: {
+  blockhash: string;
+  feePayer: PublicKey;
+  multisigPda: PublicKey;
+  configAuthority: PublicKey;
+  newMember: Member;
+  memo?: string;
+}) {
+  const message = new TransactionMessage({
+    payerKey: feePayer,
+    recentBlockhash: blockhash,
+    instructions: [
+      createAddMemberInstruction(
+        {
+          multisig: multisigPda,
+          configAuthority,
+        },
+        { args: { newMember, memo: memo ?? null } }
       ),
     ],
   }).compileToV0Message();
