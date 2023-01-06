@@ -144,7 +144,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * Unauthorized: 'Invalid authority'
+ * Unauthorized: 'Attempted to perform an unauthorized action'
  *
  * @category Errors
  * @category generated
@@ -153,7 +153,7 @@ export class UnauthorizedError extends Error {
   readonly code: number = 0x1776
   readonly name: string = 'Unauthorized'
   constructor() {
-    super('Invalid authority')
+    super('Attempted to perform an unauthorized action')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, UnauthorizedError)
     }
@@ -162,6 +162,52 @@ export class UnauthorizedError extends Error {
 
 createErrorFromCodeLookup.set(0x1776, () => new UnauthorizedError())
 createErrorFromNameLookup.set('Unauthorized', () => new UnauthorizedError())
+
+/**
+ * NotAMember: 'Provided pubkey is not a member of multisig'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NotAMemberError extends Error {
+  readonly code: number = 0x1777
+  readonly name: string = 'NotAMember'
+  constructor() {
+    super('Provided pubkey is not a member of multisig')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NotAMemberError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1777, () => new NotAMemberError())
+createErrorFromNameLookup.set('NotAMember', () => new NotAMemberError())
+
+/**
+ * InvalidTransactionMessage: 'TransactionMessage is malformed.'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidTransactionMessageError extends Error {
+  readonly code: number = 0x1778
+  readonly name: string = 'InvalidTransactionMessage'
+  constructor() {
+    super('TransactionMessage is malformed.')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidTransactionMessageError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1778,
+  () => new InvalidTransactionMessageError()
+)
+createErrorFromNameLookup.set(
+  'InvalidTransactionMessage',
+  () => new InvalidTransactionMessageError()
+)
 
 /**
  * Attempts to resolve a custom program error from the provided error code.

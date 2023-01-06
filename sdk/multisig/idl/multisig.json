@@ -5,7 +5,7 @@
     {
       "name": "multisigCreate",
       "docs": [
-        "Creates a multisig."
+        "Create a multisig."
       ],
       "accounts": [
         {
@@ -39,7 +39,7 @@
     {
       "name": "multisigAddMember",
       "docs": [
-        "Adds a new member to the multisig."
+        "Add a new member to the multisig."
       ],
       "accounts": [
         {
@@ -66,6 +66,42 @@
           "name": "args",
           "type": {
             "defined": "MultisigAddMemberArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "transactionCreate",
+      "docs": [
+        "Create a new multisig transaction."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "TransactionCreateArgs"
           }
         }
       ]
@@ -116,7 +152,7 @@
             "docs": [
               "Index to seed other authorities under this multisig."
             ],
-            "type": "u16"
+            "type": "u8"
           },
           {
             "name": "transactionIndex",
@@ -154,6 +190,104 @@
               "Bump for the multisig PDA seed."
             ],
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigTransaction",
+      "docs": [
+        "Represents data required for tracking the voting status, and execution of a multisig transaction."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "docs": [
+              "Creator, used to seed pda."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "multisig",
+            "docs": [
+              "The multisig this belongs to."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "transactionIndex",
+            "docs": [
+              "Used for seed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "authorityIndex",
+            "docs": [
+              "Index to use for other pdas (?)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "authorityBump",
+            "docs": [
+              "The authority bump."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "The status of the transaction."
+            ],
+            "type": {
+              "defined": "TransactionStatus"
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "bump for the seed."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "approved",
+            "docs": [
+              "keys that have approved/signed."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "rejected",
+            "docs": [
+              "keys that have rejected."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "cancelled",
+            "docs": [
+              "keys that have cancelled (ExecuteReady only)."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "message",
+            "docs": [
+              "data required for executing the transaction."
+            ],
+            "type": {
+              "defined": "MultisigTransactionMessage"
+            }
           }
         ]
       }
@@ -242,6 +376,28 @@
       }
     },
     {
+      "name": "TransactionCreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authorityIndex",
+            "type": "u8"
+          },
+          {
+            "name": "transactionMessage",
+            "type": "bytes"
+          },
+          {
+            "name": "memo",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "Member",
       "type": {
         "kind": "struct",
@@ -275,6 +431,139 @@
       }
     },
     {
+      "name": "MultisigTransactionMessage",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "numSigners",
+            "docs": [
+              "The number of signer pubkeys in the account_keys vec."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "numWritableSigners",
+            "docs": [
+              "The number of writable signer pubkeys in the account_keys vec."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "numWritableNonSigners",
+            "docs": [
+              "The number of writable non-signer pubkeys in the account_keys vec."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "accountKeys",
+            "docs": [
+              "Unique account pubkeys (including program IDs) required for execution of the tx.",
+              "The signer pubkeys appear at the beginning of the vec, with writable pubkeys first, and read-only pubkeys following.",
+              "The non-signer pubkeys follow with writable pubkeys first and read-only ones following.",
+              "Program IDs are also stored at the end of the vec along with other non-signer non-writable pubkeys:",
+              "",
+              "```plaintext",
+              "[pubkey1, pubkey2, pubkey3, pubkey4, pubkey5, pubkey6, pubkey7, pubkey8]",
+              "|---writable---|  |---readonly---|  |---writable---|  |---readonly---|",
+              "|------------signers-------------|  |----------non-singers-----------|",
+              "```"
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "instructions",
+            "docs": [
+              "List of instructions making up the tx."
+            ],
+            "type": {
+              "vec": {
+                "defined": "MultisigCompiledInstruction"
+              }
+            }
+          },
+          {
+            "name": "addressTableLookups",
+            "docs": [
+              "List of address table lookups used to load additional accounts",
+              "for this transaction."
+            ],
+            "type": {
+              "vec": {
+                "defined": "MultisigMessageAddressTableLookup"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigCompiledInstruction",
+      "docs": [
+        "Concise serialization schema for instructions that make up a transaction.",
+        "Closely mimics the Solana transaction wire format."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "programIdIndex",
+            "type": "u8"
+          },
+          {
+            "name": "accountIndexes",
+            "docs": [
+              "Indices into the tx's `account_keys` list indicating which accounts to pass to the instruction."
+            ],
+            "type": "bytes"
+          },
+          {
+            "name": "data",
+            "docs": [
+              "Instruction data."
+            ],
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigMessageAddressTableLookup",
+      "docs": [
+        "Address table lookups describe an on-chain address lookup table to use",
+        "for loading more readonly and writable accounts into a transaction."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accountKey",
+            "docs": [
+              "Address lookup table account key."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "writableIndexes",
+            "docs": [
+              "List of indexes used to load writable accounts."
+            ],
+            "type": "bytes"
+          },
+          {
+            "name": "readonlyIndexes",
+            "docs": [
+              "List of indexes used to load readonly accounts."
+            ],
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
       "name": "ConfigUpdateType",
       "type": {
         "kind": "enum",
@@ -302,11 +591,34 @@
           }
         ]
       }
+    },
+    {
+      "name": "TransactionStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "ExecuteReady"
+          },
+          {
+            "name": "Executed"
+          },
+          {
+            "name": "Rejected"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
     }
   ],
   "events": [
     {
-      "name": "CreatedEvent",
+      "name": "MultisigCreatedEvent",
       "fields": [
         {
           "name": "multisig",
@@ -323,7 +635,7 @@
       ]
     },
     {
-      "name": "ConfigUpdatedEvent",
+      "name": "MultisigConfigUpdatedEvent",
       "fields": [
         {
           "name": "multisig",
@@ -336,6 +648,28 @@
             "defined": "ConfigUpdateType"
           },
           "index": true
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
+    },
+    {
+      "name": "TransactionCreatedEvent",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "transaction",
+          "type": "publicKey",
+          "index": false
         },
         {
           "name": "memo",
@@ -381,7 +715,17 @@
     {
       "code": 6006,
       "name": "Unauthorized",
-      "msg": "Invalid authority"
+      "msg": "Attempted to perform an unauthorized action"
+    },
+    {
+      "code": 6007,
+      "name": "NotAMember",
+      "msg": "Provided pubkey is not a member of multisig"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidTransactionMessage",
+      "msg": "TransactionMessage is malformed."
     }
   ],
   "metadata": {

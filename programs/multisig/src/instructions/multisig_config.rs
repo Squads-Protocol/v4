@@ -16,7 +16,7 @@ pub struct MultisigAddMemberArgs {
 pub struct MultisigConfig<'info> {
     #[account(
         mut,
-        seeds = [b"multisig", multisig.create_key.as_ref(), b"multisig"],
+        seeds = [SEED_PREFIX, multisig.create_key.as_ref(), SEED_MULTISIG],
         bump = multisig.bump,
         has_one = config_authority @ MultisigError::Unauthorized,
     )]

@@ -14,6 +14,10 @@ pub enum MultisigError {
     MaxMembersReached,
     #[msg("Invalid threshold, must be between 1 and number of members")]
     InvalidThreshold,
-    #[msg("Invalid authority")]
+    #[msg("Attempted to perform an unauthorized action")]
     Unauthorized,
+    #[msg("Provided pubkey is not a member of multisig")]
+    NotAMember,
+    #[msg("TransactionMessage is malformed.")]
+    InvalidTransactionMessage,
 }

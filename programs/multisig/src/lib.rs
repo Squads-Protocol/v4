@@ -6,6 +6,7 @@ mod errors;
 mod events;
 mod instructions;
 mod state;
+mod utils;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -13,17 +14,25 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod multisig {
     use super::*;
 
-    /// Creates a multisig.
+    /// Create a multisig.
     pub fn multisig_create(ctx: Context<MultisigCreate>, args: MultisigCreateArgs) -> Result<()> {
         MultisigCreate::multisig_create(ctx, args)
     }
 
-    /// Adds a new member to the multisig.
+    /// Add a new member to the multisig.
     pub fn multisig_add_member(
         ctx: Context<MultisigConfig>,
         args: MultisigAddMemberArgs,
     ) -> Result<()> {
         MultisigConfig::multisig_add_member(ctx, args)
+    }
+
+    /// Create a new multisig transaction.
+    pub fn transaction_create(
+        ctx: Context<TransactionCreate>,
+        args: TransactionCreateArgs,
+    ) -> Result<()> {
+        TransactionCreate::transaction_create(ctx, args)
     }
 
     // // instruction to remove a member/key from the multisig

@@ -14,6 +14,8 @@
     "@metaplex-foundation/beet-solana": "0.4.0",
     "@metaplex-foundation/cusper": "^0.0.2",
     "@solana/web3.js": "*",
+    "@types/bn.js": "^5.1.1",
+    "bn.js": "^5.2.1",
     "buffer": "6.0.3"
   },
   "devDependencies": {

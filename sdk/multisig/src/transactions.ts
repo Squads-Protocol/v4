@@ -1,4 +1,5 @@
 import {
+  AddressLookupTableAccount,
   PublicKey,
   TransactionMessage,
   VersionedTransaction,
@@ -6,8 +7,11 @@ import {
 import {
   createMultisigAddMemberInstruction,
   createMultisigCreateInstruction,
+  createTransactionCreateInstruction,
   Member,
 } from "./generated";
+import { getAuthorityPda, getTransactionPda } from "./pda";
+import { transactionMessageBeet } from "./types";
 
 /** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` before sending it. */
 export function multisigCreate({
@@ -75,7 +79,7 @@ export function multisigAddMember({
   configAuthority: PublicKey;
   newMember: Member;
   memo?: string;
-}) {
+}): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
@@ -86,6 +90,102 @@ export function multisigAddMember({
           configAuthority,
         },
         { args: { newMember, memo: memo ?? null } }
+      ),
+    ],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(message);
+}
+
+/**
+ * Returns unsigned `VersionedTransaction` that needs to be
+ * signed by `configAuthority` and `feePayer` before sending it.
+ */
+export function transactionCreate({
+  blockhash,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  creator,
+  authorityIndex,
+  transactionMessage,
+  addressLookupTableAccounts,
+  memo,
+}: {
+  blockhash: string;
+  feePayer: PublicKey;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  creator: PublicKey;
+  authorityIndex: number;
+  /** Transaction message to wrap into a multisig transaction. */
+  transactionMessage: TransactionMessage;
+  /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
+  addressLookupTableAccounts?: AddressLookupTableAccount[];
+  memo?: string;
+}): VersionedTransaction {
+  const [authorityPDA] = getAuthorityPda({
+    multisigPda,
+    index: authorityIndex,
+  });
+
+  const [transactionPda] = getTransactionPda({
+    multisigPda,
+    index: transactionIndex,
+  });
+
+  // Make sure authority is marked as non-signer in all instructions,
+  // otherwise the message will be serialized in incorrect format.
+  transactionMessage.instructions.forEach((instruction) => {
+    instruction.keys.forEach((key) => {
+      if (key.pubkey.equals(authorityPDA)) {
+        key.isSigner = false;
+      }
+    });
+  });
+
+  const compiledMessage = transactionMessage.compileToV0Message(
+    addressLookupTableAccounts
+  );
+
+  // We use custom serialization for `transaction_message` that ensures as small byte size as possible.
+  const [transactionMessageBytes] = transactionMessageBeet.serialize({
+    numSigners: compiledMessage.header.numRequiredSignatures,
+    numWritableSigners:
+      compiledMessage.header.numRequiredSignatures -
+      compiledMessage.header.numReadonlySignedAccounts,
+    numWritableNonSigners:
+      compiledMessage.staticAccountKeys.length -
+      compiledMessage.header.numRequiredSignatures -
+      compiledMessage.header.numReadonlyUnsignedAccounts,
+    accountKeys: compiledMessage.staticAccountKeys,
+    instructions: compiledMessage.compiledInstructions.map((ix) => {
+      return {
+        programIdIndex: ix.programIdIndex,
+        accountIndexes: ix.accountKeyIndexes,
+        data: Array.from(ix.data),
+      };
+    }),
+    addressTableLookups: compiledMessage.addressTableLookups,
+  });
+
+  const message = new TransactionMessage({
+    payerKey: feePayer,
+    recentBlockhash: blockhash,
+    instructions: [
+      createTransactionCreateInstruction(
+        {
+          multisig: multisigPda,
+          transaction: transactionPda,
+          creator,
+        },
+        {
+          args: {
+            authorityIndex,
+            transactionMessage: transactionMessageBytes,
+            memo: memo ?? null,
+          },
+        }
       ),
     ],
   }).compileToV0Message();

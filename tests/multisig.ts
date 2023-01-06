@@ -3,19 +3,17 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
+  TransactionMessage,
+  SystemProgram,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import * as assert from "assert";
 
-const { Multisig } = multisig.accounts;
-const { Permission, Permissions } = multisig.types;
+const { Multisig, MultisigTransaction } = multisig.accounts;
+const { Permission, Permissions, TransactionStatus } = multisig.types;
 
 describe("multisig", () => {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
-
-  // Used only for paying for creation of multisigs, it's not actually a member of any of them.
-  const creator = Keypair.generate();
-  console.log("creator:", creator.publicKey.toBase58());
 
   const members = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
   console.log(
@@ -36,13 +34,6 @@ describe("multisig", () => {
   let controlledMultisigConfigAuthority: Keypair;
 
   before(async () => {
-    // Airdropped 10 SOL to creator.
-    const sig = await connection.requestAirdrop(
-      creator.publicKey,
-      10 * LAMPORTS_PER_SOL
-    );
-    await connection.confirmTransaction(sig);
-
     // Airdrop 100 SOL to each member.
     await Promise.all(
       members.map(async (member) => {
@@ -57,6 +48,8 @@ describe("multisig", () => {
 
   describe("multisig_create", () => {
     it("error: duplicate member", async () => {
+      const creator = await generateFundedKeypair(connection);
+
       const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
         createKey,
@@ -93,6 +86,8 @@ describe("multisig", () => {
     });
 
     it("error: empty members", async () => {
+      const creator = await generateFundedKeypair(connection);
+
       const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
         createKey,
@@ -123,6 +118,8 @@ describe("multisig", () => {
     it("error: too many members");
 
     it("error: invalid threshold (< 1)", async () => {
+      const creator = await generateFundedKeypair(connection);
+
       const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
         createKey,
@@ -153,6 +150,8 @@ describe("multisig", () => {
     });
 
     it("error: invalid threshold (> members.length)", async () => {
+      const creator = await generateFundedKeypair(connection);
+
       const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
         createKey,
@@ -183,6 +182,8 @@ describe("multisig", () => {
     });
 
     it("create a new autonomous multisig", async () => {
+      const creator = await generateFundedKeypair(connection);
+
       autonomousMultisigCreateKey = Keypair.generate().publicKey;
 
       const [multisigPda, multisigBump] = multisig.getMultisigPda({
@@ -243,6 +244,8 @@ describe("multisig", () => {
     });
 
     it("create a new controlled multisig", async () => {
+      const creator = await generateFundedKeypair(connection);
+
       controlledMultisigCreateKey = Keypair.generate().publicKey;
       controlledMultisigConfigAuthority = await generateFundedKeypair(
         connection
@@ -355,7 +358,7 @@ describe("multisig", () => {
           signers: [fakeAuthority],
           sendOptions: { skipPreflight: true },
         }),
-        /Invalid authority/
+        /Attempted to perform an unauthorized action/
       );
     });
 
@@ -454,6 +457,109 @@ describe("multisig", () => {
         initialAllocatedSize + 10 * multisig.generated.memberBeet.byteSize
       );
     });
+
+    it("add a new member to an autonomous multisig");
+  });
+
+  describe("transaction_create", () => {
+    it("create a new transaction", async () => {
+      const creator = members[0];
+
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Vault, index 1.
+      const [vaultPda, vaultBump] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 1,
+      });
+
+      // Airdrop 2 SOL to the Vault, we'll need it for the test transfer instructions.
+      const airdropSig = await connection.requestAirdrop(
+        vaultPda,
+        2 * LAMPORTS_PER_SOL
+      );
+      await connection.confirmTransaction(airdropSig);
+
+      // Test transfer instruction (2x)
+      const testPayee = Keypair.generate();
+      const testIx1 = await createTestTransferInstruction(
+        vaultPda,
+        testPayee.publicKey
+      );
+      const testIx2 = await createTestTransferInstruction(
+        vaultPda,
+        testPayee.publicKey
+      );
+      const testTransferMessage = new TransactionMessage({
+        payerKey: vaultPda,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [testIx1, testIx2],
+      });
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+
+      const signature = await multisig.rpc.transactionCreate({
+        connection,
+        feePayer: creator,
+        multisigPda,
+        transactionIndex,
+        creator: creator.publicKey,
+        authorityIndex: 1,
+        transactionMessage: testTransferMessage,
+        memo: "Transfer 2 SOL to a test account",
+      });
+      await connection.confirmTransaction(signature);
+
+      multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+      assert.strictEqual(
+        multisigAccount.transactionIndex.toString(),
+        transactionIndex.toString()
+      );
+
+      // TODO: fetch the transaction account and verify its contents.
+      const [transactionPda, transactionBump] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+      const transactionAccount = await MultisigTransaction.fromAccountAddress(
+        connection,
+        transactionPda
+      );
+      assert.strictEqual(
+        transactionAccount.creator.toBase58(),
+        creator.publicKey.toBase58()
+      );
+      assert.strictEqual(
+        transactionAccount.multisig.toBase58(),
+        multisigPda.toBase58()
+      );
+      assert.strictEqual(
+        transactionAccount.transactionIndex.toString(),
+        transactionIndex.toString()
+      );
+      assert.strictEqual(transactionAccount.authorityBump, vaultBump);
+      assert.strictEqual(transactionAccount.bump, transactionBump);
+      assert.strictEqual(transactionAccount.status, TransactionStatus.Active);
+      assert.deepEqual(transactionAccount.approved, []);
+      assert.deepEqual(transactionAccount.rejected, []);
+      assert.deepEqual(transactionAccount.cancelled, []);
+      // TODO: verify the transaction message data.
+      assert.ok(transactionAccount.message);
+    });
+
+    it("error: not a member")
+
+    it("error: unauthorized")
   });
 });
 
@@ -467,4 +573,16 @@ async function generateFundedKeypair(connection: Connection) {
   await connection.confirmTransaction(tx);
 
   return keypair;
+}
+
+async function createTestTransferInstruction(
+  authority: PublicKey,
+  recipient: PublicKey,
+  amount = 1000000
+) {
+  return SystemProgram.transfer({
+    fromPubkey: authority,
+    lamports: amount,
+    toPubkey: recipient,
+  });
 }

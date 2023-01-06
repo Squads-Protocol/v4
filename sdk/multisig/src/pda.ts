@@ -1,8 +1,12 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "./generated";
-import { toU32Bytes, toUtfBytes } from "./utils";
+import { toU64Bytes, toU8Bytes, toUtfBytes } from "./utils";
 
-/** ["multisig", createKey, "multisig"] */
+const SEED_PREFIX = toUtfBytes("multisig");
+const SEED_MULTISIG = toUtfBytes("multisig");
+const SEED_AUTHORITY = toUtfBytes("authority");
+const SEED_TRANSACTION = toUtfBytes("transaction");
+
 export function getMultisigPda({
   createKey,
   programId = PROGRAM_ID,
@@ -11,14 +15,14 @@ export function getMultisigPda({
   programId?: PublicKey;
 }): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [toUtfBytes("multisig"), createKey.toBytes(), toUtfBytes("multisig")],
+    [SEED_PREFIX, createKey.toBytes(), SEED_MULTISIG],
     programId
   );
 }
 
-/** ["multisig", multisigPda, index, "authority"] */
 export function getAuthorityPda({
   multisigPda,
+  /** Authority index. */
   index,
   programId = PROGRAM_ID,
 }: {
@@ -27,12 +31,23 @@ export function getAuthorityPda({
   programId?: PublicKey;
 }): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [
-      toUtfBytes("multisig"),
-      multisigPda.toBytes(),
-      toU32Bytes(index),
-      toUtfBytes("authority"),
-    ],
+    [SEED_PREFIX, multisigPda.toBytes(), toU8Bytes(index), SEED_AUTHORITY],
+    programId
+  );
+}
+
+export function getTransactionPda({
+  multisigPda,
+  index,
+  programId = PROGRAM_ID,
+}: {
+  multisigPda: PublicKey;
+  /** Transaction index. */
+  index: bigint;
+  programId?: PublicKey;
+}): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [SEED_PREFIX, multisigPda.toBytes(), toU64Bytes(index), SEED_TRANSACTION],
     programId
   );
 }

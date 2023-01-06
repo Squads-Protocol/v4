@@ -27,7 +27,7 @@ pub struct MultisigCreate<'info> {
         init,
         payer = creator,
         space = Multisig::size(args.members.len()),
-        seeds = [b"multisig", args.create_key.as_ref(), b"multisig"],
+        seeds = [SEED_PREFIX, args.create_key.as_ref(), SEED_MULTISIG],
         bump
     )]
     pub multisig: Account<'info, Multisig>,
@@ -76,7 +76,7 @@ impl MultisigCreate<'_> {
         multisig.create_key = args.create_key;
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
 
-        emit!(CreatedEvent {
+        emit!(MultisigCreatedEvent {
             multisig: ctx.accounts.multisig.to_account_info().key.clone(),
             memo: args.memo,
         });

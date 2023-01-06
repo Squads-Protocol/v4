@@ -1,8 +1,10 @@
 import {
+  AddressLookupTableAccount,
   Connection,
   PublicKey,
   SendOptions,
   Signer,
+  TransactionMessage,
   TransactionSignature,
 } from "@solana/web3.js";
 import * as transactions from "./transactions.js";
@@ -84,6 +86,56 @@ export async function multisigAddMember({
     multisigPda,
     configAuthority,
     newMember,
+    memo,
+  });
+
+  tx.sign([feePayer, ...(signers ?? [])]);
+
+  try {
+    return await connection.sendTransaction(tx, sendOptions);
+  } catch (err) {
+    translateAndThrowAnchorError(err);
+  }
+}
+
+export async function transactionCreate({
+  connection,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  creator,
+  authorityIndex,
+  transactionMessage,
+  addressLookupTableAccounts,
+  memo,
+  signers,
+  sendOptions,
+}: {
+  connection: Connection;
+  feePayer: Signer;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  creator: PublicKey;
+  authorityIndex: number;
+  /** Transaction message to wrap into a multisig transaction. */
+  transactionMessage: TransactionMessage;
+  /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
+  addressLookupTableAccounts?: AddressLookupTableAccount[];
+  memo?: string;
+  signers?: Signer[];
+  sendOptions?: SendOptions;
+}): Promise<TransactionSignature> {
+  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  const tx = transactions.transactionCreate({
+    blockhash,
+    feePayer: feePayer.publicKey,
+    multisigPda,
+    transactionIndex,
+    creator,
+    authorityIndex,
+    transactionMessage,
+    addressLookupTableAccounts,
     memo,
   });
 
