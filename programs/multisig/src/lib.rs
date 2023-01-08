@@ -44,6 +44,12 @@ pub mod multisig {
         TransactionVote::transaction_approve(ctx, args)
     }
 
+    /// Execute the multisig transaction.
+    /// The transaction must be `ExecuteReady`.
+    pub fn transaction_execute(ctx: Context<TransactionExecute>) -> Result<()> {
+        TransactionExecute::transaction_execute(ctx)
+    }
+
     // // instruction to remove a member/key from the multisig
     // pub fn remove_member(ctx: Context<MsAuth>, old_member: Pubkey) -> Result<()> {
     //     // if there is only one key in this multisig, reject the removal

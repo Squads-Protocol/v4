@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 /// New multisig account is created.
 #[event]
-pub struct MultisigCreatedEvent {
+pub struct MultisigCreated {
     /// The multisig account.
     pub multisig: Pubkey,
     #[index]
@@ -22,7 +22,7 @@ pub enum ConfigUpdateType {
 
 /// Multisig config is updated.
 #[event]
-pub struct MultisigConfigUpdatedEvent {
+pub struct MultisigConfigUpdated {
     /// The multisig account.
     pub multisig: Pubkey,
     #[index]
@@ -35,7 +35,7 @@ pub struct MultisigConfigUpdatedEvent {
 
 /// New multisig transaction account is created.
 #[event]
-pub struct TransactionCreatedEvent {
+pub struct TransactionCreated {
     /// The multisig account.
     pub multisig: Pubkey,
     /// The transaction account.
@@ -47,7 +47,7 @@ pub struct TransactionCreatedEvent {
 
 /// New multisig transaction account is created.
 #[event]
-pub struct TransactionApprovedEvent {
+pub struct TransactionApproved {
     /// The multisig account.
     pub multisig: Pubkey,
     /// The transaction account.
@@ -55,4 +55,13 @@ pub struct TransactionApprovedEvent {
     #[index]
     /// Memo that was added by the creator.
     pub memo: Option<String>,
+}
+
+/// New multisig transaction account is created.
+#[event]
+pub struct TransactionExecuted {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    /// The transaction account.
+    pub transaction: Pubkey,
 }

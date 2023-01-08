@@ -17,3 +17,4 @@ default = []
 
 [dependencies]
 anchor-lang = "=0.26.0"
+solana-address-lookup-table-program = "=1.14.11"

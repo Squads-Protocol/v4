@@ -137,6 +137,31 @@
           }
         }
       ]
+    },
+    {
+      "name": "transactionExecute",
+      "docs": [
+        "Execute the multisig transaction.",
+        "The transaction must be `ExecuteReady`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -664,7 +689,7 @@
   ],
   "events": [
     {
-      "name": "MultisigCreatedEvent",
+      "name": "MultisigCreated",
       "fields": [
         {
           "name": "multisig",
@@ -681,7 +706,7 @@
       ]
     },
     {
-      "name": "MultisigConfigUpdatedEvent",
+      "name": "MultisigConfigUpdated",
       "fields": [
         {
           "name": "multisig",
@@ -705,7 +730,7 @@
       ]
     },
     {
-      "name": "TransactionCreatedEvent",
+      "name": "TransactionCreated",
       "fields": [
         {
           "name": "multisig",
@@ -727,7 +752,7 @@
       ]
     },
     {
-      "name": "TransactionApprovedEvent",
+      "name": "TransactionApproved",
       "fields": [
         {
           "name": "multisig",
@@ -745,6 +770,21 @@
             "option": "string"
           },
           "index": true
+        }
+      ]
+    },
+    {
+      "name": "TransactionExecuted",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "transaction",
+          "type": "publicKey",
+          "index": false
         }
       ]
     }
@@ -798,22 +838,32 @@
     {
       "code": 6009,
       "name": "StaleTransaction",
-      "msg": "Transaction is stale."
+      "msg": "Transaction is stale"
     },
     {
       "code": 6010,
       "name": "InvalidTransactionStatus",
-      "msg": "Invalid transaction status."
+      "msg": "Invalid transaction status"
     },
     {
       "code": 6011,
       "name": "TransactionNotForMultisig",
-      "msg": "Transaction does not belong to the multisig."
+      "msg": "Transaction does not belong to the multisig"
     },
     {
       "code": 6012,
       "name": "AlreadyApproved",
-      "msg": "Member already approved the transaction."
+      "msg": "Member already approved the transaction"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidNumberOfAccounts",
+      "msg": "Wrong number of accounts provided"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidAccount",
+      "msg": "Invalid account provided"
     }
   ],
   "metadata": {

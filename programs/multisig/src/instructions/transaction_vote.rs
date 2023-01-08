@@ -23,7 +23,7 @@ pub struct TransactionVote<'info> {
             SEED_PREFIX,
             multisig.key().as_ref(),
             &transaction.transaction_index.to_le_bytes(),
-            b"transaction"
+            SEED_TRANSACTION
         ],
         bump = transaction.bump,
         constraint = transaction.status == TransactionStatus::Active @ MultisigError::InvalidTransactionStatus,
@@ -35,7 +35,7 @@ pub struct TransactionVote<'info> {
     #[account(
         mut,
         constraint = multisig.is_member(member.key()).is_some() @ MultisigError::NotAMember,
-        constraint = multisig.member_has_permission(member.key(), Permission::Vote) @MultisigError::Unauthorized,
+        constraint = multisig.member_has_permission(member.key(), Permission::Vote) @ MultisigError::Unauthorized,
     )]
     pub member: Signer<'info>,
 }
@@ -65,7 +65,7 @@ impl TransactionVote<'_> {
             transaction.status = TransactionStatus::ExecuteReady;
         }
 
-        emit!(TransactionApprovedEvent {
+        emit!(TransactionApproved {
             multisig: multisig.key(),
             transaction: transaction.key(),
             memo: args.memo,

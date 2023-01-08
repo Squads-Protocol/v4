@@ -84,7 +84,7 @@ impl TransactionCreate<'_> {
         // Updated last transaction index in the multisig account.
         multisig.transaction_index = transaction_index;
 
-        emit!(TransactionCreatedEvent {
+        emit!(TransactionCreated {
             multisig: multisig_key,
             transaction: transaction.key(),
             memo: args.memo,

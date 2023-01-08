@@ -68,7 +68,7 @@ impl Multisig {
     ) {
         self.stale_transaction_index = self.transaction_index;
 
-        emit!(MultisigConfigUpdatedEvent {
+        emit!(MultisigConfigUpdated {
             multisig: multisig_address,
             update,
             memo

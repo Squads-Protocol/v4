@@ -210,7 +210,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * StaleTransaction: 'Transaction is stale.'
+ * StaleTransaction: 'Transaction is stale'
  *
  * @category Errors
  * @category generated
@@ -219,7 +219,7 @@ export class StaleTransactionError extends Error {
   readonly code: number = 0x1779
   readonly name: string = 'StaleTransaction'
   constructor() {
-    super('Transaction is stale.')
+    super('Transaction is stale')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, StaleTransactionError)
     }
@@ -233,7 +233,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * InvalidTransactionStatus: 'Invalid transaction status.'
+ * InvalidTransactionStatus: 'Invalid transaction status'
  *
  * @category Errors
  * @category generated
@@ -242,7 +242,7 @@ export class InvalidTransactionStatusError extends Error {
   readonly code: number = 0x177a
   readonly name: string = 'InvalidTransactionStatus'
   constructor() {
-    super('Invalid transaction status.')
+    super('Invalid transaction status')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, InvalidTransactionStatusError)
     }
@@ -256,7 +256,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * TransactionNotForMultisig: 'Transaction does not belong to the multisig.'
+ * TransactionNotForMultisig: 'Transaction does not belong to the multisig'
  *
  * @category Errors
  * @category generated
@@ -265,7 +265,7 @@ export class TransactionNotForMultisigError extends Error {
   readonly code: number = 0x177b
   readonly name: string = 'TransactionNotForMultisig'
   constructor() {
-    super('Transaction does not belong to the multisig.')
+    super('Transaction does not belong to the multisig')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, TransactionNotForMultisigError)
     }
@@ -282,7 +282,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * AlreadyApproved: 'Member already approved the transaction.'
+ * AlreadyApproved: 'Member already approved the transaction'
  *
  * @category Errors
  * @category generated
@@ -291,7 +291,7 @@ export class AlreadyApprovedError extends Error {
   readonly code: number = 0x177c
   readonly name: string = 'AlreadyApproved'
   constructor() {
-    super('Member already approved the transaction.')
+    super('Member already approved the transaction')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, AlreadyApprovedError)
     }
@@ -303,6 +303,49 @@ createErrorFromNameLookup.set(
   'AlreadyApproved',
   () => new AlreadyApprovedError()
 )
+
+/**
+ * InvalidNumberOfAccounts: 'Wrong number of accounts provided'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidNumberOfAccountsError extends Error {
+  readonly code: number = 0x177d
+  readonly name: string = 'InvalidNumberOfAccounts'
+  constructor() {
+    super('Wrong number of accounts provided')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidNumberOfAccountsError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177d, () => new InvalidNumberOfAccountsError())
+createErrorFromNameLookup.set(
+  'InvalidNumberOfAccounts',
+  () => new InvalidNumberOfAccountsError()
+)
+
+/**
+ * InvalidAccount: 'Invalid account provided'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidAccountError extends Error {
+  readonly code: number = 0x177e
+  readonly name: string = 'InvalidAccount'
+  constructor() {
+    super('Invalid account provided')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177e, () => new InvalidAccountError())
+createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
 
 /**
  * Attempts to resolve a custom program error from the provided error code.

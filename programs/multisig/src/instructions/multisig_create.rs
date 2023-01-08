@@ -76,7 +76,7 @@ impl MultisigCreate<'_> {
         multisig.create_key = args.create_key;
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
 
-        emit!(MultisigCreatedEvent {
+        emit!(MultisigCreated {
             multisig: ctx.accounts.multisig.to_account_info().key.clone(),
             memo: args.memo,
         });
