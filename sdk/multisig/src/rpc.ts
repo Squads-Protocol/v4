@@ -190,3 +190,44 @@ export async function transactionApprove({
     translateAndThrowAnchorError(err);
   }
 }
+
+/**
+ *  Execute the multisig transaction.
+ *  The transaction must be `ExecuteReady`.
+ */
+export async function transactionExecute({
+  connection,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  member,
+  signers,
+  sendOptions,
+}: {
+  connection: Connection;
+  feePayer: Signer;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  member: PublicKey;
+  signers?: Signer[];
+  sendOptions?: SendOptions;
+}): Promise<TransactionSignature> {
+  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  const tx = await transactions.transactionExecute({
+    connection,
+    blockhash,
+    feePayer: feePayer.publicKey,
+    multisigPda,
+    transactionIndex,
+    member,
+  });
+
+  tx.sign([feePayer, ...(signers ?? [])]);
+
+  try {
+    return await connection.sendTransaction(tx, sendOptions);
+  } catch (err) {
+    translateAndThrowAnchorError(err);
+  }
+}

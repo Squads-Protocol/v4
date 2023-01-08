@@ -1,7 +1,7 @@
 import * as beet from "@metaplex-foundation/beet";
 import * as beetSolana from "@metaplex-foundation/beet-solana";
 import { PublicKey } from "@solana/web3.js";
-import assert from "assert";
+import invariant from "invariant";
 import { Permissions as IPermissions } from "./generated";
 
 export { TransactionStatus } from "./generated";
@@ -56,9 +56,8 @@ export function fixedSizeSmallArray<T, V = Partial<T>>(
 
   return {
     write: function (buf: Buffer, offset: number, value: V[]): void {
-      assert.equal(
-        value.length,
-        len,
+      invariant(
+        value.length === len,
         `array length ${value.length} should match len ${len}`
       );
       lengthBeet.write(buf, offset, len);
@@ -73,7 +72,7 @@ export function fixedSizeSmallArray<T, V = Partial<T>>(
 
     read: function (buf: Buffer, offset: number): T[] {
       const size = lengthBeet.read(buf, offset);
-      assert.equal(size, len, "invalid byte size");
+      invariant(size === len, "invalid byte size");
 
       let cursor = offset + lengthBeet.byteSize;
       const arr: T[] = new Array(len);
@@ -130,7 +129,7 @@ export function smallArray<T, V = Partial<T>>(
     },
 
     toFixedFromValue(vals: V[]): beet.FixedSizeBeet<T[], V[]> {
-      assert.ok(Array.isArray(vals), `${vals} should be an array`);
+      invariant(Array.isArray(vals), `${vals} should be an array`);
 
       let elementsSize = 0;
       const fixedElements: beet.FixedSizeBeet<T, V>[] = new Array(vals.length);
