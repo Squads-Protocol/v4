@@ -22,9 +22,9 @@ describe("multisig", () => {
     executor: Keypair.generate(),
   };
 
-  console.log("members:");
+  console.log("Members:");
   for (const [name, keypair] of Object.entries(members)) {
-    console.log(name, ":", JSON.stringify(keypair.publicKey, null, 2));
+    console.log(name, ":", keypair.publicKey.toBase58());
   }
 
   // For the sake of the tests we'll create two multisigs,
@@ -263,7 +263,7 @@ describe("multisig", () => {
               mask: Permission.Execute,
             },
           },
-        ].sort((a, b) => a.key.toBuffer().compare(b.key.toBuffer()))
+        ].sort((a, b) => comparePubkeys(a.key, b.key))
       );
       assert.strictEqual(multisigAccount.authorityIndex, 1);
       assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
@@ -627,11 +627,13 @@ describe("multisig", () => {
       const testPayee = Keypair.generate();
       const testIx1 = await createTestTransferInstruction(
         vaultPda,
-        testPayee.publicKey
+        testPayee.publicKey,
+        1 * LAMPORTS_PER_SOL
       );
       const testIx2 = await createTestTransferInstruction(
         vaultPda,
-        testPayee.publicKey
+        testPayee.publicKey,
+        1 * LAMPORTS_PER_SOL
       );
       const testTransferMessage = new TransactionMessage({
         payerKey: vaultPda,
@@ -751,7 +753,7 @@ describe("multisig", () => {
       );
     });
 
-    it("approve a transaction", async () => {
+    it("approve transaction", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey,
       });
@@ -818,11 +820,122 @@ describe("multisig", () => {
       );
     });
 
-    it("error: stale transaction")
+    it("approve transaction and reach threshold", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
 
-    it("error: invalid transaction status")
+      // Approve the last transaction.
+      const transactionIndex = multisig.utils.toBigInt(
+        multisigAccount.transactionIndex
+      );
 
-    it("error: transaction is not for multisig")
+      const signature = await multisig.rpc.transactionApprove({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex,
+        member: members.almighty.publicKey,
+        memo: "LGTM",
+        signers: [members.almighty],
+      });
+      await connection.confirmTransaction(signature);
+
+      // Verify the transaction account.
+      const [transactionPda] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+      const transactionAccount = await MultisigTransaction.fromAccountAddress(
+        connection,
+        transactionPda
+      );
+      assert.deepEqual(
+        transactionAccount.approved.map((key) => key.toBase58()),
+        [members.voter.publicKey, members.almighty.publicKey]
+          .sort(comparePubkeys)
+          .map((key) => key.toBase58())
+      );
+      assert.deepEqual(transactionAccount.rejected, []);
+      assert.deepEqual(transactionAccount.cancelled, []);
+      // We reached the threshold, so the transaction is ExecutionReady now.
+      assert.strictEqual(
+        transactionAccount.status,
+        TransactionStatus.ExecuteReady
+      );
+    });
+
+    it("error: stale transaction");
+
+    it("error: invalid transaction status");
+
+    it("error: transaction is not for multisig");
+  });
+
+  describe("transaction_execute", () => {
+    it("execute a transaction", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Execute the last transaction.
+      const transactionIndex = multisig.utils.toBigInt(
+        multisigAccount.transactionIndex
+      );
+
+      const [transactionPda] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+      let transactionAccount = await MultisigTransaction.fromAccountAddress(
+        connection,
+        transactionPda
+      );
+
+      const [vaultPda] = multisig.getAuthorityPda({
+        multisigPda,
+        index: transactionAccount.authorityIndex,
+      });
+      const preVaultBalance = await connection.getBalance(vaultPda);
+      assert.strictEqual(preVaultBalance, 2 * LAMPORTS_PER_SOL);
+
+      const signature = await multisig.rpc.transactionExecute({
+        connection,
+        feePayer: members.executor,
+        multisigPda,
+        transactionIndex,
+        member: members.executor.publicKey,
+        signers: [members.executor],
+      });
+      await connection.confirmTransaction(signature);
+
+      // Verify the transaction account.
+      transactionAccount = await MultisigTransaction.fromAccountAddress(
+        connection,
+        transactionPda
+      );
+      assert.strictEqual(transactionAccount.status, TransactionStatus.Executed);
+
+      const postVaultBalance = await connection.getBalance(vaultPda);
+      // Transferred 2 SOL to payee.
+      assert.strictEqual(postVaultBalance, 0);
+    });
+
+    it("error: not a member");
+
+    it("error: unauthorized");
+
+    it("error: invalid transaction status");
+
+    it("error: transaction is not for multisig");
   });
 });
 
@@ -848,4 +961,8 @@ async function createTestTransferInstruction(
     lamports: amount,
     toPubkey: recipient,
   });
+}
+
+function comparePubkeys(a: PublicKey, b: PublicKey) {
+  return a.toBuffer().compare(b.toBuffer());
 }
