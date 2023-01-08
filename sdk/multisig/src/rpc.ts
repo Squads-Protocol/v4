@@ -98,6 +98,7 @@ export async function multisigAddMember({
   }
 }
 
+/** Create a new transaction. */
 export async function transactionCreate({
   connection,
   feePayer,
@@ -136,6 +137,48 @@ export async function transactionCreate({
     authorityIndex,
     transactionMessage,
     addressLookupTableAccounts,
+    memo,
+  });
+
+  tx.sign([feePayer, ...(signers ?? [])]);
+
+  try {
+    return await connection.sendTransaction(tx, sendOptions);
+  } catch (err) {
+    translateAndThrowAnchorError(err);
+  }
+}
+/**
+ * Approve the transaction on behalf of the `member`.
+ * The transaction must be `Active`.
+ */
+export async function transactionApprove({
+  connection,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  member,
+  memo,
+  signers,
+  sendOptions,
+}: {
+  connection: Connection;
+  feePayer: Signer;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  member: PublicKey;
+  memo?: string;
+  signers?: Signer[];
+  sendOptions?: SendOptions;
+}): Promise<TransactionSignature> {
+  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  const tx = transactions.transactionApprove({
+    blockhash,
+    feePayer: feePayer.publicKey,
+    multisigPda,
+    transactionIndex,
+    member,
     memo,
   });
 

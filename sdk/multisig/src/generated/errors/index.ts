@@ -210,6 +210,101 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * StaleTransaction: 'Transaction is stale.'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class StaleTransactionError extends Error {
+  readonly code: number = 0x1779
+  readonly name: string = 'StaleTransaction'
+  constructor() {
+    super('Transaction is stale.')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, StaleTransactionError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1779, () => new StaleTransactionError())
+createErrorFromNameLookup.set(
+  'StaleTransaction',
+  () => new StaleTransactionError()
+)
+
+/**
+ * InvalidTransactionStatus: 'Invalid transaction status.'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidTransactionStatusError extends Error {
+  readonly code: number = 0x177a
+  readonly name: string = 'InvalidTransactionStatus'
+  constructor() {
+    super('Invalid transaction status.')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidTransactionStatusError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177a, () => new InvalidTransactionStatusError())
+createErrorFromNameLookup.set(
+  'InvalidTransactionStatus',
+  () => new InvalidTransactionStatusError()
+)
+
+/**
+ * TransactionNotForMultisig: 'Transaction does not belong to the multisig.'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TransactionNotForMultisigError extends Error {
+  readonly code: number = 0x177b
+  readonly name: string = 'TransactionNotForMultisig'
+  constructor() {
+    super('Transaction does not belong to the multisig.')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TransactionNotForMultisigError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x177b,
+  () => new TransactionNotForMultisigError()
+)
+createErrorFromNameLookup.set(
+  'TransactionNotForMultisig',
+  () => new TransactionNotForMultisigError()
+)
+
+/**
+ * AlreadyApproved: 'Member already approved the transaction.'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class AlreadyApprovedError extends Error {
+  readonly code: number = 0x177c
+  readonly name: string = 'AlreadyApproved'
+  constructor() {
+    super('Member already approved the transaction.')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, AlreadyApprovedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177c, () => new AlreadyApprovedError())
+createErrorFromNameLookup.set(
+  'AlreadyApproved',
+  () => new AlreadyApprovedError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

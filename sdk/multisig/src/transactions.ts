@@ -7,6 +7,7 @@ import {
 import {
   createMultisigAddMemberInstruction,
   createMultisigCreateInstruction,
+  createTransactionApproveInstruction,
   createTransactionCreateInstruction,
   Member,
 } from "./generated";
@@ -99,7 +100,7 @@ export function multisigAddMember({
 
 /**
  * Returns unsigned `VersionedTransaction` that needs to be
- * signed by `configAuthority` and `feePayer` before sending it.
+ * signed by `creator` and `feePayer` before sending it.
  */
 export function transactionCreate({
   blockhash,
@@ -183,6 +184,48 @@ export function transactionCreate({
           args: {
             authorityIndex,
             transactionMessage: transactionMessageBytes,
+            memo: memo ?? null,
+          },
+        }
+      ),
+    ],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(message);
+}
+
+export function transactionApprove({
+  blockhash,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  member,
+  memo,
+}: {
+  blockhash: string;
+  feePayer: PublicKey;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  member: PublicKey;
+  memo?: string;
+}): VersionedTransaction {
+  const [transactionPda] = getTransactionPda({
+    multisigPda,
+    index: transactionIndex,
+  });
+
+  const message = new TransactionMessage({
+    payerKey: feePayer,
+    recentBlockhash: blockhash,
+    instructions: [
+      createTransactionApproveInstruction(
+        {
+          multisig: multisigPda,
+          transaction: transactionPda,
+          member,
+        },
+        {
+          args: {
             memo: memo ?? null,
           },
         }

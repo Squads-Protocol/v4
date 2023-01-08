@@ -62,7 +62,7 @@ mod test {
             0x09, // vec[1]
         ][..];
 
-        let small_vec: SmallVec<u8, u8> = AnchorDeserialize::deserialize(&mut input).unwrap();
+        let small_vec: SmallVec<u8, u8> = SmallVec::deserialize(&mut input).unwrap();
 
         assert_eq!(small_vec.0, vec![5, 9]);
     }
@@ -75,7 +75,7 @@ mod test {
             0x09, 0x00, 0x00, 0x00, // vec[1]
         ][..];
 
-        let small_vec: SmallVec<u8, u32> = AnchorDeserialize::deserialize(&mut input).unwrap();
+        let small_vec: SmallVec<u8, u32> = SmallVec::deserialize(&mut input).unwrap();
 
         assert_eq!(small_vec.0, vec![5, 9]);
     }
@@ -91,7 +91,7 @@ mod test {
         ]
         .concat()[..];
 
-        let small_vec: SmallVec<u8, Pubkey> = AnchorDeserialize::deserialize(&mut input).unwrap();
+        let small_vec: SmallVec<u8, Pubkey> = SmallVec::deserialize(&mut input).unwrap();
 
         assert_eq!(small_vec.0, vec![pubkey1, pubkey2]);
     }
@@ -104,7 +104,7 @@ mod test {
             0x09, // vec[1]
         ][..];
 
-        let small_vec: SmallVec<u16, u8> = AnchorDeserialize::deserialize(&mut input).unwrap();
+        let small_vec: SmallVec<u16, u8> = SmallVec::deserialize(&mut input).unwrap();
 
         assert_eq!(small_vec.0, vec![5, 9]);
     }
@@ -120,7 +120,7 @@ mod test {
         ]
         .concat()[..];
 
-        let small_vec: SmallVec<u16, Pubkey> = AnchorDeserialize::deserialize(&mut input).unwrap();
+        let small_vec: SmallVec<u16, Pubkey> = SmallVec::deserialize(&mut input).unwrap();
 
         assert_eq!(small_vec.0, vec![pubkey1, pubkey2]);
     }

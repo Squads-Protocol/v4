@@ -105,6 +105,38 @@
           }
         }
       ]
+    },
+    {
+      "name": "transactionApprove",
+      "docs": [
+        "Approve the transaction on behalf of the `member`.",
+        "The transaction must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "TransactionVoteArgs"
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -398,6 +430,20 @@
       }
     },
     {
+      "name": "TransactionVoteArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "memo",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "Member",
       "type": {
         "kind": "struct",
@@ -679,6 +725,28 @@
           "index": true
         }
       ]
+    },
+    {
+      "name": "TransactionApprovedEvent",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "transaction",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
     }
   ],
   "errors": [
@@ -726,6 +794,26 @@
       "code": 6008,
       "name": "InvalidTransactionMessage",
       "msg": "TransactionMessage is malformed."
+    },
+    {
+      "code": 6009,
+      "name": "StaleTransaction",
+      "msg": "Transaction is stale."
+    },
+    {
+      "code": 6010,
+      "name": "InvalidTransactionStatus",
+      "msg": "Invalid transaction status."
+    },
+    {
+      "code": 6011,
+      "name": "TransactionNotForMultisig",
+      "msg": "Transaction does not belong to the multisig."
+    },
+    {
+      "code": 6012,
+      "name": "AlreadyApproved",
+      "msg": "Member already approved the transaction."
     }
   ],
   "metadata": {

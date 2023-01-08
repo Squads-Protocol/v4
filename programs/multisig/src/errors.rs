@@ -20,4 +20,12 @@ pub enum MultisigError {
     NotAMember,
     #[msg("TransactionMessage is malformed.")]
     InvalidTransactionMessage,
+    #[msg("Transaction is stale.")]
+    StaleTransaction,
+    #[msg("Invalid transaction status.")]
+    InvalidTransactionStatus,
+    #[msg("Transaction does not belong to the multisig.")]
+    TransactionNotForMultisig,
+    #[msg("Member already approved the transaction.")]
+    AlreadyApproved,
 }

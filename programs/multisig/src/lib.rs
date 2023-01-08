@@ -35,6 +35,15 @@ pub mod multisig {
         TransactionCreate::transaction_create(ctx, args)
     }
 
+    /// Approve the transaction on behalf of the `member`.
+    /// The transaction must be `Active`.
+    pub fn transaction_approve(
+        ctx: Context<TransactionVote>,
+        args: TransactionVoteArgs,
+    ) -> Result<()> {
+        TransactionVote::transaction_approve(ctx, args)
+    }
+
     // // instruction to remove a member/key from the multisig
     // pub fn remove_member(ctx: Context<MsAuth>, old_member: Pubkey) -> Result<()> {
     //     // if there is only one key in this multisig, reject the removal

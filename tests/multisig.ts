@@ -15,15 +15,17 @@ const { Permission, Permissions, TransactionStatus } = multisig.types;
 describe("multisig", () => {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
-  const members = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
-  console.log(
-    "members:",
-    JSON.stringify(
-      members.map((m) => m.publicKey),
-      null,
-      2
-    )
-  );
+  const members = {
+    almighty: Keypair.generate(),
+    proposer: Keypair.generate(),
+    voter: Keypair.generate(),
+    executor: Keypair.generate(),
+  };
+
+  console.log("members:");
+  for (const [name, keypair] of Object.entries(members)) {
+    console.log(name, ":", JSON.stringify(keypair.publicKey, null, 2));
+  }
 
   // For the sake of the tests we'll create two multisigs,
   // one - autonomous where all config changes should go through the members' approval process,
@@ -36,7 +38,7 @@ describe("multisig", () => {
   before(async () => {
     // Airdrop 100 SOL to each member.
     await Promise.all(
-      members.map(async (member) => {
+      Object.values(members).map(async (member) => {
         const sig = await connection.requestAirdrop(
           member.publicKey,
           100 * LAMPORTS_PER_SOL
@@ -69,11 +71,11 @@ describe("multisig", () => {
             threshold: 1,
             members: [
               {
-                key: members[0].publicKey,
+                key: members.almighty.publicKey,
                 permissions: Permissions.all(),
               },
               {
-                key: members[0].publicKey,
+                key: members.almighty.publicKey,
                 permissions: Permissions.all(),
               },
             ],
@@ -137,7 +139,7 @@ describe("multisig", () => {
             multisigPda,
             configAuthority,
             threshold: 0,
-            members: members.map((m) => ({
+            members: Object.values(members).map((m) => ({
               key: m.publicKey,
               permissions: Permissions.all(),
             })),
@@ -168,8 +170,8 @@ describe("multisig", () => {
             creator,
             multisigPda,
             configAuthority,
-            threshold: members.length + 1,
-            members: members.map((m) => ({
+            threshold: Object.keys(members).length + 1,
+            members: Object.values(members).map((m) => ({
               key: m.publicKey,
               permissions: Permissions.all(),
             })),
@@ -199,11 +201,25 @@ describe("multisig", () => {
         creator,
         multisigPda,
         configAuthority,
-        threshold: 1,
-        members: members.map((m) => ({
-          key: m.publicKey,
-          permissions: Permissions.all(),
-        })),
+        threshold: 2,
+        members: [
+          { key: members.almighty.publicKey, permissions: Permissions.all() },
+          // Can only initiate transactions.
+          {
+            key: members.proposer.publicKey,
+            permissions: Permissions.fromPermissions([Permission.Initiate]),
+          },
+          // Can only vote on transactions.
+          {
+            key: members.voter.publicKey,
+            permissions: Permissions.fromPermissions([Permission.Vote]),
+          },
+          // Can only execute transactions.
+          {
+            key: members.executor.publicKey,
+            permissions: Permissions.fromPermissions([Permission.Execute]),
+          },
+        ],
         createKey: autonomousMultisigCreateKey,
         allowExternalExecute: false,
         sendOptions: { skipPreflight: true },
@@ -215,22 +231,39 @@ describe("multisig", () => {
         connection,
         multisigPda
       );
-
       assert.strictEqual(
         multisigAccount.configAuthority.toBase58(),
         configAuthority.toBase58()
       );
-      assert.strictEqual(multisigAccount.threshold, 1);
+      assert.strictEqual(multisigAccount.threshold, 2);
       assert.deepEqual(
         multisigAccount.members,
-        members
-          .map((m) => ({
-            key: m.publicKey,
+        [
+          {
+            key: members.almighty.publicKey,
             permissions: {
               mask: Permission.Initiate | Permission.Vote | Permission.Execute,
             },
-          }))
-          .sort((a, b) => a.key.toBuffer().compare(b.key.toBuffer()))
+          },
+          {
+            key: members.proposer.publicKey,
+            permissions: {
+              mask: Permission.Initiate,
+            },
+          },
+          {
+            key: members.voter.publicKey,
+            permissions: {
+              mask: Permission.Vote,
+            },
+          },
+          {
+            key: members.executor.publicKey,
+            permissions: {
+              mask: Permission.Execute,
+            },
+          },
+        ].sort((a, b) => a.key.toBuffer().compare(b.key.toBuffer()))
       );
       assert.strictEqual(multisigAccount.authorityIndex, 1);
       assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
@@ -260,11 +293,25 @@ describe("multisig", () => {
         creator,
         multisigPda,
         configAuthority: controlledMultisigConfigAuthority.publicKey,
-        threshold: 1,
-        members: members.map((m) => ({
-          key: m.publicKey,
-          permissions: Permissions.all(),
-        })),
+        threshold: 2,
+        members: [
+          { key: members.almighty.publicKey, permissions: Permissions.all() },
+          // Can only initiate transactions.
+          {
+            key: members.proposer.publicKey,
+            permissions: Permissions.fromPermissions([Permission.Initiate]),
+          },
+          // Can only vote on transactions.
+          {
+            key: members.voter.publicKey,
+            permissions: Permissions.fromPermissions([Permission.Vote]),
+          },
+          // Can only execute transactions.
+          {
+            key: members.executor.publicKey,
+            permissions: Permissions.fromPermissions([Permission.Execute]),
+          },
+        ],
         createKey: controlledMultisigCreateKey,
         allowExternalExecute: false,
         sendOptions: { skipPreflight: true },
@@ -310,7 +357,7 @@ describe("multisig", () => {
           multisigPda,
           configAuthority: controlledMultisigConfigAuthority.publicKey,
           newMember: {
-            key: members[0].publicKey,
+            key: members.almighty.publicKey,
             permissions: Permissions.all(),
           },
           signers: [controlledMultisigConfigAuthority],
@@ -462,9 +509,99 @@ describe("multisig", () => {
   });
 
   describe("transaction_create", () => {
-    it("create a new transaction", async () => {
-      const creator = members[0];
+    it("error: not a member", async () => {
+      const nonMember = await generateFundedKeypair(connection);
 
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Vault, index 1.
+      const [vaultPda] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 1,
+      });
+
+      // Test transfer instruction.
+      const testPayee = Keypair.generate();
+      const testIx = await createTestTransferInstruction(
+        vaultPda,
+        testPayee.publicKey
+      );
+      const testTransferMessage = new TransactionMessage({
+        payerKey: vaultPda,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [testIx],
+      });
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.transactionCreate({
+            connection,
+            feePayer: nonMember,
+            multisigPda,
+            transactionIndex,
+            creator: nonMember.publicKey,
+            authorityIndex: 1,
+            transactionMessage: testTransferMessage,
+          }),
+        /Provided pubkey is not a member of multisig/
+      );
+    });
+
+    it("error: unauthorized", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Vault, index 1.
+      const [vaultPda] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 1,
+      });
+
+      // Test transfer instruction.
+      const testPayee = Keypair.generate();
+      const testIx = await createTestTransferInstruction(
+        vaultPda,
+        testPayee.publicKey
+      );
+      const testTransferMessage = new TransactionMessage({
+        payerKey: vaultPda,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [testIx],
+      });
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.transactionCreate({
+            connection,
+            feePayer: members.voter,
+            multisigPda,
+            transactionIndex,
+            creator: members.voter.publicKey,
+            authorityIndex: 1,
+            transactionMessage: testTransferMessage,
+          }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+
+    it("create a new transaction", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey,
       });
@@ -507,10 +644,10 @@ describe("multisig", () => {
 
       const signature = await multisig.rpc.transactionCreate({
         connection,
-        feePayer: creator,
+        feePayer: members.proposer,
         multisigPda,
         transactionIndex,
-        creator: creator.publicKey,
+        creator: members.proposer.publicKey,
         authorityIndex: 1,
         transactionMessage: testTransferMessage,
         memo: "Transfer 2 SOL to a test account",
@@ -526,7 +663,6 @@ describe("multisig", () => {
         transactionIndex.toString()
       );
 
-      // TODO: fetch the transaction account and verify its contents.
       const [transactionPda, transactionBump] = multisig.getTransactionPda({
         multisigPda,
         index: transactionIndex,
@@ -537,7 +673,7 @@ describe("multisig", () => {
       );
       assert.strictEqual(
         transactionAccount.creator.toBase58(),
-        creator.publicKey.toBase58()
+        members.proposer.publicKey.toBase58()
       );
       assert.strictEqual(
         transactionAccount.multisig.toBase58(),
@@ -556,10 +692,137 @@ describe("multisig", () => {
       // TODO: verify the transaction message data.
       assert.ok(transactionAccount.message);
     });
+  });
 
-    it("error: not a member")
+  describe("transaction_approve", () => {
+    it("error: not a member", async () => {
+      const nonMember = await generateFundedKeypair(connection);
 
-    it("error: unauthorized")
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Approve the last transaction.
+      const transactionIndex = multisig.utils.toBigInt(
+        multisigAccount.transactionIndex
+      );
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.transactionApprove({
+            connection,
+            feePayer: nonMember,
+            multisigPda,
+            transactionIndex,
+            member: nonMember.publicKey,
+          }),
+        /Provided pubkey is not a member of multisig/
+      );
+    });
+
+    it("error: unauthorized", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Approve the last transaction.
+      const transactionIndex = multisig.utils.toBigInt(
+        multisigAccount.transactionIndex
+      );
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.transactionApprove({
+            connection,
+            feePayer: members.executor,
+            multisigPda,
+            transactionIndex,
+            member: members.executor.publicKey,
+          }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+
+    it("approve a transaction", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Approve the last transaction.
+      const transactionIndex = multisig.utils.toBigInt(
+        multisigAccount.transactionIndex
+      );
+
+      const signature = await multisig.rpc.transactionApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex,
+        member: members.voter.publicKey,
+        memo: "LGTM",
+      });
+      await connection.confirmTransaction(signature);
+
+      // Verify the transaction account.
+      const [transactionPda] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+      const transactionAccount = await MultisigTransaction.fromAccountAddress(
+        connection,
+        transactionPda
+      );
+      assert.deepEqual(transactionAccount.approved, [members.voter.publicKey]);
+      assert.deepEqual(transactionAccount.rejected, []);
+      assert.deepEqual(transactionAccount.cancelled, []);
+      // Our threshold is 2, so the transaction is not yet ExecutionReady.
+      assert.strictEqual(transactionAccount.status, TransactionStatus.Active);
+    });
+
+    it("error: already approved", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // Approve the last transaction.
+      const transactionIndex = multisig.utils.toBigInt(
+        multisigAccount.transactionIndex
+      );
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.transactionApprove({
+            connection,
+            feePayer: members.voter,
+            multisigPda,
+            transactionIndex,
+            member: members.voter.publicKey,
+          }),
+        /Member already approved the transaction/
+      );
+    });
+
+    it("error: stale transaction")
+
+    it("error: invalid transaction status")
+
+    it("error: transaction is not for multisig")
   });
 });
 

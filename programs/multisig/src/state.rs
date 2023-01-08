@@ -189,24 +189,21 @@ impl MultisigTransaction {
     }
 
     /// Approve the transaction.
-    pub fn approve(&mut self, member: Pubkey) -> Result<()> {
+    pub fn approve(&mut self, member: Pubkey) {
         self.approved.push(member);
         self.approved.sort();
-        Ok(())
     }
 
     /// Reject the transaction.
-    pub fn reject(&mut self, member: Pubkey) -> Result<()> {
+    pub fn reject(&mut self, member: Pubkey) {
         self.rejected.push(member);
         self.rejected.sort();
-        Ok(())
     }
 
     /// Cancel the transaction if execute_ready.
-    pub fn cancel(&mut self, member: Pubkey) -> Result<()> {
+    pub fn cancel(&mut self, member: Pubkey) {
         self.cancelled.push(member);
         self.cancelled.sort();
-        Ok(())
     }
 
     /// Check if the member has already voted.
@@ -217,30 +214,31 @@ impl MultisigTransaction {
     }
 
     /// Check if the member approved the transaction.
+    /// Returns `Some(index)` if `member` has approved the transaction, with `index` into the `approved` vec.
     pub fn has_voted_approve(&self, member: Pubkey) -> Option<usize> {
         self.approved.binary_search(&member).ok()
     }
 
     /// Check if the member rejected the transaction.
+    /// Returns `Some(index)` if `member` has rejected the transaction, with `index` into the `rejected` vec.
     pub fn has_voted_reject(&self, member: Pubkey) -> Option<usize> {
         self.rejected.binary_search(&member).ok()
     }
 
     /// Check if a user has signed to cancel
+    /// Returns `Some(index)` if `member` has cancelled the transaction, with `index` into the `cancelled` vec.
     pub fn has_cancelled(&self, member: Pubkey) -> Option<usize> {
         self.cancelled.binary_search(&member).ok()
     }
 
     /// Delete the vote of rejection at the `index`.
-    pub fn remove_rejection_vote(&mut self, index: usize) -> Result<()> {
+    pub fn remove_rejection_vote(&mut self, index: usize) {
         self.rejected.remove(index);
-        Ok(())
     }
 
     /// Delete the vote of approval at the `index`.
-    pub fn remove_approval_vote(&mut self, index: usize) -> Result<()> {
+    pub fn remove_approval_vote(&mut self, index: usize) {
         self.approved.remove(index);
-        Ok(())
     }
 }
 
