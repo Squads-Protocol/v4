@@ -9,7 +9,7 @@ const binaryInstallDir = path.join(__dirname, ".crates");
 module.exports = {
   idlGenerator: "anchor",
   programName: "multisig",
-  programId: "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+  programId: "7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh",
   idlDir,
   sdkDir,
   binaryInstallDir,

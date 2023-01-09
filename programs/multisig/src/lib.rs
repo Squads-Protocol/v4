@@ -8,7 +8,7 @@ mod instructions;
 mod state;
 mod utils;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh");
 
 #[program]
 pub mod multisig {

@@ -11,6 +11,10 @@
     "ts": {
       "inputs": ["src/**/*.ts", "tests/**/*.ts", "package.json"],
       "outputs": []
+    },
+    "deploy": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

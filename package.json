@@ -6,7 +6,8 @@
     "scripts": {
         "build": "turbo run build",
         "test": "turbo run build && anchor test",
-        "ts": "turbo run ts && yarn tsc --noEmit"
+        "ts": "turbo run ts && yarn tsc --noEmit",
+        "deploy": "anchor deploy --provider.cluster mainnet-beta --provider.wallet .keys/upgrade-authority.json --program-name multisig"
     },
     "devDependencies": {
         "@solana/spl-token": "0.3.6",

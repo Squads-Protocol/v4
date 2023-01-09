@@ -71,7 +71,7 @@ export const transactionCreateInstructionDiscriminator = [
 export function createTransactionCreateInstruction(
   accounts: TransactionCreateInstructionAccounts,
   args: TransactionCreateInstructionArgs,
-  programId = new web3.PublicKey('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS')
+  programId = new web3.PublicKey('7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh')
 ) {
   const [data] = transactionCreateStruct.serialize({
     instructionDiscriminator: transactionCreateInstructionDiscriminator,
