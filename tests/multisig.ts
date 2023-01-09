@@ -937,6 +937,58 @@ describe("multisig", () => {
 
     it("error: transaction is not for multisig");
   });
+
+  describe("utils", () => {
+    describe("getAvailableMemoSize", () => {
+      it("provides estimates for available size to use for memo", async () => {
+        const multisigCreator = await generateFundedKeypair(connection);
+        const createKey = Keypair.generate().publicKey;
+        const [multisigPda] = multisig.getMultisigPda({
+          createKey,
+        });
+        const [configAuthority] = multisig.getAuthorityPda({
+          multisigPda,
+          index: 0,
+        });
+
+        const multisigCreateArgs: Parameters<
+          typeof multisig.transactions.multisigCreate
+        >[0] = {
+          blockhash: (await connection.getLatestBlockhash()).blockhash,
+          creator: multisigCreator.publicKey,
+          multisigPda,
+          createKey,
+          configAuthority,
+          members: [
+            { key: members.almighty.publicKey, permissions: Permissions.all() },
+          ],
+          threshold: 1,
+        };
+
+        const createMultisigTxWithoutMemo =
+          multisig.transactions.multisigCreate(multisigCreateArgs);
+
+        const availableMemoSize = multisig.utils.getAvailableMemoSize(
+          createMultisigTxWithoutMemo
+        );
+
+        const memo = "a".repeat(availableMemoSize);
+
+        const createMultisigTxWithMemo = multisig.transactions.multisigCreate({
+          ...multisigCreateArgs,
+          memo,
+        });
+        // The transaction with memo should have the maximum allowed size.
+        assert.strictEqual(createMultisigTxWithMemo.serialize().length, 1232);
+        // The transaction should work.
+        createMultisigTxWithMemo.sign([multisigCreator]);
+        const signature = await connection.sendTransaction(
+          createMultisigTxWithMemo
+        );
+        await connection.confirmTransaction(signature);
+      });
+    });
+  });
 });
 
 async function generateFundedKeypair(connection: Connection) {

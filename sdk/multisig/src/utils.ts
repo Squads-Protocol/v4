@@ -1,6 +1,7 @@
 import { u8, u32, u64, bignum } from "@metaplex-foundation/beet";
 import { Buffer } from "buffer";
 import { MultisigTransactionMessage } from "./generated";
+import { VersionedTransaction } from "@solana/web3.js";
 
 export function toUtfBytes(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -26,6 +27,20 @@ export function toU64Bytes(num: bigint): Uint8Array {
 
 export function toBigInt(number: bignum): bigint {
   return BigInt(number.toString());
+}
+
+const MAX_TX_SIZE_BYTES = 1232;
+const STRING_LEN_SIZE = 4;
+export function getAvailableMemoSize(
+  txWithoutMemo: VersionedTransaction
+): number {
+  const txSize = txWithoutMemo.serialize().length;
+  return (
+    MAX_TX_SIZE_BYTES -
+    txSize -
+    STRING_LEN_SIZE -
+    1 /*TODO: Figure out where this extra byte is coming from*/
+  );
 }
 
 export function isStaticWritableIndex(
