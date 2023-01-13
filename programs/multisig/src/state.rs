@@ -122,7 +122,7 @@ pub enum Permission {
 /// Bitmask for permissions.
 #[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy, Default, Debug)]
 pub struct Permissions {
-    mask: u8,
+    pub mask: u8,
 }
 
 impl Permissions {
