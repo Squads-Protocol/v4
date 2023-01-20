@@ -7,9 +7,9 @@ use crate::utils::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct TransactionCreateArgs {
-    authority_index: u8,
-    transaction_message: Vec<u8>,
-    memo: Option<String>,
+    pub authority_index: u8,
+    pub transaction_message: Vec<u8>,
+    pub memo: Option<String>,
 }
 
 #[derive(Accounts)]
