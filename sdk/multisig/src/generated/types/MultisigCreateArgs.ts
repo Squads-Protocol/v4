@@ -14,7 +14,6 @@ export type MultisigCreateArgs = {
   threshold: number
   members: Member[]
   createKey: web3.PublicKey
-  allowExternalExecute: beet.COption<boolean>
   memo: beet.COption<string>
 }
 
@@ -29,7 +28,6 @@ export const multisigCreateArgsBeet =
       ['threshold', beet.u16],
       ['members', beet.array(memberBeet)],
       ['createKey', beetSolana.publicKey],
-      ['allowExternalExecute', beet.coption(beet.bool)],
       ['memo', beet.coption(beet.utf8String)],
     ],
     'MultisigCreateArgs'

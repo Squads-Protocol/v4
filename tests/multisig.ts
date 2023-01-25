@@ -268,7 +268,6 @@ describe("multisig", () => {
       assert.strictEqual(multisigAccount.authorityIndex, 1);
       assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
       assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "0");
-      assert.strictEqual(multisigAccount.allowExternalExecute, false);
       assert.strictEqual(
         multisigAccount.createKey.toBase58(),
         autonomousMultisigCreateKey.toBase58()

@@ -14,8 +14,6 @@ pub struct MultisigCreateArgs {
     pub members: Vec<Member>,
     /// Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning.
     pub create_key: Pubkey,
-    /// Whether to allow non-member keys to execute txs.
-    pub allow_external_execute: Option<bool>,
     /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
     pub memo: Option<String>,
 }
@@ -72,12 +70,11 @@ impl MultisigCreate<'_> {
         multisig.authority_index = 1; // Default vault is the first authority.
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;
-        multisig.allow_external_execute = args.allow_external_execute.unwrap_or(false);
         multisig.create_key = args.create_key;
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
 
         emit!(MultisigCreated {
-            multisig: ctx.accounts.multisig.to_account_info().key.clone(),
+            multisig: ctx.accounts.multisig.to_account_info().key(),
             memo: args.memo,
         });
 

@@ -20,7 +20,6 @@ export async function multisigCreate({
   threshold,
   members,
   createKey,
-  allowExternalExecute,
   memo,
   sendOptions,
 }: {
@@ -31,7 +30,6 @@ export async function multisigCreate({
   threshold: number;
   members: Member[];
   createKey: PublicKey;
-  allowExternalExecute?: boolean;
   memo?: string;
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
@@ -45,7 +43,6 @@ export async function multisigCreate({
     threshold,
     members,
     createKey,
-    allowExternalExecute,
     memo,
   });
 

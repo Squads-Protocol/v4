@@ -227,11 +227,11 @@
             "type": "u64"
           },
           {
-            "name": "allowExternalExecute",
+            "name": "reserved",
             "docs": [
-              "Whether to allow non-member keys to execute txs."
+              "Reserved for future use."
             ],
-            "type": "bool"
+            "type": "u8"
           },
           {
             "name": "createKey",
@@ -410,15 +410,6 @@
               "Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning."
             ],
             "type": "publicKey"
-          },
-          {
-            "name": "allowExternalExecute",
-            "docs": [
-              "Whether to allow non-member keys to execute txs."
-            ],
-            "type": {
-              "option": "bool"
-            }
           },
           {
             "name": "memo",

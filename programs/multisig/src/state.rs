@@ -34,8 +34,8 @@ pub struct Multisig {
     /// Last stale transaction index. All transactions up until this index are stale.
     /// This index is updated when multisig config (members/threshold) changes.
     pub stale_transaction_index: u64,
-    /// Whether to allow non-member keys to execute txs.
-    pub allow_external_execute: bool,
+    /// Reserved for future use.
+    pub _reserved: u8,
     /// Key that is used to seed the multisig PDA.
     /// Used solely as bytes for the seed, doesn't have any other meaning or function.
     pub create_key: Pubkey,
