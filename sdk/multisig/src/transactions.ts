@@ -19,6 +19,7 @@ import {
 import { getAuthorityPda, getTransactionPda } from "./pda";
 import { transactionMessageBeet } from "./types";
 import { isSignerIndex, isStaticWritableIndex } from "./utils";
+import * as instructions from "./instructions.js";
 
 /** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` before sending it. */
 export function multisigCreate({
@@ -29,7 +30,6 @@ export function multisigCreate({
   threshold,
   members,
   createKey,
-  allowExternalExecute,
   memo,
 }: {
   blockhash: string;
@@ -39,29 +39,21 @@ export function multisigCreate({
   threshold: number;
   members: Member[];
   createKey: PublicKey;
-  allowExternalExecute?: boolean;
   memo?: string;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: creator,
     recentBlockhash: blockhash,
     instructions: [
-      createMultisigCreateInstruction(
-        {
-          creator,
-          multisig: multisigPda,
-        },
-        {
-          args: {
-            configAuthority,
-            threshold,
-            members,
-            createKey,
-            allowExternalExecute: allowExternalExecute ?? null,
-            memo: memo ?? null,
-          },
-        }
-      ),
+      instructions.multisigCreate({
+        creator,
+        multisigPda,
+        configAuthority,
+        threshold,
+        members,
+        createKey,
+        memo,
+      }),
     ],
   }).compileToV0Message();
 

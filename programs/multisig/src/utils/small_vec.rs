@@ -8,9 +8,9 @@ use anchor_lang::prelude::*;
 #[derive(Clone, Debug, Default)]
 pub struct SmallVec<L, T>(Vec<T>, PhantomData<L>);
 
-impl<L, T> Into<Vec<T>> for SmallVec<L, T> {
-    fn into(self) -> Vec<T> {
-        self.0
+impl<L, T> From<SmallVec<L, T>> for Vec<T> {
+    fn from(val: SmallVec<L, T>) -> Self {
+        val.0
     }
 }
 

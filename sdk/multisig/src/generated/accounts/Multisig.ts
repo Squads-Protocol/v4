@@ -22,7 +22,7 @@ export type MultisigArgs = {
   authorityIndex: number
   transactionIndex: beet.bignum
   staleTransactionIndex: beet.bignum
-  allowExternalExecute: boolean
+  reserved: number
   createKey: web3.PublicKey
   bump: number
 }
@@ -43,7 +43,7 @@ export class Multisig implements MultisigArgs {
     readonly authorityIndex: number,
     readonly transactionIndex: beet.bignum,
     readonly staleTransactionIndex: beet.bignum,
-    readonly allowExternalExecute: boolean,
+    readonly reserved: number,
     readonly createKey: web3.PublicKey,
     readonly bump: number
   ) {}
@@ -59,7 +59,7 @@ export class Multisig implements MultisigArgs {
       args.authorityIndex,
       args.transactionIndex,
       args.staleTransactionIndex,
-      args.allowExternalExecute,
+      args.reserved,
       args.createKey,
       args.bump
     )
@@ -196,7 +196,7 @@ export class Multisig implements MultisigArgs {
         }
         return x
       })(),
-      allowExternalExecute: this.allowExternalExecute,
+      reserved: this.reserved,
       createKey: this.createKey.toBase58(),
       bump: this.bump,
     }
@@ -221,7 +221,7 @@ export const multisigBeet = new beet.FixableBeetStruct<
     ['authorityIndex', beet.u8],
     ['transactionIndex', beet.u64],
     ['staleTransactionIndex', beet.u64],
-    ['allowExternalExecute', beet.bool],
+    ['reserved', beet.u8],
     ['createKey', beetSolana.publicKey],
     ['bump', beet.u8],
   ],

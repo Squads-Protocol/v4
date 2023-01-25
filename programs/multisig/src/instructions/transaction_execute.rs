@@ -31,8 +31,8 @@ pub struct TransactionExecute<'info> {
 
     #[account(
         mut,
-        constraint = multisig.is_member(member.key()).is_some() || multisig.allow_external_execute @ MultisigError::NotAMember,
-        constraint = multisig.member_has_permission(member.key(), Permission::Execute) || multisig.allow_external_execute @ MultisigError::Unauthorized,
+        constraint = multisig.is_member(member.key()).is_some() @ MultisigError::NotAMember,
+        constraint = multisig.member_has_permission(member.key(), Permission::Execute) @ MultisigError::Unauthorized,
     )]
     pub member: Signer<'info>,
     // `remaining_accounts` must include the following accounts in the exact order:
@@ -80,6 +80,7 @@ impl TransactionExecute<'_> {
 
         // Execute the transaction instructions one-by-one.
         for (ix, account_infos) in executable_message.to_instructions_and_accounts().iter() {
+            // FIXME: Prevent reentrancy.
             invoke_signed(ix, account_infos, &[authority_seeds])?;
         }
 
