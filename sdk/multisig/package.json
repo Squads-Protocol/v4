@@ -1,6 +1,6 @@
 {
   "name": "@sqds/multisig",
-  "version": "1.0.1-canary.0",
+  "version": "1.0.1-canary.1",
   "description": "SDK for Squads Multisig Program v4",
   "main": "lib/index.js",
   "license": "MIT",
