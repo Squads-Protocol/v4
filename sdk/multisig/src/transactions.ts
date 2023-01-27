@@ -1,24 +1,18 @@
 import {
-  AccountMeta,
   AddressLookupTableAccount,
   Connection,
   PublicKey,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import invariant from "invariant";
 import {
   createMultisigAddMemberInstruction,
-  createMultisigCreateInstruction,
   createTransactionApproveInstruction,
   createTransactionCreateInstruction,
-  createTransactionExecuteInstruction,
   Member,
-  MultisigTransaction,
 } from "./generated";
 import { getAuthorityPda, getTransactionPda } from "./pda";
 import { transactionMessageBeet } from "./types";
-import { isSignerIndex, isStaticWritableIndex } from "./utils";
 import * as instructions from "./instructions.js";
 
 /** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` before sending it. */
@@ -253,112 +247,17 @@ export async function transactionExecute({
   transactionIndex: bigint;
   member: PublicKey;
 }): Promise<VersionedTransaction> {
-  const [transactionPda] = getTransactionPda({
-    multisigPda,
-    index: transactionIndex,
-  });
-  const transactionAccount = await MultisigTransaction.fromAccountAddress(
+  const ix = await instructions.transactionExecute({
     connection,
-    transactionPda
-  );
-
-  const [authorityPda] = getAuthorityPda({
     multisigPda,
-    index: transactionAccount.authorityIndex,
+    member,
+    transactionIndex,
   });
-
-  const transactionMessage = transactionAccount.message;
-
-  const addressLookupTableKeys = transactionMessage.addressTableLookups.map(
-    ({ accountKey }) => accountKey
-  );
-  const addressLookupTableAccounts = new Map(
-    await Promise.all(
-      addressLookupTableKeys.map(async (key) => {
-        const { value } = await connection.getAddressLookupTable(key);
-        if (!value) {
-          throw new Error(
-            `Address lookup table account ${key.toBase58()} not found`
-          );
-        }
-        return [key.toBase58(), value] as const;
-      })
-    )
-  );
-
-  // Populate remaining accounts required for execution of the transaction.
-  const remainingAccounts: AccountMeta[] = [];
-  // First add the lookup table accounts used by the transaction. They are needed for on-chain validation.
-  remainingAccounts.push(
-    ...addressLookupTableKeys.map((key) => {
-      return { pubkey: key, isSigner: false, isWritable: false };
-    })
-  );
-  // Then add static account keys included into the message.
-  for (const [
-    accountIndex,
-    accountKey,
-  ] of transactionMessage.accountKeys.entries()) {
-    remainingAccounts.push({
-      pubkey: accountKey,
-      isWritable: isStaticWritableIndex(transactionMessage, accountIndex),
-      // NOTE: authorityPda cannot be marked as signer because it's a PDA.
-      isSigner:
-        isSignerIndex(transactionMessage, accountIndex) &&
-        !accountKey.equals(authorityPda),
-    });
-  }
-  // Then add accounts that will be loaded with address lookup tables.
-  for (const lookup of transactionMessage.addressTableLookups) {
-    const lookupTableAccount = addressLookupTableAccounts.get(
-      lookup.accountKey.toBase58()
-    );
-    invariant(
-      lookupTableAccount,
-      `Address lookup table account ${lookup.accountKey.toBase58()} not found`
-    );
-
-    for (const accountIndex of lookup.writableIndexes) {
-      const pubkey: PublicKey =
-        lookupTableAccount.state.addresses[accountIndex];
-      invariant(
-        pubkey,
-        `Address lookup table account ${lookup.accountKey.toBase58()} does not contain address at index ${accountIndex}`
-      );
-      remainingAccounts.push({
-        pubkey,
-        isWritable: true,
-        // Accounts in address lookup tables can not be signers.
-        isSigner: false,
-      });
-    }
-    for (const accountIndex of lookup.readonlyIndexes) {
-      const pubkey: PublicKey =
-        lookupTableAccount.state.addresses[accountIndex];
-      invariant(
-        pubkey,
-        `Address lookup table account ${lookup.accountKey.toBase58()} does not contain address at index ${accountIndex}`
-      );
-      remainingAccounts.push({
-        pubkey,
-        isWritable: false,
-        // Accounts in address lookup tables can not be signers.
-        isSigner: false,
-      });
-    }
-  }
 
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
-    instructions: [
-      createTransactionExecuteInstruction({
-        multisig: multisigPda,
-        transaction: transactionPda,
-        member,
-        anchorRemainingAccounts: remainingAccounts,
-      }),
-    ],
+    instructions: [ix],
   }).compileToV0Message();
 
   return new VersionedTransaction(message);
