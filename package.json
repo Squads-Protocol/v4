@@ -11,8 +11,6 @@
     },
     "devDependencies": {
         "@solana/spl-token": "0.3.6",
-        "@solana/web3.js": "*",
-        "@sqds/multisig": "*",
         "@types/bn.js": "5.1.0",
         "@types/mocha": "10.0.1",
         "@types/node-fetch": "2.6.2",

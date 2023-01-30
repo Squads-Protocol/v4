@@ -45,9 +45,21 @@ pub struct TransactionCreated {
     pub memo: Option<String>,
 }
 
-/// New multisig transaction account is created.
+/// Transaction is approved.
 #[event]
 pub struct TransactionApproved {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    /// The transaction account.
+    pub transaction: Pubkey,
+    #[index]
+    /// Memo that was added by the creator.
+    pub memo: Option<String>,
+}
+
+/// Transaction is rejected.
+#[event]
+pub struct TransactionRejected {
     /// The multisig account.
     pub multisig: Pubkey,
     /// The transaction account.

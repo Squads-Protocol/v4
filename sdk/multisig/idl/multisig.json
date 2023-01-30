@@ -139,6 +139,38 @@
       ]
     },
     {
+      "name": "transactionReject",
+      "docs": [
+        "Reject the transaction on behalf of the `member`.",
+        "The transaction must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "TransactionVoteArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "transactionExecute",
       "docs": [
         "Execute the multisig transaction.",
@@ -765,6 +797,28 @@
       ]
     },
     {
+      "name": "TransactionRejected",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "transaction",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
+    },
+    {
       "name": "TransactionExecuted",
       "fields": [
         {
@@ -809,7 +863,7 @@
     {
       "code": 6005,
       "name": "InvalidThreshold",
-      "msg": "Invalid threshold, must be between 1 and number of members"
+      "msg": "Invalid threshold, must be between 1 and number of members with Vote permission"
     },
     {
       "code": 6006,
@@ -848,11 +902,16 @@
     },
     {
       "code": 6013,
+      "name": "AlreadyRejected",
+      "msg": "Member already rejected the transaction"
+    },
+    {
+      "code": 6014,
       "name": "InvalidNumberOfAccounts",
       "msg": "Wrong number of accounts provided"
     },
     {
-      "code": 6014,
+      "code": 6015,
       "name": "InvalidAccount",
       "msg": "Invalid account provided"
     }

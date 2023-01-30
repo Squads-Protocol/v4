@@ -46,6 +46,15 @@ pub mod multisig {
         TransactionVote::transaction_approve(ctx, args)
     }
 
+    /// Reject the transaction on behalf of the `member`.
+    /// The transaction must be `Active`.
+    pub fn transaction_reject(
+        ctx: Context<TransactionVote>,
+        args: TransactionVoteArgs,
+    ) -> Result<()> {
+        TransactionVote::transaction_reject(ctx, args)
+    }
+
     /// Execute the multisig transaction.
     /// The transaction must be `ExecuteReady`.
     pub fn transaction_execute(ctx: Context<TransactionExecute>) -> Result<()> {

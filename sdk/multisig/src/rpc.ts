@@ -145,6 +145,7 @@ export async function transactionCreate({
     translateAndThrowAnchorError(err);
   }
 }
+
 /**
  * Approve the transaction on behalf of the `member`.
  * The transaction must be `Active`.
@@ -171,6 +172,49 @@ export async function transactionApprove({
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
   const tx = transactions.transactionApprove({
+    blockhash,
+    feePayer: feePayer.publicKey,
+    multisigPda,
+    transactionIndex,
+    member,
+    memo,
+  });
+
+  tx.sign([feePayer, ...(signers ?? [])]);
+
+  try {
+    return await connection.sendTransaction(tx, sendOptions);
+  } catch (err) {
+    translateAndThrowAnchorError(err);
+  }
+}
+
+/**
+ * Reject the transaction on behalf of the `member`.
+ * The transaction must be `Active`.
+ */
+export async function transactionReject({
+  connection,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  member,
+  memo,
+  signers,
+  sendOptions,
+}: {
+  connection: Connection;
+  feePayer: Signer;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  member: PublicKey;
+  memo?: string;
+  signers?: Signer[];
+  sendOptions?: SendOptions;
+}): Promise<TransactionSignature> {
+  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  const tx = transactions.transactionReject({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,

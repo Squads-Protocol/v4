@@ -59,8 +59,9 @@ impl MultisigCreate<'_> {
 
         // Make sure threshold is within bounds.
         let threshold = usize::from(args.threshold);
+        let num_voters = Multisig::num_voters(&members);
         require!(threshold > 0, MultisigError::InvalidThreshold);
-        require!(threshold <= num_members, MultisigError::InvalidThreshold);
+        require!(threshold <= num_voters, MultisigError::InvalidThreshold);
 
         // Initialize the multisig.
         let multisig = &mut ctx.accounts.multisig;

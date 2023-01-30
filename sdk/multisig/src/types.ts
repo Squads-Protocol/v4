@@ -31,6 +31,10 @@ export class Permissions implements IPermissions {
       )
     );
   }
+
+  static has(permissions: IPermissions, permission: Permission) {
+    return (permissions.mask & permission) === permission;
+  }
 }
 
 /**
