@@ -9,6 +9,7 @@ import {
   createMultisigAddMemberInstruction,
   createTransactionApproveInstruction,
   createTransactionCreateInstruction,
+  createTransactionRejectInstruction,
   Member,
 } from "./generated";
 import { getAuthorityPda, getTransactionPda } from "./pda";
@@ -211,6 +212,48 @@ export function transactionApprove({
     recentBlockhash: blockhash,
     instructions: [
       createTransactionApproveInstruction(
+        {
+          multisig: multisigPda,
+          transaction: transactionPda,
+          member,
+        },
+        {
+          args: {
+            memo: memo ?? null,
+          },
+        }
+      ),
+    ],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(message);
+}
+
+export function transactionReject({
+  blockhash,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  member,
+  memo,
+}: {
+  blockhash: string;
+  feePayer: PublicKey;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  member: PublicKey;
+  memo?: string;
+}): VersionedTransaction {
+  const [transactionPda] = getTransactionPda({
+    multisigPda,
+    index: transactionIndex,
+  });
+
+  const message = new TransactionMessage({
+    payerKey: feePayer,
+    recentBlockhash: blockhash,
+    instructions: [
+      createTransactionRejectInstruction(
         {
           multisig: multisigPda,
           transaction: transactionPda,

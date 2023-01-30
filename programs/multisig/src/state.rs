@@ -91,6 +91,13 @@ impl Multisig {
         }
     }
 
+    pub fn num_voters(members: &[Member]) -> usize {
+        members
+            .iter()
+            .filter(|m| m.permissions.has(Permission::Vote))
+            .count()
+    }
+
     pub fn add_member_if_not_exists(&mut self, new_member: Member) {
         if self.is_member(new_member.key).is_none() {
             self.members.push(new_member);

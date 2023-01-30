@@ -73,4 +73,44 @@ impl TransactionVote<'_> {
 
         Ok(())
     }
+
+    /// Reject the transaction on behalf of the `member`.
+    /// The transaction must be `Active`.
+    pub fn transaction_reject(ctx: Context<Self>, args: TransactionVoteArgs) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+        let transaction = &mut ctx.accounts.transaction;
+        let member = &mut ctx.accounts.member;
+
+        require!(
+            transaction.has_voted_reject(member.key()).is_none(),
+            MultisigError::AlreadyApproved
+        );
+
+        // If `member` has previously voted to approve, remove that vote.
+        if let Some(vote_index) = transaction.has_voted_approve(member.key()) {
+            transaction.remove_approval_vote(vote_index);
+        }
+
+        transaction.reject(member.key());
+
+        // How many "reject" votes are enough to make the transaction "Rejected".
+        // The cutoff must be such that it is impossible for the remaining voters to reach the approval threshold.
+        // For example: total voters = 7, threshold = 3, cutoff = 5.
+        let cutoff = Multisig::num_voters(&multisig.members)
+            .checked_sub(usize::from(multisig.threshold))
+            .unwrap()
+            .checked_add(1)
+            .unwrap();
+        if transaction.rejected.len() >= cutoff {
+            transaction.status = TransactionStatus::Rejected;
+        }
+
+        emit!(TransactionRejected {
+            multisig: multisig.key(),
+            transaction: transaction.key(),
+            memo: args.memo,
+        });
+
+        Ok(())
+    }
 }

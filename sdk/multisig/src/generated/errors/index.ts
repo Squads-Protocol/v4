@@ -121,7 +121,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * InvalidThreshold: 'Invalid threshold, must be between 1 and number of members'
+ * InvalidThreshold: 'Invalid threshold, must be between 1 and number of members with Vote permission'
  *
  * @category Errors
  * @category generated
@@ -130,7 +130,9 @@ export class InvalidThresholdError extends Error {
   readonly code: number = 0x1775
   readonly name: string = 'InvalidThreshold'
   constructor() {
-    super('Invalid threshold, must be between 1 and number of members')
+    super(
+      'Invalid threshold, must be between 1 and number of members with Vote permission'
+    )
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, InvalidThresholdError)
     }
@@ -305,13 +307,36 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * AlreadyRejected: 'Member already rejected the transaction'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class AlreadyRejectedError extends Error {
+  readonly code: number = 0x177d
+  readonly name: string = 'AlreadyRejected'
+  constructor() {
+    super('Member already rejected the transaction')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, AlreadyRejectedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177d, () => new AlreadyRejectedError())
+createErrorFromNameLookup.set(
+  'AlreadyRejected',
+  () => new AlreadyRejectedError()
+)
+
+/**
  * InvalidNumberOfAccounts: 'Wrong number of accounts provided'
  *
  * @category Errors
  * @category generated
  */
 export class InvalidNumberOfAccountsError extends Error {
-  readonly code: number = 0x177d
+  readonly code: number = 0x177e
   readonly name: string = 'InvalidNumberOfAccounts'
   constructor() {
     super('Wrong number of accounts provided')
@@ -321,7 +346,7 @@ export class InvalidNumberOfAccountsError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x177d, () => new InvalidNumberOfAccountsError())
+createErrorFromCodeLookup.set(0x177e, () => new InvalidNumberOfAccountsError())
 createErrorFromNameLookup.set(
   'InvalidNumberOfAccounts',
   () => new InvalidNumberOfAccountsError()
@@ -334,7 +359,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class InvalidAccountError extends Error {
-  readonly code: number = 0x177e
+  readonly code: number = 0x177f
   readonly name: string = 'InvalidAccount'
   constructor() {
     super('Invalid account provided')
@@ -344,7 +369,7 @@ export class InvalidAccountError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x177e, () => new InvalidAccountError())
+createErrorFromCodeLookup.set(0x177f, () => new InvalidAccountError())
 createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
 
 /**
