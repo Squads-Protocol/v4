@@ -8,6 +8,7 @@
 import * as beet from '@metaplex-foundation/beet'
 export type TransactionCreateArgs = {
   authorityIndex: number
+  additionalSigners: number
   transactionMessage: Uint8Array
   memo: beet.COption<string>
 }
@@ -20,6 +21,7 @@ export const transactionCreateArgsBeet =
   new beet.FixableBeetArgsStruct<TransactionCreateArgs>(
     [
       ['authorityIndex', beet.u8],
+      ['additionalSigners', beet.u8],
       ['transactionMessage', beet.bytes],
       ['memo', beet.coption(beet.utf8String)],
     ],

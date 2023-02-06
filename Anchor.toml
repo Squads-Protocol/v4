@@ -12,5 +12,13 @@ url = "https://api.apr.dev"
 cluster = "localnet"
 wallet = "./.keys/upgrade-authority.json"
 
+[test.validator]
+url = "https://api.devnet.solana.com"
+
+# Token2022
+[[test.validator.clone]]
+address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+
+
 [scripts]
 test = "npx mocha --node-option require=ts-node/register --extension ts -t 1000000 tests/**/*.ts"

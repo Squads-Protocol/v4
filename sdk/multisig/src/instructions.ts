@@ -11,7 +11,11 @@ import {
   Member,
   MultisigTransaction,
 } from "./generated";
-import { getAuthorityPda, getTransactionPda } from "./pda";
+import {
+  getAdditionalSignerPda,
+  getAuthorityPda,
+  getTransactionPda,
+} from "./pda";
 import { isSignerIndex, isStaticWritableIndex } from "./utils";
 
 export function multisigCreate({
@@ -72,6 +76,14 @@ export async function transactionExecute({
     multisigPda,
     index: transactionAccount.authorityIndex,
   });
+  const additionalSignerPdas = [
+    ...transactionAccount.additionalSignerBumps,
+  ].map((_, additionalSignerIndex) => {
+    return getAdditionalSignerPda({
+      transactionPda,
+      additionalSignerIndex,
+    })[0];
+  });
 
   const transactionMessage = transactionAccount.message;
 
@@ -108,10 +120,11 @@ export async function transactionExecute({
     remainingAccounts.push({
       pubkey: accountKey,
       isWritable: isStaticWritableIndex(transactionMessage, accountIndex),
-      // NOTE: authorityPda cannot be marked as signer because it's a PDA.
+      // NOTE: authorityPda and additionalSignerPdas cannot be marked as signers because they are PDAs.
       isSigner:
         isSignerIndex(transactionMessage, accountIndex) &&
-        !accountKey.equals(authorityPda),
+        !accountKey.equals(authorityPda) &&
+        !additionalSignerPdas.find((k) => accountKey.equals(k)),
     });
   }
   // Then add accounts that will be loaded with address lookup tables.

@@ -49,6 +49,8 @@ impl TransactionExecute<'_> {
         let transaction = &mut ctx.accounts.transaction;
 
         let multisig_key = multisig.key();
+        let transaction_key = transaction.key();
+
         let authority_seeds = &[
             SEED_PREFIX,
             multisig_key.as_ref(),
@@ -59,6 +61,32 @@ impl TransactionExecute<'_> {
 
         let authority_pubkey =
             Pubkey::create_program_address(authority_seeds, ctx.program_id).unwrap();
+
+        let (additional_signer_keys, additional_signer_seeds): (Vec<_>, Vec<_>) = transaction
+            .additional_signer_bumps
+            .iter()
+            .enumerate()
+            .map(|(index, bump)| {
+                let seeds = additional_signer_seeds_with_bump(
+                    transaction_key,
+                    u8::try_from(index).unwrap(),
+                    *bump,
+                );
+
+                (
+                    Pubkey::create_program_address(
+                        seeds
+                            .iter()
+                            .map(Vec::as_slice)
+                            .collect::<Vec<&[u8]>>()
+                            .as_slice(),
+                        ctx.program_id,
+                    )
+                    .unwrap(),
+                    seeds,
+                )
+            })
+            .unzip();
 
         let transaction_message = &transaction.message;
         let num_lookups = transaction_message.address_table_lookups.len();
@@ -76,12 +104,28 @@ impl TransactionExecute<'_> {
             message_account_infos,
             address_lookup_table_account_infos,
             &authority_pubkey,
+            &additional_signer_keys,
         )?;
 
         // Execute the transaction instructions one-by-one.
         for (ix, account_infos) in executable_message.to_instructions_and_accounts().iter() {
+            // FIXME: Cleanup this seeds insanity.
+            let signer_seeds = &additional_signer_seeds
+                .iter()
+                .map(|seeds| seeds.iter().map(Vec::as_slice).collect::<Vec<&[u8]>>())
+                .collect::<Vec<Vec<&[u8]>>>();
+
+            let mut signer_seeds_2 = signer_seeds
+                .iter()
+                .map(Vec::as_slice)
+                .collect::<Vec<&[&[u8]]>>();
+
+            // &mut &my_u8_array[..]
+
+            signer_seeds_2.push(authority_seeds);
+
             // FIXME: Prevent reentrancy.
-            invoke_signed(ix, account_infos, &[authority_seeds])?;
+            invoke_signed(ix, account_infos, &signer_seeds_2)?;
         }
 
         // Mark it as executed
@@ -94,4 +138,14 @@ impl TransactionExecute<'_> {
 
         Ok(())
     }
+}
+
+fn additional_signer_seeds_with_bump(transaction_key: Pubkey, index: u8, bump: u8) -> Vec<Vec<u8>> {
+    vec![
+        SEED_PREFIX.to_vec(),
+        transaction_key.to_bytes().to_vec(),
+        index.to_le_bytes().to_vec(),
+        SEED_ADDITIONAL_SIGNER.to_vec(),
+        vec![bump],
+    ]
 }

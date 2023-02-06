@@ -9,6 +9,7 @@ pub const SEED_PREFIX: &[u8] = b"multisig";
 pub const SEED_MULTISIG: &[u8] = b"multisig";
 pub const SEED_TRANSACTION: &[u8] = b"transaction";
 pub const SEED_AUTHORITY: &[u8] = b"authority";
+pub const SEED_ADDITIONAL_SIGNER: &[u8] = b"additional_signer";
 
 #[account]
 pub struct Multisig {
@@ -155,10 +156,18 @@ pub struct MultisigTransaction {
     pub multisig: Pubkey,
     /// Used for seed.
     pub transaction_index: u64,
-    /// Index to use for other pdas (?).
+    /// Index of the authority/vault this transaction belongs to.
     pub authority_index: u8,
-    /// The authority bump.
+    /// Derivation bump of the authority/vault this transaction belongs to.
     pub authority_bump: u8,
+    /// Derivation bumps for additional signers.
+    /// Some transactions require multiple signers. Often these additional signers are "ephemeral" keypairs
+    /// that are generated on the client with a sole purpose of signing the transaction and be discarded immediately after.
+    /// When wrapping such transactions into multisig ones, we replace these "ephemeral" signing keypairs
+    /// with PDAs derived from the MultisigTransaction's `transaction_index` and controlled by the Multisig Program;
+    /// during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,
+    /// thus "signing" on behalf of these PDAs.  
+    pub additional_signer_bumps: Vec<u8>,
     /// The status of the transaction.
     pub status: TransactionStatus,
     /// bump for the seed.
