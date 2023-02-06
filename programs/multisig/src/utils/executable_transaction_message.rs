@@ -27,6 +27,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         message_account_infos: &'a [AccountInfo<'info>],
         address_lookup_table_account_infos: &'a [AccountInfo<'info>],
         authority_pubkey: &'a Pubkey,
+        additional_signer_pdas: &'a [Pubkey],
     ) -> Result<Self> {
         // CHECK: `address_lookup_table_account_infos` must be valid `AddressLookupTable`s
         //         and be the ones mentioned in `message.address_table_lookups`.
@@ -77,8 +78,10 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 message.is_static_writable_index(i),
                 MultisigError::InvalidAccount
             );
-            // For authority `is_signer` might differ because it's always false in the passed account infos.
-            if account_info.key != authority_pubkey {
+            // For authority or additional_signer_pdas `is_signer` might differ because it's always false in the passed account infos.
+            if account_info.key != authority_pubkey
+                && !additional_signer_pdas.contains(account_info.key)
+            {
                 require_eq!(
                     account_info.is_signer,
                     message.is_signer_index(i),

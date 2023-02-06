@@ -8,10 +8,10 @@ export function translateAndThrowAnchorError(err: unknown): never {
     throw err;
   }
 
-  const translatedError = cusper.errorFromProgramLogs(err.logs, true);
+  const translatedError = cusper.errorFromProgramLogs(err.logs, true) ?? {};
 
   if (typeof Error.captureStackTrace === "function") {
-    Error.captureStackTrace(translatedError!, translateAndThrowAnchorError);
+    Error.captureStackTrace(translatedError, translateAndThrowAnchorError);
   }
 
   (translatedError as unknown as ErrorWithLogs).logs = err.logs;
