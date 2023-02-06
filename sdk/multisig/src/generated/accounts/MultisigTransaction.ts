@@ -28,6 +28,7 @@ export type MultisigTransactionArgs = {
   transactionIndex: beet.bignum
   authorityIndex: number
   authorityBump: number
+  additionalSignerBumps: Uint8Array
   status: TransactionStatus
   bump: number
   approved: web3.PublicKey[]
@@ -53,6 +54,7 @@ export class MultisigTransaction implements MultisigTransactionArgs {
     readonly transactionIndex: beet.bignum,
     readonly authorityIndex: number,
     readonly authorityBump: number,
+    readonly additionalSignerBumps: Uint8Array,
     readonly status: TransactionStatus,
     readonly bump: number,
     readonly approved: web3.PublicKey[],
@@ -71,6 +73,7 @@ export class MultisigTransaction implements MultisigTransactionArgs {
       args.transactionIndex,
       args.authorityIndex,
       args.authorityBump,
+      args.additionalSignerBumps,
       args.status,
       args.bump,
       args.approved,
@@ -202,6 +205,7 @@ export class MultisigTransaction implements MultisigTransactionArgs {
       })(),
       authorityIndex: this.authorityIndex,
       authorityBump: this.authorityBump,
+      additionalSignerBumps: this.additionalSignerBumps,
       status: 'TransactionStatus.' + TransactionStatus[this.status],
       bump: this.bump,
       approved: this.approved,
@@ -229,6 +233,7 @@ export const multisigTransactionBeet = new beet.FixableBeetStruct<
     ['transactionIndex', beet.u64],
     ['authorityIndex', beet.u8],
     ['authorityBump', beet.u8],
+    ['additionalSignerBumps', beet.bytes],
     ['status', transactionStatusBeet],
     ['bump', beet.u8],
     ['approved', beet.array(beetSolana.publicKey)],

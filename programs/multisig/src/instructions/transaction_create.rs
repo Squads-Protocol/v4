@@ -7,7 +7,10 @@ use crate::utils::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct TransactionCreateArgs {
+    /// Index of the authority/vault this transaction belongs to.  
     pub authority_index: u8,
+    /// Number of additional signing PDAs required by the transaction.
+    pub additional_signers: u8,
     pub transaction_message: Vec<u8>,
     pub memo: Option<String>,
 }
@@ -56,6 +59,7 @@ impl TransactionCreate<'_> {
             TransactionMessage::deserialize(&mut args.transaction_message.as_slice())?;
 
         let multisig_key = multisig.key();
+        let transaction_key = transaction.key();
 
         let authority_seeds = &[
             SEED_PREFIX,
@@ -64,6 +68,22 @@ impl TransactionCreate<'_> {
             SEED_AUTHORITY,
         ];
         let (_, authority_bump) = Pubkey::find_program_address(authority_seeds, ctx.program_id);
+
+        let additional_signer_bumps: Vec<u8> = (0..args.additional_signers)
+            .into_iter()
+            .map(|additional_signer_index| {
+                let additional_signer_seeds = &[
+                    SEED_PREFIX,
+                    transaction_key.as_ref(),
+                    &additional_signer_index.to_le_bytes(),
+                    SEED_ADDITIONAL_SIGNER,
+                ];
+
+                let (_, bump) =
+                    Pubkey::find_program_address(additional_signer_seeds, ctx.program_id);
+                bump
+            })
+            .collect();
 
         // Increment the transaction index.
         let transaction_index = multisig.transaction_index.checked_add(1).unwrap();
@@ -74,6 +94,7 @@ impl TransactionCreate<'_> {
         transaction.transaction_index = transaction_index;
         transaction.authority_index = args.authority_index;
         transaction.authority_bump = authority_bump;
+        transaction.additional_signer_bumps = additional_signer_bumps;
         transaction.status = TransactionStatus::Active;
         transaction.bump = *ctx.bumps.get("transaction").unwrap();
         transaction.approved = Vec::new();

@@ -3,11 +3,19 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
-  TransactionMessage,
   SystemProgram,
+  TransactionMessage,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import * as assert from "assert";
+
+import {
+  createInitializeMint2Instruction,
+  getMinimumBalanceForRentExemptMint,
+  getMint,
+  MINT_SIZE,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 
 const { Multisig, MultisigTransaction } = multisig.accounts;
 const { Permission, Permissions, TransactionStatus } = multisig.types;
@@ -561,6 +569,7 @@ describe("multisig", () => {
             transactionIndex,
             creator: nonMember.publicKey,
             authorityIndex: 1,
+            additionalSigners: 0,
             transactionMessage: testTransferMessage,
           }),
         /Provided pubkey is not a member of multisig/
@@ -606,6 +615,7 @@ describe("multisig", () => {
             transactionIndex,
             creator: members.voter.publicKey,
             authorityIndex: 1,
+            additionalSigners: 0,
             transactionMessage: testTransferMessage,
           }),
         /Attempted to perform an unauthorized action/
@@ -662,6 +672,7 @@ describe("multisig", () => {
         transactionIndex,
         creator: members.proposer.publicKey,
         authorityIndex: 1,
+        additionalSigners: 0,
         transactionMessage: testTransferMessage,
         memo: "Transfer 2 SOL to a test account",
       });
@@ -697,6 +708,10 @@ describe("multisig", () => {
         transactionIndex.toString()
       );
       assert.strictEqual(transactionAccount.authorityBump, vaultBump);
+      assert.deepEqual(
+        transactionAccount.additionalSignerBumps,
+        new Uint8Array()
+      );
       assert.strictEqual(transactionAccount.bump, transactionBump);
       assert.strictEqual(transactionAccount.status, TransactionStatus.Active);
       assert.deepEqual(transactionAccount.approved, []);
@@ -745,6 +760,7 @@ describe("multisig", () => {
         transactionIndex,
         creator: members.proposer.publicKey,
         authorityIndex: 1,
+        additionalSigners: 0,
         transactionMessage: testTransferMessage,
         memo: "Transfer 1 SOL to a test account",
       });
@@ -1145,6 +1161,154 @@ describe("multisig", () => {
         );
         await connection.confirmTransaction(signature);
       });
+    });
+  });
+
+  describe("end-to-end scenarios", () => {
+    it('transaction with additional "ephemeral" signers', async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+
+      const [transactionPda] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+
+      // Vault, index 1.
+      const [vaultPda, vaultBump] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 1,
+      });
+
+      const lamportsForMintRent = await getMinimumBalanceForRentExemptMint(
+        connection
+      );
+
+      // Vault will pay for the mint account rent, airdrop this amount.
+      const airdropSig = await connection.requestAirdrop(
+        vaultPda,
+        lamportsForMintRent
+      );
+      await connection.confirmTransaction(airdropSig);
+
+      // Test create Mint transaction.
+      const [mintPda, mintBump] = multisig.getAdditionalSignerPda({
+        transactionPda,
+        additionalSignerIndex: 0,
+      });
+
+      const testTransactionMessage = new TransactionMessage({
+        payerKey: vaultPda,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [
+          SystemProgram.createAccount({
+            fromPubkey: vaultPda,
+            newAccountPubkey: mintPda,
+            space: MINT_SIZE,
+            lamports: lamportsForMintRent,
+            programId: TOKEN_2022_PROGRAM_ID,
+          }),
+          createInitializeMint2Instruction(
+            mintPda,
+            9,
+            vaultPda,
+            vaultPda,
+            TOKEN_2022_PROGRAM_ID
+          ),
+        ],
+      });
+
+      // Create
+      let signature = await multisig.rpc.transactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda,
+        transactionIndex,
+        creator: members.proposer.publicKey,
+        authorityIndex: 1,
+        additionalSigners: 1,
+        transactionMessage: testTransactionMessage,
+        memo: "Create new mint",
+      });
+      await connection.confirmTransaction(signature);
+
+      multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+      assert.strictEqual(
+        multisigAccount.transactionIndex.toString(),
+        transactionIndex.toString()
+      );
+
+      // Verify the transaction account
+      let transactionAccount = await MultisigTransaction.fromAccountAddress(
+        connection,
+        transactionPda
+      );
+      assert.deepEqual(
+        transactionAccount.additionalSignerBumps,
+        new Uint8Array([mintBump])
+      );
+
+      // Approve 1
+      signature = await multisig.rpc.transactionApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex,
+        member: members.voter.publicKey,
+        memo: "LGTM",
+        signers: [members.voter],
+      });
+      await connection.confirmTransaction(signature);
+
+      // Approve 2
+      signature = await multisig.rpc.transactionApprove({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex,
+        member: members.almighty.publicKey,
+        memo: "LGTM too",
+        signers: [members.almighty],
+      });
+      await connection.confirmTransaction(signature);
+
+      // Execute
+      signature = await multisig.rpc.transactionExecute({
+        connection,
+        feePayer: members.executor,
+        multisigPda,
+        transactionIndex,
+        member: members.executor.publicKey,
+        signers: [members.executor],
+        sendOptions: { skipPreflight: true },
+      });
+      await connection.confirmTransaction(signature);
+
+      // Assert the mint account is initialized.
+      const mintAccount = await getMint(
+        connection,
+        mintPda,
+        undefined,
+        TOKEN_2022_PROGRAM_ID
+      );
+      assert.ok(mintAccount.isInitialized);
+      assert.strictEqual(
+        mintAccount.mintAuthority?.toBase58(),
+        vaultPda.toBase58()
+      );
+      assert.strictEqual(mintAccount.decimals, 9);
+      assert.strictEqual(mintAccount.supply, 0n);
     });
   });
 });

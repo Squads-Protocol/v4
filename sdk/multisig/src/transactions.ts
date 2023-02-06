@@ -102,6 +102,7 @@ export function transactionCreate({
   transactionIndex,
   creator,
   authorityIndex,
+  additionalSigners,
   transactionMessage,
   addressLookupTableAccounts,
   memo,
@@ -112,6 +113,8 @@ export function transactionCreate({
   transactionIndex: bigint;
   creator: PublicKey;
   authorityIndex: number;
+  /** Number of additional signing PDAs required by the transaction. */
+  additionalSigners: number;
   /** Transaction message to wrap into a multisig transaction. */
   transactionMessage: TransactionMessage;
   /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
@@ -176,6 +179,7 @@ export function transactionCreate({
         {
           args: {
             authorityIndex,
+            additionalSigners,
             transactionMessage: transactionMessageBytes,
             memo: memo ?? null,
           },
