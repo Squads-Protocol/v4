@@ -1110,6 +1110,8 @@ describe("multisig", () => {
     it("error: invalid transaction status");
 
     it("error: transaction is not for multisig");
+
+    it("error: execute reentrancy");
   });
 
   describe("utils", () => {

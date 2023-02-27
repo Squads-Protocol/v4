@@ -34,4 +34,6 @@ pub enum MultisigError {
     InvalidNumberOfAccounts,
     #[msg("Invalid account provided")]
     InvalidAccount,
+    #[msg("transaction_execute reentrancy is forbidden")]
+    ExecuteReentrancy,
 }

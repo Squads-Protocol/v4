@@ -937,6 +937,11 @@
       "code": 6015,
       "name": "InvalidAccount",
       "msg": "Invalid account provided"
+    },
+    {
+      "code": 6016,
+      "name": "ExecuteReentrancy",
+      "msg": "transaction_execute reentrancy is forbidden"
     }
   ],
   "metadata": {

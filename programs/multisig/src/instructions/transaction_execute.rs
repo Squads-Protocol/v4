@@ -1,8 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke_signed;
+use anchor_lang::Discriminator;
 
 use crate::errors::*;
 use crate::events::*;
+use crate::id;
 use crate::state::*;
 use crate::utils::*;
 
@@ -111,6 +113,15 @@ impl TransactionExecute<'_> {
 
         // Execute the transaction instructions one-by-one.
         for (ix, account_infos) in executable_message.to_instructions_and_accounts().iter() {
+            // Make sure we don't allow reentrancy of transaction_execute.
+            // TODO: do the same in transaction_create.
+            if ix.program_id == id() {
+                require!(
+                    ix.data[..8] != crate::instruction::TransactionExecute::DISCRIMINATOR,
+                    MultisigError::ExecuteReentrancy
+                )
+            }
+
             // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
             let additional_signer_seeds = &additional_signer_seeds
                 .iter()
@@ -125,7 +136,6 @@ impl TransactionExecute<'_> {
             // Add the authority seeds.
             signer_seeds.push(authority_seeds);
 
-            // FIXME: Prevent reentrancy.
             invoke_signed(ix, account_infos, &signer_seeds)?;
         }
 

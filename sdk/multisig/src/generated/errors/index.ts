@@ -373,6 +373,29 @@ createErrorFromCodeLookup.set(0x177f, () => new InvalidAccountError())
 createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
 
 /**
+ * ExecuteReentrancy: 'transaction_execute reentrancy is forbidden'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class ExecuteReentrancyError extends Error {
+  readonly code: number = 0x1780
+  readonly name: string = 'ExecuteReentrancy'
+  constructor() {
+    super('transaction_execute reentrancy is forbidden')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, ExecuteReentrancyError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1780, () => new ExecuteReentrancyError())
+createErrorFromNameLookup.set(
+  'ExecuteReentrancy',
+  () => new ExecuteReentrancyError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated
