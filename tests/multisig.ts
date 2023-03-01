@@ -93,6 +93,45 @@ describe("multisig", () => {
         /Found multiple members with the same pubkey/
       );
     });
+    it("error: missing signature from `createKey`", async () => {
+      const creator = await generateFundedKeypair(connection);
+
+      const createKey = Keypair.generate();
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: createKey.publicKey,
+      });
+      const [configAuthority] = multisig.getAuthorityPda({
+        multisigPda,
+        index: 0,
+      });
+
+      const tx = multisig.transactions.multisigCreate({
+        blockhash: (await connection.getLatestBlockhash()).blockhash,
+        createKey: createKey.publicKey,
+        creator: creator.publicKey,
+        multisigPda,
+        configAuthority,
+        threshold: 1,
+        members: [
+          {
+            key: members.almighty.publicKey,
+            permissions: Permissions.all(),
+          },
+          {
+            key: members.almighty.publicKey,
+            permissions: Permissions.all(),
+          },
+        ],
+      });
+
+      // Missing signature from `createKey`.
+      tx.sign([creator]);
+
+      await assert.rejects(
+        () => connection.sendTransaction(tx, { skipPreflight: true }),
+        /Transaction signature verification failure/
+      );
+    });
 
     it("error: empty members", async () => {
       const creator = await generateFundedKeypair(connection);
