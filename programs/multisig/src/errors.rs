@@ -4,14 +4,10 @@ use anchor_lang::prelude::*;
 pub enum MultisigError {
     #[msg("Found multiple members with the same pubkey")]
     DuplicateMember,
-    #[msg("Member is already in multisig")]
-    MemberAlreadyExists,
     #[msg("Members array is empty")]
     EmptyMembers,
     #[msg("Too many members, can be up to 65535")]
     TooManyMembers,
-    #[msg("Maximum number of members already reached")]
-    MaxMembersReached,
     #[msg("Invalid threshold, must be between 1 and number of members with Vote permission")]
     InvalidThreshold,
     #[msg("Attempted to perform an unauthorized action")]
@@ -36,4 +32,10 @@ pub enum MultisigError {
     InvalidAccount,
     #[msg("transaction_execute reentrancy is forbidden")]
     ExecuteReentrancy,
+    #[msg("Cannot remove last member")]
+    RemoveLastMember,
+    #[msg("Members don't include any voters")]
+    NoVoters,
+    #[msg("config_authority must be set to non-default key")]
+    InvalidStaleTransactionIndex,
 }

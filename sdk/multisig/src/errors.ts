@@ -8,7 +8,7 @@ export function translateAndThrowAnchorError(err: unknown): never {
     throw err;
   }
 
-  const translatedError = cusper.errorFromProgramLogs(err.logs, true) ?? {};
+  const translatedError = cusper.errorFromProgramLogs(err.logs) ?? err;
 
   if (typeof Error.captureStackTrace === "function") {
     Error.captureStackTrace(translatedError, translateAndThrowAnchorError);

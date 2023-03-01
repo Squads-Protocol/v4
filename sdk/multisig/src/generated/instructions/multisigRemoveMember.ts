@@ -8,71 +8,71 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  MultisigAddMemberArgs,
-  multisigAddMemberArgsBeet,
-} from '../types/MultisigAddMemberArgs'
+  MultisigRemoveMemberArgs,
+  multisigRemoveMemberArgsBeet,
+} from '../types/MultisigRemoveMemberArgs'
 
 /**
  * @category Instructions
- * @category MultisigAddMember
+ * @category MultisigRemoveMember
  * @category generated
  */
-export type MultisigAddMemberInstructionArgs = {
-  args: MultisigAddMemberArgs
+export type MultisigRemoveMemberInstructionArgs = {
+  args: MultisigRemoveMemberArgs
 }
 /**
  * @category Instructions
- * @category MultisigAddMember
+ * @category MultisigRemoveMember
  * @category generated
  */
-export const multisigAddMemberStruct = new beet.FixableBeetArgsStruct<
-  MultisigAddMemberInstructionArgs & {
+export const multisigRemoveMemberStruct = new beet.FixableBeetArgsStruct<
+  MultisigRemoveMemberInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', multisigAddMemberArgsBeet],
+    ['args', multisigRemoveMemberArgsBeet],
   ],
-  'MultisigAddMemberInstructionArgs'
+  'MultisigRemoveMemberInstructionArgs'
 )
 /**
- * Accounts required by the _multisigAddMember_ instruction
+ * Accounts required by the _multisigRemoveMember_ instruction
  *
  * @property [_writable_] multisig
  * @property [_writable_, **signer**] configAuthority
  * @category Instructions
- * @category MultisigAddMember
+ * @category MultisigRemoveMember
  * @category generated
  */
-export type MultisigAddMemberInstructionAccounts = {
+export type MultisigRemoveMemberInstructionAccounts = {
   multisig: web3.PublicKey
   configAuthority: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const multisigAddMemberInstructionDiscriminator = [
-  1, 219, 215, 108, 184, 229, 214, 8,
+export const multisigRemoveMemberInstructionDiscriminator = [
+  217, 117, 177, 210, 182, 145, 218, 72,
 ]
 
 /**
- * Creates a _MultisigAddMember_ instruction.
+ * Creates a _MultisigRemoveMember_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category MultisigAddMember
+ * @category MultisigRemoveMember
  * @category generated
  */
-export function createMultisigAddMemberInstruction(
-  accounts: MultisigAddMemberInstructionAccounts,
-  args: MultisigAddMemberInstructionArgs,
+export function createMultisigRemoveMemberInstruction(
+  accounts: MultisigRemoveMemberInstructionAccounts,
+  args: MultisigRemoveMemberInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = multisigAddMemberStruct.serialize({
-    instructionDiscriminator: multisigAddMemberInstructionDiscriminator,
+  const [data] = multisigRemoveMemberStruct.serialize({
+    instructionDiscriminator: multisigRemoveMemberInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [

@@ -125,7 +125,7 @@ export class MultisigTransaction implements MultisigTransactionArgs {
    */
   static gpaBuilder(
     programId: web3.PublicKey = new web3.PublicKey(
-      '7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh'
+      'SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf'
     )
   ) {
     return beetSolana.GpaBuilder.fromStruct(programId, multisigTransactionBeet)

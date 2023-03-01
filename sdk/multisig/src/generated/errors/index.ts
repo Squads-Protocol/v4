@@ -35,36 +35,13 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * MemberAlreadyExists: 'Member is already in multisig'
- *
- * @category Errors
- * @category generated
- */
-export class MemberAlreadyExistsError extends Error {
-  readonly code: number = 0x1771
-  readonly name: string = 'MemberAlreadyExists'
-  constructor() {
-    super('Member is already in multisig')
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, MemberAlreadyExistsError)
-    }
-  }
-}
-
-createErrorFromCodeLookup.set(0x1771, () => new MemberAlreadyExistsError())
-createErrorFromNameLookup.set(
-  'MemberAlreadyExists',
-  () => new MemberAlreadyExistsError()
-)
-
-/**
  * EmptyMembers: 'Members array is empty'
  *
  * @category Errors
  * @category generated
  */
 export class EmptyMembersError extends Error {
-  readonly code: number = 0x1772
+  readonly code: number = 0x1771
   readonly name: string = 'EmptyMembers'
   constructor() {
     super('Members array is empty')
@@ -74,7 +51,7 @@ export class EmptyMembersError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1772, () => new EmptyMembersError())
+createErrorFromCodeLookup.set(0x1771, () => new EmptyMembersError())
 createErrorFromNameLookup.set('EmptyMembers', () => new EmptyMembersError())
 
 /**
@@ -84,7 +61,7 @@ createErrorFromNameLookup.set('EmptyMembers', () => new EmptyMembersError())
  * @category generated
  */
 export class TooManyMembersError extends Error {
-  readonly code: number = 0x1773
+  readonly code: number = 0x1772
   readonly name: string = 'TooManyMembers'
   constructor() {
     super('Too many members, can be up to 65535')
@@ -94,31 +71,8 @@ export class TooManyMembersError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1773, () => new TooManyMembersError())
+createErrorFromCodeLookup.set(0x1772, () => new TooManyMembersError())
 createErrorFromNameLookup.set('TooManyMembers', () => new TooManyMembersError())
-
-/**
- * MaxMembersReached: 'Maximum number of members already reached'
- *
- * @category Errors
- * @category generated
- */
-export class MaxMembersReachedError extends Error {
-  readonly code: number = 0x1774
-  readonly name: string = 'MaxMembersReached'
-  constructor() {
-    super('Maximum number of members already reached')
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, MaxMembersReachedError)
-    }
-  }
-}
-
-createErrorFromCodeLookup.set(0x1774, () => new MaxMembersReachedError())
-createErrorFromNameLookup.set(
-  'MaxMembersReached',
-  () => new MaxMembersReachedError()
-)
 
 /**
  * InvalidThreshold: 'Invalid threshold, must be between 1 and number of members with Vote permission'
@@ -127,7 +81,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class InvalidThresholdError extends Error {
-  readonly code: number = 0x1775
+  readonly code: number = 0x1773
   readonly name: string = 'InvalidThreshold'
   constructor() {
     super(
@@ -139,7 +93,7 @@ export class InvalidThresholdError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1775, () => new InvalidThresholdError())
+createErrorFromCodeLookup.set(0x1773, () => new InvalidThresholdError())
 createErrorFromNameLookup.set(
   'InvalidThreshold',
   () => new InvalidThresholdError()
@@ -152,7 +106,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class UnauthorizedError extends Error {
-  readonly code: number = 0x1776
+  readonly code: number = 0x1774
   readonly name: string = 'Unauthorized'
   constructor() {
     super('Attempted to perform an unauthorized action')
@@ -162,7 +116,7 @@ export class UnauthorizedError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1776, () => new UnauthorizedError())
+createErrorFromCodeLookup.set(0x1774, () => new UnauthorizedError())
 createErrorFromNameLookup.set('Unauthorized', () => new UnauthorizedError())
 
 /**
@@ -172,7 +126,7 @@ createErrorFromNameLookup.set('Unauthorized', () => new UnauthorizedError())
  * @category generated
  */
 export class NotAMemberError extends Error {
-  readonly code: number = 0x1777
+  readonly code: number = 0x1775
   readonly name: string = 'NotAMember'
   constructor() {
     super('Provided pubkey is not a member of multisig')
@@ -182,7 +136,7 @@ export class NotAMemberError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1777, () => new NotAMemberError())
+createErrorFromCodeLookup.set(0x1775, () => new NotAMemberError())
 createErrorFromNameLookup.set('NotAMember', () => new NotAMemberError())
 
 /**
@@ -192,7 +146,7 @@ createErrorFromNameLookup.set('NotAMember', () => new NotAMemberError())
  * @category generated
  */
 export class InvalidTransactionMessageError extends Error {
-  readonly code: number = 0x1778
+  readonly code: number = 0x1776
   readonly name: string = 'InvalidTransactionMessage'
   constructor() {
     super('TransactionMessage is malformed.')
@@ -203,7 +157,7 @@ export class InvalidTransactionMessageError extends Error {
 }
 
 createErrorFromCodeLookup.set(
-  0x1778,
+  0x1776,
   () => new InvalidTransactionMessageError()
 )
 createErrorFromNameLookup.set(
@@ -218,7 +172,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class StaleTransactionError extends Error {
-  readonly code: number = 0x1779
+  readonly code: number = 0x1777
   readonly name: string = 'StaleTransaction'
   constructor() {
     super('Transaction is stale')
@@ -228,7 +182,7 @@ export class StaleTransactionError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1779, () => new StaleTransactionError())
+createErrorFromCodeLookup.set(0x1777, () => new StaleTransactionError())
 createErrorFromNameLookup.set(
   'StaleTransaction',
   () => new StaleTransactionError()
@@ -241,7 +195,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class InvalidTransactionStatusError extends Error {
-  readonly code: number = 0x177a
+  readonly code: number = 0x1778
   readonly name: string = 'InvalidTransactionStatus'
   constructor() {
     super('Invalid transaction status')
@@ -251,7 +205,7 @@ export class InvalidTransactionStatusError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x177a, () => new InvalidTransactionStatusError())
+createErrorFromCodeLookup.set(0x1778, () => new InvalidTransactionStatusError())
 createErrorFromNameLookup.set(
   'InvalidTransactionStatus',
   () => new InvalidTransactionStatusError()
@@ -264,7 +218,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class TransactionNotForMultisigError extends Error {
-  readonly code: number = 0x177b
+  readonly code: number = 0x1779
   readonly name: string = 'TransactionNotForMultisig'
   constructor() {
     super('Transaction does not belong to the multisig')
@@ -275,7 +229,7 @@ export class TransactionNotForMultisigError extends Error {
 }
 
 createErrorFromCodeLookup.set(
-  0x177b,
+  0x1779,
   () => new TransactionNotForMultisigError()
 )
 createErrorFromNameLookup.set(
@@ -290,7 +244,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class AlreadyApprovedError extends Error {
-  readonly code: number = 0x177c
+  readonly code: number = 0x177a
   readonly name: string = 'AlreadyApproved'
   constructor() {
     super('Member already approved the transaction')
@@ -300,7 +254,7 @@ export class AlreadyApprovedError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x177c, () => new AlreadyApprovedError())
+createErrorFromCodeLookup.set(0x177a, () => new AlreadyApprovedError())
 createErrorFromNameLookup.set(
   'AlreadyApproved',
   () => new AlreadyApprovedError()
@@ -313,7 +267,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class AlreadyRejectedError extends Error {
-  readonly code: number = 0x177d
+  readonly code: number = 0x177b
   readonly name: string = 'AlreadyRejected'
   constructor() {
     super('Member already rejected the transaction')
@@ -323,7 +277,7 @@ export class AlreadyRejectedError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x177d, () => new AlreadyRejectedError())
+createErrorFromCodeLookup.set(0x177b, () => new AlreadyRejectedError())
 createErrorFromNameLookup.set(
   'AlreadyRejected',
   () => new AlreadyRejectedError()
@@ -336,7 +290,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class InvalidNumberOfAccountsError extends Error {
-  readonly code: number = 0x177e
+  readonly code: number = 0x177c
   readonly name: string = 'InvalidNumberOfAccounts'
   constructor() {
     super('Wrong number of accounts provided')
@@ -346,7 +300,7 @@ export class InvalidNumberOfAccountsError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x177e, () => new InvalidNumberOfAccountsError())
+createErrorFromCodeLookup.set(0x177c, () => new InvalidNumberOfAccountsError())
 createErrorFromNameLookup.set(
   'InvalidNumberOfAccounts',
   () => new InvalidNumberOfAccountsError()
@@ -359,7 +313,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class InvalidAccountError extends Error {
-  readonly code: number = 0x177f
+  readonly code: number = 0x177d
   readonly name: string = 'InvalidAccount'
   constructor() {
     super('Invalid account provided')
@@ -369,7 +323,7 @@ export class InvalidAccountError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x177f, () => new InvalidAccountError())
+createErrorFromCodeLookup.set(0x177d, () => new InvalidAccountError())
 createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
 
 /**
@@ -379,7 +333,7 @@ createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
  * @category generated
  */
 export class ExecuteReentrancyError extends Error {
-  readonly code: number = 0x1780
+  readonly code: number = 0x177e
   readonly name: string = 'ExecuteReentrancy'
   constructor() {
     super('transaction_execute reentrancy is forbidden')
@@ -389,10 +343,79 @@ export class ExecuteReentrancyError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1780, () => new ExecuteReentrancyError())
+createErrorFromCodeLookup.set(0x177e, () => new ExecuteReentrancyError())
 createErrorFromNameLookup.set(
   'ExecuteReentrancy',
   () => new ExecuteReentrancyError()
+)
+
+/**
+ * RemoveLastMember: 'Cannot remove last member'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class RemoveLastMemberError extends Error {
+  readonly code: number = 0x177f
+  readonly name: string = 'RemoveLastMember'
+  constructor() {
+    super('Cannot remove last member')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, RemoveLastMemberError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177f, () => new RemoveLastMemberError())
+createErrorFromNameLookup.set(
+  'RemoveLastMember',
+  () => new RemoveLastMemberError()
+)
+
+/**
+ * NoVoters: 'Members don't include any voters'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NoVotersError extends Error {
+  readonly code: number = 0x1780
+  readonly name: string = 'NoVoters'
+  constructor() {
+    super("Members don't include any voters")
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NoVotersError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1780, () => new NoVotersError())
+createErrorFromNameLookup.set('NoVoters', () => new NoVotersError())
+
+/**
+ * InvalidStaleTransactionIndex: 'config_authority must be set to non-default key'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidStaleTransactionIndexError extends Error {
+  readonly code: number = 0x1781
+  readonly name: string = 'InvalidStaleTransactionIndex'
+  constructor() {
+    super('config_authority must be set to non-default key')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidStaleTransactionIndexError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1781,
+  () => new InvalidStaleTransactionIndexError()
+)
+createErrorFromNameLookup.set(
+  'InvalidStaleTransactionIndex',
+  () => new InvalidStaleTransactionIndexError()
 )
 
 /**

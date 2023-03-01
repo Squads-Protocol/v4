@@ -1,4 +1,5 @@
 #![allow(clippy::result_large_err)]
+#![deny(unused_must_use)]
 
 use anchor_lang::prelude::*;
 
@@ -12,7 +13,7 @@ pub mod instructions;
 pub mod state;
 mod utils;
 
-declare_id!("7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh");
+declare_id!("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
 
 #[program]
 pub mod multisig {
@@ -29,6 +30,14 @@ pub mod multisig {
         args: MultisigAddMemberArgs,
     ) -> Result<()> {
         MultisigConfig::multisig_add_member(ctx, args)
+    }
+
+    /// Remove a member/key from the multisig.
+    pub fn multisig_remove_member(
+        ctx: Context<MultisigConfig>,
+        args: MultisigRemoveMemberArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_remove_member(ctx, args)
     }
 
     /// Create a new multisig transaction.

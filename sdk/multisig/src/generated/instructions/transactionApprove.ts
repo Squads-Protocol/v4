@@ -70,7 +70,7 @@ export const transactionApproveInstructionDiscriminator = [
 export function createTransactionApproveInstruction(
   accounts: TransactionApproveInstructionAccounts,
   args: TransactionApproveInstructionArgs,
-  programId = new web3.PublicKey('7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh')
+  programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
   const [data] = transactionApproveStruct.serialize({
     instructionDiscriminator: transactionApproveInstructionDiscriminator,

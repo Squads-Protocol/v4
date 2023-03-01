@@ -35,8 +35,6 @@ pub struct Multisig {
     /// Last stale transaction index. All transactions up until this index are stale.
     /// This index is updated when multisig config (members/threshold) changes.
     pub stale_transaction_index: u64,
-    /// Reserved for future use.
-    pub _reserved: u8,
     /// Key that is used to seed the multisig PDA.
     /// Used solely as bytes for the seed, doesn't have any other meaning or function.
     pub create_key: Pubkey,
@@ -54,9 +52,49 @@ impl Multisig {
         1  + // authority_index
         8  + // transaction_index
         8  + // stale_transaction_index 
-        1  + // allow_external_execute
         32 + // create_key
         1 // bump
+    }
+
+    // Makes sure the multisig state is valid.
+    // This must be called at the end of every instruction that modifies a Multisig account.
+    pub fn invariant(&self) -> Result<()> {
+        let Self {
+            threshold,
+            members,
+            transaction_index,
+            stale_transaction_index,
+            ..
+        } = self;
+        // Max number of members is u16::MAX.
+        require!(
+            members.len() <= usize::from(u16::MAX),
+            MultisigError::TooManyMembers
+        );
+
+        // There must be no duplicate members.
+        let has_duplicates = members.windows(2).any(|win| win[0].key == win[1].key);
+        require!(!has_duplicates, MultisigError::DuplicateMember);
+
+        // There must be at least one member with Vote permissions.
+        let num_voters: u16 = Self::num_voters(members)
+            .try_into()
+            .expect("didn't expect more that `u16::MAX` members");
+        require!(num_voters > 0, MultisigError::NoVoters);
+
+        // Threshold must be greater than 0.
+        require!(*threshold > 0, MultisigError::InvalidThreshold);
+
+        // Threshold must not exceed the number of voters.
+        require!(*threshold <= num_voters, MultisigError::InvalidThreshold);
+
+        // `state.stale_transaction_index` must be less than or equal to `state.transaction_index`.
+        require!(
+            stale_transaction_index <= transaction_index,
+            MultisigError::InvalidStaleTransactionIndex
+        );
+
+        Ok(())
     }
 
     /// Captures the fact that the multisig config has changed in the multisig state
@@ -99,10 +137,14 @@ impl Multisig {
             .count()
     }
 
-    pub fn add_member_if_not_exists(&mut self, new_member: Member) {
-        if self.is_member(new_member.key).is_none() {
-            self.members.push(new_member);
-            self.members.sort_by_key(|m| m.key);
+    pub fn add_member(&mut self, new_member: Member) {
+        self.members.push(new_member);
+        self.members.sort_by_key(|m| m.key);
+    }
+
+    pub fn remove_member(&mut self, member_pubkey: Pubkey) {
+        if let Some(index) = self.is_member(member_pubkey) {
+            self.members.remove(index);
         }
     }
 }

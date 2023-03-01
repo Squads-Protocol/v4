@@ -22,7 +22,6 @@ export type MultisigArgs = {
   authorityIndex: number
   transactionIndex: beet.bignum
   staleTransactionIndex: beet.bignum
-  reserved: number
   createKey: web3.PublicKey
   bump: number
 }
@@ -43,7 +42,6 @@ export class Multisig implements MultisigArgs {
     readonly authorityIndex: number,
     readonly transactionIndex: beet.bignum,
     readonly staleTransactionIndex: beet.bignum,
-    readonly reserved: number,
     readonly createKey: web3.PublicKey,
     readonly bump: number
   ) {}
@@ -59,7 +57,6 @@ export class Multisig implements MultisigArgs {
       args.authorityIndex,
       args.transactionIndex,
       args.staleTransactionIndex,
-      args.reserved,
       args.createKey,
       args.bump
     )
@@ -105,7 +102,7 @@ export class Multisig implements MultisigArgs {
    */
   static gpaBuilder(
     programId: web3.PublicKey = new web3.PublicKey(
-      '7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh'
+      'SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf'
     )
   ) {
     return beetSolana.GpaBuilder.fromStruct(programId, multisigBeet)
@@ -196,7 +193,6 @@ export class Multisig implements MultisigArgs {
         }
         return x
       })(),
-      reserved: this.reserved,
       createKey: this.createKey.toBase58(),
       bump: this.bump,
     }
@@ -221,7 +217,6 @@ export const multisigBeet = new beet.FixableBeetStruct<
     ['authorityIndex', beet.u8],
     ['transactionIndex', beet.u64],
     ['staleTransactionIndex', beet.u64],
-    ['reserved', beet.u8],
     ['createKey', beetSolana.publicKey],
     ['bump', beet.u8],
   ],

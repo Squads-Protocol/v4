@@ -36,20 +36,20 @@ export function multisigCreate({
   createKey: PublicKey;
   memo?: string;
 }): VersionedTransaction {
+  const ix = instructions.multisigCreate({
+    creator,
+    multisigPda,
+    configAuthority,
+    threshold,
+    members,
+    createKey,
+    memo,
+  });
+
   const message = new TransactionMessage({
     payerKey: creator,
     recentBlockhash: blockhash,
-    instructions: [
-      instructions.multisigCreate({
-        creator,
-        multisigPda,
-        configAuthority,
-        threshold,
-        members,
-        createKey,
-        memo,
-      }),
-    ],
+    instructions: [ix],
   }).compileToV0Message();
 
   return new VersionedTransaction(message);

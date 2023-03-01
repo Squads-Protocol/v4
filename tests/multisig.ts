@@ -382,7 +382,7 @@ describe("multisig", () => {
           signers: [controlledMultisigConfigAuthority],
           sendOptions: { skipPreflight: true },
         }),
-        /Member is already in multisig/
+        /Found multiple members with the same pubkey/
       );
     });
 

@@ -70,7 +70,7 @@ export const transactionRejectInstructionDiscriminator = [
 export function createTransactionRejectInstruction(
   accounts: TransactionRejectInstructionAccounts,
   args: TransactionRejectInstructionArgs,
-  programId = new web3.PublicKey('7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh')
+  programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
   const [data] = transactionRejectStruct.serialize({
     instructionDiscriminator: transactionRejectInstructionDiscriminator,

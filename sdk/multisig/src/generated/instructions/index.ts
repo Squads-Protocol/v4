@@ -1,5 +1,6 @@
 export * from './multisigAddMember'
 export * from './multisigCreate'
+export * from './multisigRemoveMember'
 export * from './transactionApprove'
 export * from './transactionCreate'
 export * from './transactionExecute'

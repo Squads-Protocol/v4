@@ -105,6 +105,8 @@ impl TransactionCreate<'_> {
         // Updated last transaction index in the multisig account.
         multisig.transaction_index = transaction_index;
 
+        multisig.invariant()?;
+
         emit!(TransactionCreated {
             multisig: multisig_key,
             transaction: transaction.key(),

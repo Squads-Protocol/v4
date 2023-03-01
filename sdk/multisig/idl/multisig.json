@@ -71,6 +71,40 @@
       ]
     },
     {
+      "name": "multisigRemoveMember",
+      "docs": [
+        "Remove a member/key from the multisig."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigRemoveMemberArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "transactionCreate",
       "docs": [
         "Create a new multisig transaction."
@@ -179,7 +213,7 @@
       "accounts": [
         {
           "name": "multisig",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -257,13 +291,6 @@
               "This index is updated when multisig config (members/threshold) changes."
             ],
             "type": "u64"
-          },
-          {
-            "name": "reserved",
-            "docs": [
-              "Reserved for future use."
-            ],
-            "type": "u8"
           },
           {
             "name": "createKey",
@@ -410,7 +437,51 @@
           {
             "name": "memo",
             "docs": [
-              "Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed."
+              "Memo isn't used for anything, but is included in `AddMemberEvent` that can later be parsed and indexed."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigRemoveMemberArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oldMember",
+            "type": {
+              "defined": "Member"
+            }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo isn't used for anything, but is included in `RemoveMemberEvent` that can later be parsed and indexed."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigChangeThresholdArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "newThreshold",
+            "type": "u16"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
             ],
             "type": {
               "option": "string"
@@ -865,87 +936,92 @@
     },
     {
       "code": 6001,
-      "name": "MemberAlreadyExists",
-      "msg": "Member is already in multisig"
-    },
-    {
-      "code": 6002,
       "name": "EmptyMembers",
       "msg": "Members array is empty"
     },
     {
-      "code": 6003,
+      "code": 6002,
       "name": "TooManyMembers",
       "msg": "Too many members, can be up to 65535"
     },
     {
-      "code": 6004,
-      "name": "MaxMembersReached",
-      "msg": "Maximum number of members already reached"
-    },
-    {
-      "code": 6005,
+      "code": 6003,
       "name": "InvalidThreshold",
       "msg": "Invalid threshold, must be between 1 and number of members with Vote permission"
     },
     {
-      "code": 6006,
+      "code": 6004,
       "name": "Unauthorized",
       "msg": "Attempted to perform an unauthorized action"
     },
     {
-      "code": 6007,
+      "code": 6005,
       "name": "NotAMember",
       "msg": "Provided pubkey is not a member of multisig"
     },
     {
-      "code": 6008,
+      "code": 6006,
       "name": "InvalidTransactionMessage",
       "msg": "TransactionMessage is malformed."
     },
     {
-      "code": 6009,
+      "code": 6007,
       "name": "StaleTransaction",
       "msg": "Transaction is stale"
     },
     {
-      "code": 6010,
+      "code": 6008,
       "name": "InvalidTransactionStatus",
       "msg": "Invalid transaction status"
     },
     {
-      "code": 6011,
+      "code": 6009,
       "name": "TransactionNotForMultisig",
       "msg": "Transaction does not belong to the multisig"
     },
     {
-      "code": 6012,
+      "code": 6010,
       "name": "AlreadyApproved",
       "msg": "Member already approved the transaction"
     },
     {
-      "code": 6013,
+      "code": 6011,
       "name": "AlreadyRejected",
       "msg": "Member already rejected the transaction"
     },
     {
-      "code": 6014,
+      "code": 6012,
       "name": "InvalidNumberOfAccounts",
       "msg": "Wrong number of accounts provided"
     },
     {
-      "code": 6015,
+      "code": 6013,
       "name": "InvalidAccount",
       "msg": "Invalid account provided"
     },
     {
-      "code": 6016,
+      "code": 6014,
       "name": "ExecuteReentrancy",
       "msg": "transaction_execute reentrancy is forbidden"
+    },
+    {
+      "code": 6015,
+      "name": "RemoveLastMember",
+      "msg": "Cannot remove last member"
+    },
+    {
+      "code": 6016,
+      "name": "NoVoters",
+      "msg": "Members don't include any voters"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidStaleTransactionIndex",
+      "msg": "config_authority must be set to non-default key"
     }
   ],
   "metadata": {
-    "address": "7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh",
+    "address": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
     "origin": "anchor",
     "binaryVersion": "0.26.0",
     "libVersion": "=0.26.0"

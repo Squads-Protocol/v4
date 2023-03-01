@@ -11,7 +11,6 @@ use crate::utils::*;
 #[derive(Accounts)]
 pub struct TransactionExecute<'info> {
     #[account(
-        mut,
         seeds = [SEED_PREFIX, multisig.create_key.as_ref(), SEED_MULTISIG],
         bump = multisig.bump,
     )]

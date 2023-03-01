@@ -22,7 +22,7 @@ export const transactionExecuteStruct = new beet.BeetArgsStruct<{
 /**
  * Accounts required by the _transactionExecute_ instruction
  *
- * @property [_writable_] multisig
+ * @property [] multisig
  * @property [_writable_] transaction
  * @property [_writable_, **signer**] member
  * @category Instructions
@@ -50,7 +50,7 @@ export const transactionExecuteInstructionDiscriminator = [
  */
 export function createTransactionExecuteInstruction(
   accounts: TransactionExecuteInstructionAccounts,
-  programId = new web3.PublicKey('7YYnaRgQeHYd2FKGKkwASM2ZNZHTo1GvcicsyKKFvcoh')
+  programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
   const [data] = transactionExecuteStruct.serialize({
     instructionDiscriminator: transactionExecuteInstructionDiscriminator,
@@ -58,7 +58,7 @@ export function createTransactionExecuteInstruction(
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: true,
+      isWritable: false,
       isSigner: false,
     },
     {

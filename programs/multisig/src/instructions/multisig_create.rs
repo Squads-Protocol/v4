@@ -74,8 +74,10 @@ impl MultisigCreate<'_> {
         multisig.create_key = args.create_key;
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
 
+        multisig.invariant()?;
+
         emit!(MultisigCreated {
-            multisig: ctx.accounts.multisig.to_account_info().key(),
+            multisig: multisig.to_account_info().key(),
             memo: args.memo,
         });
 

@@ -1,7 +1,7 @@
 [package]
 name = "multisig"
 version = "0.1.0"
-description = "Created with Anchor"
+description = "Squads Multisig Program V4"
 edition = "2021"
 
 [lib]
