@@ -16,24 +16,24 @@ import { getAuthorityPda, getTransactionPda } from "./pda";
 import { transactionMessageBeet } from "./types";
 import * as instructions from "./instructions.js";
 
-/** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` before sending it. */
+/** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` and `createKey` before sending it. */
 export function multisigCreate({
   blockhash,
   configAuthority,
+  createKey,
   creator,
   multisigPda,
   threshold,
   members,
-  createKey,
   memo,
 }: {
   blockhash: string;
+  createKey: PublicKey;
   creator: PublicKey;
   multisigPda: PublicKey;
   configAuthority: PublicKey;
   threshold: number;
   members: Member[];
-  createKey: PublicKey;
   memo?: string;
 }): VersionedTransaction {
   const ix = instructions.multisigCreate({

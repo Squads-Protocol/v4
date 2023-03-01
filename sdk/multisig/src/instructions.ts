@@ -38,6 +38,7 @@ export function multisigCreate({
   return createMultisigCreateInstruction(
     {
       creator,
+      createKey,
       multisig: multisigPda,
     },
     {
@@ -45,7 +46,6 @@ export function multisigCreate({
         configAuthority,
         threshold,
         members,
-        createKey,
         memo: memo ?? null,
       },
     }

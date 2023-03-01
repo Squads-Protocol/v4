@@ -12,8 +12,6 @@ pub struct MultisigCreateArgs {
     pub threshold: u16,
     /// The members of the multisig.
     pub members: Vec<Member>,
-    /// Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning.
-    pub create_key: Pubkey,
     /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
     pub memo: Option<String>,
 }
@@ -25,10 +23,14 @@ pub struct MultisigCreate<'info> {
         init,
         payer = creator,
         space = Multisig::size(args.members.len()),
-        seeds = [SEED_PREFIX, args.create_key.as_ref(), SEED_MULTISIG],
+        seeds = [SEED_PREFIX, create_key.key().as_ref(), SEED_MULTISIG],
         bump
     )]
     pub multisig: Account<'info, Multisig>,
+
+    /// An ephemeral signer that is used as a seed for the Multisig PDA.
+    /// Must be a signer to prevent the Multisig account from re-initialization by someone else but the original creator.
+    pub create_key: Signer<'info>,
 
     /// The creator of the multisig.
     #[account(mut)]
@@ -71,7 +73,7 @@ impl MultisigCreate<'_> {
         multisig.authority_index = 1; // Default vault is the first authority.
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;
-        multisig.create_key = args.create_key;
+        multisig.create_key = ctx.accounts.create_key.to_account_info().key();
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
 
         multisig.invariant()?;

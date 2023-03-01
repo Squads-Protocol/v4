@@ -40,6 +40,7 @@ export const multisigCreateStruct = new beet.FixableBeetArgsStruct<
  * Accounts required by the _multisigCreate_ instruction
  *
  * @property [_writable_] multisig
+ * @property [**signer**] createKey
  * @property [_writable_, **signer**] creator
  * @category Instructions
  * @category MultisigCreate
@@ -47,6 +48,7 @@ export const multisigCreateStruct = new beet.FixableBeetArgsStruct<
  */
 export type MultisigCreateInstructionAccounts = {
   multisig: web3.PublicKey
+  createKey: web3.PublicKey
   creator: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
@@ -80,6 +82,11 @@ export function createMultisigCreateInstruction(
       pubkey: accounts.multisig,
       isWritable: true,
       isSigner: false,
+    },
+    {
+      pubkey: accounts.createKey,
+      isWritable: false,
+      isSigner: true,
     },
     {
       pubkey: accounts.creator,

@@ -14,6 +14,15 @@
           "isSigner": false
         },
         {
+          "name": "createKey",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "An ephemeral signer that is used as a seed for the Multisig PDA.",
+            "Must be a signer to prevent the Multisig account from re-initialization by someone else but the original creator."
+          ]
+        },
+        {
           "name": "creator",
           "isMut": true,
           "isSigner": true,
@@ -519,13 +528,6 @@
                 "defined": "Member"
               }
             }
-          },
-          {
-            "name": "createKey",
-            "docs": [
-              "Any key that is used to seed the multisig pda. Used solely as bytes for the seed, doesn't have any other meaning."
-            ],
-            "type": "publicKey"
           },
           {
             "name": "memo",

@@ -13,7 +13,6 @@ export type MultisigCreateArgs = {
   configAuthority: web3.PublicKey
   threshold: number
   members: Member[]
-  createKey: web3.PublicKey
   memo: beet.COption<string>
 }
 
@@ -27,7 +26,6 @@ export const multisigCreateArgsBeet =
       ['configAuthority', beetSolana.publicKey],
       ['threshold', beet.u16],
       ['members', beet.array(memberBeet)],
-      ['createKey', beetSolana.publicKey],
       ['memo', beet.coption(beet.utf8String)],
     ],
     'MultisigCreateArgs'

@@ -14,22 +14,22 @@ import { translateAndThrowAnchorError } from "./errors";
 /** Creates a new multisig. */
 export async function multisigCreate({
   connection,
+  createKey,
   creator,
   multisigPda,
   configAuthority,
   threshold,
   members,
-  createKey,
   memo,
   sendOptions,
 }: {
   connection: Connection;
+  createKey: Signer;
   creator: Signer;
   multisigPda: PublicKey;
   configAuthority: PublicKey;
   threshold: number;
   members: Member[];
-  createKey: PublicKey;
   memo?: string;
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
@@ -37,16 +37,16 @@ export async function multisigCreate({
 
   const tx = transactions.multisigCreate({
     blockhash,
+    createKey: createKey.publicKey,
     creator: creator.publicKey,
     multisigPda,
     configAuthority,
     threshold,
     members,
-    createKey,
     memo,
   });
 
-  tx.sign([creator]);
+  tx.sign([creator, createKey]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);
