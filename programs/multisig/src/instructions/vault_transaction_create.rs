@@ -6,9 +6,9 @@ use crate::state::*;
 use crate::utils::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct TransactionCreateArgs {
-    /// Index of the authority/vault this transaction belongs to.  
-    pub authority_index: u8,
+pub struct VaultTransactionCreateArgs {
+    /// Index of the vault this transaction belongs to.
+    pub vault_index: u8,
     /// Number of additional signing PDAs required by the transaction.
     pub additional_signers: u8,
     pub transaction_message: Vec<u8>,
@@ -16,8 +16,8 @@ pub struct TransactionCreateArgs {
 }
 
 #[derive(Accounts)]
-#[instruction(args: TransactionCreateArgs)]
-pub struct TransactionCreate<'info> {
+#[instruction(args: VaultTransactionCreateArgs)]
+pub struct VaultTransactionCreate<'info> {
     #[account(
         mut,
         seeds = [SEED_PREFIX, multisig.create_key.as_ref(), SEED_MULTISIG],
@@ -28,16 +28,16 @@ pub struct TransactionCreate<'info> {
     #[account(
         init,
         payer = creator,
-        space = MultisigTransaction::size(multisig.members.len(), &args.transaction_message)?,
+        space = VaultTransaction::size(multisig.members.len(), args.additional_signers, &args.transaction_message)?,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
+            SEED_TRANSACTION,
             &multisig.transaction_index.checked_add(1).unwrap().to_le_bytes(),
-            SEED_TRANSACTION
         ],
         bump
     )]
-    pub transaction: Account<'info, MultisigTransaction>,
+    pub transaction: Account<'info, VaultTransaction>,
 
     #[account(
         mut,
@@ -48,9 +48,12 @@ pub struct TransactionCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl TransactionCreate<'_> {
-    /// Create a new multisig transaction.
-    pub fn transaction_create(ctx: Context<Self>, args: TransactionCreateArgs) -> Result<()> {
+impl VaultTransactionCreate<'_> {
+    /// Create a new vault transaction.
+    pub fn vault_transaction_create(
+        ctx: Context<Self>,
+        args: VaultTransactionCreateArgs,
+    ) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
         let creator = &mut ctx.accounts.creator;
@@ -61,13 +64,13 @@ impl TransactionCreate<'_> {
         let multisig_key = multisig.key();
         let transaction_key = transaction.key();
 
-        let authority_seeds = &[
+        let vault_seeds = &[
             SEED_PREFIX,
             multisig_key.as_ref(),
-            &args.authority_index.to_le_bytes(),
-            SEED_AUTHORITY,
+            SEED_VAULT,
+            &args.vault_index.to_le_bytes(),
         ];
-        let (_, authority_bump) = Pubkey::find_program_address(authority_seeds, ctx.program_id);
+        let (_, vault_bump) = Pubkey::find_program_address(vault_seeds, ctx.program_id);
 
         let additional_signer_bumps: Vec<u8> = (0..args.additional_signers)
             .into_iter()
@@ -92,11 +95,12 @@ impl TransactionCreate<'_> {
         transaction.creator = creator.key();
         transaction.multisig = multisig_key;
         transaction.transaction_index = transaction_index;
-        transaction.authority_index = args.authority_index;
-        transaction.authority_bump = authority_bump;
-        transaction.additional_signer_bumps = additional_signer_bumps;
+        transaction.settled_at = 0;
         transaction.status = TransactionStatus::Active;
         transaction.bump = *ctx.bumps.get("transaction").unwrap();
+        transaction.vault_index = args.vault_index;
+        transaction.vault_bump = vault_bump;
+        transaction.additional_signer_bumps = additional_signer_bumps;
         transaction.approved = Vec::new();
         transaction.rejected = Vec::new();
         transaction.cancelled = Vec::new();

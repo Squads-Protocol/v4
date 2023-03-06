@@ -11,7 +11,7 @@ use crate::state::*;
 /// Sanitized and validated combination of a `MsTransactionMessage` and `AccountInfo`s it references.
 pub struct ExecutableTransactionMessage<'a, 'info> {
     /// Message which loaded a collection of lookup table addresses.
-    message: &'a MultisigTransactionMessage,
+    message: &'a VaultTransactionMessage,
     /// Cache that maps `AccountInfo`s mentioned in the message to the indices they are referred by in the message.
     account_infos_by_message_index: HashMap<usize, &'a AccountInfo<'info>>,
 }
@@ -21,12 +21,12 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     /// `message` - a `MsTransactionMessage`.
     /// `message_account_infos` - AccountInfo's that are expected to be mentioned in the message.
     /// `address_lookup_table_account_infos` - AccountInfo's that are expected to correspond to the lookup tables mentioned in `message.address_table_lookups`.
-    /// `authority_pubkey` - The authority PDA that is expected to sign the message.
+    /// `vault_pubkey` - The vault PDA that is expected to sign the message.
     pub fn new_validated(
-        message: &'a MultisigTransactionMessage,
+        message: &'a VaultTransactionMessage,
         message_account_infos: &'a [AccountInfo<'info>],
         address_lookup_table_account_infos: &'a [AccountInfo<'info>],
-        authority_pubkey: &'a Pubkey,
+        vault_pubkey: &'a Pubkey,
         additional_signer_pdas: &'a [Pubkey],
     ) -> Result<Self> {
         // CHECK: `address_lookup_table_account_infos` must be valid `AddressLookupTable`s
@@ -79,7 +79,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 MultisigError::InvalidAccount
             );
             // For authority or additional_signer_pdas `is_signer` might differ because it's always false in the passed account infos.
-            if account_info.key != authority_pubkey
+            if account_info.key != vault_pubkey
                 && !additional_signer_pdas.contains(account_info.key)
             {
                 require_eq!(

@@ -1,5 +1,7 @@
 #![allow(clippy::result_large_err)]
 #![deny(unused_must_use)]
+// #![deny(clippy::arithmetic_side_effects)]
+// #![deny(clippy::integer_arithmetic)]
 
 use anchor_lang::prelude::*;
 
@@ -40,35 +42,67 @@ pub mod multisig {
         MultisigConfig::multisig_remove_member(ctx, args)
     }
 
-    /// Create a new multisig transaction.
-    pub fn transaction_create(
-        ctx: Context<TransactionCreate>,
-        args: TransactionCreateArgs,
+    /// Create a new vault transaction.
+    pub fn vault_transaction_create(
+        ctx: Context<VaultTransactionCreate>,
+        args: VaultTransactionCreateArgs,
     ) -> Result<()> {
-        TransactionCreate::transaction_create(ctx, args)
+        VaultTransactionCreate::vault_transaction_create(ctx, args)
     }
 
-    /// Approve the transaction on behalf of the `member`.
+    /// Approve a vault transaction on behalf of the `member`.
     /// The transaction must be `Active`.
-    pub fn transaction_approve(
-        ctx: Context<TransactionVote>,
-        args: TransactionVoteArgs,
+    pub fn vault_transaction_approve(
+        ctx: Context<VaultTransactionVote>,
+        args: VaultTransactionVoteArgs,
     ) -> Result<()> {
-        TransactionVote::transaction_approve(ctx, args)
+        VaultTransactionVote::vault_transaction_approve(ctx, args)
     }
 
-    /// Reject the transaction on behalf of the `member`.
+    /// Reject a vault transaction on behalf of the `member`.
     /// The transaction must be `Active`.
-    pub fn transaction_reject(
-        ctx: Context<TransactionVote>,
-        args: TransactionVoteArgs,
+    pub fn vault_transaction_reject(
+        ctx: Context<VaultTransactionVote>,
+        args: VaultTransactionVoteArgs,
     ) -> Result<()> {
-        TransactionVote::transaction_reject(ctx, args)
+        VaultTransactionVote::vault_transaction_reject(ctx, args)
     }
 
-    /// Execute the multisig transaction.
+    /// Execute a vault transaction.
     /// The transaction must be `ExecuteReady`.
-    pub fn transaction_execute(ctx: Context<TransactionExecute>) -> Result<()> {
-        TransactionExecute::transaction_execute(ctx)
+    pub fn vault_transaction_execute(ctx: Context<VaultTransactionExecute>) -> Result<()> {
+        VaultTransactionExecute::vault_transaction_execute(ctx)
+    }
+
+    /// Create a new config transaction.
+    pub fn config_transaction_create(
+        ctx: Context<ConfigTransactionCreate>,
+        args: ConfigTransactionCreateArgs,
+    ) -> Result<()> {
+        ConfigTransactionCreate::config_transaction_create(ctx, args)
+    }
+
+    /// Approve a config transaction on behalf of the `member`.
+    /// The transaction must be `Active`.
+    pub fn config_transaction_approve(
+        ctx: Context<ConfigTransactionVote>,
+        args: ConfigTransactionVoteArgs,
+    ) -> Result<()> {
+        ConfigTransactionVote::config_transaction_approve(ctx, args)
+    }
+
+    /// Reject a config transaction on behalf of the `member`.
+    /// The transaction must be `Active`.
+    pub fn config_transaction_reject(
+        ctx: Context<ConfigTransactionVote>,
+        args: ConfigTransactionVoteArgs,
+    ) -> Result<()> {
+        ConfigTransactionVote::config_transaction_reject(ctx, args)
+    }
+
+    /// Execute a config transaction.
+    /// The transaction must be `ExecuteReady`.
+    pub fn config_transaction_execute(ctx: Context<ConfigTransactionExecute>) -> Result<()> {
+        ConfigTransactionExecute::config_transaction_execute(ctx)
     }
 }

@@ -36,6 +36,10 @@ pub enum MultisigError {
     RemoveLastMember,
     #[msg("Members don't include any voters")]
     NoVoters,
-    #[msg("config_authority must be set to non-default key")]
+    #[msg("`stale_transaction_index` must be <= `transaction_index`")]
     InvalidStaleTransactionIndex,
+    #[msg("instruction not supported for controlled multisig")]
+    NotSupportedForControlled,
+    #[msg("transaction time lock has not been released")]
+    TimeLockNotReleased,
 }

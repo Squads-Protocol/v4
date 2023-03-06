@@ -9,9 +9,9 @@ use crate::state::*;
 use crate::utils::*;
 
 #[derive(Accounts)]
-pub struct TransactionExecute<'info> {
+pub struct VaultTransactionExecute<'info> {
     #[account(
-        seeds = [SEED_PREFIX, multisig.create_key.as_ref(), SEED_MULTISIG],
+        seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]
     pub multisig: Box<Account<'info, Multisig>>,
@@ -21,14 +21,15 @@ pub struct TransactionExecute<'info> {
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
+            SEED_TRANSACTION,
             &transaction.transaction_index.to_le_bytes(),
-            SEED_TRANSACTION
         ],
         bump = transaction.bump,
+        constraint = transaction.multisig == multisig.key() @ MultisigError::TransactionNotForMultisig,
         constraint = transaction.status == TransactionStatus::ExecuteReady @ MultisigError::InvalidTransactionStatus,
-        constraint = transaction.multisig == multisig.key() @ MultisigError::TransactionNotForMultisig
+        constraint = Clock::get()?.unix_timestamp - transaction.settled_at > i64::from(multisig.time_lock) @ MultisigError::TimeLockNotReleased,
     )]
-    pub transaction: Account<'info, MultisigTransaction>,
+    pub transaction: Account<'info, VaultTransaction>,
 
     #[account(
         mut,
@@ -42,26 +43,25 @@ pub struct TransactionExecute<'info> {
     // 3. Accounts in the order they appear in `message.address_table_lookups`.
 }
 
-impl TransactionExecute<'_> {
+impl VaultTransactionExecute<'_> {
     /// Execute the multisig transaction.
     /// The transaction must be `ExecuteReady`.
-    pub fn transaction_execute(ctx: Context<Self>) -> Result<()> {
+    pub fn vault_transaction_execute(ctx: Context<Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
 
         let multisig_key = multisig.key();
         let transaction_key = transaction.key();
 
-        let authority_seeds = &[
+        let vault_seeds = &[
             SEED_PREFIX,
             multisig_key.as_ref(),
-            &transaction.authority_index.to_le_bytes(),
-            SEED_AUTHORITY,
-            &[transaction.authority_bump],
+            SEED_VAULT,
+            &transaction.vault_index.to_le_bytes(),
+            &[transaction.vault_bump],
         ];
 
-        let authority_pubkey =
-            Pubkey::create_program_address(authority_seeds, ctx.program_id).unwrap();
+        let vault_pubkey = Pubkey::create_program_address(vault_seeds, ctx.program_id).unwrap();
 
         let (additional_signer_keys, additional_signer_seeds): (Vec<_>, Vec<_>) = transaction
             .additional_signer_bumps
@@ -71,8 +71,8 @@ impl TransactionExecute<'_> {
                 let seeds = vec![
                     SEED_PREFIX.to_vec(),
                     transaction_key.to_bytes().to_vec(),
-                    u8::try_from(index).unwrap().to_le_bytes().to_vec(),
                     SEED_ADDITIONAL_SIGNER.to_vec(),
+                    u8::try_from(index).unwrap().to_le_bytes().to_vec(),
                     vec![*bump],
                 ];
 
@@ -106,17 +106,16 @@ impl TransactionExecute<'_> {
             transaction_message,
             message_account_infos,
             address_lookup_table_account_infos,
-            &authority_pubkey,
+            &vault_pubkey,
             &additional_signer_keys,
         )?;
 
         // Execute the transaction instructions one-by-one.
         for (ix, account_infos) in executable_message.to_instructions_and_accounts().iter() {
             // Make sure we don't allow reentrancy of transaction_execute.
-            // TODO: do the same in transaction_create.
             if ix.program_id == id() {
                 require!(
-                    ix.data[..8] != crate::instruction::TransactionExecute::DISCRIMINATOR,
+                    ix.data[..8] != crate::instruction::VaultTransactionExecute::DISCRIMINATOR,
                     MultisigError::ExecuteReentrancy
                 )
             }
@@ -133,7 +132,7 @@ impl TransactionExecute<'_> {
                 .collect::<Vec<&[&[u8]]>>();
 
             // Add the authority seeds.
-            signer_seeds.push(authority_seeds);
+            signer_seeds.push(vault_seeds);
 
             invoke_signed(ix, account_infos, &signer_seeds)?;
         }

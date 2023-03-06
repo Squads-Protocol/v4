@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::*;
 use crate::events::*;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigCreateArgs {
     /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
+    /// Canonical value is the multisig PDA, but can be any key that will be able to sign the transactions that configure the multisig.
     pub config_authority: Pubkey,
     /// The number of signatures required to execute a transaction.
     pub threshold: u16,
@@ -46,31 +46,12 @@ impl MultisigCreate<'_> {
         let mut members = args.members;
         members.sort_by_key(|m| m.key);
 
-        // Make sure there is no members with duplicate keys.
-        for i in (1..members.len()).rev() {
-            if members[i].key == members[i - 1].key {
-                err!(MultisigError::DuplicateMember)?;
-            }
-        }
-
-        // Make sure length of members is within bounds.
-        let num_members = members.len();
-        let max_members = usize::from(u16::MAX);
-        require!(num_members > 0, MultisigError::EmptyMembers);
-        require!(num_members <= max_members, MultisigError::TooManyMembers);
-
-        // Make sure threshold is within bounds.
-        let threshold = usize::from(args.threshold);
-        let num_voters = Multisig::num_voters(&members);
-        require!(threshold > 0, MultisigError::InvalidThreshold);
-        require!(threshold <= num_voters, MultisigError::InvalidThreshold);
-
         // Initialize the multisig.
         let multisig = &mut ctx.accounts.multisig;
         multisig.config_authority = args.config_authority;
         multisig.threshold = args.threshold;
         multisig.members = members;
-        multisig.authority_index = 1; // Default vault is the first authority.
+        multisig.vault_index = 0;
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;
         multisig.create_key = ctx.accounts.create_key.to_account_info().key();
