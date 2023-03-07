@@ -5,11 +5,10 @@
  * See: https://github.com/metaplex-foundation/solita
  */
 
-import * as web3 from '@solana/web3.js'
 import * as beet from '@metaplex-foundation/beet'
-import * as beetSolana from '@metaplex-foundation/beet-solana'
-export type MultisigRemoveMemberArgs = {
-  oldMember: web3.PublicKey
+import { ConfigAction, configActionBeet } from './ConfigAction'
+export type ConfigTransactionCreateArgs = {
+  actions: ConfigAction[]
   memo: beet.COption<string>
 }
 
@@ -17,11 +16,11 @@ export type MultisigRemoveMemberArgs = {
  * @category userTypes
  * @category generated
  */
-export const multisigRemoveMemberArgsBeet =
-  new beet.FixableBeetArgsStruct<MultisigRemoveMemberArgs>(
+export const configTransactionCreateArgsBeet =
+  new beet.FixableBeetArgsStruct<ConfigTransactionCreateArgs>(
     [
-      ['oldMember', beetSolana.publicKey],
+      ['actions', beet.array(configActionBeet)],
       ['memo', beet.coption(beet.utf8String)],
     ],
-    'MultisigRemoveMemberArgs'
+    'ConfigTransactionCreateArgs'
   )

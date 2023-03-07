@@ -7,74 +7,53 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
-import {
-  TransactionVoteArgs,
-  transactionVoteArgsBeet,
-} from '../types/TransactionVoteArgs'
 
 /**
  * @category Instructions
- * @category TransactionApprove
+ * @category VaultTransactionExecute
  * @category generated
  */
-export type TransactionApproveInstructionArgs = {
-  args: TransactionVoteArgs
-}
-/**
- * @category Instructions
- * @category TransactionApprove
- * @category generated
- */
-export const transactionApproveStruct = new beet.FixableBeetArgsStruct<
-  TransactionApproveInstructionArgs & {
-    instructionDiscriminator: number[] /* size: 8 */
-  }
->(
-  [
-    ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', transactionVoteArgsBeet],
-  ],
-  'TransactionApproveInstructionArgs'
+export const vaultTransactionExecuteStruct = new beet.BeetArgsStruct<{
+  instructionDiscriminator: number[] /* size: 8 */
+}>(
+  [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
+  'VaultTransactionExecuteInstructionArgs'
 )
 /**
- * Accounts required by the _transactionApprove_ instruction
+ * Accounts required by the _vaultTransactionExecute_ instruction
  *
  * @property [] multisig
  * @property [_writable_] transaction
  * @property [_writable_, **signer**] member
  * @category Instructions
- * @category TransactionApprove
+ * @category VaultTransactionExecute
  * @category generated
  */
-export type TransactionApproveInstructionAccounts = {
+export type VaultTransactionExecuteInstructionAccounts = {
   multisig: web3.PublicKey
   transaction: web3.PublicKey
   member: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const transactionApproveInstructionDiscriminator = [
-  71, 56, 60, 211, 81, 39, 26, 220,
+export const vaultTransactionExecuteInstructionDiscriminator = [
+  194, 8, 161, 87, 153, 164, 25, 171,
 ]
 
 /**
- * Creates a _TransactionApprove_ instruction.
+ * Creates a _VaultTransactionExecute_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
- * @param args to provide as instruction data to the program
- *
  * @category Instructions
- * @category TransactionApprove
+ * @category VaultTransactionExecute
  * @category generated
  */
-export function createTransactionApproveInstruction(
-  accounts: TransactionApproveInstructionAccounts,
-  args: TransactionApproveInstructionArgs,
+export function createVaultTransactionExecuteInstruction(
+  accounts: VaultTransactionExecuteInstructionAccounts,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = transactionApproveStruct.serialize({
-    instructionDiscriminator: transactionApproveInstructionDiscriminator,
-    ...args,
+  const [data] = vaultTransactionExecuteStruct.serialize({
+    instructionDiscriminator: vaultTransactionExecuteInstructionDiscriminator,
   })
   const keys: web3.AccountMeta[] = [
     {

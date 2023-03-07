@@ -7,15 +7,13 @@ import {
 import invariant from "invariant";
 import {
   createMultisigCreateInstruction,
-  createTransactionExecuteInstruction,
+  createVaultTransactionExecuteInstruction,
+  createConfigTransactionExecuteInstruction,
   Member,
-  MultisigTransaction,
+  VaultTransaction,
+  ConfigTransaction,
 } from "./generated";
-import {
-  getAdditionalSignerPda,
-  getAuthorityPda,
-  getTransactionPda,
-} from "./pda";
+import { getEphemeralSignerPda, getVaultPda, getTransactionPda } from "./pda";
 import { isSignerIndex, isStaticWritableIndex } from "./utils";
 
 export function multisigCreate({
@@ -24,14 +22,16 @@ export function multisigCreate({
   configAuthority,
   threshold,
   members,
+  timeLock,
   createKey,
   memo,
 }: {
   creator: PublicKey;
   multisigPda: PublicKey;
-  configAuthority: PublicKey;
+  configAuthority: PublicKey | null;
   threshold: number;
   members: Member[];
+  timeLock: number;
   createKey: PublicKey;
   memo?: string;
 }): TransactionInstruction {
@@ -46,13 +46,14 @@ export function multisigCreate({
         configAuthority,
         threshold,
         members,
+        timeLock,
         memo: memo ?? null,
       },
     }
   );
 }
 
-export async function transactionExecute({
+export async function vaultTransactionExecute({
   connection,
   multisigPda,
   transactionIndex,
@@ -67,23 +68,23 @@ export async function transactionExecute({
     multisigPda,
     index: transactionIndex,
   });
-  const transactionAccount = await MultisigTransaction.fromAccountAddress(
+  const transactionAccount = await VaultTransaction.fromAccountAddress(
     connection,
     transactionPda
   );
 
-  const [authorityPda] = getAuthorityPda({
+  const [vaultPda] = getVaultPda({
     multisigPda,
-    index: transactionAccount.authorityIndex,
+    index: transactionAccount.vaultIndex,
   });
-  const additionalSignerPdas = [
-    ...transactionAccount.additionalSignerBumps,
-  ].map((_, additionalSignerIndex) => {
-    return getAdditionalSignerPda({
-      transactionPda,
-      additionalSignerIndex,
-    })[0];
-  });
+  const ephemeralSignerPdas = [...transactionAccount.ephemeralSignerBumps].map(
+    (_, additionalSignerIndex) => {
+      return getEphemeralSignerPda({
+        transactionPda,
+        ephemeralSignerIndex: additionalSignerIndex,
+      })[0];
+    }
+  );
 
   const transactionMessage = transactionAccount.message;
 
@@ -120,11 +121,11 @@ export async function transactionExecute({
     remainingAccounts.push({
       pubkey: accountKey,
       isWritable: isStaticWritableIndex(transactionMessage, accountIndex),
-      // NOTE: authorityPda and additionalSignerPdas cannot be marked as signers because they are PDAs.
+      // NOTE: vaultPda and ephemeralSignerPdas cannot be marked as signers because they are PDAs.
       isSigner:
         isSignerIndex(transactionMessage, accountIndex) &&
-        !accountKey.equals(authorityPda) &&
-        !additionalSignerPdas.find((k) => accountKey.equals(k)),
+        !accountKey.equals(vaultPda) &&
+        !ephemeralSignerPdas.find((k) => accountKey.equals(k)),
     });
   }
   // Then add accounts that will be loaded with address lookup tables.
@@ -167,7 +168,7 @@ export async function transactionExecute({
     }
   }
 
-  return createTransactionExecuteInstruction({
+  return createVaultTransactionExecuteInstruction({
     multisig: multisigPda,
     transaction: transactionPda,
     member,

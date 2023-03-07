@@ -10,9 +10,10 @@ import * as beet from '@metaplex-foundation/beet'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
 import { Member, memberBeet } from './Member'
 export type MultisigCreateArgs = {
-  configAuthority: web3.PublicKey
+  configAuthority: beet.COption<web3.PublicKey>
   threshold: number
   members: Member[]
+  timeLock: number
   memo: beet.COption<string>
 }
 
@@ -23,9 +24,10 @@ export type MultisigCreateArgs = {
 export const multisigCreateArgsBeet =
   new beet.FixableBeetArgsStruct<MultisigCreateArgs>(
     [
-      ['configAuthority', beetSolana.publicKey],
+      ['configAuthority', beet.coption(beetSolana.publicKey)],
       ['threshold', beet.u16],
       ['members', beet.array(memberBeet)],
+      ['timeLock', beet.i32],
       ['memo', beet.coption(beet.utf8String)],
     ],
     'MultisigCreateArgs'

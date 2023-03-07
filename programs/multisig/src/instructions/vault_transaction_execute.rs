@@ -27,7 +27,7 @@ pub struct VaultTransactionExecute<'info> {
         bump = transaction.bump,
         constraint = transaction.multisig == multisig.key() @ MultisigError::TransactionNotForMultisig,
         constraint = transaction.status == TransactionStatus::ExecuteReady @ MultisigError::InvalidTransactionStatus,
-        constraint = Clock::get()?.unix_timestamp - transaction.settled_at > i64::from(multisig.time_lock) @ MultisigError::TimeLockNotReleased,
+        constraint = Clock::get()?.unix_timestamp - transaction.settled_at >= i64::from(multisig.time_lock) @ MultisigError::TimeLockNotReleased,
     )]
     pub transaction: Account<'info, VaultTransaction>,
 
@@ -64,14 +64,14 @@ impl VaultTransactionExecute<'_> {
         let vault_pubkey = Pubkey::create_program_address(vault_seeds, ctx.program_id).unwrap();
 
         let (additional_signer_keys, additional_signer_seeds): (Vec<_>, Vec<_>) = transaction
-            .additional_signer_bumps
+            .ephemeral_signer_bumps
             .iter()
             .enumerate()
             .map(|(index, bump)| {
                 let seeds = vec![
                     SEED_PREFIX.to_vec(),
                     transaction_key.to_bytes().to_vec(),
-                    SEED_ADDITIONAL_SIGNER.to_vec(),
+                    SEED_EPHEMERAL_SIGNER.to_vec(),
                     u8::try_from(index).unwrap().to_le_bytes().to_vec(),
                     vec![*bump],
                 ];

@@ -17,7 +17,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 
-const { Multisig, MultisigTransaction } = multisig.accounts;
+const { Multisig, VaultTransaction } = multisig.accounts;
 const { Permission, Permissions, TransactionStatus } = multisig.types;
 
 describe("multisig", () => {
@@ -64,7 +64,7 @@ describe("multisig", () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
       });
-      const [configAuthority] = multisig.getAuthorityPda({
+      const [configAuthority] = multisig.getVaultPda({
         multisigPda,
         index: 0,
       });
@@ -76,6 +76,7 @@ describe("multisig", () => {
             creator,
             multisigPda,
             configAuthority,
+            timeLock: 0,
             threshold: 1,
             members: [
               {
@@ -100,7 +101,7 @@ describe("multisig", () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
       });
-      const [configAuthority] = multisig.getAuthorityPda({
+      const [configAuthority] = multisig.getVaultPda({
         multisigPda,
         index: 0,
       });
@@ -111,6 +112,7 @@ describe("multisig", () => {
         creator: creator.publicKey,
         multisigPda,
         configAuthority,
+        timeLock: 0,
         threshold: 1,
         members: [
           {
@@ -140,7 +142,7 @@ describe("multisig", () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
       });
-      const [configAuthority] = multisig.getAuthorityPda({
+      const [configAuthority] = multisig.getVaultPda({
         multisigPda,
         index: 0,
       });
@@ -153,11 +155,12 @@ describe("multisig", () => {
             creator,
             multisigPda,
             configAuthority,
+            timeLock: 0,
             threshold: 1,
             members: [],
             sendOptions: { skipPreflight: true },
           }),
-        /Members array is empty/
+        /Members don't include any voters/
       );
     });
 
@@ -171,7 +174,7 @@ describe("multisig", () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
       });
-      const [configAuthority] = multisig.getAuthorityPda({
+      const [configAuthority] = multisig.getVaultPda({
         multisigPda,
         index: 0,
       });
@@ -184,6 +187,7 @@ describe("multisig", () => {
             creator,
             multisigPda,
             configAuthority,
+            timeLock: 0,
             threshold: 0,
             members: Object.values(members).map((m) => ({
               key: m.publicKey,
@@ -202,7 +206,7 @@ describe("multisig", () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
       });
-      const [configAuthority] = multisig.getAuthorityPda({
+      const [configAuthority] = multisig.getVaultPda({
         multisigPda,
         index: 0,
       });
@@ -215,6 +219,7 @@ describe("multisig", () => {
             creator,
             multisigPda,
             configAuthority,
+            timeLock: 0,
             members: [
               {
                 key: members.almighty.publicKey,
@@ -252,16 +257,13 @@ describe("multisig", () => {
       const [multisigPda, multisigBump] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
-      const [configAuthority] = multisig.getAuthorityPda({
-        multisigPda,
-        index: 0,
-      });
 
       const signature = await multisig.rpc.multisigCreate({
         connection,
         creator,
         multisigPda,
-        configAuthority,
+        configAuthority: null,
+        timeLock: 0,
         threshold: 2,
         members: [
           { key: members.almighty.publicKey, permissions: Permissions.all() },
@@ -293,7 +295,7 @@ describe("multisig", () => {
       );
       assert.strictEqual(
         multisigAccount.configAuthority.toBase58(),
-        configAuthority.toBase58()
+        PublicKey.default.toBase58()
       );
       assert.strictEqual(multisigAccount.threshold, 2);
       assert.deepEqual(
@@ -325,7 +327,7 @@ describe("multisig", () => {
           },
         ].sort((a, b) => comparePubkeys(a.key, b.key))
       );
-      assert.strictEqual(multisigAccount.authorityIndex, 1);
+      assert.strictEqual(multisigAccount.vaultIndex, 0);
       assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
       assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "0");
       assert.strictEqual(
@@ -354,6 +356,7 @@ describe("multisig", () => {
         multisigPda,
         configAuthority: controlledMultisigConfigAuthority.publicKey,
         threshold: 2,
+        timeLock: 0,
         members: [
           { key: members.almighty.publicKey, permissions: Permissions.all() },
           // Can only initiate transactions.
@@ -414,6 +417,7 @@ describe("multisig", () => {
           feePayer,
           multisigPda,
           configAuthority: controlledMultisigConfigAuthority.publicKey,
+          rentPayer: controlledMultisigConfigAuthority,
           newMember: {
             key: members.almighty.publicKey,
             permissions: Permissions.all(),
@@ -437,6 +441,7 @@ describe("multisig", () => {
           feePayer,
           multisigPda,
           configAuthority: controlledMultisigConfigAuthority.publicKey,
+          rentPayer: feePayer,
           newMember,
           signers: [
             /* missing authority signature */
@@ -459,6 +464,7 @@ describe("multisig", () => {
           feePayer: fakeAuthority,
           multisigPda,
           configAuthority: fakeAuthority.publicKey,
+          rentPayer: fakeAuthority,
           newMember,
           signers: [fakeAuthority],
           sendOptions: { skipPreflight: true },
@@ -494,6 +500,7 @@ describe("multisig", () => {
         feePayer,
         multisigPda,
         configAuthority: controlledMultisigConfigAuthority.publicKey,
+        rentPayer: controlledMultisigConfigAuthority,
         newMember,
         memo: "Adding my good friend to the multisig",
         signers: [controlledMultisigConfigAuthority],
@@ -533,6 +540,7 @@ describe("multisig", () => {
         feePayer,
         multisigPda,
         configAuthority: controlledMultisigConfigAuthority.publicKey,
+        rentPayer: controlledMultisigConfigAuthority,
         newMember: newMember2,
         signers: [controlledMultisigConfigAuthority],
         sendOptions: { skipPreflight: true },
@@ -566,7 +574,7 @@ describe("multisig", () => {
     it("add a new member to an autonomous multisig");
   });
 
-  describe("transaction_create", () => {
+  describe("vault_transaction_create", () => {
     it("error: not a member", async () => {
       const nonMember = await generateFundedKeypair(connection);
 
@@ -579,7 +587,7 @@ describe("multisig", () => {
       );
 
       // Vault, index 1.
-      const [vaultPda] = multisig.getAuthorityPda({
+      const [vaultPda] = multisig.getVaultPda({
         multisigPda,
         index: 1,
       });
@@ -601,14 +609,14 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionCreate({
+          multisig.rpc.vaultTransactionCreate({
             connection,
             feePayer: nonMember,
             multisigPda,
             transactionIndex,
             creator: nonMember.publicKey,
-            authorityIndex: 1,
-            additionalSigners: 0,
+            vaultIndex: 1,
+            ephemeralSigners: 0,
             transactionMessage: testTransferMessage,
           }),
         /Provided pubkey is not a member of multisig/
@@ -625,7 +633,7 @@ describe("multisig", () => {
       );
 
       // Vault, index 1.
-      const [vaultPda] = multisig.getAuthorityPda({
+      const [vaultPda] = multisig.getVaultPda({
         multisigPda,
         index: 1,
       });
@@ -647,14 +655,14 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionCreate({
+          multisig.rpc.vaultTransactionCreate({
             connection,
             feePayer: members.voter,
             multisigPda,
             transactionIndex,
             creator: members.voter.publicKey,
-            authorityIndex: 1,
-            additionalSigners: 0,
+            vaultIndex: 1,
+            ephemeralSigners: 0,
             transactionMessage: testTransferMessage,
           }),
         /Attempted to perform an unauthorized action/
@@ -671,7 +679,7 @@ describe("multisig", () => {
       );
 
       // Vault, index 1.
-      const [vaultPda, vaultBump] = multisig.getAuthorityPda({
+      const [vaultPda, vaultBump] = multisig.getVaultPda({
         multisigPda,
         index: 1,
       });
@@ -704,14 +712,14 @@ describe("multisig", () => {
       const transactionIndex =
         multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
 
-      const signature = await multisig.rpc.transactionCreate({
+      const signature = await multisig.rpc.vaultTransactionCreate({
         connection,
         feePayer: members.proposer,
         multisigPda,
         transactionIndex,
         creator: members.proposer.publicKey,
-        authorityIndex: 1,
-        additionalSigners: 0,
+        vaultIndex: 1,
+        ephemeralSigners: 0,
         transactionMessage: testTransferMessage,
         memo: "Transfer 2 SOL to a test account",
       });
@@ -730,7 +738,7 @@ describe("multisig", () => {
         multisigPda,
         index: transactionIndex,
       });
-      const transactionAccount = await MultisigTransaction.fromAccountAddress(
+      const transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
@@ -746,9 +754,9 @@ describe("multisig", () => {
         transactionAccount.transactionIndex.toString(),
         transactionIndex.toString()
       );
-      assert.strictEqual(transactionAccount.authorityBump, vaultBump);
+      assert.strictEqual(transactionAccount.vaultBump, vaultBump);
       assert.deepEqual(
-        transactionAccount.additionalSignerBumps,
+        transactionAccount.ephemeralSignerBumps,
         new Uint8Array()
       );
       assert.strictEqual(transactionAccount.bump, transactionBump);
@@ -771,7 +779,7 @@ describe("multisig", () => {
       );
 
       // Vault, index 1.
-      const [vaultPda, vaultBump] = multisig.getAuthorityPda({
+      const [vaultPda, vaultBump] = multisig.getVaultPda({
         multisigPda,
         index: 1,
       });
@@ -792,14 +800,14 @@ describe("multisig", () => {
       const transactionIndex =
         multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
 
-      const signature = await multisig.rpc.transactionCreate({
+      const signature = await multisig.rpc.vaultTransactionCreate({
         connection,
         feePayer: members.proposer,
         multisigPda,
         transactionIndex,
         creator: members.proposer.publicKey,
-        authorityIndex: 1,
-        additionalSigners: 0,
+        vaultIndex: 1,
+        ephemeralSigners: 0,
         transactionMessage: testTransferMessage,
         memo: "Transfer 1 SOL to a test account",
       });
@@ -816,7 +824,7 @@ describe("multisig", () => {
     });
   });
 
-  describe("transaction_approve", () => {
+  describe("vault_transaction_approve", () => {
     it("error: not a member", async () => {
       const nonMember = await generateFundedKeypair(connection);
 
@@ -835,7 +843,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionApprove({
+          multisig.rpc.vaultTransactionApprove({
             connection,
             feePayer: nonMember,
             multisigPda,
@@ -862,7 +870,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionApprove({
+          multisig.rpc.vaultTransactionApprove({
             connection,
             feePayer: members.executor,
             multisigPda,
@@ -881,7 +889,7 @@ describe("multisig", () => {
       // Approve the first transaction.
       const transactionIndex = multisig.utils.toBigInt(1);
 
-      const signature = await multisig.rpc.transactionApprove({
+      const signature = await multisig.rpc.vaultTransactionApprove({
         connection,
         feePayer: members.voter,
         multisigPda,
@@ -896,7 +904,7 @@ describe("multisig", () => {
         multisigPda,
         index: transactionIndex,
       });
-      const transactionAccount = await MultisigTransaction.fromAccountAddress(
+      const transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
@@ -917,7 +925,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionApprove({
+          multisig.rpc.vaultTransactionApprove({
             connection,
             feePayer: members.voter,
             multisigPda,
@@ -936,7 +944,7 @@ describe("multisig", () => {
       // Approve the first transaction.
       const transactionIndex = multisig.utils.toBigInt(1);
 
-      const signature = await multisig.rpc.transactionApprove({
+      const signature = await multisig.rpc.vaultTransactionApprove({
         connection,
         feePayer: members.almighty,
         multisigPda,
@@ -952,7 +960,7 @@ describe("multisig", () => {
         multisigPda,
         index: transactionIndex,
       });
-      const transactionAccount = await MultisigTransaction.fromAccountAddress(
+      const transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
@@ -978,7 +986,7 @@ describe("multisig", () => {
     it("error: transaction is not for multisig");
   });
 
-  describe("transaction_reject", () => {
+  describe("vault_transaction_reject", () => {
     it("error: not a member", async () => {
       const nonMember = await generateFundedKeypair(connection);
 
@@ -991,7 +999,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionReject({
+          multisig.rpc.vaultTransactionReject({
             connection,
             feePayer: nonMember,
             multisigPda,
@@ -1012,7 +1020,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionApprove({
+          multisig.rpc.vaultTransactionApprove({
             connection,
             feePayer: members.executor,
             multisigPda,
@@ -1035,7 +1043,7 @@ describe("multisig", () => {
       // Reject the second transaction.
       const transactionIndex = multisig.utils.toBigInt(2);
 
-      const signature = await multisig.rpc.transactionReject({
+      const signature = await multisig.rpc.vaultTransactionReject({
         connection,
         feePayer: members.voter,
         multisigPda,
@@ -1050,7 +1058,7 @@ describe("multisig", () => {
         multisigPda,
         index: transactionIndex,
       });
-      const transactionAccount = await MultisigTransaction.fromAccountAddress(
+      const transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
@@ -1079,7 +1087,7 @@ describe("multisig", () => {
 
       await assert.rejects(
         () =>
-          multisig.rpc.transactionReject({
+          multisig.rpc.vaultTransactionReject({
             connection,
             feePayer: members.almighty,
             multisigPda,
@@ -1095,8 +1103,8 @@ describe("multisig", () => {
     it("error: transaction is not for multisig");
   });
 
-  describe("transaction_execute", () => {
-    it("execute a transaction", async () => {
+  describe("vault_transaction_execute", () => {
+    it("execute a vault transaction", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
@@ -1108,19 +1116,19 @@ describe("multisig", () => {
         multisigPda,
         index: transactionIndex,
       });
-      let transactionAccount = await MultisigTransaction.fromAccountAddress(
+      let transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
 
-      const [vaultPda] = multisig.getAuthorityPda({
+      const [vaultPda] = multisig.getVaultPda({
         multisigPda,
-        index: transactionAccount.authorityIndex,
+        index: transactionAccount.vaultIndex,
       });
       const preVaultBalance = await connection.getBalance(vaultPda);
       assert.strictEqual(preVaultBalance, 2 * LAMPORTS_PER_SOL);
 
-      const signature = await multisig.rpc.transactionExecute({
+      const signature = await multisig.rpc.vaultTransactionExecute({
         connection,
         feePayer: members.executor,
         multisigPda,
@@ -1131,7 +1139,7 @@ describe("multisig", () => {
       await connection.confirmTransaction(signature);
 
       // Verify the transaction account.
-      transactionAccount = await MultisigTransaction.fromAccountAddress(
+      transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
@@ -1161,7 +1169,7 @@ describe("multisig", () => {
         const [multisigPda] = multisig.getMultisigPda({
           createKey: createKey.publicKey,
         });
-        const [configAuthority] = multisig.getAuthorityPda({
+        const [configAuthority] = multisig.getVaultPda({
           multisigPda,
           index: 0,
         });
@@ -1174,6 +1182,7 @@ describe("multisig", () => {
           creator: multisigCreator.publicKey,
           multisigPda,
           configAuthority,
+          timeLock: 0,
           members: [
             { key: members.almighty.publicKey, permissions: Permissions.all() },
           ],
@@ -1223,10 +1232,10 @@ describe("multisig", () => {
         index: transactionIndex,
       });
 
-      // Vault, index 1.
-      const [vaultPda, vaultBump] = multisig.getAuthorityPda({
+      // Default vault, index 0.
+      const [vaultPda] = multisig.getVaultPda({
         multisigPda,
-        index: 1,
+        index: 0,
       });
 
       const lamportsForMintRent = await getMinimumBalanceForRentExemptMint(
@@ -1241,9 +1250,9 @@ describe("multisig", () => {
       await connection.confirmTransaction(airdropSig);
 
       // Test create Mint transaction.
-      const [mintPda, mintBump] = multisig.getAdditionalSignerPda({
+      const [mintPda, mintBump] = multisig.getEphemeralSignerPda({
         transactionPda,
-        additionalSignerIndex: 0,
+        ephemeralSignerIndex: 0,
       });
 
       const testTransactionMessage = new TransactionMessage({
@@ -1268,14 +1277,14 @@ describe("multisig", () => {
       });
 
       // Create
-      let signature = await multisig.rpc.transactionCreate({
+      let signature = await multisig.rpc.vaultTransactionCreate({
         connection,
         feePayer: members.proposer,
         multisigPda,
         transactionIndex,
         creator: members.proposer.publicKey,
-        authorityIndex: 1,
-        additionalSigners: 1,
+        vaultIndex: 0,
+        ephemeralSigners: 1,
         transactionMessage: testTransactionMessage,
         memo: "Create new mint",
       });
@@ -1291,17 +1300,17 @@ describe("multisig", () => {
       );
 
       // Verify the transaction account
-      let transactionAccount = await MultisigTransaction.fromAccountAddress(
+      let transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
       assert.deepEqual(
-        transactionAccount.additionalSignerBumps,
+        transactionAccount.ephemeralSignerBumps,
         new Uint8Array([mintBump])
       );
 
       // Approve 1
-      signature = await multisig.rpc.transactionApprove({
+      signature = await multisig.rpc.vaultTransactionApprove({
         connection,
         feePayer: members.voter,
         multisigPda,
@@ -1313,7 +1322,7 @@ describe("multisig", () => {
       await connection.confirmTransaction(signature);
 
       // Approve 2
-      signature = await multisig.rpc.transactionApprove({
+      signature = await multisig.rpc.vaultTransactionApprove({
         connection,
         feePayer: members.almighty,
         multisigPda,
@@ -1325,7 +1334,7 @@ describe("multisig", () => {
       await connection.confirmTransaction(signature);
 
       // Execute
-      signature = await multisig.rpc.transactionExecute({
+      signature = await multisig.rpc.vaultTransactionExecute({
         connection,
         feePayer: members.executor,
         multisigPda,

@@ -6,7 +6,7 @@
  */
 
 import * as beet from '@metaplex-foundation/beet'
-export type TransactionVoteArgs = {
+export type VaultTransactionVoteArgs = {
   memo: beet.COption<string>
 }
 
@@ -14,8 +14,8 @@ export type TransactionVoteArgs = {
  * @category userTypes
  * @category generated
  */
-export const transactionVoteArgsBeet =
-  new beet.FixableBeetArgsStruct<TransactionVoteArgs>(
+export const vaultTransactionVoteArgsBeet =
+  new beet.FixableBeetArgsStruct<VaultTransactionVoteArgs>(
     [['memo', beet.coption(beet.utf8String)]],
-    'TransactionVoteArgs'
+    'VaultTransactionVoteArgs'
   )

@@ -7,12 +7,12 @@ import {
 } from "@solana/web3.js";
 import {
   createMultisigAddMemberInstruction,
-  createTransactionApproveInstruction,
-  createTransactionCreateInstruction,
-  createTransactionRejectInstruction,
+  createVaultTransactionApproveInstruction,
+  createVaultTransactionCreateInstruction,
+  createVaultTransactionRejectInstruction,
   Member,
 } from "./generated";
-import { getAuthorityPda, getTransactionPda } from "./pda";
+import { getVaultPda, getTransactionPda } from "./pda";
 import { transactionMessageBeet } from "./types";
 import * as instructions from "./instructions.js";
 
@@ -25,15 +25,17 @@ export function multisigCreate({
   multisigPda,
   threshold,
   members,
+  timeLock,
   memo,
 }: {
   blockhash: string;
   createKey: PublicKey;
   creator: PublicKey;
   multisigPda: PublicKey;
-  configAuthority: PublicKey;
+  configAuthority: PublicKey | null;
   threshold: number;
   members: Member[];
+  timeLock: number;
   memo?: string;
 }): VersionedTransaction {
   const ix = instructions.multisigCreate({
@@ -42,6 +44,7 @@ export function multisigCreate({
     configAuthority,
     threshold,
     members,
+    timeLock,
     createKey,
     memo,
   });
@@ -64,6 +67,7 @@ export function multisigAddMember({
   feePayer,
   multisigPda,
   configAuthority,
+  rentPayer,
   newMember,
   memo,
 }: {
@@ -71,6 +75,7 @@ export function multisigAddMember({
   feePayer: PublicKey;
   multisigPda: PublicKey;
   configAuthority: PublicKey;
+  rentPayer: PublicKey;
   newMember: Member;
   memo?: string;
 }): VersionedTransaction {
@@ -82,6 +87,7 @@ export function multisigAddMember({
         {
           multisig: multisigPda,
           configAuthority,
+          rentPayer,
         },
         { args: { newMember, memo: memo ?? null } }
       ),
@@ -95,14 +101,14 @@ export function multisigAddMember({
  * Returns unsigned `VersionedTransaction` that needs to be
  * signed by `creator` and `feePayer` before sending it.
  */
-export function transactionCreate({
+export function vaultTransactionCreate({
   blockhash,
   feePayer,
   multisigPda,
   transactionIndex,
   creator,
-  authorityIndex,
-  additionalSigners,
+  vaultIndex,
+  ephemeralSigners,
   transactionMessage,
   addressLookupTableAccounts,
   memo,
@@ -112,18 +118,18 @@ export function transactionCreate({
   multisigPda: PublicKey;
   transactionIndex: bigint;
   creator: PublicKey;
-  authorityIndex: number;
+  vaultIndex: number;
   /** Number of additional signing PDAs required by the transaction. */
-  additionalSigners: number;
+  ephemeralSigners: number;
   /** Transaction message to wrap into a multisig transaction. */
   transactionMessage: TransactionMessage;
   /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
   addressLookupTableAccounts?: AddressLookupTableAccount[];
   memo?: string;
 }): VersionedTransaction {
-  const [authorityPDA] = getAuthorityPda({
+  const [authorityPDA] = getVaultPda({
     multisigPda,
-    index: authorityIndex,
+    index: vaultIndex,
   });
 
   const [transactionPda] = getTransactionPda({
@@ -170,7 +176,7 @@ export function transactionCreate({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      createTransactionCreateInstruction(
+      createVaultTransactionCreateInstruction(
         {
           multisig: multisigPda,
           transaction: transactionPda,
@@ -178,8 +184,8 @@ export function transactionCreate({
         },
         {
           args: {
-            authorityIndex,
-            additionalSigners,
+            vaultIndex,
+            ephemeralSigners,
             transactionMessage: transactionMessageBytes,
             memo: memo ?? null,
           },
@@ -191,7 +197,7 @@ export function transactionCreate({
   return new VersionedTransaction(message);
 }
 
-export function transactionApprove({
+export function vaultTransactionApprove({
   blockhash,
   feePayer,
   multisigPda,
@@ -215,7 +221,7 @@ export function transactionApprove({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      createTransactionApproveInstruction(
+      createVaultTransactionApproveInstruction(
         {
           multisig: multisigPda,
           transaction: transactionPda,
@@ -233,7 +239,7 @@ export function transactionApprove({
   return new VersionedTransaction(message);
 }
 
-export function transactionReject({
+export function vaultTransactionReject({
   blockhash,
   feePayer,
   multisigPda,
@@ -257,7 +263,7 @@ export function transactionReject({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      createTransactionRejectInstruction(
+      createVaultTransactionRejectInstruction(
         {
           multisig: multisigPda,
           transaction: transactionPda,
@@ -279,7 +285,7 @@ export function transactionReject({
  * Returns unsigned `VersionedTransaction` that needs to be
  * signed by `member` and `feePayer` before sending it.
  */
-export async function transactionExecute({
+export async function vaultTransactionExecute({
   connection,
   blockhash,
   feePayer,
@@ -294,7 +300,7 @@ export async function transactionExecute({
   transactionIndex: bigint;
   member: PublicKey;
 }): Promise<VersionedTransaction> {
-  const ix = await instructions.transactionExecute({
+  const ix = await instructions.vaultTransactionExecute({
     connection,
     multisigPda,
     member,

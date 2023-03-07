@@ -8,79 +8,78 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  TransactionCreateArgs,
-  transactionCreateArgsBeet,
-} from '../types/TransactionCreateArgs'
+  ConfigTransactionVoteArgs,
+  configTransactionVoteArgsBeet,
+} from '../types/ConfigTransactionVoteArgs'
 
 /**
  * @category Instructions
- * @category TransactionCreate
+ * @category ConfigTransactionApprove
  * @category generated
  */
-export type TransactionCreateInstructionArgs = {
-  args: TransactionCreateArgs
+export type ConfigTransactionApproveInstructionArgs = {
+  args: ConfigTransactionVoteArgs
 }
 /**
  * @category Instructions
- * @category TransactionCreate
+ * @category ConfigTransactionApprove
  * @category generated
  */
-export const transactionCreateStruct = new beet.FixableBeetArgsStruct<
-  TransactionCreateInstructionArgs & {
+export const configTransactionApproveStruct = new beet.FixableBeetArgsStruct<
+  ConfigTransactionApproveInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', transactionCreateArgsBeet],
+    ['args', configTransactionVoteArgsBeet],
   ],
-  'TransactionCreateInstructionArgs'
+  'ConfigTransactionApproveInstructionArgs'
 )
 /**
- * Accounts required by the _transactionCreate_ instruction
+ * Accounts required by the _configTransactionApprove_ instruction
  *
- * @property [_writable_] multisig
+ * @property [] multisig
  * @property [_writable_] transaction
- * @property [_writable_, **signer**] creator
+ * @property [_writable_, **signer**] member
  * @category Instructions
- * @category TransactionCreate
+ * @category ConfigTransactionApprove
  * @category generated
  */
-export type TransactionCreateInstructionAccounts = {
+export type ConfigTransactionApproveInstructionAccounts = {
   multisig: web3.PublicKey
   transaction: web3.PublicKey
-  creator: web3.PublicKey
-  systemProgram?: web3.PublicKey
+  member: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const transactionCreateInstructionDiscriminator = [
-  138, 244, 164, 79, 214, 43, 190, 90,
+export const configTransactionApproveInstructionDiscriminator = [
+  224, 64, 69, 29, 11, 24, 247, 166,
 ]
 
 /**
- * Creates a _TransactionCreate_ instruction.
+ * Creates a _ConfigTransactionApprove_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category TransactionCreate
+ * @category ConfigTransactionApprove
  * @category generated
  */
-export function createTransactionCreateInstruction(
-  accounts: TransactionCreateInstructionAccounts,
-  args: TransactionCreateInstructionArgs,
+export function createConfigTransactionApproveInstruction(
+  accounts: ConfigTransactionApproveInstructionAccounts,
+  args: ConfigTransactionApproveInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = transactionCreateStruct.serialize({
-    instructionDiscriminator: transactionCreateInstructionDiscriminator,
+  const [data] = configTransactionApproveStruct.serialize({
+    instructionDiscriminator: configTransactionApproveInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: true,
+      isWritable: false,
       isSigner: false,
     },
     {
@@ -89,14 +88,9 @@ export function createTransactionCreateInstruction(
       isSigner: false,
     },
     {
-      pubkey: accounts.creator,
+      pubkey: accounts.member,
       isWritable: true,
       isSigner: true,
-    },
-    {
-      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
-      isWritable: false,
-      isSigner: false,
     },
   ]
 

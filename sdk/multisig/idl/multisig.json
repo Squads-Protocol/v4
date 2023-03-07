@@ -58,8 +58,21 @@
         },
         {
           "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
           "isMut": true,
-          "isSigner": true
+          "isSigner": true,
+          "docs": [
+            "The account that will be charged in case the multisig account needs to reallocate space,",
+            "for example when adding a new member.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
         },
         {
           "name": "systemProgram",
@@ -92,8 +105,21 @@
         },
         {
           "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
           "isMut": true,
-          "isSigner": true
+          "isSigner": true,
+          "docs": [
+            "The account that will be charged in case the multisig account needs to reallocate space,",
+            "for example when adding a new member.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
         },
         {
           "name": "systemProgram",
@@ -114,9 +140,9 @@
       ]
     },
     {
-      "name": "transactionCreate",
+      "name": "vaultTransactionCreate",
       "docs": [
-        "Create a new multisig transaction."
+        "Create a new vault transaction."
       ],
       "accounts": [
         {
@@ -144,15 +170,15 @@
         {
           "name": "args",
           "type": {
-            "defined": "TransactionCreateArgs"
+            "defined": "VaultTransactionCreateArgs"
           }
         }
       ]
     },
     {
-      "name": "transactionApprove",
+      "name": "vaultTransactionApprove",
       "docs": [
-        "Approve the transaction on behalf of the `member`.",
+        "Approve a vault transaction on behalf of the `member`.",
         "The transaction must be `Active`."
       ],
       "accounts": [
@@ -176,15 +202,15 @@
         {
           "name": "args",
           "type": {
-            "defined": "TransactionVoteArgs"
+            "defined": "VaultTransactionVoteArgs"
           }
         }
       ]
     },
     {
-      "name": "transactionReject",
+      "name": "vaultTransactionReject",
       "docs": [
-        "Reject the transaction on behalf of the `member`.",
+        "Reject a vault transaction on behalf of the `member`.",
         "The transaction must be `Active`."
       ],
       "accounts": [
@@ -208,15 +234,15 @@
         {
           "name": "args",
           "type": {
-            "defined": "TransactionVoteArgs"
+            "defined": "VaultTransactionVoteArgs"
           }
         }
       ]
     },
     {
-      "name": "transactionExecute",
+      "name": "vaultTransactionExecute",
       "docs": [
-        "Execute the multisig transaction.",
+        "Execute a vault transaction.",
         "The transaction must be `ExecuteReady`."
       ],
       "accounts": [
@@ -237,27 +263,275 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "configTransactionCreate",
+      "docs": [
+        "Create a new config transaction."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ConfigTransactionCreateArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "configTransactionApprove",
+      "docs": [
+        "Approve a config transaction on behalf of the `member`.",
+        "The transaction must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ConfigTransactionVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "configTransactionReject",
+      "docs": [
+        "Reject a config transaction on behalf of the `member`.",
+        "The transaction must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ConfigTransactionVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "configTransactionExecute",
+      "docs": [
+        "Execute a config transaction.",
+        "The transaction must be `ExecuteReady`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "One of the multisig members with `Execute` permission."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The account that will be charged in case the multisig account needs to reallocate space,",
+            "for example when adding a new member.",
+            "This is usually the same as `member`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
+    {
+      "name": "ConfigTransaction",
+      "docs": [
+        "Stores data required for tracking the voting and execution status of a multisig configuration transaction.",
+        "Config transaction can perform a predefined set of actions on the Multisig PDA, such as adding/removing members,",
+        "changing the threshold, etc."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "multisig",
+            "docs": [
+              "The multisig this belongs to."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "Member of the Multisig who submitted the transaction."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "transactionIndex",
+            "docs": [
+              "Index of this transaction within the multisig."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "settledAt",
+            "docs": [
+              "Unix Epoch when the transaction vote has settled, so it became either approved or rejected.",
+              "`0` if the transaction is not settled yet."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "The status of the transaction."
+            ],
+            "type": {
+              "defined": "TransactionStatus"
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "bump for the transaction seeds."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "approved",
+            "docs": [
+              "keys that have approved/signed."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "rejected",
+            "docs": [
+              "keys that have rejected."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "cancelled",
+            "docs": [
+              "keys that have cancelled (ExecuteReady only)."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "actions",
+            "docs": [
+              "Action to be performed on the multisig."
+            ],
+            "type": {
+              "vec": {
+                "defined": "ConfigAction"
+              }
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "Multisig",
       "type": {
         "kind": "struct",
         "fields": [
           {
+            "name": "createKey",
+            "docs": [
+              "Key that is used to seed the multisig PDA."
+            ],
+            "type": "publicKey"
+          },
+          {
             "name": "configAuthority",
             "docs": [
               "The authority that can change the multisig config.",
               "This is a very important parameter as this authority can change the members and threshold.",
               "",
-              "The convention is to set this to a PDA derived from the multisig address and an authority index (typically 0)",
-              "using the following seeds: [\"multisig\", multisig_address, authority_index, \"authority\"].",
+              "The convention is to set this to `Pubkey::default()`.",
               "In this case, the multisig becomes autonomous, so every config change goes through",
               "the normal process of voting by the members.",
               "",
-              "However, this parameter can be set to any key. This allows for the multisig to be controlled",
-              "by a higher central authority or even another multisig."
+              "However, if this parameter is set to any other key, all the config changes for this multisig",
+              "will need to be signed by the `config_authority`. We call such a multisig a \"controlled multisig\"."
             ],
             "type": "publicKey"
           },
@@ -269,22 +543,11 @@
             "type": "u16"
           },
           {
-            "name": "members",
+            "name": "timeLock",
             "docs": [
-              "Members of the multisig."
+              "How many seconds must pass between transaction voting settlement and execution."
             ],
-            "type": {
-              "vec": {
-                "defined": "Member"
-              }
-            }
-          },
-          {
-            "name": "authorityIndex",
-            "docs": [
-              "Index to seed other authorities under this multisig."
-            ],
-            "type": "u8"
+            "type": "i32"
           },
           {
             "name": "transactionIndex",
@@ -302,12 +565,11 @@
             "type": "u64"
           },
           {
-            "name": "createKey",
+            "name": "vaultIndex",
             "docs": [
-              "Key that is used to seed the multisig PDA.",
-              "Used solely as bytes for the seed, doesn't have any other meaning or function."
+              "Index to track the last created vault for this multisig."
             ],
-            "type": "publicKey"
+            "type": "u8"
           },
           {
             "name": "bump",
@@ -315,14 +577,27 @@
               "Bump for the multisig PDA seed."
             ],
             "type": "u8"
+          },
+          {
+            "name": "members",
+            "docs": [
+              "Members of the multisig."
+            ],
+            "type": {
+              "vec": {
+                "defined": "Member"
+              }
+            }
           }
         ]
       }
     },
     {
-      "name": "MultisigTransaction",
+      "name": "VaultTransaction",
       "docs": [
-        "Represents data required for tracking the voting status, and execution of a multisig transaction."
+        "Stores data required for tracking the voting and execution status of a vault transaction.",
+        "Vault transaction is a transaction that's executed on behalf of the multisig vault PDA",
+        "and wraps arbitrary Solana instructions, typically calling into other Solana programs."
       ],
       "type": {
         "kind": "struct",
@@ -330,7 +605,7 @@
           {
             "name": "creator",
             "docs": [
-              "Creator, used to seed pda."
+              "Member of the Multisig who submitted the transaction."
             ],
             "type": "publicKey"
           },
@@ -344,36 +619,17 @@
           {
             "name": "transactionIndex",
             "docs": [
-              "Used for seed."
+              "Index of this transaction within the multisig."
             ],
             "type": "u64"
           },
           {
-            "name": "authorityIndex",
+            "name": "settledAt",
             "docs": [
-              "Index of the authority/vault this transaction belongs to."
+              "Unix Epoch when the transaction vote has settled, so it became either approved or rejected.",
+              "`0` if the transaction is not settled yet."
             ],
-            "type": "u8"
-          },
-          {
-            "name": "authorityBump",
-            "docs": [
-              "Derivation bump of the authority/vault this transaction belongs to."
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "additionalSignerBumps",
-            "docs": [
-              "Derivation bumps for additional signers.",
-              "Some transactions require multiple signers. Often these additional signers are \"ephemeral\" keypairs",
-              "that are generated on the client with a sole purpose of signing the transaction and be discarded immediately after.",
-              "When wrapping such transactions into multisig ones, we replace these \"ephemeral\" signing keypairs",
-              "with PDAs derived from the MultisigTransaction's `transaction_index` and controlled by the Multisig Program;",
-              "during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,",
-              "thus \"signing\" on behalf of these PDAs."
-            ],
-            "type": "bytes"
+            "type": "i64"
           },
           {
             "name": "status",
@@ -387,9 +643,36 @@
           {
             "name": "bump",
             "docs": [
-              "bump for the seed."
+              "bump for the transaction seeds."
             ],
             "type": "u8"
+          },
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "Index of the vault this transaction belongs to."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "vaultBump",
+            "docs": [
+              "Derivation bump of the vault PDA this transaction belongs to."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "ephemeralSignerBumps",
+            "docs": [
+              "Derivation bumps for additional signers.",
+              "Some transactions require multiple signers. Often these additional signers are \"ephemeral\" keypairs",
+              "that are generated on the client with a sole purpose of signing the transaction and be discarded immediately after.",
+              "When wrapping such transactions into multisig ones, we replace these \"ephemeral\" signing keypairs",
+              "with PDAs derived from the MultisigTransaction's `transaction_index` and controlled by the Multisig Program;",
+              "during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,",
+              "thus \"signing\" on behalf of these PDAs."
+            ],
+            "type": "bytes"
           },
           {
             "name": "approved",
@@ -424,7 +707,7 @@
               "data required for executing the transaction."
             ],
             "type": {
-              "defined": "MultisigTransactionMessage"
+              "defined": "VaultTransactionMessage"
             }
           }
         ]
@@ -432,6 +715,42 @@
     }
   ],
   "types": [
+    {
+      "name": "ConfigTransactionCreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "actions",
+            "type": {
+              "vec": {
+                "defined": "ConfigAction"
+              }
+            }
+          },
+          {
+            "name": "memo",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConfigTransactionVoteArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "memo",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "MultisigAddMemberArgs",
       "type": {
@@ -462,9 +781,7 @@
         "fields": [
           {
             "name": "oldMember",
-            "type": {
-              "defined": "Member"
-            }
+            "type": "publicKey"
           },
           {
             "name": "memo",
@@ -507,9 +824,12 @@
           {
             "name": "configAuthority",
             "docs": [
-              "The authority that can configure the multisig: add/remove members, change the threshold, etc."
+              "The authority that can configure the multisig: add/remove members, change the threshold, etc.",
+              "Should be set to `None` for autonomous multisigs."
             ],
-            "type": "publicKey"
+            "type": {
+              "option": "publicKey"
+            }
           },
           {
             "name": "threshold",
@@ -530,6 +850,13 @@
             }
           },
           {
+            "name": "timeLock",
+            "docs": [
+              "How many seconds must pass between transaction voting settlement and execution."
+            ],
+            "type": "i32"
+          },
+          {
             "name": "memo",
             "docs": [
               "Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed."
@@ -542,21 +869,21 @@
       }
     },
     {
-      "name": "TransactionCreateArgs",
+      "name": "VaultTransactionCreateArgs",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "authorityIndex",
+            "name": "vaultIndex",
             "docs": [
-              "Index of the authority/vault this transaction belongs to."
+              "Index of the vault this transaction belongs to."
             ],
             "type": "u8"
           },
           {
-            "name": "additionalSigners",
+            "name": "ephemeralSigners",
             "docs": [
-              "Number of additional signing PDAs required by the transaction."
+              "Number of ephemeral signing PDAs required by the transaction."
             ],
             "type": "u8"
           },
@@ -574,7 +901,7 @@
       }
     },
     {
-      "name": "TransactionVoteArgs",
+      "name": "VaultTransactionVoteArgs",
       "type": {
         "kind": "struct",
         "fields": [
@@ -588,40 +915,7 @@
       }
     },
     {
-      "name": "Member",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "key",
-            "type": "publicKey"
-          },
-          {
-            "name": "permissions",
-            "type": {
-              "defined": "Permissions"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Permissions",
-      "docs": [
-        "Bitmask for permissions."
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mask",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "MultisigTransactionMessage",
+      "name": "VaultTransactionMessage",
       "type": {
         "kind": "struct",
         "fields": [
@@ -754,6 +1048,39 @@
       }
     },
     {
+      "name": "Member",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key",
+            "type": "publicKey"
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": "Permissions"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Permissions",
+      "docs": [
+        "Bitmask for permissions."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mask",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "ConfigUpdateType",
       "type": {
         "kind": "enum",
@@ -783,6 +1110,43 @@
       }
     },
     {
+      "name": "ConfigAction",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "AddMember",
+            "fields": [
+              {
+                "name": "new_member",
+                "type": {
+                  "defined": "Member"
+                }
+              }
+            ]
+          },
+          {
+            "name": "RemoveMember",
+            "fields": [
+              {
+                "name": "old_member",
+                "type": "publicKey"
+              }
+            ]
+          },
+          {
+            "name": "ChangeThreshold",
+            "fields": [
+              {
+                "name": "new_threshold",
+                "type": "u16"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "TransactionStatus",
       "type": {
         "kind": "enum",
@@ -791,13 +1155,13 @@
             "name": "Active"
           },
           {
+            "name": "Rejected"
+          },
+          {
             "name": "ExecuteReady"
           },
           {
             "name": "Executed"
-          },
-          {
-            "name": "Rejected"
           },
           {
             "name": "Cancelled"
@@ -1019,7 +1383,17 @@
     {
       "code": 6017,
       "name": "InvalidStaleTransactionIndex",
-      "msg": "config_authority must be set to non-default key"
+      "msg": "`stale_transaction_index` must be <= `transaction_index`"
+    },
+    {
+      "code": 6018,
+      "name": "NotSupportedForControlled",
+      "msg": "instruction not supported for controlled multisig"
+    },
+    {
+      "code": 6019,
+      "name": "TimeLockNotReleased",
+      "msg": "transaction time lock has not been released"
     }
   ],
   "metadata": {

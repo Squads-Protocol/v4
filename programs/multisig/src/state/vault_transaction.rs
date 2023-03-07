@@ -35,7 +35,7 @@ pub struct VaultTransaction {
     /// with PDAs derived from the MultisigTransaction's `transaction_index` and controlled by the Multisig Program;
     /// during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,
     /// thus "signing" on behalf of these PDAs.  
-    pub additional_signer_bumps: Vec<u8>,
+    pub ephemeral_signer_bumps: Vec<u8>,
     /// keys that have approved/signed.
     pub approved: Vec<Pubkey>,
     /// keys that have rejected.

@@ -12,91 +12,80 @@ import {
   TransactionStatus,
   transactionStatusBeet,
 } from '../types/TransactionStatus'
-import {
-  MultisigTransactionMessage,
-  multisigTransactionMessageBeet,
-} from '../types/MultisigTransactionMessage'
+import { ConfigAction, configActionBeet } from '../types/ConfigAction'
 
 /**
- * Arguments used to create {@link MultisigTransaction}
+ * Arguments used to create {@link ConfigTransaction}
  * @category Accounts
  * @category generated
  */
-export type MultisigTransactionArgs = {
-  creator: web3.PublicKey
+export type ConfigTransactionArgs = {
   multisig: web3.PublicKey
+  creator: web3.PublicKey
   transactionIndex: beet.bignum
-  authorityIndex: number
-  authorityBump: number
-  additionalSignerBumps: Uint8Array
+  settledAt: beet.bignum
   status: TransactionStatus
   bump: number
   approved: web3.PublicKey[]
   rejected: web3.PublicKey[]
   cancelled: web3.PublicKey[]
-  message: MultisigTransactionMessage
+  actions: ConfigAction[]
 }
 
-export const multisigTransactionDiscriminator = [
-  37, 242, 192, 200, 155, 205, 171, 82,
-]
+export const configTransactionDiscriminator = [94, 8, 4, 35, 113, 139, 139, 112]
 /**
- * Holds the data for the {@link MultisigTransaction} Account and provides de/serialization
+ * Holds the data for the {@link ConfigTransaction} Account and provides de/serialization
  * functionality for that data
  *
  * @category Accounts
  * @category generated
  */
-export class MultisigTransaction implements MultisigTransactionArgs {
+export class ConfigTransaction implements ConfigTransactionArgs {
   private constructor(
-    readonly creator: web3.PublicKey,
     readonly multisig: web3.PublicKey,
+    readonly creator: web3.PublicKey,
     readonly transactionIndex: beet.bignum,
-    readonly authorityIndex: number,
-    readonly authorityBump: number,
-    readonly additionalSignerBumps: Uint8Array,
+    readonly settledAt: beet.bignum,
     readonly status: TransactionStatus,
     readonly bump: number,
     readonly approved: web3.PublicKey[],
     readonly rejected: web3.PublicKey[],
     readonly cancelled: web3.PublicKey[],
-    readonly message: MultisigTransactionMessage
+    readonly actions: ConfigAction[]
   ) {}
 
   /**
-   * Creates a {@link MultisigTransaction} instance from the provided args.
+   * Creates a {@link ConfigTransaction} instance from the provided args.
    */
-  static fromArgs(args: MultisigTransactionArgs) {
-    return new MultisigTransaction(
-      args.creator,
+  static fromArgs(args: ConfigTransactionArgs) {
+    return new ConfigTransaction(
       args.multisig,
+      args.creator,
       args.transactionIndex,
-      args.authorityIndex,
-      args.authorityBump,
-      args.additionalSignerBumps,
+      args.settledAt,
       args.status,
       args.bump,
       args.approved,
       args.rejected,
       args.cancelled,
-      args.message
+      args.actions
     )
   }
 
   /**
-   * Deserializes the {@link MultisigTransaction} from the data of the provided {@link web3.AccountInfo}.
+   * Deserializes the {@link ConfigTransaction} from the data of the provided {@link web3.AccountInfo}.
    * @returns a tuple of the account data and the offset up to which the buffer was read to obtain it.
    */
   static fromAccountInfo(
     accountInfo: web3.AccountInfo<Buffer>,
     offset = 0
-  ): [MultisigTransaction, number] {
-    return MultisigTransaction.deserialize(accountInfo.data, offset)
+  ): [ConfigTransaction, number] {
+    return ConfigTransaction.deserialize(accountInfo.data, offset)
   }
 
   /**
    * Retrieves the account info from the provided address and deserializes
-   * the {@link MultisigTransaction} from its data.
+   * the {@link ConfigTransaction} from its data.
    *
    * @throws Error if no account info is found at the address or if deserialization fails
    */
@@ -104,17 +93,15 @@ export class MultisigTransaction implements MultisigTransactionArgs {
     connection: web3.Connection,
     address: web3.PublicKey,
     commitmentOrConfig?: web3.Commitment | web3.GetAccountInfoConfig
-  ): Promise<MultisigTransaction> {
+  ): Promise<ConfigTransaction> {
     const accountInfo = await connection.getAccountInfo(
       address,
       commitmentOrConfig
     )
     if (accountInfo == null) {
-      throw new Error(
-        `Unable to find MultisigTransaction account at ${address}`
-      )
+      throw new Error(`Unable to find ConfigTransaction account at ${address}`)
     }
-    return MultisigTransaction.fromAccountInfo(accountInfo, 0)[0]
+    return ConfigTransaction.fromAccountInfo(accountInfo, 0)[0]
   }
 
   /**
@@ -128,70 +115,70 @@ export class MultisigTransaction implements MultisigTransactionArgs {
       'SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf'
     )
   ) {
-    return beetSolana.GpaBuilder.fromStruct(programId, multisigTransactionBeet)
+    return beetSolana.GpaBuilder.fromStruct(programId, configTransactionBeet)
   }
 
   /**
-   * Deserializes the {@link MultisigTransaction} from the provided data Buffer.
+   * Deserializes the {@link ConfigTransaction} from the provided data Buffer.
    * @returns a tuple of the account data and the offset up to which the buffer was read to obtain it.
    */
-  static deserialize(buf: Buffer, offset = 0): [MultisigTransaction, number] {
-    return multisigTransactionBeet.deserialize(buf, offset)
+  static deserialize(buf: Buffer, offset = 0): [ConfigTransaction, number] {
+    return configTransactionBeet.deserialize(buf, offset)
   }
 
   /**
-   * Serializes the {@link MultisigTransaction} into a Buffer.
+   * Serializes the {@link ConfigTransaction} into a Buffer.
    * @returns a tuple of the created Buffer and the offset up to which the buffer was written to store it.
    */
   serialize(): [Buffer, number] {
-    return multisigTransactionBeet.serialize({
-      accountDiscriminator: multisigTransactionDiscriminator,
+    return configTransactionBeet.serialize({
+      accountDiscriminator: configTransactionDiscriminator,
       ...this,
     })
   }
 
   /**
    * Returns the byteSize of a {@link Buffer} holding the serialized data of
-   * {@link MultisigTransaction} for the provided args.
+   * {@link ConfigTransaction} for the provided args.
    *
    * @param args need to be provided since the byte size for this account
    * depends on them
    */
-  static byteSize(args: MultisigTransactionArgs) {
-    const instance = MultisigTransaction.fromArgs(args)
-    return multisigTransactionBeet.toFixedFromValue({
-      accountDiscriminator: multisigTransactionDiscriminator,
+  static byteSize(args: ConfigTransactionArgs) {
+    const instance = ConfigTransaction.fromArgs(args)
+    return configTransactionBeet.toFixedFromValue({
+      accountDiscriminator: configTransactionDiscriminator,
       ...instance,
     }).byteSize
   }
 
   /**
    * Fetches the minimum balance needed to exempt an account holding
-   * {@link MultisigTransaction} data from rent
+   * {@link ConfigTransaction} data from rent
    *
    * @param args need to be provided since the byte size for this account
    * depends on them
    * @param connection used to retrieve the rent exemption information
    */
   static async getMinimumBalanceForRentExemption(
-    args: MultisigTransactionArgs,
+    args: ConfigTransactionArgs,
     connection: web3.Connection,
     commitment?: web3.Commitment
   ): Promise<number> {
     return connection.getMinimumBalanceForRentExemption(
-      MultisigTransaction.byteSize(args),
+      ConfigTransaction.byteSize(args),
       commitment
     )
   }
 
   /**
-   * Returns a readable version of {@link MultisigTransaction} properties
+   * Returns a readable version of {@link ConfigTransaction} properties
    * and can be used to convert to JSON and/or logging
    */
   pretty() {
     return {
-      creator: this.creator.toBase58(),
       multisig: this.multisig.toBase58(),
+      creator: this.creator.toBase58(),
       transactionIndex: (() => {
         const x = <{ toNumber: () => number }>this.transactionIndex
         if (typeof x.toNumber === 'function') {
@@ -203,15 +190,23 @@ export class MultisigTransaction implements MultisigTransactionArgs {
         }
         return x
       })(),
-      authorityIndex: this.authorityIndex,
-      authorityBump: this.authorityBump,
-      additionalSignerBumps: this.additionalSignerBumps,
+      settledAt: (() => {
+        const x = <{ toNumber: () => number }>this.settledAt
+        if (typeof x.toNumber === 'function') {
+          try {
+            return x.toNumber()
+          } catch (_) {
+            return x
+          }
+        }
+        return x
+      })(),
       status: 'TransactionStatus.' + TransactionStatus[this.status],
       bump: this.bump,
       approved: this.approved,
       rejected: this.rejected,
       cancelled: this.cancelled,
-      message: this.message,
+      actions: this.actions,
     }
   }
 }
@@ -220,27 +215,25 @@ export class MultisigTransaction implements MultisigTransactionArgs {
  * @category Accounts
  * @category generated
  */
-export const multisigTransactionBeet = new beet.FixableBeetStruct<
-  MultisigTransaction,
-  MultisigTransactionArgs & {
+export const configTransactionBeet = new beet.FixableBeetStruct<
+  ConfigTransaction,
+  ConfigTransactionArgs & {
     accountDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['accountDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['creator', beetSolana.publicKey],
     ['multisig', beetSolana.publicKey],
+    ['creator', beetSolana.publicKey],
     ['transactionIndex', beet.u64],
-    ['authorityIndex', beet.u8],
-    ['authorityBump', beet.u8],
-    ['additionalSignerBumps', beet.bytes],
+    ['settledAt', beet.i64],
     ['status', transactionStatusBeet],
     ['bump', beet.u8],
     ['approved', beet.array(beetSolana.publicKey)],
     ['rejected', beet.array(beetSolana.publicKey)],
     ['cancelled', beet.array(beetSolana.publicKey)],
-    ['message', multisigTransactionMessageBeet],
+    ['actions', beet.array(configActionBeet)],
   ],
-  MultisigTransaction.fromArgs,
-  'MultisigTransaction'
+  ConfigTransaction.fromArgs,
+  'ConfigTransaction'
 )

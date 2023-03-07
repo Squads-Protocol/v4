@@ -40,7 +40,8 @@ export const multisigAddMemberStruct = new beet.FixableBeetArgsStruct<
  * Accounts required by the _multisigAddMember_ instruction
  *
  * @property [_writable_] multisig
- * @property [_writable_, **signer**] configAuthority
+ * @property [**signer**] configAuthority
+ * @property [_writable_, **signer**] rentPayer
  * @category Instructions
  * @category MultisigAddMember
  * @category generated
@@ -48,6 +49,7 @@ export const multisigAddMemberStruct = new beet.FixableBeetArgsStruct<
 export type MultisigAddMemberInstructionAccounts = {
   multisig: web3.PublicKey
   configAuthority: web3.PublicKey
+  rentPayer: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -83,6 +85,11 @@ export function createMultisigAddMemberInstruction(
     },
     {
       pubkey: accounts.configAuthority,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.rentPayer,
       isWritable: true,
       isSigner: true,
     },

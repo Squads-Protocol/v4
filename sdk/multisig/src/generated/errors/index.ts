@@ -393,7 +393,7 @@ createErrorFromCodeLookup.set(0x1780, () => new NoVotersError())
 createErrorFromNameLookup.set('NoVoters', () => new NoVotersError())
 
 /**
- * InvalidStaleTransactionIndex: 'config_authority must be set to non-default key'
+ * InvalidStaleTransactionIndex: '`stale_transaction_index` must be <= `transaction_index`'
  *
  * @category Errors
  * @category generated
@@ -402,7 +402,7 @@ export class InvalidStaleTransactionIndexError extends Error {
   readonly code: number = 0x1781
   readonly name: string = 'InvalidStaleTransactionIndex'
   constructor() {
-    super('config_authority must be set to non-default key')
+    super('`stale_transaction_index` must be <= `transaction_index`')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, InvalidStaleTransactionIndexError)
     }
@@ -416,6 +416,55 @@ createErrorFromCodeLookup.set(
 createErrorFromNameLookup.set(
   'InvalidStaleTransactionIndex',
   () => new InvalidStaleTransactionIndexError()
+)
+
+/**
+ * NotSupportedForControlled: 'instruction not supported for controlled multisig'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NotSupportedForControlledError extends Error {
+  readonly code: number = 0x1782
+  readonly name: string = 'NotSupportedForControlled'
+  constructor() {
+    super('instruction not supported for controlled multisig')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NotSupportedForControlledError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1782,
+  () => new NotSupportedForControlledError()
+)
+createErrorFromNameLookup.set(
+  'NotSupportedForControlled',
+  () => new NotSupportedForControlledError()
+)
+
+/**
+ * TimeLockNotReleased: 'transaction time lock has not been released'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TimeLockNotReleasedError extends Error {
+  readonly code: number = 0x1783
+  readonly name: string = 'TimeLockNotReleased'
+  constructor() {
+    super('transaction time lock has not been released')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TimeLockNotReleasedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1783, () => new TimeLockNotReleasedError())
+createErrorFromNameLookup.set(
+  'TimeLockNotReleased',
+  () => new TimeLockNotReleasedError()
 )
 
 /**

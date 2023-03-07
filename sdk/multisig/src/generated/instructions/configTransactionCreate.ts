@@ -8,73 +8,73 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  MultisigRemoveMemberArgs,
-  multisigRemoveMemberArgsBeet,
-} from '../types/MultisigRemoveMemberArgs'
+  ConfigTransactionCreateArgs,
+  configTransactionCreateArgsBeet,
+} from '../types/ConfigTransactionCreateArgs'
 
 /**
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category ConfigTransactionCreate
  * @category generated
  */
-export type MultisigRemoveMemberInstructionArgs = {
-  args: MultisigRemoveMemberArgs
+export type ConfigTransactionCreateInstructionArgs = {
+  args: ConfigTransactionCreateArgs
 }
 /**
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category ConfigTransactionCreate
  * @category generated
  */
-export const multisigRemoveMemberStruct = new beet.FixableBeetArgsStruct<
-  MultisigRemoveMemberInstructionArgs & {
+export const configTransactionCreateStruct = new beet.FixableBeetArgsStruct<
+  ConfigTransactionCreateInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', multisigRemoveMemberArgsBeet],
+    ['args', configTransactionCreateArgsBeet],
   ],
-  'MultisigRemoveMemberInstructionArgs'
+  'ConfigTransactionCreateInstructionArgs'
 )
 /**
- * Accounts required by the _multisigRemoveMember_ instruction
+ * Accounts required by the _configTransactionCreate_ instruction
  *
  * @property [_writable_] multisig
- * @property [**signer**] configAuthority
- * @property [_writable_, **signer**] rentPayer
+ * @property [_writable_] transaction
+ * @property [_writable_, **signer**] creator
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category ConfigTransactionCreate
  * @category generated
  */
-export type MultisigRemoveMemberInstructionAccounts = {
+export type ConfigTransactionCreateInstructionAccounts = {
   multisig: web3.PublicKey
-  configAuthority: web3.PublicKey
-  rentPayer: web3.PublicKey
+  transaction: web3.PublicKey
+  creator: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const multisigRemoveMemberInstructionDiscriminator = [
-  217, 117, 177, 210, 182, 145, 218, 72,
+export const configTransactionCreateInstructionDiscriminator = [
+  155, 236, 87, 228, 137, 75, 81, 39,
 ]
 
 /**
- * Creates a _MultisigRemoveMember_ instruction.
+ * Creates a _ConfigTransactionCreate_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category ConfigTransactionCreate
  * @category generated
  */
-export function createMultisigRemoveMemberInstruction(
-  accounts: MultisigRemoveMemberInstructionAccounts,
-  args: MultisigRemoveMemberInstructionArgs,
+export function createConfigTransactionCreateInstruction(
+  accounts: ConfigTransactionCreateInstructionAccounts,
+  args: ConfigTransactionCreateInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = multisigRemoveMemberStruct.serialize({
-    instructionDiscriminator: multisigRemoveMemberInstructionDiscriminator,
+  const [data] = configTransactionCreateStruct.serialize({
+    instructionDiscriminator: configTransactionCreateInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
@@ -84,12 +84,12 @@ export function createMultisigRemoveMemberInstruction(
       isSigner: false,
     },
     {
-      pubkey: accounts.configAuthority,
-      isWritable: false,
-      isSigner: true,
+      pubkey: accounts.transaction,
+      isWritable: true,
+      isSigner: false,
     },
     {
-      pubkey: accounts.rentPayer,
+      pubkey: accounts.creator,
       isWritable: true,
       isSigner: true,
     },

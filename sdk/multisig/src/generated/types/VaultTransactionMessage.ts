@@ -16,7 +16,7 @@ import {
   MultisigMessageAddressTableLookup,
   multisigMessageAddressTableLookupBeet,
 } from './MultisigMessageAddressTableLookup'
-export type MultisigTransactionMessage = {
+export type VaultTransactionMessage = {
   numSigners: number
   numWritableSigners: number
   numWritableNonSigners: number
@@ -29,8 +29,8 @@ export type MultisigTransactionMessage = {
  * @category userTypes
  * @category generated
  */
-export const multisigTransactionMessageBeet =
-  new beet.FixableBeetArgsStruct<MultisigTransactionMessage>(
+export const vaultTransactionMessageBeet =
+  new beet.FixableBeetArgsStruct<VaultTransactionMessage>(
     [
       ['numSigners', beet.u8],
       ['numWritableSigners', beet.u8],
@@ -42,5 +42,5 @@ export const multisigTransactionMessageBeet =
         beet.array(multisigMessageAddressTableLookupBeet),
       ],
     ],
-    'MultisigTransactionMessage'
+    'VaultTransactionMessage'
   )

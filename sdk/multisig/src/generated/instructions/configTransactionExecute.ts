@@ -10,55 +10,58 @@ import * as web3 from '@solana/web3.js'
 
 /**
  * @category Instructions
- * @category TransactionExecute
+ * @category ConfigTransactionExecute
  * @category generated
  */
-export const transactionExecuteStruct = new beet.BeetArgsStruct<{
+export const configTransactionExecuteStruct = new beet.BeetArgsStruct<{
   instructionDiscriminator: number[] /* size: 8 */
 }>(
   [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
-  'TransactionExecuteInstructionArgs'
+  'ConfigTransactionExecuteInstructionArgs'
 )
 /**
- * Accounts required by the _transactionExecute_ instruction
+ * Accounts required by the _configTransactionExecute_ instruction
  *
- * @property [] multisig
+ * @property [_writable_] multisig
  * @property [_writable_] transaction
- * @property [_writable_, **signer**] member
+ * @property [**signer**] member
+ * @property [_writable_, **signer**] rentPayer
  * @category Instructions
- * @category TransactionExecute
+ * @category ConfigTransactionExecute
  * @category generated
  */
-export type TransactionExecuteInstructionAccounts = {
+export type ConfigTransactionExecuteInstructionAccounts = {
   multisig: web3.PublicKey
   transaction: web3.PublicKey
   member: web3.PublicKey
+  rentPayer: web3.PublicKey
+  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const transactionExecuteInstructionDiscriminator = [
-  93, 171, 78, 134, 252, 84, 186, 189,
+export const configTransactionExecuteInstructionDiscriminator = [
+  114, 146, 244, 189, 252, 140, 36, 40,
 ]
 
 /**
- * Creates a _TransactionExecute_ instruction.
+ * Creates a _ConfigTransactionExecute_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @category Instructions
- * @category TransactionExecute
+ * @category ConfigTransactionExecute
  * @category generated
  */
-export function createTransactionExecuteInstruction(
-  accounts: TransactionExecuteInstructionAccounts,
+export function createConfigTransactionExecuteInstruction(
+  accounts: ConfigTransactionExecuteInstructionAccounts,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = transactionExecuteStruct.serialize({
-    instructionDiscriminator: transactionExecuteInstructionDiscriminator,
+  const [data] = configTransactionExecuteStruct.serialize({
+    instructionDiscriminator: configTransactionExecuteInstructionDiscriminator,
   })
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: false,
+      isWritable: true,
       isSigner: false,
     },
     {
@@ -68,8 +71,18 @@ export function createTransactionExecuteInstruction(
     },
     {
       pubkey: accounts.member,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.rentPayer,
       isWritable: true,
       isSigner: true,
+    },
+    {
+      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
+      isWritable: false,
+      isSigner: false,
     },
   ]
 

@@ -6,12 +6,14 @@ use crate::state::*;
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigCreateArgs {
     /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
-    /// Canonical value is the multisig PDA, but can be any key that will be able to sign the transactions that configure the multisig.
-    pub config_authority: Pubkey,
+    /// Should be set to `None` for autonomous multisigs.
+    pub config_authority: Option<Pubkey>,
     /// The number of signatures required to execute a transaction.
     pub threshold: u16,
     /// The members of the multisig.
     pub members: Vec<Member>,
+    /// How many seconds must pass between transaction voting settlement and execution.
+    pub time_lock: i32,
     /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
     pub memo: Option<String>,
 }
@@ -23,7 +25,7 @@ pub struct MultisigCreate<'info> {
         init,
         payer = creator,
         space = Multisig::size(args.members.len()),
-        seeds = [SEED_PREFIX, create_key.key().as_ref(), SEED_MULTISIG],
+        seeds = [SEED_PREFIX, SEED_MULTISIG, create_key.key().as_ref()],
         bump
     )]
     pub multisig: Account<'info, Multisig>,
@@ -48,9 +50,10 @@ impl MultisigCreate<'_> {
 
         // Initialize the multisig.
         let multisig = &mut ctx.accounts.multisig;
-        multisig.config_authority = args.config_authority;
+        multisig.config_authority = args.config_authority.unwrap_or_default();
         multisig.threshold = args.threshold;
         multisig.members = members;
+        multisig.time_lock = args.time_lock;
         multisig.vault_index = 0;
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;

@@ -1,7 +1,13 @@
+export * from './ConfigTransaction'
 export * from './Multisig'
-export * from './MultisigTransaction'
+export * from './VaultTransaction'
 
+import { ConfigTransaction } from './ConfigTransaction'
 import { Multisig } from './Multisig'
-import { MultisigTransaction } from './MultisigTransaction'
+import { VaultTransaction } from './VaultTransaction'
 
-export const accountProviders = { Multisig, MultisigTransaction }
+export const accountProviders = {
+  ConfigTransaction,
+  Multisig,
+  VaultTransaction,
+}

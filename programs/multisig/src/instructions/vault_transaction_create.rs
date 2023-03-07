@@ -9,8 +9,8 @@ use crate::utils::*;
 pub struct VaultTransactionCreateArgs {
     /// Index of the vault this transaction belongs to.
     pub vault_index: u8,
-    /// Number of additional signing PDAs required by the transaction.
-    pub additional_signers: u8,
+    /// Number of ephemeral signing PDAs required by the transaction.
+    pub ephemeral_signers: u8,
     pub transaction_message: Vec<u8>,
     pub memo: Option<String>,
 }
@@ -20,7 +20,7 @@ pub struct VaultTransactionCreateArgs {
 pub struct VaultTransactionCreate<'info> {
     #[account(
         mut,
-        seeds = [SEED_PREFIX, multisig.create_key.as_ref(), SEED_MULTISIG],
+        seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]
     pub multisig: Account<'info, Multisig>,
@@ -28,7 +28,7 @@ pub struct VaultTransactionCreate<'info> {
     #[account(
         init,
         payer = creator,
-        space = VaultTransaction::size(multisig.members.len(), args.additional_signers, &args.transaction_message)?,
+        space = VaultTransaction::size(multisig.members.len(), args.ephemeral_signers, &args.transaction_message)?,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
@@ -72,14 +72,14 @@ impl VaultTransactionCreate<'_> {
         ];
         let (_, vault_bump) = Pubkey::find_program_address(vault_seeds, ctx.program_id);
 
-        let additional_signer_bumps: Vec<u8> = (0..args.additional_signers)
+        let additional_signer_bumps: Vec<u8> = (0..args.ephemeral_signers)
             .into_iter()
             .map(|additional_signer_index| {
                 let additional_signer_seeds = &[
                     SEED_PREFIX,
                     transaction_key.as_ref(),
+                    SEED_EPHEMERAL_SIGNER,
                     &additional_signer_index.to_le_bytes(),
-                    SEED_ADDITIONAL_SIGNER,
                 ];
 
                 let (_, bump) =
@@ -100,7 +100,7 @@ impl VaultTransactionCreate<'_> {
         transaction.bump = *ctx.bumps.get("transaction").unwrap();
         transaction.vault_index = args.vault_index;
         transaction.vault_bump = vault_bump;
-        transaction.additional_signer_bumps = additional_signer_bumps;
+        transaction.ephemeral_signer_bumps = additional_signer_bumps;
         transaction.approved = Vec::new();
         transaction.rejected = Vec::new();
         transaction.cancelled = Vec::new();

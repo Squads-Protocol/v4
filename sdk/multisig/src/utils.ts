@@ -1,6 +1,6 @@
 import { u8, u32, u64, bignum } from "@metaplex-foundation/beet";
 import { Buffer } from "buffer";
-import { MultisigTransactionMessage } from "./generated";
+import { VaultTransactionMessage } from "./generated";
 import { VersionedTransaction } from "@solana/web3.js";
 
 export function toUtfBytes(str: string): Uint8Array {
@@ -44,7 +44,7 @@ export function getAvailableMemoSize(
 }
 
 export function isStaticWritableIndex(
-  message: MultisigTransactionMessage,
+  message: VaultTransactionMessage,
   index: number
 ) {
   const numAccountKeys = message.accountKeys.length;
@@ -70,9 +70,6 @@ export function isStaticWritableIndex(
   return false;
 }
 
-export function isSignerIndex(
-  message: MultisigTransactionMessage,
-  index: number
-) {
+export function isSignerIndex(message: VaultTransactionMessage, index: number) {
   return index < message.numSigners;
 }

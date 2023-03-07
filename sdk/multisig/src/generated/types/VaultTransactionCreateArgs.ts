@@ -6,9 +6,9 @@
  */
 
 import * as beet from '@metaplex-foundation/beet'
-export type TransactionCreateArgs = {
-  authorityIndex: number
-  additionalSigners: number
+export type VaultTransactionCreateArgs = {
+  vaultIndex: number
+  ephemeralSigners: number
   transactionMessage: Uint8Array
   memo: beet.COption<string>
 }
@@ -17,13 +17,13 @@ export type TransactionCreateArgs = {
  * @category userTypes
  * @category generated
  */
-export const transactionCreateArgsBeet =
-  new beet.FixableBeetArgsStruct<TransactionCreateArgs>(
+export const vaultTransactionCreateArgsBeet =
+  new beet.FixableBeetArgsStruct<VaultTransactionCreateArgs>(
     [
-      ['authorityIndex', beet.u8],
-      ['additionalSigners', beet.u8],
+      ['vaultIndex', beet.u8],
+      ['ephemeralSigners', beet.u8],
       ['transactionMessage', beet.bytes],
       ['memo', beet.coption(beet.utf8String)],
     ],
-    'TransactionCreateArgs'
+    'VaultTransactionCreateArgs'
   )

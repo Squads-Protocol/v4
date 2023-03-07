@@ -4,9 +4,9 @@ import { toU64Bytes, toU8Bytes, toUtfBytes } from "./utils";
 
 const SEED_PREFIX = toUtfBytes("multisig");
 const SEED_MULTISIG = toUtfBytes("multisig");
-const SEED_AUTHORITY = toUtfBytes("authority");
+const SEED_VAULT = toUtfBytes("vault");
 const SEED_TRANSACTION = toUtfBytes("transaction");
-const SEED_ADDITIONAL_SIGNER = toUtfBytes("additional_signer");
+const SEED_EPHEMERAL_SIGNER = toUtfBytes("ephemeral_signer");
 
 export function getMultisigPda({
   createKey,
@@ -16,12 +16,12 @@ export function getMultisigPda({
   programId?: PublicKey;
 }): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [SEED_PREFIX, createKey.toBytes(), SEED_MULTISIG],
+    [SEED_PREFIX, SEED_MULTISIG, createKey.toBytes()],
     programId
   );
 }
 
-export function getAuthorityPda({
+export function getVaultPda({
   multisigPda,
   /** Authority index. */
   index,
@@ -32,26 +32,26 @@ export function getAuthorityPda({
   programId?: PublicKey;
 }): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [SEED_PREFIX, multisigPda.toBytes(), toU8Bytes(index), SEED_AUTHORITY],
+    [SEED_PREFIX, multisigPda.toBytes(), SEED_VAULT, toU8Bytes(index)],
     programId
   );
 }
 
-export function getAdditionalSignerPda({
+export function getEphemeralSignerPda({
   transactionPda,
-  additionalSignerIndex,
+  ephemeralSignerIndex,
   programId = PROGRAM_ID,
 }: {
   transactionPda: PublicKey;
-  additionalSignerIndex: number;
+  ephemeralSignerIndex: number;
   programId?: PublicKey;
 }): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [
       SEED_PREFIX,
       transactionPda.toBytes(),
-      toU8Bytes(additionalSignerIndex),
-      SEED_ADDITIONAL_SIGNER,
+      SEED_EPHEMERAL_SIGNER,
+      toU8Bytes(ephemeralSignerIndex),
     ],
     programId
   );
@@ -68,7 +68,7 @@ export function getTransactionPda({
   programId?: PublicKey;
 }): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [SEED_PREFIX, multisigPda.toBytes(), toU64Bytes(index), SEED_TRANSACTION],
+    [SEED_PREFIX, multisigPda.toBytes(), SEED_TRANSACTION, toU64Bytes(index)],
     programId
   );
 }

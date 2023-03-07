@@ -20,6 +20,7 @@ export async function multisigCreate({
   configAuthority,
   threshold,
   members,
+  timeLock,
   memo,
   sendOptions,
 }: {
@@ -27,9 +28,10 @@ export async function multisigCreate({
   createKey: Signer;
   creator: Signer;
   multisigPda: PublicKey;
-  configAuthority: PublicKey;
+  configAuthority: PublicKey | null;
   threshold: number;
   members: Member[];
+  timeLock: number;
   memo?: string;
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
@@ -43,6 +45,7 @@ export async function multisigCreate({
     configAuthority,
     threshold,
     members,
+    timeLock,
     memo,
   });
 
@@ -61,6 +64,7 @@ export async function multisigAddMember({
   feePayer,
   multisigPda,
   configAuthority,
+  rentPayer,
   newMember,
   memo,
   signers,
@@ -70,6 +74,7 @@ export async function multisigAddMember({
   feePayer: Signer;
   multisigPda: PublicKey;
   configAuthority: PublicKey;
+  rentPayer: Signer;
   newMember: Member;
   memo?: string;
   signers?: Signer[];
@@ -82,11 +87,12 @@ export async function multisigAddMember({
     feePayer: feePayer.publicKey,
     multisigPda,
     configAuthority,
+    rentPayer: rentPayer.publicKey,
     newMember,
     memo,
   });
 
-  tx.sign([feePayer, ...(signers ?? [])]);
+  tx.sign([feePayer, rentPayer, ...(signers ?? [])]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);
@@ -96,14 +102,14 @@ export async function multisigAddMember({
 }
 
 /** Create a new transaction. */
-export async function transactionCreate({
+export async function vaultTransactionCreate({
   connection,
   feePayer,
   multisigPda,
   transactionIndex,
   creator,
-  authorityIndex,
-  additionalSigners,
+  vaultIndex,
+  ephemeralSigners,
   transactionMessage,
   addressLookupTableAccounts,
   memo,
@@ -115,9 +121,9 @@ export async function transactionCreate({
   multisigPda: PublicKey;
   transactionIndex: bigint;
   creator: PublicKey;
-  authorityIndex: number;
-  /** Number of additional signing PDAs required by the transaction. */
-  additionalSigners: number;
+  vaultIndex: number;
+  /** Number of ephemeral signing PDAs required by the transaction. */
+  ephemeralSigners: number;
   /** Transaction message to wrap into a multisig transaction. */
   transactionMessage: TransactionMessage;
   /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
@@ -128,14 +134,14 @@ export async function transactionCreate({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.transactionCreate({
+  const tx = transactions.vaultTransactionCreate({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
     transactionIndex,
     creator,
-    authorityIndex,
-    additionalSigners,
+    vaultIndex,
+    ephemeralSigners,
     transactionMessage,
     addressLookupTableAccounts,
     memo,
@@ -154,7 +160,7 @@ export async function transactionCreate({
  * Approve the transaction on behalf of the `member`.
  * The transaction must be `Active`.
  */
-export async function transactionApprove({
+export async function vaultTransactionApprove({
   connection,
   feePayer,
   multisigPda,
@@ -175,7 +181,7 @@ export async function transactionApprove({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.transactionApprove({
+  const tx = transactions.vaultTransactionApprove({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
@@ -197,7 +203,7 @@ export async function transactionApprove({
  * Reject the transaction on behalf of the `member`.
  * The transaction must be `Active`.
  */
-export async function transactionReject({
+export async function vaultTransactionReject({
   connection,
   feePayer,
   multisigPda,
@@ -218,7 +224,7 @@ export async function transactionReject({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.transactionReject({
+  const tx = transactions.vaultTransactionReject({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
@@ -240,7 +246,7 @@ export async function transactionReject({
  *  Execute the multisig transaction.
  *  The transaction must be `ExecuteReady`.
  */
-export async function transactionExecute({
+export async function vaultTransactionExecute({
   connection,
   feePayer,
   multisigPda,
@@ -259,7 +265,7 @@ export async function transactionExecute({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = await transactions.transactionExecute({
+  const tx = await transactions.vaultTransactionExecute({
     connection,
     blockhash,
     feePayer: feePayer.publicKey,

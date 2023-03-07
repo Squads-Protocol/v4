@@ -8,72 +8,72 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  TransactionVoteArgs,
-  transactionVoteArgsBeet,
-} from '../types/TransactionVoteArgs'
+  ConfigTransactionVoteArgs,
+  configTransactionVoteArgsBeet,
+} from '../types/ConfigTransactionVoteArgs'
 
 /**
  * @category Instructions
- * @category TransactionReject
+ * @category ConfigTransactionReject
  * @category generated
  */
-export type TransactionRejectInstructionArgs = {
-  args: TransactionVoteArgs
+export type ConfigTransactionRejectInstructionArgs = {
+  args: ConfigTransactionVoteArgs
 }
 /**
  * @category Instructions
- * @category TransactionReject
+ * @category ConfigTransactionReject
  * @category generated
  */
-export const transactionRejectStruct = new beet.FixableBeetArgsStruct<
-  TransactionRejectInstructionArgs & {
+export const configTransactionRejectStruct = new beet.FixableBeetArgsStruct<
+  ConfigTransactionRejectInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', transactionVoteArgsBeet],
+    ['args', configTransactionVoteArgsBeet],
   ],
-  'TransactionRejectInstructionArgs'
+  'ConfigTransactionRejectInstructionArgs'
 )
 /**
- * Accounts required by the _transactionReject_ instruction
+ * Accounts required by the _configTransactionReject_ instruction
  *
  * @property [] multisig
  * @property [_writable_] transaction
  * @property [_writable_, **signer**] member
  * @category Instructions
- * @category TransactionReject
+ * @category ConfigTransactionReject
  * @category generated
  */
-export type TransactionRejectInstructionAccounts = {
+export type ConfigTransactionRejectInstructionAccounts = {
   multisig: web3.PublicKey
   transaction: web3.PublicKey
   member: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const transactionRejectInstructionDiscriminator = [
-  82, 227, 14, 69, 109, 239, 76, 154,
+export const configTransactionRejectInstructionDiscriminator = [
+  221, 17, 88, 157, 64, 78, 216, 5,
 ]
 
 /**
- * Creates a _TransactionReject_ instruction.
+ * Creates a _ConfigTransactionReject_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category TransactionReject
+ * @category ConfigTransactionReject
  * @category generated
  */
-export function createTransactionRejectInstruction(
-  accounts: TransactionRejectInstructionAccounts,
-  args: TransactionRejectInstructionArgs,
+export function createConfigTransactionRejectInstruction(
+  accounts: ConfigTransactionRejectInstructionAccounts,
+  args: ConfigTransactionRejectInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = transactionRejectStruct.serialize({
-    instructionDiscriminator: transactionRejectInstructionDiscriminator,
+  const [data] = configTransactionRejectStruct.serialize({
+    instructionDiscriminator: configTransactionRejectInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [

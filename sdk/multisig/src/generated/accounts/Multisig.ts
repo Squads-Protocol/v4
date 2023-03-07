@@ -16,14 +16,15 @@ import { Member, memberBeet } from '../types/Member'
  * @category generated
  */
 export type MultisigArgs = {
+  createKey: web3.PublicKey
   configAuthority: web3.PublicKey
   threshold: number
-  members: Member[]
-  authorityIndex: number
+  timeLock: number
   transactionIndex: beet.bignum
   staleTransactionIndex: beet.bignum
-  createKey: web3.PublicKey
+  vaultIndex: number
   bump: number
+  members: Member[]
 }
 
 export const multisigDiscriminator = [224, 116, 121, 186, 68, 161, 79, 236]
@@ -36,14 +37,15 @@ export const multisigDiscriminator = [224, 116, 121, 186, 68, 161, 79, 236]
  */
 export class Multisig implements MultisigArgs {
   private constructor(
+    readonly createKey: web3.PublicKey,
     readonly configAuthority: web3.PublicKey,
     readonly threshold: number,
-    readonly members: Member[],
-    readonly authorityIndex: number,
+    readonly timeLock: number,
     readonly transactionIndex: beet.bignum,
     readonly staleTransactionIndex: beet.bignum,
-    readonly createKey: web3.PublicKey,
-    readonly bump: number
+    readonly vaultIndex: number,
+    readonly bump: number,
+    readonly members: Member[]
   ) {}
 
   /**
@@ -51,14 +53,15 @@ export class Multisig implements MultisigArgs {
    */
   static fromArgs(args: MultisigArgs) {
     return new Multisig(
+      args.createKey,
       args.configAuthority,
       args.threshold,
-      args.members,
-      args.authorityIndex,
+      args.timeLock,
       args.transactionIndex,
       args.staleTransactionIndex,
-      args.createKey,
-      args.bump
+      args.vaultIndex,
+      args.bump,
+      args.members
     )
   }
 
@@ -167,10 +170,10 @@ export class Multisig implements MultisigArgs {
    */
   pretty() {
     return {
+      createKey: this.createKey.toBase58(),
       configAuthority: this.configAuthority.toBase58(),
       threshold: this.threshold,
-      members: this.members,
-      authorityIndex: this.authorityIndex,
+      timeLock: this.timeLock,
       transactionIndex: (() => {
         const x = <{ toNumber: () => number }>this.transactionIndex
         if (typeof x.toNumber === 'function') {
@@ -193,8 +196,9 @@ export class Multisig implements MultisigArgs {
         }
         return x
       })(),
-      createKey: this.createKey.toBase58(),
+      vaultIndex: this.vaultIndex,
       bump: this.bump,
+      members: this.members,
     }
   }
 }
@@ -211,14 +215,15 @@ export const multisigBeet = new beet.FixableBeetStruct<
 >(
   [
     ['accountDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
+    ['createKey', beetSolana.publicKey],
     ['configAuthority', beetSolana.publicKey],
     ['threshold', beet.u16],
-    ['members', beet.array(memberBeet)],
-    ['authorityIndex', beet.u8],
+    ['timeLock', beet.i32],
     ['transactionIndex', beet.u64],
     ['staleTransactionIndex', beet.u64],
-    ['createKey', beetSolana.publicKey],
+    ['vaultIndex', beet.u8],
     ['bump', beet.u8],
+    ['members', beet.array(memberBeet)],
   ],
   Multisig.fromArgs,
   'Multisig'
