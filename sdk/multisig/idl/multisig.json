@@ -1368,7 +1368,7 @@
     {
       "code": 6014,
       "name": "ExecuteReentrancy",
-      "msg": "transaction_execute reentrancy is forbidden"
+      "msg": "`transaction_execute` reentrancy is forbidden"
     },
     {
       "code": 6015,
@@ -1388,12 +1388,17 @@
     {
       "code": 6018,
       "name": "NotSupportedForControlled",
-      "msg": "instruction not supported for controlled multisig"
+      "msg": "Instruction not supported for controlled multisig"
     },
     {
       "code": 6019,
       "name": "TimeLockNotReleased",
-      "msg": "transaction time lock has not been released"
+      "msg": "Transaction time lock has not been released"
+    },
+    {
+      "code": 6020,
+      "name": "NoActions",
+      "msg": "Config transaction must have at least one action"
     }
   ],
   "metadata": {

@@ -8,7 +8,7 @@ import {
   TransactionSignature,
 } from "@solana/web3.js";
 import * as transactions from "./transactions.js";
-import { Member } from "./generated";
+import { ConfigAction, Member } from "./generated";
 import { translateAndThrowAnchorError } from "./errors";
 
 /** Creates a new multisig. */
@@ -101,7 +101,50 @@ export async function multisigAddMember({
   }
 }
 
-/** Create a new transaction. */
+/** Create a new config transaction. */
+export async function configTransactionCreate({
+  connection,
+  feePayer,
+  multisigPda,
+  transactionIndex,
+  creator,
+  actions,
+  memo,
+  signers,
+  sendOptions,
+}: {
+  connection: Connection;
+  feePayer: Signer;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  creator: PublicKey;
+  actions: ConfigAction[];
+  memo?: string;
+  signers?: Signer[];
+  sendOptions?: SendOptions;
+}): Promise<TransactionSignature> {
+  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+
+  const tx = transactions.configTransactionCreate({
+    blockhash,
+    feePayer: feePayer.publicKey,
+    multisigPda,
+    transactionIndex,
+    creator,
+    actions,
+    memo,
+  });
+
+  tx.sign([feePayer, ...(signers ?? [])]);
+
+  try {
+    return await connection.sendTransaction(tx, sendOptions);
+  } catch (err) {
+    translateAndThrowAnchorError(err);
+  }
+}
+
+/** Create a new vault transaction. */
 export async function vaultTransactionCreate({
   connection,
   feePayer,

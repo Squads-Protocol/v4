@@ -4,7 +4,7 @@ import { PublicKey } from "@solana/web3.js";
 import invariant from "invariant";
 import { Permissions as IPermissions } from "./generated";
 
-export { TransactionStatus } from "./generated";
+export { TransactionStatus, Member, ConfigAction } from "./generated";
 
 export const Permission = {
   Initiate: 0b0000_0001,

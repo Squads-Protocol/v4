@@ -6,15 +6,16 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import {
+  ConfigAction,
   createMultisigAddMemberInstruction,
   createVaultTransactionApproveInstruction,
   createVaultTransactionCreateInstruction,
   createVaultTransactionRejectInstruction,
   Member,
 } from "./generated";
-import { getVaultPda, getTransactionPda } from "./pda";
-import { transactionMessageBeet } from "./types";
-import * as instructions from "./instructions.js";
+import { getTransactionPda, getVaultPda } from "./pda.js";
+import { transactionMessageBeet } from "./types.js";
+import * as instructions from "./instructions/index.js";
 
 /** Returns unsigned `VersionedTransaction` that needs to be signed by `creator` and `createKey` before sending it. */
 export function multisigCreate({
@@ -91,6 +92,44 @@ export function multisigAddMember({
         },
         { args: { newMember, memo: memo ?? null } }
       ),
+    ],
+  }).compileToV0Message();
+
+  return new VersionedTransaction(message);
+}
+
+/**
+ * Returns unsigned `VersionedTransaction` that needs to be
+ * signed by `creator` and `feePayer` before sending it.
+ */
+export function configTransactionCreate({
+  blockhash,
+  feePayer,
+  creator,
+  multisigPda,
+  transactionIndex,
+  actions,
+  memo,
+}: {
+  blockhash: string;
+  feePayer: PublicKey;
+  creator: PublicKey;
+  multisigPda: PublicKey;
+  transactionIndex: bigint;
+  actions: ConfigAction[];
+  memo?: string;
+}): VersionedTransaction {
+  const message = new TransactionMessage({
+    payerKey: feePayer,
+    recentBlockhash: blockhash,
+    instructions: [
+      instructions.configTransactionCreate({
+        creator,
+        multisigPda,
+        transactionIndex,
+        actions,
+        memo,
+      }),
     ],
   }).compileToV0Message();
 

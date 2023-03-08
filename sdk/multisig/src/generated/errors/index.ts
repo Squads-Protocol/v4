@@ -327,7 +327,7 @@ createErrorFromCodeLookup.set(0x177d, () => new InvalidAccountError())
 createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
 
 /**
- * ExecuteReentrancy: 'transaction_execute reentrancy is forbidden'
+ * ExecuteReentrancy: '`transaction_execute` reentrancy is forbidden'
  *
  * @category Errors
  * @category generated
@@ -336,7 +336,7 @@ export class ExecuteReentrancyError extends Error {
   readonly code: number = 0x177e
   readonly name: string = 'ExecuteReentrancy'
   constructor() {
-    super('transaction_execute reentrancy is forbidden')
+    super('`transaction_execute` reentrancy is forbidden')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, ExecuteReentrancyError)
     }
@@ -419,7 +419,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * NotSupportedForControlled: 'instruction not supported for controlled multisig'
+ * NotSupportedForControlled: 'Instruction not supported for controlled multisig'
  *
  * @category Errors
  * @category generated
@@ -428,7 +428,7 @@ export class NotSupportedForControlledError extends Error {
   readonly code: number = 0x1782
   readonly name: string = 'NotSupportedForControlled'
   constructor() {
-    super('instruction not supported for controlled multisig')
+    super('Instruction not supported for controlled multisig')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, NotSupportedForControlledError)
     }
@@ -445,7 +445,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * TimeLockNotReleased: 'transaction time lock has not been released'
+ * TimeLockNotReleased: 'Transaction time lock has not been released'
  *
  * @category Errors
  * @category generated
@@ -454,7 +454,7 @@ export class TimeLockNotReleasedError extends Error {
   readonly code: number = 0x1783
   readonly name: string = 'TimeLockNotReleased'
   constructor() {
-    super('transaction time lock has not been released')
+    super('Transaction time lock has not been released')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, TimeLockNotReleasedError)
     }
@@ -466,6 +466,26 @@ createErrorFromNameLookup.set(
   'TimeLockNotReleased',
   () => new TimeLockNotReleasedError()
 )
+
+/**
+ * NoActions: 'Config transaction must have at least one action'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NoActionsError extends Error {
+  readonly code: number = 0x1784
+  readonly name: string = 'NoActions'
+  constructor() {
+    super('Config transaction must have at least one action')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NoActionsError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1784, () => new NoActionsError())
+createErrorFromNameLookup.set('NoActions', () => new NoActionsError())
 
 /**
  * Attempts to resolve a custom program error from the provided error code.

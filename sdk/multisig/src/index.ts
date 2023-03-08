@@ -11,7 +11,7 @@ export * as rpc from "./rpc.js";
 /** Transactions for the multisig program. */
 export * as transactions from "./transactions.js";
 /** Instructions for the multisig program. */
-export * as instructions from "./instructions.js";
+export * as instructions from "./instructions/index.js";
 /** Additional types */
 export * as types from "./types.js";
 /** Utils for the multisig program. */

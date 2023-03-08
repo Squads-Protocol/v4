@@ -30,7 +30,7 @@ pub enum MultisigError {
     InvalidNumberOfAccounts,
     #[msg("Invalid account provided")]
     InvalidAccount,
-    #[msg("transaction_execute reentrancy is forbidden")]
+    #[msg("`transaction_execute` reentrancy is forbidden")]
     ExecuteReentrancy,
     #[msg("Cannot remove last member")]
     RemoveLastMember,
@@ -38,8 +38,10 @@ pub enum MultisigError {
     NoVoters,
     #[msg("`stale_transaction_index` must be <= `transaction_index`")]
     InvalidStaleTransactionIndex,
-    #[msg("instruction not supported for controlled multisig")]
+    #[msg("Instruction not supported for controlled multisig")]
     NotSupportedForControlled,
-    #[msg("transaction time lock has not been released")]
+    #[msg("Transaction time lock has not been released")]
     TimeLockNotReleased,
+    #[msg("Config transaction must have at least one action")]
+    NoActions,
 }

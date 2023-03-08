@@ -15,9 +15,9 @@ pub struct ConfigTransactionCreateArgs {
 pub struct ConfigTransactionCreate<'info> {
     #[account(
         mut,
-        seeds = [SEED_PREFIX, multisig.create_key.as_ref(), SEED_MULTISIG],
+        seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
-        constraint = multisig.config_authority != Pubkey::default() @ MultisigError::NotSupportedForControlled,
+        constraint = multisig.config_authority == Pubkey::default() @ MultisigError::NotSupportedForControlled,
     )]
     pub multisig: Account<'info, Multisig>,
 
@@ -51,6 +51,8 @@ impl ConfigTransactionCreate<'_> {
         ctx: Context<Self>,
         args: ConfigTransactionCreateArgs,
     ) -> Result<()> {
+        require!(!args.actions.is_empty(), MultisigError::NoActions);
+
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
         let creator = &mut ctx.accounts.creator;

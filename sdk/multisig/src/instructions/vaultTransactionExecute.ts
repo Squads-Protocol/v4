@@ -1,57 +1,11 @@
+import { AccountMeta, Connection, PublicKey } from "@solana/web3.js";
+import { getEphemeralSignerPda, getTransactionPda, getVaultPda } from "../pda";
 import {
-  AccountMeta,
-  Connection,
-  PublicKey,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import invariant from "invariant";
-import {
-  createMultisigCreateInstruction,
   createVaultTransactionExecuteInstruction,
-  createConfigTransactionExecuteInstruction,
-  Member,
   VaultTransaction,
-  ConfigTransaction,
-} from "./generated";
-import { getEphemeralSignerPda, getVaultPda, getTransactionPda } from "./pda";
-import { isSignerIndex, isStaticWritableIndex } from "./utils";
-
-export function multisigCreate({
-  creator,
-  multisigPda,
-  configAuthority,
-  threshold,
-  members,
-  timeLock,
-  createKey,
-  memo,
-}: {
-  creator: PublicKey;
-  multisigPda: PublicKey;
-  configAuthority: PublicKey | null;
-  threshold: number;
-  members: Member[];
-  timeLock: number;
-  createKey: PublicKey;
-  memo?: string;
-}): TransactionInstruction {
-  return createMultisigCreateInstruction(
-    {
-      creator,
-      createKey,
-      multisig: multisigPda,
-    },
-    {
-      args: {
-        configAuthority,
-        threshold,
-        members,
-        timeLock,
-        memo: memo ?? null,
-      },
-    }
-  );
-}
+} from "../generated";
+import { isSignerIndex, isStaticWritableIndex } from "../utils";
+import invariant from "invariant";
 
 export async function vaultTransactionExecute({
   connection,
