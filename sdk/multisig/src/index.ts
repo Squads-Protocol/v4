@@ -7,9 +7,9 @@ export * as errors from "./errors.js";
 /** PDA utils. */
 export * from "./pda.js";
 /** RPC functions for interaction with the multisig program. */
-export * as rpc from "./rpc.js";
+export * as rpc from "./rpc";
 /** Transactions for the multisig program. */
-export * as transactions from "./transactions.js";
+export * as transactions from "./transactions";
 /** Instructions for the multisig program. */
 export * as instructions from "./instructions/index.js";
 /** Additional types */

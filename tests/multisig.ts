@@ -746,6 +746,159 @@ describe("multisig", () => {
     });
   });
 
+  describe("config_transaction_approve", () => {
+    it("error: not a member", async () => {
+      const nonMember = await generateFundedKeypair(connection);
+
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Approve the first config transaction.
+      const transactionIndex = multisig.utils.toBigInt(1);
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.configTransactionApprove({
+            connection,
+            feePayer: nonMember,
+            multisigPda,
+            transactionIndex,
+            member: nonMember,
+          }),
+        /Provided pubkey is not a member of multisig/
+      );
+    });
+
+    it("error: unauthorized", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Approve the first config transaction.
+      const transactionIndex = multisig.utils.toBigInt(1);
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.configTransactionApprove({
+            connection,
+            feePayer: members.executor,
+            multisigPda,
+            transactionIndex,
+            // Executor is not authorized to approve config transactions.
+            member: members.executor,
+          }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+
+    it("approve config transaction", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Approve the first config transaction.
+      const transactionIndex = multisig.utils.toBigInt(1);
+
+      const signature = await multisig.rpc.configTransactionApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex,
+        member: members.voter,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Fetch the ConfigTransaction account.
+      const [transactionPda] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+      const configTransactionAccount =
+        await ConfigTransaction.fromAccountAddress(connection, transactionPda);
+
+      // Assertions.
+      assert.deepEqual(configTransactionAccount.approved, [
+        members.voter.publicKey,
+      ]);
+      assert.deepEqual(configTransactionAccount.rejected, []);
+      assert.deepEqual(configTransactionAccount.cancelled, []);
+      // Our threshold is 2, so the transaction is not yet ExecutionReady.
+      assert.strictEqual(
+        configTransactionAccount.status,
+        TransactionStatus.Active
+      );
+    });
+
+    it("error: already approved", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Approve the first config transaction once more.
+      const transactionIndex = multisig.utils.toBigInt(1);
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.configTransactionApprove({
+            connection,
+            feePayer: members.voter,
+            multisigPda,
+            transactionIndex,
+            member: members.voter,
+          }),
+        /Member already approved the transaction/
+      );
+    });
+
+    it("approve config transaction and reach threshold", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Approve the first config transaction.
+      const transactionIndex = multisig.utils.toBigInt(1);
+
+      const signature = await multisig.rpc.configTransactionApprove({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex,
+        member: members.almighty,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Fetch the ConfigTransaction account.
+      const [transactionPda] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+      const configTransactionAccount =
+        await ConfigTransaction.fromAccountAddress(connection, transactionPda);
+
+      // Assertions.
+      assert.deepEqual(
+        configTransactionAccount.approved.map((key) => key.toBase58()),
+        [members.voter.publicKey, members.almighty.publicKey]
+          .sort(comparePubkeys)
+          .map((key) => key.toBase58())
+      );
+      assert.deepEqual(configTransactionAccount.rejected, []);
+      assert.deepEqual(configTransactionAccount.cancelled, []);
+      // Our threshold is 2, so the transaction is now ExecuteReady.
+      assert.strictEqual(
+        configTransactionAccount.status,
+        TransactionStatus.ExecuteReady
+      );
+    });
+
+    it("error: stale transaction");
+
+    it("error: invalid transaction status");
+
+    it("error: transaction is not for multisig");
+  });
+
   describe("vault_transaction_create", () => {
     it("error: not a member", async () => {
       const nonMember = await generateFundedKeypair(connection);
@@ -1020,7 +1173,7 @@ describe("multisig", () => {
             feePayer: nonMember,
             multisigPda,
             transactionIndex,
-            member: nonMember.publicKey,
+            member: nonMember,
           }),
         /Provided pubkey is not a member of multisig/
       );
@@ -1047,13 +1200,13 @@ describe("multisig", () => {
             feePayer: members.executor,
             multisigPda,
             transactionIndex,
-            member: members.executor.publicKey,
+            member: members.executor,
           }),
         /Attempted to perform an unauthorized action/
       );
     });
 
-    it("approve transaction", async () => {
+    it("approve vault transaction", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
@@ -1066,7 +1219,7 @@ describe("multisig", () => {
         feePayer: members.voter,
         multisigPda,
         transactionIndex,
-        member: members.voter.publicKey,
+        member: members.voter,
         memo: "LGTM",
       });
       await connection.confirmTransaction(signature);
@@ -1102,7 +1255,7 @@ describe("multisig", () => {
             feePayer: members.voter,
             multisigPda,
             transactionIndex,
-            member: members.voter.publicKey,
+            member: members.voter,
           }),
         /Member already approved the transaction/
       );
@@ -1121,7 +1274,7 @@ describe("multisig", () => {
         feePayer: members.almighty,
         multisigPda,
         transactionIndex,
-        member: members.almighty.publicKey,
+        member: members.almighty,
         memo: "LGTM",
         signers: [members.almighty],
       });
@@ -1197,7 +1350,7 @@ describe("multisig", () => {
             feePayer: members.executor,
             multisigPda,
             transactionIndex,
-            member: members.executor.publicKey,
+            member: members.executor,
           }),
         /Attempted to perform an unauthorized action/
       );
@@ -1487,7 +1640,7 @@ describe("multisig", () => {
         feePayer: members.voter,
         multisigPda,
         transactionIndex,
-        member: members.voter.publicKey,
+        member: members.voter,
         memo: "LGTM",
         signers: [members.voter],
       });
@@ -1499,7 +1652,7 @@ describe("multisig", () => {
         feePayer: members.almighty,
         multisigPda,
         transactionIndex,
-        member: members.almighty.publicKey,
+        member: members.almighty,
         memo: "LGTM too",
         signers: [members.almighty],
       });
