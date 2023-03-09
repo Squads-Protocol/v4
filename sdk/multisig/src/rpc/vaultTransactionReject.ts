@@ -26,7 +26,7 @@ export async function vaultTransactionReject({
   feePayer: Signer;
   multisigPda: PublicKey;
   transactionIndex: bigint;
-  member: PublicKey;
+  member: Signer;
   memo?: string;
   signers?: Signer[];
   sendOptions?: SendOptions;
@@ -38,11 +38,11 @@ export async function vaultTransactionReject({
     feePayer: feePayer.publicKey,
     multisigPda,
     transactionIndex,
-    member,
+    member: member.publicKey,
     memo,
   });
 
-  tx.sign([feePayer, ...(signers ?? [])]);
+  tx.sign([feePayer, member, ...(signers ?? [])]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);
