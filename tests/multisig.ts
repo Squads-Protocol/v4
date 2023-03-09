@@ -5,6 +5,7 @@ import {
   PublicKey,
   SystemProgram,
   TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import * as assert from "assert";
@@ -693,7 +694,7 @@ describe("multisig", () => {
         multisigPda,
         transactionIndex,
         creator: members.proposer.publicKey,
-        actions: [{ __kind: "ChangeThreshold", newThreshold: 3 }],
+        actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
       });
       await connection.confirmTransaction(signature);
 
@@ -740,7 +741,7 @@ describe("multisig", () => {
       assert.deepEqual(configTransactionAccount.actions, [
         {
           __kind: "ChangeThreshold",
-          newThreshold: 3,
+          newThreshold: 1,
         },
       ]);
     });
@@ -1081,6 +1082,105 @@ describe("multisig", () => {
     it("error: transaction is not for multisig");
   });
 
+  describe("config_transaction_execute", () => {
+    it("execute a config transaction", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Execute the first config transaction.
+      const transactionIndex = multisig.utils.toBigInt(1);
+
+      const signature = await multisig.rpc.configTransactionExecute({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex,
+        member: members.almighty,
+        rentPayer: members.almighty,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Verify the transaction account.
+      const [transactionPda] = multisig.getTransactionPda({
+        multisigPda,
+        index: transactionIndex,
+      });
+      const configTransactionAccount =
+        await ConfigTransaction.fromAccountAddress(connection, transactionPda);
+      assert.strictEqual(
+        configTransactionAccount.status,
+        TransactionStatus.Executed
+      );
+
+      // Verify the multisig account.
+      const multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+      // The threshold should have been updated.
+      assert.strictEqual(multisigAccount.threshold, 1);
+    });
+
+    it("create, approve, execute in 1 Solana tx", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+
+      const createIx = multisig.instructions.configTransactionCreate({
+        multisigPda,
+        transactionIndex,
+        creator: members.almighty.publicKey,
+        // Revert the threshold back to 2.
+        actions: [{ __kind: "ChangeThreshold", newThreshold: 2 }],
+      });
+
+      const approveIx = multisig.instructions.configTransactionApprove({
+        multisigPda,
+        transactionIndex,
+        member: members.almighty.publicKey,
+      });
+
+      const executeIx = multisig.instructions.configTransactionExecute({
+        multisigPda,
+        transactionIndex,
+        member: members.almighty.publicKey,
+        rentPayer: members.almighty.publicKey,
+      });
+
+      const message = new TransactionMessage({
+        payerKey: members.almighty.publicKey,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [createIx, approveIx, executeIx],
+      }).compileToV0Message();
+
+      const tx = new VersionedTransaction(message);
+
+      tx.sign([members.almighty]);
+
+      const signature = await connection.sendTransaction(tx, {
+        skipPreflight: true,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Verify the multisig account.
+      multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // The threshold should have been updated.
+      assert.strictEqual(multisigAccount.threshold, 2);
+    });
+  });
+
   describe("vault_transaction_create", () => {
     it("error: not a member", async () => {
       const nonMember = await generateFundedKeypair(connection);
@@ -1394,7 +1494,7 @@ describe("multisig", () => {
       });
 
       // Approve the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(3);
+      const transactionIndex = multisig.utils.toBigInt(4);
 
       const signature = await multisig.rpc.vaultTransactionApprove({
         connection,
@@ -1428,7 +1528,7 @@ describe("multisig", () => {
       });
 
       // Approve the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(3);
+      const transactionIndex = multisig.utils.toBigInt(4);
 
       await assert.rejects(
         () =>
@@ -1449,7 +1549,7 @@ describe("multisig", () => {
       });
 
       // Approve the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(3);
+      const transactionIndex = multisig.utils.toBigInt(4);
 
       const signature = await multisig.rpc.vaultTransactionApprove({
         connection,
@@ -1502,7 +1602,7 @@ describe("multisig", () => {
       });
 
       // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(4);
+      const transactionIndex = multisig.utils.toBigInt(5);
 
       await assert.rejects(
         () =>
@@ -1523,7 +1623,7 @@ describe("multisig", () => {
       });
 
       // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(4);
+      const transactionIndex = multisig.utils.toBigInt(5);
 
       await assert.rejects(
         () =>
@@ -1548,7 +1648,7 @@ describe("multisig", () => {
       );
 
       // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(4);
+      const transactionIndex = multisig.utils.toBigInt(5);
 
       const signature = await multisig.rpc.vaultTransactionReject({
         connection,
@@ -1590,7 +1690,7 @@ describe("multisig", () => {
       });
 
       // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(4);
+      const transactionIndex = multisig.utils.toBigInt(5);
 
       await assert.rejects(
         () =>
@@ -1617,7 +1717,7 @@ describe("multisig", () => {
       });
 
       // Execute the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(3);
+      const transactionIndex = multisig.utils.toBigInt(4);
 
       const [transactionPda] = multisig.getTransactionPda({
         multisigPda,

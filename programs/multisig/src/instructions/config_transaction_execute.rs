@@ -24,7 +24,7 @@ pub struct ConfigTransactionExecute<'info> {
         bump = transaction.bump,
         constraint = transaction.multisig == multisig.key() @ MultisigError::TransactionNotForMultisig,
         constraint = transaction.status == TransactionStatus::ExecuteReady @ MultisigError::InvalidTransactionStatus,
-        constraint = Clock::get()?.unix_timestamp - transaction.settled_at > i64::from(multisig.time_lock) @ MultisigError::TimeLockNotReleased
+        constraint = Clock::get()?.unix_timestamp - transaction.settled_at >= i64::from(multisig.time_lock) @ MultisigError::TimeLockNotReleased
     )]
     pub transaction: Account<'info, ConfigTransaction>,
 
