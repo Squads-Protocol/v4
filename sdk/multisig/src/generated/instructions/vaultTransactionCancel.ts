@@ -14,19 +14,19 @@ import {
 
 /**
  * @category Instructions
- * @category VaultTransactionReject
+ * @category VaultTransactionCancel
  * @category generated
  */
-export type VaultTransactionRejectInstructionArgs = {
+export type VaultTransactionCancelInstructionArgs = {
   args: VaultTransactionVoteArgs
 }
 /**
  * @category Instructions
- * @category VaultTransactionReject
+ * @category VaultTransactionCancel
  * @category generated
  */
-export const vaultTransactionRejectStruct = new beet.FixableBeetArgsStruct<
-  VaultTransactionRejectInstructionArgs & {
+export const vaultTransactionCancelStruct = new beet.FixableBeetArgsStruct<
+  VaultTransactionCancelInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
@@ -34,46 +34,46 @@ export const vaultTransactionRejectStruct = new beet.FixableBeetArgsStruct<
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
     ['args', vaultTransactionVoteArgsBeet],
   ],
-  'VaultTransactionRejectInstructionArgs'
+  'VaultTransactionCancelInstructionArgs'
 )
 /**
- * Accounts required by the _vaultTransactionReject_ instruction
+ * Accounts required by the _vaultTransactionCancel_ instruction
  *
  * @property [] multisig
  * @property [_writable_] transaction
  * @property [**signer**] member
  * @category Instructions
- * @category VaultTransactionReject
+ * @category VaultTransactionCancel
  * @category generated
  */
-export type VaultTransactionRejectInstructionAccounts = {
+export type VaultTransactionCancelInstructionAccounts = {
   multisig: web3.PublicKey
   transaction: web3.PublicKey
   member: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const vaultTransactionRejectInstructionDiscriminator = [
-  82, 118, 99, 92, 190, 0, 177, 22,
+export const vaultTransactionCancelInstructionDiscriminator = [
+  107, 181, 185, 131, 255, 185, 50, 17,
 ]
 
 /**
- * Creates a _VaultTransactionReject_ instruction.
+ * Creates a _VaultTransactionCancel_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category VaultTransactionReject
+ * @category VaultTransactionCancel
  * @category generated
  */
-export function createVaultTransactionRejectInstruction(
-  accounts: VaultTransactionRejectInstructionAccounts,
-  args: VaultTransactionRejectInstructionArgs,
+export function createVaultTransactionCancelInstruction(
+  accounts: VaultTransactionCancelInstructionAccounts,
+  args: VaultTransactionCancelInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = vaultTransactionRejectStruct.serialize({
-    instructionDiscriminator: vaultTransactionRejectInstructionDiscriminator,
+  const [data] = vaultTransactionCancelStruct.serialize({
+    instructionDiscriminator: vaultTransactionCancelInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [

@@ -68,6 +68,17 @@ pub struct TransactionRejected {
     /// Memo that was added by the creator.
     pub memo: Option<String>,
 }
+/// Transaction is cancelled.
+#[event]
+pub struct TransactionCancelled {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    /// The transaction account.
+    pub transaction: Pubkey,
+    #[index]
+    /// Memo that was added by the creator.
+    pub memo: Option<String>,
+}
 
 /// New multisig transaction account is created.
 #[event]

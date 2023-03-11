@@ -41,7 +41,7 @@ export const configTransactionApproveStruct = new beet.FixableBeetArgsStruct<
  *
  * @property [] multisig
  * @property [_writable_] transaction
- * @property [_writable_, **signer**] member
+ * @property [**signer**] member
  * @category Instructions
  * @category ConfigTransactionApprove
  * @category generated
@@ -89,7 +89,7 @@ export function createConfigTransactionApproveInstruction(
     },
     {
       pubkey: accounts.member,
-      isWritable: true,
+      isWritable: false,
       isSigner: true,
     },
   ]

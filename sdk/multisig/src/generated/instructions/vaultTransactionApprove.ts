@@ -41,7 +41,7 @@ export const vaultTransactionApproveStruct = new beet.FixableBeetArgsStruct<
  *
  * @property [] multisig
  * @property [_writable_] transaction
- * @property [_writable_, **signer**] member
+ * @property [**signer**] member
  * @category Instructions
  * @category VaultTransactionApprove
  * @category generated
@@ -89,7 +89,7 @@ export function createVaultTransactionApproveInstruction(
     },
     {
       pubkey: accounts.member,
-      isWritable: true,
+      isWritable: false,
       isSigner: true,
     },
   ]

@@ -8,72 +8,72 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  VaultTransactionVoteArgs,
-  vaultTransactionVoteArgsBeet,
-} from '../types/VaultTransactionVoteArgs'
+  ConfigTransactionVoteArgs,
+  configTransactionVoteArgsBeet,
+} from '../types/ConfigTransactionVoteArgs'
 
 /**
  * @category Instructions
- * @category VaultTransactionReject
+ * @category ConfigTransactionCancel
  * @category generated
  */
-export type VaultTransactionRejectInstructionArgs = {
-  args: VaultTransactionVoteArgs
+export type ConfigTransactionCancelInstructionArgs = {
+  args: ConfigTransactionVoteArgs
 }
 /**
  * @category Instructions
- * @category VaultTransactionReject
+ * @category ConfigTransactionCancel
  * @category generated
  */
-export const vaultTransactionRejectStruct = new beet.FixableBeetArgsStruct<
-  VaultTransactionRejectInstructionArgs & {
+export const configTransactionCancelStruct = new beet.FixableBeetArgsStruct<
+  ConfigTransactionCancelInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', vaultTransactionVoteArgsBeet],
+    ['args', configTransactionVoteArgsBeet],
   ],
-  'VaultTransactionRejectInstructionArgs'
+  'ConfigTransactionCancelInstructionArgs'
 )
 /**
- * Accounts required by the _vaultTransactionReject_ instruction
+ * Accounts required by the _configTransactionCancel_ instruction
  *
  * @property [] multisig
  * @property [_writable_] transaction
  * @property [**signer**] member
  * @category Instructions
- * @category VaultTransactionReject
+ * @category ConfigTransactionCancel
  * @category generated
  */
-export type VaultTransactionRejectInstructionAccounts = {
+export type ConfigTransactionCancelInstructionAccounts = {
   multisig: web3.PublicKey
   transaction: web3.PublicKey
   member: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const vaultTransactionRejectInstructionDiscriminator = [
-  82, 118, 99, 92, 190, 0, 177, 22,
+export const configTransactionCancelInstructionDiscriminator = [
+  76, 64, 25, 51, 211, 28, 235, 122,
 ]
 
 /**
- * Creates a _VaultTransactionReject_ instruction.
+ * Creates a _ConfigTransactionCancel_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category VaultTransactionReject
+ * @category ConfigTransactionCancel
  * @category generated
  */
-export function createVaultTransactionRejectInstruction(
-  accounts: VaultTransactionRejectInstructionAccounts,
-  args: VaultTransactionRejectInstructionArgs,
+export function createConfigTransactionCancelInstruction(
+  accounts: ConfigTransactionCancelInstructionAccounts,
+  args: ConfigTransactionCancelInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = vaultTransactionRejectStruct.serialize({
-    instructionDiscriminator: vaultTransactionRejectInstructionDiscriminator,
+  const [data] = configTransactionCancelStruct.serialize({
+    instructionDiscriminator: configTransactionCancelInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [

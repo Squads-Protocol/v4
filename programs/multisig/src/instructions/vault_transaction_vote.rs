@@ -26,23 +26,61 @@ pub struct VaultTransactionVote<'info> {
             &transaction.transaction_index.to_le_bytes(),
         ],
         bump = transaction.bump,
-        constraint = transaction.status == TransactionStatus::Active @ MultisigError::InvalidTransactionStatus,
-        constraint = transaction.transaction_index > multisig.stale_transaction_index @ MultisigError::StaleTransaction,
-        constraint = transaction.multisig == multisig.key() @ MultisigError::TransactionNotForMultisig
     )]
     pub transaction: Account<'info, VaultTransaction>,
 
-    #[account(
-        mut,
-        constraint = multisig.is_member(member.key()).is_some() @ MultisigError::NotAMember,
-        constraint = multisig.member_has_permission(member.key(), Permission::Vote) @ MultisigError::Unauthorized,
-    )]
     pub member: Signer<'info>,
 }
 
 impl VaultTransactionVote<'_> {
-    /// Approve the transaction on behalf of the `member`.
+    fn validate(&self, instruction: VoteInstruction) -> Result<()> {
+        let Self {
+            transaction,
+            multisig,
+            member,
+        } = self;
+
+        // Validate transaction.
+        match instruction {
+            VoteInstruction::Approve | VoteInstruction::Reject => {
+                require!(
+                    transaction.status == TransactionStatus::Active,
+                    MultisigError::InvalidTransactionStatus
+                );
+            }
+            VoteInstruction::Cancel => {
+                require!(
+                    transaction.status == TransactionStatus::ExecuteReady,
+                    MultisigError::InvalidTransactionStatus
+                );
+            }
+        }
+        require!(
+            transaction.transaction_index > multisig.stale_transaction_index,
+            MultisigError::StaleTransaction
+        );
+        require_keys_eq!(
+            transaction.multisig,
+            multisig.key(),
+            MultisigError::TransactionNotForMultisig
+        );
+
+        // Validate member.
+        require!(
+            multisig.is_member(member.key()).is_some(),
+            MultisigError::NotAMember
+        );
+        require!(
+            multisig.member_has_permission(member.key(), Permission::Vote),
+            MultisigError::Unauthorized
+        );
+
+        Ok(())
+    }
+
+    /// Approve a vault transaction on behalf of the `member`.
     /// The transaction must be `Active`.
+    #[access_control(ctx.accounts.validate(VoteInstruction::Approve))]
     pub fn vault_transaction_approve(
         ctx: Context<Self>,
         args: VaultTransactionVoteArgs,
@@ -62,8 +100,9 @@ impl VaultTransactionVote<'_> {
         Ok(())
     }
 
-    /// Reject the transaction on behalf of the `member`.
+    /// Reject a vault transaction on behalf of the `member`.
     /// The transaction must be `Active`.
+    #[access_control(ctx.accounts.validate(VoteInstruction::Reject))]
     pub fn vault_transaction_reject(
         ctx: Context<Self>,
         args: VaultTransactionVoteArgs,
@@ -77,6 +116,28 @@ impl VaultTransactionVote<'_> {
         transaction.reject(member.key(), cutoff)?;
 
         emit!(TransactionRejected {
+            multisig: multisig.key(),
+            transaction: transaction.key(),
+            memo: args.memo,
+        });
+
+        Ok(())
+    }
+
+    /// Cancel a vault transaction on behalf of the `member`.
+    /// The transaction must be `ExecuteReady`.
+    #[access_control(ctx.accounts.validate(VoteInstruction::Cancel))]
+    pub fn vault_transaction_cancel(
+        ctx: Context<Self>,
+        args: VaultTransactionVoteArgs,
+    ) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+        let transaction = &mut ctx.accounts.transaction;
+        let member = &mut ctx.accounts.member;
+
+        transaction.cancel(member.key(), usize::from(multisig.threshold))?;
+
+        emit!(TransactionCancelled {
             multisig: multisig.key(),
             transaction: transaction.key(),
             memo: args.memo,

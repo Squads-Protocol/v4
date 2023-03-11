@@ -140,131 +140,6 @@
       ]
     },
     {
-      "name": "vaultTransactionCreate",
-      "docs": [
-        "Create a new vault transaction."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "creator",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "VaultTransactionCreateArgs"
-          }
-        }
-      ]
-    },
-    {
-      "name": "vaultTransactionApprove",
-      "docs": [
-        "Approve a vault transaction on behalf of the `member`.",
-        "The transaction must be `Active`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": true,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "VaultTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
-      "name": "vaultTransactionReject",
-      "docs": [
-        "Reject a vault transaction on behalf of the `member`.",
-        "The transaction must be `Active`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": true,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "VaultTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
-      "name": "vaultTransactionExecute",
-      "docs": [
-        "Execute a vault transaction.",
-        "The transaction must be `ExecuteReady`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": true,
-          "isSigner": true
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "configTransactionCreate",
       "docs": [
         "Create a new config transaction."
@@ -319,7 +194,7 @@
         },
         {
           "name": "member",
-          "isMut": true,
+          "isMut": false,
           "isSigner": true
         }
       ],
@@ -351,7 +226,39 @@
         },
         {
           "name": "member",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ConfigTransactionVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "configTransactionCancel",
+      "docs": [
+        "Cancel a config transaction on behalf of the `member`.",
+        "The transaction must be `ExecuteReady`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
           "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": false,
           "isSigner": true
         }
       ],
@@ -406,6 +313,163 @@
           "docs": [
             "We might need it in case reallocation is needed."
           ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "vaultTransactionCreate",
+      "docs": [
+        "Create a new vault transaction."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VaultTransactionCreateArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vaultTransactionApprove",
+      "docs": [
+        "Approve a vault transaction on behalf of the `member`.",
+        "The transaction must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VaultTransactionVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vaultTransactionReject",
+      "docs": [
+        "Reject a vault transaction on behalf of the `member`.",
+        "The transaction must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VaultTransactionVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vaultTransactionCancel",
+      "docs": [
+        "Cancel a vault transaction on behalf of the `member`.",
+        "The transaction must be `ExecuteReady`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VaultTransactionVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vaultTransactionExecute",
+      "docs": [
+        "Execute a vault transaction.",
+        "The transaction must be `ExecuteReady`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
         }
       ],
       "args": []
@@ -1110,6 +1174,23 @@
       }
     },
     {
+      "name": "VoteInstruction",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Approve"
+          },
+          {
+            "name": "Reject"
+          },
+          {
+            "name": "Cancel"
+          }
+        ]
+      }
+    },
+    {
       "name": "ConfigAction",
       "type": {
         "kind": "enum",
@@ -1279,6 +1360,28 @@
       ]
     },
     {
+      "name": "TransactionCancelled",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "transaction",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
+    },
+    {
       "name": "TransactionExecuted",
       "fields": [
         {
@@ -1357,46 +1460,51 @@
     },
     {
       "code": 6012,
+      "name": "AlreadyCancelled",
+      "msg": "Member already cancelled the transaction"
+    },
+    {
+      "code": 6013,
       "name": "InvalidNumberOfAccounts",
       "msg": "Wrong number of accounts provided"
     },
     {
-      "code": 6013,
+      "code": 6014,
       "name": "InvalidAccount",
       "msg": "Invalid account provided"
     },
     {
-      "code": 6014,
+      "code": 6015,
       "name": "ExecuteReentrancy",
       "msg": "`transaction_execute` reentrancy is forbidden"
     },
     {
-      "code": 6015,
+      "code": 6016,
       "name": "RemoveLastMember",
       "msg": "Cannot remove last member"
     },
     {
-      "code": 6016,
+      "code": 6017,
       "name": "NoVoters",
       "msg": "Members don't include any voters"
     },
     {
-      "code": 6017,
+      "code": 6018,
       "name": "InvalidStaleTransactionIndex",
       "msg": "`stale_transaction_index` must be <= `transaction_index`"
     },
     {
-      "code": 6018,
+      "code": 6019,
       "name": "NotSupportedForControlled",
       "msg": "Instruction not supported for controlled multisig"
     },
     {
-      "code": 6019,
+      "code": 6020,
       "name": "TimeLockNotReleased",
       "msg": "Transaction time lock has not been released"
     },
     {
-      "code": 6020,
+      "code": 6021,
       "name": "NoActions",
       "msg": "Config transaction must have at least one action"
     }

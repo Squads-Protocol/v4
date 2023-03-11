@@ -26,6 +26,8 @@ pub enum MultisigError {
     AlreadyApproved,
     #[msg("Member already rejected the transaction")]
     AlreadyRejected,
+    #[msg("Member already cancelled the transaction")]
+    AlreadyCancelled,
     #[msg("Wrong number of accounts provided")]
     InvalidNumberOfAccounts,
     #[msg("Invalid account provided")]

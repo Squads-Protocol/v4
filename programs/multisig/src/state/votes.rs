@@ -1,6 +1,7 @@
+use anchor_lang::prelude::*;
+
 use crate::errors::*;
 use crate::TransactionStatus;
-use anchor_lang::prelude::*;
 
 pub trait Votes {
     /// Return a mutable ref to the vote status.
@@ -29,19 +30,17 @@ pub trait Votes {
 
     /// Register an approval vote.
     fn approve(&mut self, member: Pubkey, threshold: usize) -> Result<()> {
-        require!(
-            self.has_voted_approve(member.key()).is_none(),
-            MultisigError::AlreadyApproved
-        );
-
         // If `member` has previously voted to reject, remove that vote.
         if let Some(vote_index) = self.has_voted_reject(member.key()) {
             self.remove_rejection_vote(vote_index);
         }
 
+        // Insert the vote of approval.
         let approved = self.approved_mut();
-        approved.push(member);
-        approved.sort();
+        match approved.binary_search(&member) {
+            Ok(_) => return err!(MultisigError::AlreadyApproved),
+            Err(pos) => approved.insert(pos, member),
+        };
 
         // If current number of approvals reaches threshold, mark the transaction as `ExecuteReady`.
         if self.approved().len() >= threshold {
@@ -54,19 +53,17 @@ pub trait Votes {
 
     /// Register a rejection vote.
     fn reject(&mut self, member: Pubkey, cutoff: usize) -> Result<()> {
-        require!(
-            self.has_voted_reject(member.key()).is_none(),
-            MultisigError::AlreadyRejected
-        );
-
         // If `member` has previously voted to approve, remove that vote.
         if let Some(vote_index) = self.has_voted_approve(member.key()) {
             self.remove_approval_vote(vote_index);
         }
 
+        // Insert the vote of rejection.
         let rejected = self.rejected_mut();
-        rejected.push(member);
-        rejected.sort();
+        match rejected.binary_search(&member) {
+            Ok(_) => return err!(MultisigError::AlreadyRejected),
+            Err(pos) => rejected.insert(pos, member),
+        };
 
         // If current number of rejections reaches cutoff, mark the transaction as `Rejected`.
         if self.rejected().len() >= cutoff {
@@ -78,10 +75,20 @@ pub trait Votes {
     }
 
     /// Registers a cancellation vote.
-    fn cancel(&mut self, member: Pubkey) {
+    fn cancel(&mut self, member: Pubkey, threshold: usize) -> Result<()> {
+        // Insert the vote of cancellation.
         let cancelled = self.cancelled_mut();
-        cancelled.push(member);
-        cancelled.sort();
+        match cancelled.binary_search(&member) {
+            Ok(_) => return err!(MultisigError::AlreadyCancelled),
+            Err(pos) => cancelled.insert(pos, member),
+        };
+
+        // If current number of cancellations reaches threshold, mark the transaction as `Cancelled`.
+        if self.cancelled().len() >= threshold {
+            *self.status() = TransactionStatus::Cancelled;
+        }
+
+        Ok(())
     }
 
     /// Check if the member has already voted.
@@ -118,4 +125,10 @@ pub trait Votes {
     fn remove_approval_vote(&mut self, index: usize) {
         self.approved_mut().remove(index);
     }
+}
+
+pub enum VoteInstruction {
+    Approve,
+    Reject,
+    Cancel,
 }
