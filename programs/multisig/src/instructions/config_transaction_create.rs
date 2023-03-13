@@ -17,7 +17,6 @@ pub struct ConfigTransactionCreate<'info> {
         mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
-        constraint = multisig.config_authority == Pubkey::default() @ MultisigError::NotSupportedForControlled,
     )]
     pub multisig: Account<'info, Multisig>,
 
@@ -35,18 +34,37 @@ pub struct ConfigTransactionCreate<'info> {
     )]
     pub transaction: Account<'info, ConfigTransaction>,
 
-    #[account(
-        mut,
-        constraint = multisig.is_member(creator.key()).is_some() @ MultisigError::NotAMember,
-        constraint = multisig.member_has_permission(creator.key(), Permission::Initiate) @ MultisigError::Unauthorized,
-    )]
+    #[account(mut)]
     pub creator: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
 impl ConfigTransactionCreate<'_> {
+    fn validate(&self) -> Result<()> {
+        // multisig
+        require_keys_eq!(
+            self.multisig.config_authority,
+            Pubkey::default(),
+            MultisigError::NotSupportedForControlled
+        );
+
+        // creator
+        require!(
+            self.multisig.is_member(self.creator.key()).is_some(),
+            MultisigError::NotAMember
+        );
+        require!(
+            self.multisig
+                .member_has_permission(self.creator.key(), Permission::Initiate),
+            MultisigError::Unauthorized
+        );
+
+        Ok(())
+    }
+
     /// Create a new config transaction.
+    #[access_control(ctx.accounts.validate())]
     pub fn config_transaction_create(
         ctx: Context<Self>,
         args: ConfigTransactionCreateArgs,

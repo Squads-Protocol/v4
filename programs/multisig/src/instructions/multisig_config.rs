@@ -35,7 +35,6 @@ pub struct MultisigConfig<'info> {
     multisig: Account<'info, Multisig>,
 
     /// Multisig `config_authority` that must authorize the configuration change.
-    #[account(constraint = config_authority.key() == multisig.config_authority @ MultisigError::Unauthorized)]
     pub config_authority: Signer<'info>,
 
     /// The account that will be charged in case the multisig account needs to reallocate space,
@@ -49,7 +48,18 @@ pub struct MultisigConfig<'info> {
 }
 
 impl MultisigConfig<'_> {
+    fn validate(&self) -> Result<()> {
+        require_keys_eq!(
+            self.config_authority.key(),
+            self.multisig.config_authority,
+            MultisigError::Unauthorized
+        );
+
+        Ok(())
+    }
+
     /// Add a member/key to the multisig and reallocate space if necessary.
+    #[access_control(ctx.accounts.validate())]
     pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
         let MultisigAddMemberArgs { new_member, memo } = args;
 
@@ -84,6 +94,7 @@ impl MultisigConfig<'_> {
     }
 
     /// Remove a member/key from the multisig.
+    #[access_control(ctx.accounts.validate())]
     pub fn multisig_remove_member(
         ctx: Context<Self>,
         args: MultisigRemoveMemberArgs,
@@ -111,6 +122,7 @@ impl MultisigConfig<'_> {
         Ok(())
     }
 
+    #[access_control(ctx.accounts.validate())]
     pub fn multisig_change_threshold(
         ctx: Context<Self>,
         args: MultisigChangeThresholdArgs,

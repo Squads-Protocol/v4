@@ -39,17 +39,34 @@ pub struct VaultTransactionCreate<'info> {
     )]
     pub transaction: Account<'info, VaultTransaction>,
 
-    #[account(
-        mut,
-        constraint = multisig.is_member(creator.key()).is_some() @MultisigError::NotAMember,
-        constraint = multisig.member_has_permission(creator.key(), Permission::Initiate) @MultisigError::Unauthorized,
-    )]
+    #[account(mut)]
     pub creator: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
 impl VaultTransactionCreate<'_> {
+    fn validate(&self) -> Result<()> {
+        let Self {
+            multisig, creator, ..
+        } = self;
+
+        // creator
+
+        require!(
+            multisig.is_member(creator.key()).is_some(),
+            MultisigError::NotAMember
+        );
+        require!(
+            multisig.member_has_permission(creator.key(), Permission::Initiate),
+            MultisigError::Unauthorized
+        );
+
+        Ok(())
+    }
+
     /// Create a new vault transaction.
+    #[access_control(ctx.accounts.validate())]
     pub fn vault_transaction_create(
         ctx: Context<Self>,
         args: VaultTransactionCreateArgs,

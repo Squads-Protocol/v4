@@ -25,17 +25,10 @@ pub struct VaultTransactionExecute<'info> {
             &transaction.transaction_index.to_le_bytes(),
         ],
         bump = transaction.bump,
-        constraint = transaction.multisig == multisig.key() @ MultisigError::TransactionNotForMultisig,
-        constraint = transaction.status == TransactionStatus::ExecuteReady @ MultisigError::InvalidTransactionStatus,
-        constraint = Clock::get()?.unix_timestamp - transaction.settled_at >= i64::from(multisig.time_lock) @ MultisigError::TimeLockNotReleased,
     )]
     pub transaction: Account<'info, VaultTransaction>,
 
-    #[account(
-        mut,
-        constraint = multisig.is_member(member.key()).is_some() @ MultisigError::NotAMember,
-        constraint = multisig.member_has_permission(member.key(), Permission::Execute) @ MultisigError::Unauthorized,
-    )]
+    #[account(mut)]
     pub member: Signer<'info>,
     // `remaining_accounts` must include the following accounts in the exact order:
     // 1. AddressLookupTable accounts in the order they appear in `message.address_table_lookups`.
@@ -44,8 +37,47 @@ pub struct VaultTransactionExecute<'info> {
 }
 
 impl VaultTransactionExecute<'_> {
+    fn validate(&self) -> Result<()> {
+        let Self {
+            multisig,
+            transaction,
+            member,
+            ..
+        } = self;
+
+        // transaction
+
+        require_keys_eq!(
+            transaction.multisig,
+            multisig.key(),
+            MultisigError::TransactionNotForMultisig
+        );
+        require!(
+            transaction.status == TransactionStatus::ExecuteReady,
+            MultisigError::InvalidTransactionStatus
+        );
+        require!(
+            Clock::get()?.unix_timestamp - transaction.settled_at >= i64::from(multisig.time_lock),
+            MultisigError::TimeLockNotReleased
+        );
+
+        // member
+
+        require!(
+            multisig.is_member(member.key()).is_some(),
+            MultisigError::NotAMember
+        );
+        require!(
+            multisig.member_has_permission(member.key(), Permission::Execute),
+            MultisigError::Unauthorized
+        );
+
+        Ok(())
+    }
+
     /// Execute the multisig transaction.
     /// The transaction must be `ExecuteReady`.
+    #[access_control(ctx.accounts.validate())]
     pub fn vault_transaction_execute(ctx: Context<Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
