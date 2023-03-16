@@ -23,11 +23,11 @@ pub struct Multisig {
     /// Threshold for signatures.
     pub threshold: u16,
     /// How many seconds must pass between transaction voting settlement and execution.
-    pub time_lock: i32,
+    pub time_lock: u32,
     /// Last transaction index. 0 means no transactions have been created.
     pub transaction_index: u64,
     /// Last stale transaction index. All transactions up until this index are stale.
-    /// This index is updated when multisig config (members/threshold) changes.
+    /// This index is updated when multisig config (members/threshold/time_lock) changes.
     pub stale_transaction_index: u64,
     /// Index to track the last created vault for this multisig.
     pub vault_index: u8,

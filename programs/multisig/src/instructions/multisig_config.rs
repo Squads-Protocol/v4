@@ -25,6 +25,20 @@ pub struct MultisigChangeThresholdArgs {
     pub memo: Option<String>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct MultisigSetTimeLockArgs {
+    time_lock: u32,
+    /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
+    pub memo: Option<String>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct MultisigSetConfigAuthorityArgs {
+    config_authority: Pubkey,
+    /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
+    pub memo: Option<String>,
+}
+
 #[derive(Accounts)]
 pub struct MultisigConfig<'info> {
     #[account(
@@ -37,6 +51,7 @@ pub struct MultisigConfig<'info> {
     /// Multisig `config_authority` that must authorize the configuration change.
     pub config_authority: Signer<'info>,
 
+    // TODO: Since this account only needed for add_member, we should create a separate Accounts struct for it.
     /// The account that will be charged in case the multisig account needs to reallocate space,
     /// for example when adding a new member.
     /// This is usually the same as `config_authority`, but can be a different account if needed.
@@ -140,6 +155,43 @@ impl MultisigConfig<'_> {
         multisig.invariant()?;
 
         multisig.config_updated(multisig_key, ConfigUpdateType::ChangeThreshold, memo);
+
+        Ok(())
+    }
+
+    /// Set the `time_lock` config parameter for the multisig.
+    #[access_control(ctx.accounts.validate())]
+    pub fn multisig_set_time_lock(ctx: Context<Self>, args: MultisigSetTimeLockArgs) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+        let multisig_key = multisig.key();
+
+        multisig.time_lock = args.time_lock;
+
+        multisig.invariant()?;
+
+        multisig.config_updated(multisig_key, ConfigUpdateType::SetTimeLock, args.memo);
+
+        Ok(())
+    }
+
+    /// Set the multisig `config_authority`.
+    #[access_control(ctx.accounts.validate())]
+    pub fn multisig_set_config_authority(
+        ctx: Context<Self>,
+        args: MultisigSetConfigAuthorityArgs,
+    ) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+        let multisig_key = multisig.key();
+
+        multisig.config_authority = args.config_authority;
+
+        multisig.invariant()?;
+
+        multisig.config_updated(
+            multisig_key,
+            ConfigUpdateType::SetConfigAuthority,
+            args.memo,
+        );
 
         Ok(())
     }

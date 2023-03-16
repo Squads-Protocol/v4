@@ -218,7 +218,7 @@ export const multisigBeet = new beet.FixableBeetStruct<
     ['createKey', beetSolana.publicKey],
     ['configAuthority', beetSolana.publicKey],
     ['threshold', beet.u16],
-    ['timeLock', beet.i32],
+    ['timeLock', beet.u32],
     ['transactionIndex', beet.u64],
     ['staleTransactionIndex', beet.u64],
     ['vaultIndex', beet.u8],

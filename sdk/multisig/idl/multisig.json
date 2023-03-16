@@ -140,6 +140,100 @@
       ]
     },
     {
+      "name": "multisigSetTimeLock",
+      "docs": [
+        "Set the `time_lock` config parameter for the multisig."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The account that will be charged in case the multisig account needs to reallocate space,",
+            "for example when adding a new member.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigSetTimeLockArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisigSetConfigAuthority",
+      "docs": [
+        "Set the multisig `config_authority`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The account that will be charged in case the multisig account needs to reallocate space,",
+            "for example when adding a new member.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigSetConfigAuthorityArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "configTransactionCreate",
       "docs": [
         "Create a new config transaction."
@@ -547,7 +641,7 @@
             "docs": [
               "How many seconds must pass between transaction voting settlement and execution."
             ],
-            "type": "i32"
+            "type": "u32"
           },
           {
             "name": "transactionIndex",
@@ -560,7 +654,7 @@
             "name": "staleTransactionIndex",
             "docs": [
               "Last stale transaction index. All transactions up until this index are stale.",
-              "This index is updated when multisig config (members/threshold) changes."
+              "This index is updated when multisig config (members/threshold/time_lock) changes."
             ],
             "type": "u64"
           },
@@ -829,6 +923,48 @@
       }
     },
     {
+      "name": "MultisigSetTimeLockArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "timeLock",
+            "type": "u32"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigSetConfigAuthorityArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "configAuthority",
+            "type": "publicKey"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MultisigCreateArgs",
       "type": {
         "kind": "struct",
@@ -866,7 +1002,7 @@
             "docs": [
               "How many seconds must pass between transaction voting settlement and execution."
             ],
-            "type": "i32"
+            "type": "u32"
           },
           {
             "name": "memo",
@@ -1128,10 +1264,10 @@
             "name": "ChangeThreshold"
           },
           {
-            "name": "ChangeConfigAuthority"
+            "name": "SetConfigAuthority"
           },
           {
-            "name": "ChangeAllowExternalExecute"
+            "name": "SetTimeLock"
           }
         ]
       }

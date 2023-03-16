@@ -575,6 +575,18 @@ describe("multisig", () => {
     });
   });
 
+  describe("multisig_set_time_lock", () => {
+    it("error: invalid authority");
+
+    it("set `time_lock` on a controlled multisig");
+  });
+
+  describe("multisig_set_config_authority", () => {
+    it("error: invalid authority");
+
+    it("set `config_authority` on a controlled multisig");
+  });
+
   describe("config_transaction_create", () => {
     it("error: not supported for controlled multisig", async () => {
       const [multisigPda] = multisig.getMultisigPda({

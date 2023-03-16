@@ -13,7 +13,7 @@ pub struct MultisigCreateArgs {
     /// The members of the multisig.
     pub members: Vec<Member>,
     /// How many seconds must pass between transaction voting settlement and execution.
-    pub time_lock: i32,
+    pub time_lock: u32,
     /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
     pub memo: Option<String>,
 }

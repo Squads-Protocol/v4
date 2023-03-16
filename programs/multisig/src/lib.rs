@@ -44,6 +44,22 @@ pub mod multisig {
         MultisigConfig::multisig_remove_member(ctx, args)
     }
 
+    /// Set the `time_lock` config parameter for the multisig.
+    pub fn multisig_set_time_lock(
+        ctx: Context<MultisigConfig>,
+        args: MultisigSetTimeLockArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_set_time_lock(ctx, args)
+    }
+
+    /// Set the multisig `config_authority`.
+    pub fn multisig_set_config_authority(
+        ctx: Context<MultisigConfig>,
+        args: MultisigSetConfigAuthorityArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_set_config_authority(ctx, args)
+    }
+
     /// Create a new config transaction.
     pub fn config_transaction_create(
         ctx: Context<ConfigTransactionCreate>,

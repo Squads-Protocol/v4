@@ -16,8 +16,8 @@ pub enum ConfigUpdateType {
     AddMember { reallocated: bool },
     RemoveMember,
     ChangeThreshold,
-    ChangeConfigAuthority,
-    ChangeAllowExternalExecute,
+    SetConfigAuthority,
+    SetTimeLock,
 }
 
 /// Multisig config is updated.

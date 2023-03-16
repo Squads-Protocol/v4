@@ -19,8 +19,8 @@ export type ConfigUpdateTypeRecord = {
   AddMember: { reallocated: boolean }
   RemoveMember: void /* scalar variant */
   ChangeThreshold: void /* scalar variant */
-  ChangeConfigAuthority: void /* scalar variant */
-  ChangeAllowExternalExecute: void /* scalar variant */
+  SetConfigAuthority: void /* scalar variant */
+  SetTimeLock: void /* scalar variant */
 }
 
 /**
@@ -47,14 +47,14 @@ export const isConfigUpdateTypeChangeThreshold = (
   x: ConfigUpdateType
 ): x is ConfigUpdateType & { __kind: 'ChangeThreshold' } =>
   x.__kind === 'ChangeThreshold'
-export const isConfigUpdateTypeChangeConfigAuthority = (
+export const isConfigUpdateTypeSetConfigAuthority = (
   x: ConfigUpdateType
-): x is ConfigUpdateType & { __kind: 'ChangeConfigAuthority' } =>
-  x.__kind === 'ChangeConfigAuthority'
-export const isConfigUpdateTypeChangeAllowExternalExecute = (
+): x is ConfigUpdateType & { __kind: 'SetConfigAuthority' } =>
+  x.__kind === 'SetConfigAuthority'
+export const isConfigUpdateTypeSetTimeLock = (
   x: ConfigUpdateType
-): x is ConfigUpdateType & { __kind: 'ChangeAllowExternalExecute' } =>
-  x.__kind === 'ChangeAllowExternalExecute'
+): x is ConfigUpdateType & { __kind: 'SetTimeLock' } =>
+  x.__kind === 'SetTimeLock'
 
 /**
  * @category userTypes
@@ -70,6 +70,6 @@ export const configUpdateTypeBeet = beet.dataEnum<ConfigUpdateTypeRecord>([
   ],
   ['RemoveMember', beet.unit],
   ['ChangeThreshold', beet.unit],
-  ['ChangeConfigAuthority', beet.unit],
-  ['ChangeAllowExternalExecute', beet.unit],
+  ['SetConfigAuthority', beet.unit],
+  ['SetTimeLock', beet.unit],
 ]) as beet.FixableBeet<ConfigUpdateType, ConfigUpdateType>
