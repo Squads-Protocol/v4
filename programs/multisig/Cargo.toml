@@ -16,5 +16,5 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "=0.26.0"
-solana-address-lookup-table-program = "=1.14.12"
+anchor-lang = "=0.27.0"
+solana-address-lookup-table-program = "=1.14.16"

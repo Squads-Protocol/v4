@@ -1670,7 +1670,7 @@
   "metadata": {
     "address": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
     "origin": "anchor",
-    "binaryVersion": "0.26.0",
-    "libVersion": "=0.26.0"
+    "binaryVersion": "0.27.0",
+    "libVersion": "=0.27.0"
   }
 }
