@@ -176,117 +176,19 @@
       ]
     },
     {
-      "name": "configTransactionApprove",
-      "docs": [
-        "Approve a config transaction on behalf of the `member`.",
-        "The transaction must be `Active`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": false,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "ConfigTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
-      "name": "configTransactionReject",
-      "docs": [
-        "Reject a config transaction on behalf of the `member`.",
-        "The transaction must be `Active`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": false,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "ConfigTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
-      "name": "configTransactionCancel",
-      "docs": [
-        "Cancel a config transaction on behalf of the `member`.",
-        "The transaction must be `ExecuteReady`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": false,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "ConfigTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
       "name": "configTransactionExecute",
       "docs": [
         "Execute a config transaction.",
-        "The transaction must be `ExecuteReady`."
+        "The transaction must be `Approved`."
       ],
       "accounts": [
         {
           "name": "multisig",
           "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "The multisig account that owns the transaction."
+          ]
         },
         {
           "name": "member",
@@ -294,6 +196,22 @@
           "isSigner": true,
           "docs": [
             "One of the multisig members with `Execute` permission."
+          ]
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The proposal account associated with the transaction."
+          ]
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The transaction to execute."
           ]
         },
         {
@@ -354,106 +272,10 @@
       ]
     },
     {
-      "name": "vaultTransactionApprove",
-      "docs": [
-        "Approve a vault transaction on behalf of the `member`.",
-        "The transaction must be `Active`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": false,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "VaultTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
-      "name": "vaultTransactionReject",
-      "docs": [
-        "Reject a vault transaction on behalf of the `member`.",
-        "The transaction must be `Active`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": false,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "VaultTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
-      "name": "vaultTransactionCancel",
-      "docs": [
-        "Cancel a vault transaction on behalf of the `member`.",
-        "The transaction must be `ExecuteReady`."
-      ],
-      "accounts": [
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "transaction",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": false,
-          "isSigner": true
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "VaultTransactionVoteArgs"
-          }
-        }
-      ]
-    },
-    {
       "name": "vaultTransactionExecute",
       "docs": [
         "Execute a vault transaction.",
-        "The transaction must be `ExecuteReady`."
+        "The transaction must be `Approved`."
       ],
       "accounts": [
         {
@@ -462,9 +284,20 @@
           "isSigner": false
         },
         {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The proposal account associated with the transaction."
+          ]
+        },
+        {
           "name": "transaction",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "The transaction to execute."
+          ]
         },
         {
           "name": "member",
@@ -473,13 +306,160 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "proposalCreate",
+      "docs": [
+        "Create a new multisig proposal."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProposalCreateArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "proposalApprove",
+      "docs": [
+        "Approve a multisig proposal on behalf of the `member`.",
+        "The proposal must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProposalVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "proposalReject",
+      "docs": [
+        "Reject a multisig proposal on behalf of the `member`.",
+        "The proposal must be `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProposalVoteArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "proposalCancel",
+      "docs": [
+        "Cancel a multisig proposal on behalf of the `member`.",
+        "The proposal must be `Approved`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProposalVoteArgs"
+          }
+        }
+      ]
     }
   ],
   "accounts": [
     {
       "name": "ConfigTransaction",
       "docs": [
-        "Stores data required for tracking the voting and execution status of a multisig configuration transaction.",
+        "Stores data required for execution of a multisig configuration transaction.",
         "Config transaction can perform a predefined set of actions on the Multisig PDA, such as adding/removing members,",
         "changing the threshold, etc."
       ],
@@ -501,28 +481,11 @@
             "type": "publicKey"
           },
           {
-            "name": "transactionIndex",
+            "name": "index",
             "docs": [
               "Index of this transaction within the multisig."
             ],
             "type": "u64"
-          },
-          {
-            "name": "settledAt",
-            "docs": [
-              "Unix Epoch when the transaction vote has settled, so it became either approved or rejected.",
-              "`0` if the transaction is not settled yet."
-            ],
-            "type": "i64"
-          },
-          {
-            "name": "status",
-            "docs": [
-              "The status of the transaction."
-            ],
-            "type": {
-              "defined": "TransactionStatus"
-            }
           },
           {
             "name": "bump",
@@ -530,33 +493,6 @@
               "bump for the transaction seeds."
             ],
             "type": "u8"
-          },
-          {
-            "name": "approved",
-            "docs": [
-              "keys that have approved/signed."
-            ],
-            "type": {
-              "vec": "publicKey"
-            }
-          },
-          {
-            "name": "rejected",
-            "docs": [
-              "keys that have rejected."
-            ],
-            "type": {
-              "vec": "publicKey"
-            }
-          },
-          {
-            "name": "cancelled",
-            "docs": [
-              "keys that have cancelled (ExecuteReady only)."
-            ],
-            "type": {
-              "vec": "publicKey"
-            }
           },
           {
             "name": "actions",
@@ -657,22 +593,15 @@
       }
     },
     {
-      "name": "VaultTransaction",
+      "name": "Proposal",
       "docs": [
-        "Stores data required for tracking the voting and execution status of a vault transaction.",
-        "Vault transaction is a transaction that's executed on behalf of the multisig vault PDA",
-        "and wraps arbitrary Solana instructions, typically calling into other Solana programs."
+        "Stores the data required for tracking the status of a multisig proposal.",
+        "Each `Proposal` has a 1:1 association with a transaction account, e.g. a `VaultTransaction` or a `ConfigTransaction`;",
+        "the latter can be executed only after the `Proposal` has been approved and its time lock is released."
       ],
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "creator",
-            "docs": [
-              "Member of the Multisig who submitted the transaction."
-            ],
-            "type": "publicKey"
-          },
           {
             "name": "multisig",
             "docs": [
@@ -683,17 +612,9 @@
           {
             "name": "transactionIndex",
             "docs": [
-              "Index of this transaction within the multisig."
+              "Index of the multisig transaction this proposal is associated with."
             ],
             "type": "u64"
-          },
-          {
-            "name": "settledAt",
-            "docs": [
-              "Unix Epoch when the transaction vote has settled, so it became either approved or rejected.",
-              "`0` if the transaction is not settled yet."
-            ],
-            "type": "i64"
           },
           {
             "name": "status",
@@ -701,8 +622,76 @@
               "The status of the transaction."
             ],
             "type": {
-              "defined": "TransactionStatus"
+              "defined": "ProposalStatus"
             }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "approved",
+            "docs": [
+              "Keys that have approved/signed."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "rejected",
+            "docs": [
+              "Keys that have rejected."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "cancelled",
+            "docs": [
+              "Keys that have cancelled (Approved only)."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultTransaction",
+      "docs": [
+        "Stores data required for tracking the voting and execution status of a vault transaction.",
+        "Vault transaction is a transaction that's executed on behalf of the multisig vault PDA",
+        "and wraps arbitrary Solana instructions, typically calling into other Solana programs."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "multisig",
+            "docs": [
+              "The multisig this belongs to."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "Member of the Multisig who submitted the transaction."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "index",
+            "docs": [
+              "Index of this transaction within the multisig."
+            ],
+            "type": "u64"
           },
           {
             "name": "bump",
@@ -739,33 +728,6 @@
             "type": "bytes"
           },
           {
-            "name": "approved",
-            "docs": [
-              "keys that have approved/signed."
-            ],
-            "type": {
-              "vec": "publicKey"
-            }
-          },
-          {
-            "name": "rejected",
-            "docs": [
-              "keys that have rejected."
-            ],
-            "type": {
-              "vec": "publicKey"
-            }
-          },
-          {
-            "name": "cancelled",
-            "docs": [
-              "keys that have cancelled (ExecuteReady only)."
-            ],
-            "type": {
-              "vec": "publicKey"
-            }
-          },
-          {
             "name": "message",
             "docs": [
               "data required for executing the transaction."
@@ -792,20 +754,6 @@
               }
             }
           },
-          {
-            "name": "memo",
-            "type": {
-              "option": "string"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "ConfigTransactionVoteArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
           {
             "name": "memo",
             "type": {
@@ -933,6 +881,35 @@
       }
     },
     {
+      "name": "ProposalCreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "transactionIndex",
+            "docs": [
+              "Index of the multisig transaction this proposal is associated with."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalVoteArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "memo",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "VaultTransactionCreateArgs",
       "type": {
         "kind": "struct",
@@ -955,20 +932,6 @@
             "name": "transactionMessage",
             "type": "bytes"
           },
-          {
-            "name": "memo",
-            "type": {
-              "option": "string"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "VaultTransactionVoteArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
           {
             "name": "memo",
             "type": {
@@ -1174,7 +1137,7 @@
       }
     },
     {
-      "name": "VoteInstruction",
+      "name": "Vote",
       "type": {
         "kind": "enum",
         "variants": [
@@ -1228,24 +1191,58 @@
       }
     },
     {
-      "name": "TransactionStatus",
+      "name": "ProposalStatus",
+      "docs": [
+        "The status of a proposal.",
+        "Each variant wraps a timestamp of when the status was set."
+      ],
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "Active"
+            "name": "Active",
+            "fields": [
+              {
+                "name": "timestamp",
+                "type": "i64"
+              }
+            ]
           },
           {
-            "name": "Rejected"
+            "name": "Rejected",
+            "fields": [
+              {
+                "name": "timestamp",
+                "type": "i64"
+              }
+            ]
           },
           {
-            "name": "ExecuteReady"
+            "name": "Approved",
+            "fields": [
+              {
+                "name": "timestamp",
+                "type": "i64"
+              }
+            ]
           },
           {
-            "name": "Executed"
+            "name": "Executed",
+            "fields": [
+              {
+                "name": "timestamp",
+                "type": "i64"
+              }
+            ]
           },
           {
-            "name": "Cancelled"
+            "name": "Cancelled",
+            "fields": [
+              {
+                "name": "timestamp",
+                "type": "i64"
+              }
+            ]
           }
         ]
       }
@@ -1316,72 +1313,6 @@
       ]
     },
     {
-      "name": "TransactionApproved",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "transaction",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
-      "name": "TransactionRejected",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "transaction",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
-      "name": "TransactionCancelled",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "transaction",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
       "name": "TransactionExecuted",
       "fields": [
         {
@@ -1393,6 +1324,87 @@
           "name": "transaction",
           "type": "publicKey",
           "index": false
+        }
+      ]
+    },
+    {
+      "name": "ProposalCreated",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "proposal",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ProposalApproved",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "proposal",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
+    },
+    {
+      "name": "ProposalRejected",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "proposal",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
+        }
+      ]
+    },
+    {
+      "name": "ProposalCancelled",
+      "fields": [
+        {
+          "name": "multisig",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "proposal",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "memo",
+          "type": {
+            "option": "string"
+          },
+          "index": true
         }
       ]
     }
@@ -1435,76 +1447,86 @@
     },
     {
       "code": 6007,
-      "name": "StaleTransaction",
-      "msg": "Transaction is stale"
+      "name": "StaleProposal",
+      "msg": "Proposal is stale"
     },
     {
       "code": 6008,
-      "name": "InvalidTransactionStatus",
-      "msg": "Invalid transaction status"
+      "name": "InvalidProposalStatus",
+      "msg": "Invalid proposal status"
     },
     {
       "code": 6009,
+      "name": "InvalidTransactionIndex",
+      "msg": "Invalid transaction index"
+    },
+    {
+      "code": 6010,
+      "name": "ProposalNotForMultisig",
+      "msg": "Proposal does not belong to the multisig"
+    },
+    {
+      "code": 6011,
       "name": "TransactionNotForMultisig",
       "msg": "Transaction does not belong to the multisig"
     },
     {
-      "code": 6010,
+      "code": 6012,
       "name": "AlreadyApproved",
       "msg": "Member already approved the transaction"
     },
     {
-      "code": 6011,
+      "code": 6013,
       "name": "AlreadyRejected",
       "msg": "Member already rejected the transaction"
     },
     {
-      "code": 6012,
+      "code": 6014,
       "name": "AlreadyCancelled",
       "msg": "Member already cancelled the transaction"
     },
     {
-      "code": 6013,
+      "code": 6015,
       "name": "InvalidNumberOfAccounts",
       "msg": "Wrong number of accounts provided"
     },
     {
-      "code": 6014,
+      "code": 6016,
       "name": "InvalidAccount",
       "msg": "Invalid account provided"
     },
     {
-      "code": 6015,
+      "code": 6017,
       "name": "ExecuteReentrancy",
       "msg": "`transaction_execute` reentrancy is forbidden"
     },
     {
-      "code": 6016,
+      "code": 6018,
       "name": "RemoveLastMember",
       "msg": "Cannot remove last member"
     },
     {
-      "code": 6017,
+      "code": 6019,
       "name": "NoVoters",
       "msg": "Members don't include any voters"
     },
     {
-      "code": 6018,
+      "code": 6020,
       "name": "InvalidStaleTransactionIndex",
       "msg": "`stale_transaction_index` must be <= `transaction_index`"
     },
     {
-      "code": 6019,
+      "code": 6021,
       "name": "NotSupportedForControlled",
       "msg": "Instruction not supported for controlled multisig"
     },
     {
-      "code": 6020,
+      "code": 6022,
       "name": "TimeLockNotReleased",
-      "msg": "Transaction time lock has not been released"
+      "msg": "Proposal time lock has not been released"
     },
     {
-      "code": 6021,
+      "code": 6023,
       "name": "NoActions",
       "msg": "Config transaction must have at least one action"
     }

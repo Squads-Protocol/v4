@@ -16,13 +16,28 @@ pub struct VaultTransactionExecute<'info> {
     )]
     pub multisig: Box<Account<'info, Multisig>>,
 
+    /// The proposal account associated with the transaction.
     #[account(
         mut,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION,
-            &transaction.transaction_index.to_le_bytes(),
+            &transaction.index.to_le_bytes(),
+            SEED_PROPOSAL,
+        ],
+        bump = proposal.bump,
+    )]
+    pub proposal: Account<'info, Proposal>,
+
+    /// The transaction to execute.
+    #[account(
+        mut,
+        seeds = [
+            SEED_PREFIX,
+            multisig.key().as_ref(),
+            SEED_TRANSACTION,
+            &transaction.index.to_le_bytes(),
         ],
         bump = transaction.bump,
     )]
@@ -41,28 +56,35 @@ impl VaultTransactionExecute<'_> {
         let Self {
             multisig,
             transaction,
+            proposal,
             member,
             ..
         } = self;
 
         // transaction
-
         require_keys_eq!(
             transaction.multisig,
             multisig.key(),
             MultisigError::TransactionNotForMultisig
         );
-        require!(
-            transaction.status == TransactionStatus::ExecuteReady,
-            MultisigError::InvalidTransactionStatus
+
+        // proposal
+        require_keys_eq!(
+            proposal.multisig,
+            multisig.key(),
+            MultisigError::ProposalNotForMultisig
         );
-        require!(
-            Clock::get()?.unix_timestamp - transaction.settled_at >= i64::from(multisig.time_lock),
-            MultisigError::TimeLockNotReleased
-        );
+        match proposal.status {
+            ProposalStatus::Approved { timestamp } => {
+                require!(
+                    Clock::get()?.unix_timestamp - timestamp >= i64::from(multisig.time_lock),
+                    MultisigError::TimeLockNotReleased
+                );
+            }
+            _ => return err!(MultisigError::InvalidProposalStatus),
+        }
 
         // member
-
         require!(
             multisig.is_member(member.key()).is_some(),
             MultisigError::NotAMember
@@ -76,10 +98,11 @@ impl VaultTransactionExecute<'_> {
     }
 
     /// Execute the multisig transaction.
-    /// The transaction must be `ExecuteReady`.
+    /// The transaction must be `Approved`.
     #[access_control(ctx.accounts.validate())]
     pub fn vault_transaction_execute(ctx: Context<Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
+        let proposal = &mut ctx.accounts.proposal;
         let transaction = &mut ctx.accounts.transaction;
 
         let multisig_key = multisig.key();
@@ -170,7 +193,9 @@ impl VaultTransactionExecute<'_> {
         }
 
         // Mark it as executed
-        transaction.status = TransactionStatus::Executed;
+        proposal.status = ProposalStatus::Executed {
+            timestamp: Clock::get()?.unix_timestamp,
+        };
 
         emit!(TransactionExecuted {
             multisig: multisig_key,

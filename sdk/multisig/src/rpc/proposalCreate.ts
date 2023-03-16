@@ -8,35 +8,32 @@ import {
 import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
 
-export async function configTransactionReject({
+export async function proposalCreate({
   connection,
   feePayer,
-  member,
+  rentPayer,
   multisigPda,
   transactionIndex,
-  memo,
   sendOptions,
 }: {
   connection: Connection;
   feePayer: Signer;
-  member: Signer;
+  rentPayer: Signer;
   multisigPda: PublicKey;
   transactionIndex: bigint;
-  memo?: string;
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.configTransactionReject({
+  const tx = transactions.proposalCreate({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
     transactionIndex,
-    member: member.publicKey,
-    memo,
+    rentPayer: rentPayer.publicKey,
   });
 
-  tx.sign([feePayer, member]);
+  tx.sign([feePayer, rentPayer]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

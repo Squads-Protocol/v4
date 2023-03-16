@@ -8,65 +8,71 @@
 import * as web3 from '@solana/web3.js'
 import * as beet from '@metaplex-foundation/beet'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
-import { ConfigAction, configActionBeet } from '../types/ConfigAction'
+import { ProposalStatus, proposalStatusBeet } from '../types/ProposalStatus'
 
 /**
- * Arguments used to create {@link ConfigTransaction}
+ * Arguments used to create {@link Proposal}
  * @category Accounts
  * @category generated
  */
-export type ConfigTransactionArgs = {
+export type ProposalArgs = {
   multisig: web3.PublicKey
-  creator: web3.PublicKey
-  index: beet.bignum
+  transactionIndex: beet.bignum
+  status: ProposalStatus
   bump: number
-  actions: ConfigAction[]
+  approved: web3.PublicKey[]
+  rejected: web3.PublicKey[]
+  cancelled: web3.PublicKey[]
 }
 
-export const configTransactionDiscriminator = [94, 8, 4, 35, 113, 139, 139, 112]
+export const proposalDiscriminator = [26, 94, 189, 187, 116, 136, 53, 33]
 /**
- * Holds the data for the {@link ConfigTransaction} Account and provides de/serialization
+ * Holds the data for the {@link Proposal} Account and provides de/serialization
  * functionality for that data
  *
  * @category Accounts
  * @category generated
  */
-export class ConfigTransaction implements ConfigTransactionArgs {
+export class Proposal implements ProposalArgs {
   private constructor(
     readonly multisig: web3.PublicKey,
-    readonly creator: web3.PublicKey,
-    readonly index: beet.bignum,
+    readonly transactionIndex: beet.bignum,
+    readonly status: ProposalStatus,
     readonly bump: number,
-    readonly actions: ConfigAction[]
+    readonly approved: web3.PublicKey[],
+    readonly rejected: web3.PublicKey[],
+    readonly cancelled: web3.PublicKey[]
   ) {}
 
   /**
-   * Creates a {@link ConfigTransaction} instance from the provided args.
+   * Creates a {@link Proposal} instance from the provided args.
    */
-  static fromArgs(args: ConfigTransactionArgs) {
-    return new ConfigTransaction(
+  static fromArgs(args: ProposalArgs) {
+    return new Proposal(
       args.multisig,
-      args.creator,
-      args.index,
+      args.transactionIndex,
+      args.status,
       args.bump,
-      args.actions
+      args.approved,
+      args.rejected,
+      args.cancelled
     )
   }
 
   /**
-   * Deserializes the {@link ConfigTransaction} from the data of the provided {@link web3.AccountInfo}.
+   * Deserializes the {@link Proposal} from the data of the provided {@link web3.AccountInfo}.
    * @returns a tuple of the account data and the offset up to which the buffer was read to obtain it.
    */
   static fromAccountInfo(
     accountInfo: web3.AccountInfo<Buffer>,
     offset = 0
-  ): [ConfigTransaction, number] {
-    return ConfigTransaction.deserialize(accountInfo.data, offset)
+  ): [Proposal, number] {
+    return Proposal.deserialize(accountInfo.data, offset)
   }
 
   /**
    * Retrieves the account info from the provided address and deserializes
-   * the {@link ConfigTransaction} from its data.
+   * the {@link Proposal} from its data.
    *
    * @throws Error if no account info is found at the address or if deserialization fails
    */
@@ -74,15 +80,15 @@ export class ConfigTransaction implements ConfigTransactionArgs {
     connection: web3.Connection,
     address: web3.PublicKey,
     commitmentOrConfig?: web3.Commitment | web3.GetAccountInfoConfig
-  ): Promise<ConfigTransaction> {
+  ): Promise<Proposal> {
     const accountInfo = await connection.getAccountInfo(
       address,
       commitmentOrConfig
     )
     if (accountInfo == null) {
-      throw new Error(`Unable to find ConfigTransaction account at ${address}`)
+      throw new Error(`Unable to find Proposal account at ${address}`)
     }
-    return ConfigTransaction.fromAccountInfo(accountInfo, 0)[0]
+    return Proposal.fromAccountInfo(accountInfo, 0)[0]
   }
 
   /**
@@ -96,72 +102,71 @@ export class ConfigTransaction implements ConfigTransactionArgs {
       'SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf'
     )
   ) {
-    return beetSolana.GpaBuilder.fromStruct(programId, configTransactionBeet)
+    return beetSolana.GpaBuilder.fromStruct(programId, proposalBeet)
   }
 
   /**
-   * Deserializes the {@link ConfigTransaction} from the provided data Buffer.
+   * Deserializes the {@link Proposal} from the provided data Buffer.
    * @returns a tuple of the account data and the offset up to which the buffer was read to obtain it.
    */
-  static deserialize(buf: Buffer, offset = 0): [ConfigTransaction, number] {
-    return configTransactionBeet.deserialize(buf, offset)
+  static deserialize(buf: Buffer, offset = 0): [Proposal, number] {
+    return proposalBeet.deserialize(buf, offset)
   }
 
   /**
-   * Serializes the {@link ConfigTransaction} into a Buffer.
+   * Serializes the {@link Proposal} into a Buffer.
    * @returns a tuple of the created Buffer and the offset up to which the buffer was written to store it.
    */
   serialize(): [Buffer, number] {
-    return configTransactionBeet.serialize({
-      accountDiscriminator: configTransactionDiscriminator,
+    return proposalBeet.serialize({
+      accountDiscriminator: proposalDiscriminator,
       ...this,
     })
   }
 
   /**
    * Returns the byteSize of a {@link Buffer} holding the serialized data of
-   * {@link ConfigTransaction} for the provided args.
+   * {@link Proposal} for the provided args.
    *
    * @param args need to be provided since the byte size for this account
    * depends on them
    */
-  static byteSize(args: ConfigTransactionArgs) {
-    const instance = ConfigTransaction.fromArgs(args)
-    return configTransactionBeet.toFixedFromValue({
-      accountDiscriminator: configTransactionDiscriminator,
+  static byteSize(args: ProposalArgs) {
+    const instance = Proposal.fromArgs(args)
+    return proposalBeet.toFixedFromValue({
+      accountDiscriminator: proposalDiscriminator,
       ...instance,
     }).byteSize
   }
 
   /**
    * Fetches the minimum balance needed to exempt an account holding
-   * {@link ConfigTransaction} data from rent
+   * {@link Proposal} data from rent
    *
    * @param args need to be provided since the byte size for this account
    * depends on them
    * @param connection used to retrieve the rent exemption information
    */
   static async getMinimumBalanceForRentExemption(
-    args: ConfigTransactionArgs,
+    args: ProposalArgs,
     connection: web3.Connection,
     commitment?: web3.Commitment
   ): Promise<number> {
     return connection.getMinimumBalanceForRentExemption(
-      ConfigTransaction.byteSize(args),
+      Proposal.byteSize(args),
       commitment
     )
   }
 
   /**
-   * Returns a readable version of {@link ConfigTransaction} properties
+   * Returns a readable version of {@link Proposal} properties
    * and can be used to convert to JSON and/or logging
    */
   pretty() {
     return {
       multisig: this.multisig.toBase58(),
-      creator: this.creator.toBase58(),
-      index: (() => {
-        const x = <{ toNumber: () => number }>this.index
+      transactionIndex: (() => {
+        const x = <{ toNumber: () => number }>this.transactionIndex
         if (typeof x.toNumber === 'function') {
           try {
             return x.toNumber()
@@ -171,8 +176,11 @@ export class ConfigTransaction implements ConfigTransactionArgs {
         }
         return x
       })(),
+      status: this.status.__kind,
       bump: this.bump,
-      actions: this.actions,
+      approved: this.approved,
+      rejected: this.rejected,
+      cancelled: this.cancelled,
     }
   }
 }
@@ -181,20 +189,22 @@ export class ConfigTransaction implements ConfigTransactionArgs {
  * @category Accounts
  * @category generated
  */
-export const configTransactionBeet = new beet.FixableBeetStruct<
-  ConfigTransaction,
-  ConfigTransactionArgs & {
+export const proposalBeet = new beet.FixableBeetStruct<
+  Proposal,
+  ProposalArgs & {
     accountDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['accountDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
     ['multisig', beetSolana.publicKey],
-    ['creator', beetSolana.publicKey],
-    ['index', beet.u64],
+    ['transactionIndex', beet.u64],
+    ['status', proposalStatusBeet],
     ['bump', beet.u8],
-    ['actions', beet.array(configActionBeet)],
+    ['approved', beet.array(beetSolana.publicKey)],
+    ['rejected', beet.array(beetSolana.publicKey)],
+    ['cancelled', beet.array(beetSolana.publicKey)],
   ],
-  ConfigTransaction.fromArgs,
-  'ConfigTransaction'
+  Proposal.fromArgs,
+  'Proposal'
 )

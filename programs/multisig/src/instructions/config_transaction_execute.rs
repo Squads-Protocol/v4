@@ -6,6 +6,7 @@ use crate::state::*;
 
 #[derive(Accounts)]
 pub struct ConfigTransactionExecute<'info> {
+    /// The multisig account that owns the transaction.
     #[account(
         mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
@@ -13,20 +14,35 @@ pub struct ConfigTransactionExecute<'info> {
     )]
     pub multisig: Box<Account<'info, Multisig>>,
 
+    /// One of the multisig members with `Execute` permission.
+    pub member: Signer<'info>,
+
+    /// The proposal account associated with the transaction.
     #[account(
         mut,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION,
-            &transaction.transaction_index.to_le_bytes(),
+            &transaction.index.to_le_bytes(),
+            SEED_PROPOSAL,
+        ],
+        bump = proposal.bump,
+    )]
+    pub proposal: Account<'info, Proposal>,
+
+    /// The transaction to execute.
+    #[account(
+        mut,
+        seeds = [
+            SEED_PREFIX,
+            multisig.key().as_ref(),
+            SEED_TRANSACTION,
+            &transaction.index.to_le_bytes(),
         ],
         bump = transaction.bump,
     )]
     pub transaction: Account<'info, ConfigTransaction>,
-
-    /// One of the multisig members with `Execute` permission.
-    pub member: Signer<'info>,
 
     /// The account that will be charged in case the multisig account needs to reallocate space,
     /// for example when adding a new member.
@@ -43,28 +59,12 @@ impl ConfigTransactionExecute<'_> {
         let Self {
             multisig,
             transaction,
+            proposal,
             member,
             ..
         } = self;
 
-        // transaction
-
-        require_keys_eq!(
-            transaction.multisig,
-            multisig.key(),
-            MultisigError::TransactionNotForMultisig
-        );
-        require!(
-            transaction.status == TransactionStatus::ExecuteReady,
-            MultisigError::InvalidTransactionStatus
-        );
-        require!(
-            Clock::get()?.unix_timestamp - transaction.settled_at >= i64::from(multisig.time_lock),
-            MultisigError::TimeLockNotReleased
-        );
-
         // member
-
         require!(
             multisig.is_member(member.key()).is_some(),
             MultisigError::NotAMember
@@ -74,15 +74,39 @@ impl ConfigTransactionExecute<'_> {
             MultisigError::Unauthorized
         );
 
+        // proposal
+        require_keys_eq!(
+            proposal.multisig,
+            multisig.key(),
+            MultisigError::ProposalNotForMultisig
+        );
+        match proposal.status {
+            ProposalStatus::Approved { timestamp } => {
+                require!(
+                    Clock::get()?.unix_timestamp - timestamp >= i64::from(multisig.time_lock),
+                    MultisigError::TimeLockNotReleased
+                );
+            }
+            _ => return err!(MultisigError::InvalidProposalStatus),
+        }
+
+        // transaction
+        require_keys_eq!(
+            transaction.multisig,
+            multisig.key(),
+            MultisigError::TransactionNotForMultisig
+        );
+
         Ok(())
     }
 
     /// Execute the multisig transaction.
-    /// The transaction must be `ExecuteReady`.
+    /// The transaction must be `Approved`.
     #[access_control(ctx.accounts.validate())]
     pub fn config_transaction_execute(ctx: Context<Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
+        let proposal = &mut ctx.accounts.proposal;
         let rent_payer = &ctx.accounts.rent_payer;
         let system_program = &ctx.accounts.system_program;
 
@@ -141,8 +165,10 @@ impl ConfigTransactionExecute<'_> {
         // Make sure the multisig state is valid after applying the actions.
         multisig.invariant()?;
 
-        // Mark the tx as executed.
-        transaction.status = TransactionStatus::Executed;
+        // Mark the proposal as executed.
+        proposal.status = ProposalStatus::Executed {
+            timestamp: Clock::get()?.unix_timestamp,
+        };
 
         emit!(TransactionExecuted {
             multisig: multisig_key,

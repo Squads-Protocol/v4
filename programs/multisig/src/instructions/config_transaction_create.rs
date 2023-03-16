@@ -23,7 +23,7 @@ pub struct ConfigTransactionCreate<'info> {
     #[account(
         init,
         payer = creator,
-        space = ConfigTransaction::size(multisig.members.len(), args.actions.len()),
+        space = ConfigTransaction::size(args.actions.len()),
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
@@ -84,13 +84,8 @@ impl ConfigTransactionCreate<'_> {
         // Initialize the transaction fields.
         transaction.multisig = multisig_key;
         transaction.creator = creator.key();
-        transaction.transaction_index = transaction_index;
-        transaction.settled_at = 0;
-        transaction.status = TransactionStatus::Active;
+        transaction.index = transaction_index;
         transaction.bump = *ctx.bumps.get("transaction").unwrap();
-        transaction.approved = Vec::new();
-        transaction.rejected = Vec::new();
-        transaction.cancelled = Vec::new();
         transaction.actions = args.actions;
 
         // Updated last transaction index in the multisig account.

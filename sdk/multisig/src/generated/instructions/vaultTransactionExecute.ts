@@ -23,6 +23,7 @@ export const vaultTransactionExecuteStruct = new beet.BeetArgsStruct<{
  * Accounts required by the _vaultTransactionExecute_ instruction
  *
  * @property [] multisig
+ * @property [_writable_] proposal
  * @property [_writable_] transaction
  * @property [_writable_, **signer**] member
  * @category Instructions
@@ -31,6 +32,7 @@ export const vaultTransactionExecuteStruct = new beet.BeetArgsStruct<{
  */
 export type VaultTransactionExecuteInstructionAccounts = {
   multisig: web3.PublicKey
+  proposal: web3.PublicKey
   transaction: web3.PublicKey
   member: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
@@ -59,6 +61,11 @@ export function createVaultTransactionExecuteInstruction(
     {
       pubkey: accounts.multisig,
       isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.proposal,
+      isWritable: true,
       isSigner: false,
     },
     {

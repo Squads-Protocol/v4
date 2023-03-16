@@ -18,8 +18,10 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 
-const { Multisig, VaultTransaction, ConfigTransaction } = multisig.accounts;
-const { Permission, Permissions, TransactionStatus } = multisig.types;
+const { toBigInt } = multisig.utils;
+const { Multisig, VaultTransaction, ConfigTransaction, Proposal } =
+  multisig.accounts;
+const { Permission, Permissions } = multisig.types;
 
 describe("multisig", () => {
   const connection = new Connection("http://127.0.0.1:8899", "confirmed");
@@ -582,8 +584,7 @@ describe("multisig", () => {
         connection,
         multisigPda
       );
-      const transactionIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+      const transactionIndex = toBigInt(multisigAccount.transactionIndex) + 1n;
 
       await assert.rejects(
         () =>
@@ -726,18 +727,10 @@ describe("multisig", () => {
         members.proposer.publicKey.toBase58()
       );
       assert.strictEqual(
-        configTransactionAccount.transactionIndex.toString(),
+        configTransactionAccount.index.toString(),
         transactionIndex.toString()
       );
-      assert.strictEqual(configTransactionAccount.settledAt.toString(), "0");
-      assert.strictEqual(
-        configTransactionAccount.status,
-        TransactionStatus.Active
-      );
       assert.strictEqual(configTransactionAccount.bump, transactionBump);
-      assert.deepEqual(configTransactionAccount.approved, []);
-      assert.deepEqual(configTransactionAccount.rejected, []);
-      assert.deepEqual(configTransactionAccount.cancelled, []);
       assert.deepEqual(configTransactionAccount.actions, [
         {
           __kind: "ChangeThreshold",
@@ -782,7 +775,7 @@ describe("multisig", () => {
 
       // Make sure the transaction was created correctly.
       assert.strictEqual(
-        configTransactionAccount.transactionIndex.toString(),
+        configTransactionAccount.index.toString(),
         transactionIndex.toString()
       );
     });
@@ -820,500 +813,9 @@ describe("multisig", () => {
 
       // Make sure the transaction was created correctly.
       assert.strictEqual(
-        configTransactionAccount.transactionIndex.toString(),
+        configTransactionAccount.index.toString(),
         transactionIndex.toString()
       );
-    });
-  });
-
-  describe("config_transaction_approve", () => {
-    it("error: not a member", async () => {
-      const nonMember = await generateFundedKeypair(connection);
-
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Approve the first config transaction.
-      const transactionIndex = multisig.utils.toBigInt(1);
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionApprove({
-            connection,
-            feePayer: nonMember,
-            multisigPda,
-            transactionIndex,
-            member: nonMember,
-          }),
-        /Provided pubkey is not a member of multisig/
-      );
-    });
-
-    it("error: unauthorized", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Approve the first config transaction.
-      const transactionIndex = multisig.utils.toBigInt(1);
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionApprove({
-            connection,
-            feePayer: members.executor,
-            multisigPda,
-            transactionIndex,
-            // Executor is not authorized to approve config transactions.
-            member: members.executor,
-          }),
-        /Attempted to perform an unauthorized action/
-      );
-    });
-
-    it("approve config transaction", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Approve the first config transaction.
-      const transactionIndex = multisig.utils.toBigInt(1);
-
-      const signature = await multisig.rpc.configTransactionApprove({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex,
-        member: members.voter,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Fetch the ConfigTransaction account.
-      const [transactionPda] = multisig.getTransactionPda({
-        multisigPda,
-        index: transactionIndex,
-      });
-      const configTransactionAccount =
-        await ConfigTransaction.fromAccountAddress(connection, transactionPda);
-
-      // Assertions.
-      assert.deepEqual(configTransactionAccount.approved, [
-        members.voter.publicKey,
-      ]);
-      assert.deepEqual(configTransactionAccount.rejected, []);
-      assert.deepEqual(configTransactionAccount.cancelled, []);
-      // Our threshold is 2, so the transaction is not yet ExecutionReady.
-      assert.strictEqual(
-        configTransactionAccount.status,
-        TransactionStatus.Active
-      );
-    });
-
-    it("error: already approved", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Approve the first config transaction once more.
-      const transactionIndex = multisig.utils.toBigInt(1);
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionApprove({
-            connection,
-            feePayer: members.voter,
-            multisigPda,
-            transactionIndex,
-            member: members.voter,
-          }),
-        /Member already approved the transaction/
-      );
-    });
-
-    it("approve config transaction and reach threshold", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Approve the first config transaction.
-      const transactionIndex = multisig.utils.toBigInt(1);
-
-      const signature = await multisig.rpc.configTransactionApprove({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex,
-        member: members.almighty,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Fetch the ConfigTransaction account.
-      const [transactionPda] = multisig.getTransactionPda({
-        multisigPda,
-        index: transactionIndex,
-      });
-      const configTransactionAccount =
-        await ConfigTransaction.fromAccountAddress(connection, transactionPda);
-
-      // Assertions.
-      assert.deepEqual(
-        configTransactionAccount.approved.map((key) => key.toBase58()),
-        [members.voter.publicKey, members.almighty.publicKey]
-          .sort(comparePubkeys)
-          .map((key) => key.toBase58())
-      );
-      assert.deepEqual(configTransactionAccount.rejected, []);
-      assert.deepEqual(configTransactionAccount.cancelled, []);
-      // Our threshold is 2, so the transaction is now ExecuteReady.
-      assert.strictEqual(
-        configTransactionAccount.status,
-        TransactionStatus.ExecuteReady
-      );
-    });
-
-    it("error: stale transaction");
-
-    it("error: invalid transaction status");
-
-    it("error: transaction is not for multisig");
-  });
-
-  describe("config_transaction_reject", () => {
-    it("error: try to reject an approved tx", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Reject the first config transaction.
-      const transactionIndex = multisig.utils.toBigInt(1);
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionReject({
-            connection,
-            feePayer: members.voter,
-            multisigPda,
-            transactionIndex,
-            member: members.voter,
-          }),
-        /Invalid transaction status/
-      );
-    });
-
-    it("error: not a member", async () => {
-      const nonMember = await generateFundedKeypair(connection);
-
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Reject the second config transaction.
-      const transactionIndex = multisig.utils.toBigInt(2);
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionReject({
-            connection,
-            feePayer: nonMember,
-            multisigPda,
-            transactionIndex,
-            member: nonMember,
-          }),
-        /Provided pubkey is not a member of multisig/
-      );
-    });
-
-    it("error: unauthorized", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Reject the second config transaction.
-      const transactionIndex = multisig.utils.toBigInt(2);
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionReject({
-            connection,
-            feePayer: members.executor,
-            multisigPda,
-            transactionIndex,
-            member: members.executor,
-          }),
-        /Attempted to perform an unauthorized action/
-      );
-    });
-
-    it("reject config transaction and reach cutoff", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      // Reject the second config transaction.
-      const transactionIndex = multisig.utils.toBigInt(2);
-
-      const signature = await multisig.rpc.configTransactionReject({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex,
-        member: members.voter,
-        memo: "LGTM",
-      });
-      await connection.confirmTransaction(signature);
-
-      // Verify the transaction account.
-      const [transactionPda] = multisig.getTransactionPda({
-        multisigPda,
-        index: transactionIndex,
-      });
-      const configTransactionAccount =
-        await ConfigTransaction.fromAccountAddress(connection, transactionPda);
-      assert.deepEqual(configTransactionAccount.approved, []);
-      assert.deepEqual(configTransactionAccount.rejected, [
-        members.voter.publicKey,
-      ]);
-      assert.deepEqual(configTransactionAccount.cancelled, []);
-      // Our threshold is 2, and 2 voters, so the cutoff is 1...
-      assert.strictEqual(multisigAccount.threshold, 2);
-      assert.strictEqual(
-        multisigAccount.members.filter((m) =>
-          Permissions.has(m.permissions, Permission.Vote)
-        ).length,
-        2
-      );
-      // ...thus we've reached the cutoff, and the transaction is now Rejected.
-      assert.strictEqual(
-        configTransactionAccount.status,
-        TransactionStatus.Rejected
-      );
-    });
-
-    it("error: invalid status (Rejected)", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Reject the second config transaction.
-      const transactionIndex = multisig.utils.toBigInt(2);
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionReject({
-            connection,
-            feePayer: members.almighty,
-            multisigPda,
-            transactionIndex,
-            member: members.almighty,
-          }),
-        /Invalid transaction status/
-      );
-    });
-
-    it("error: stale transaction");
-
-    it("error: transaction is not for multisig");
-  });
-
-  describe("config_transaction_cancel", () => {
-    it("cancel config transaction", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Cancel the third config transaction.
-      const transactionIndex = multisig.utils.toBigInt(3);
-
-      // First approve the transaction.
-      const approveSignature1 = await multisig.rpc.configTransactionApprove({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex,
-        member: members.voter,
-      });
-      await connection.confirmTransaction(approveSignature1);
-
-      const approveSignature2 = await multisig.rpc.configTransactionApprove({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex,
-        member: members.almighty,
-      });
-      await connection.confirmTransaction(approveSignature2);
-
-      // The transaction must be `ExecuteReady` now.
-      const [transactionPda] = multisig.getTransactionPda({
-        multisigPda,
-        index: transactionIndex,
-      });
-      let configTransactionAccount = await ConfigTransaction.fromAccountAddress(
-        connection,
-        transactionPda
-      );
-      assert.strictEqual(
-        configTransactionAccount.status,
-        TransactionStatus.ExecuteReady
-      );
-
-      // Now cancel the transaction.
-      const cancelSignature1 = await multisig.rpc.configTransactionCancel({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex,
-        member: members.voter,
-      });
-      await connection.confirmTransaction(cancelSignature1);
-
-      configTransactionAccount = await ConfigTransaction.fromAccountAddress(
-        connection,
-        transactionPda
-      );
-      // Our threshold is 2, so after the first cancel, the transaction is still `ExecuteReady`.
-      assert.deepEqual(
-        configTransactionAccount.status,
-        TransactionStatus.ExecuteReady
-      );
-
-      // Second member cancels the transaction.
-      const cancelSignature2 = await multisig.rpc.configTransactionCancel({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex,
-        member: members.almighty,
-      });
-      await connection.confirmTransaction(cancelSignature2);
-
-      configTransactionAccount = await ConfigTransaction.fromAccountAddress(
-        connection,
-        transactionPda
-      );
-      // Reached the threshold, so the transaction should be `Cancelled` now.
-      assert.deepEqual(
-        configTransactionAccount.status,
-        TransactionStatus.Cancelled
-      );
-
-      // Attempt to execute the cancelled transaction should fail.
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionExecute({
-            connection,
-            feePayer: members.almighty,
-            multisigPda,
-            transactionIndex,
-            rentPayer: members.almighty,
-            member: members.almighty,
-          }),
-        /Invalid transaction status/
-      );
-    });
-  });
-
-  describe("config_transaction_execute", () => {
-    it("execute a config transaction", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      // Execute the first config transaction.
-      const transactionIndex = multisig.utils.toBigInt(1);
-
-      const signature = await multisig.rpc.configTransactionExecute({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex,
-        member: members.almighty,
-        rentPayer: members.almighty,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Verify the transaction account.
-      const [transactionPda] = multisig.getTransactionPda({
-        multisigPda,
-        index: transactionIndex,
-      });
-      const configTransactionAccount =
-        await ConfigTransaction.fromAccountAddress(connection, transactionPda);
-      assert.strictEqual(
-        configTransactionAccount.status,
-        TransactionStatus.Executed
-      );
-
-      // Verify the multisig account.
-      const multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-      // The threshold should have been updated.
-      assert.strictEqual(multisigAccount.threshold, 1);
-    });
-
-    it("create, approve, execute in 1 Solana tx", async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      const transactionIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
-
-      const createIx = multisig.instructions.configTransactionCreate({
-        multisigPda,
-        transactionIndex,
-        creator: members.almighty.publicKey,
-        // Revert the threshold back to 2.
-        actions: [{ __kind: "ChangeThreshold", newThreshold: 2 }],
-      });
-
-      const approveIx = multisig.instructions.configTransactionApprove({
-        multisigPda,
-        transactionIndex,
-        member: members.almighty.publicKey,
-      });
-
-      const executeIx = multisig.instructions.configTransactionExecute({
-        multisigPda,
-        transactionIndex,
-        member: members.almighty.publicKey,
-        rentPayer: members.almighty.publicKey,
-      });
-
-      const message = new TransactionMessage({
-        payerKey: members.almighty.publicKey,
-        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-        instructions: [createIx, approveIx, executeIx],
-      }).compileToV0Message();
-
-      const tx = new VersionedTransaction(message);
-
-      tx.sign([members.almighty]);
-
-      const signature = await connection.sendTransaction(tx, {
-        skipPreflight: true,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Verify the multisig account.
-      multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      // The threshold should have been updated.
-      assert.strictEqual(multisigAccount.threshold, 2);
     });
   });
 
@@ -1328,6 +830,9 @@ describe("multisig", () => {
         connection,
         multisigPda
       );
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
 
       // Vault, index 0.
       const [vaultPda] = multisig.getVaultPda({
@@ -1346,9 +851,6 @@ describe("multisig", () => {
         recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
         instructions: [testIx],
       });
-
-      const transactionIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
 
       await assert.rejects(
         () =>
@@ -1421,6 +923,9 @@ describe("multisig", () => {
         multisigPda
       );
 
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+
       // Vault, index 0.
       const [vaultPda, vaultBump] = multisig.getVaultPda({
         multisigPda,
@@ -1451,9 +956,6 @@ describe("multisig", () => {
         recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
         instructions: [testIx1, testIx2],
       });
-
-      const transactionIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
 
       const signature = await multisig.rpc.vaultTransactionCreate({
         connection,
@@ -1486,15 +988,15 @@ describe("multisig", () => {
         transactionPda
       );
       assert.strictEqual(
-        transactionAccount.creator.toBase58(),
-        members.proposer.publicKey.toBase58()
-      );
-      assert.strictEqual(
         transactionAccount.multisig.toBase58(),
         multisigPda.toBase58()
       );
       assert.strictEqual(
-        transactionAccount.transactionIndex.toString(),
+        transactionAccount.creator.toBase58(),
+        members.proposer.publicKey.toBase58()
+      );
+      assert.strictEqual(
+        transactionAccount.index.toString(),
         transactionIndex.toString()
       );
       assert.strictEqual(transactionAccount.vaultBump, vaultBump);
@@ -1503,10 +1005,6 @@ describe("multisig", () => {
         new Uint8Array()
       );
       assert.strictEqual(transactionAccount.bump, transactionBump);
-      assert.strictEqual(transactionAccount.status, TransactionStatus.Active);
-      assert.deepEqual(transactionAccount.approved, []);
-      assert.deepEqual(transactionAccount.rejected, []);
-      assert.deepEqual(transactionAccount.cancelled, []);
       // TODO: verify the transaction message data.
       assert.ok(transactionAccount.message);
     });
@@ -1520,6 +1018,9 @@ describe("multisig", () => {
         connection,
         multisigPda
       );
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
 
       // Vault, index 0.
       const [vaultPda] = multisig.getVaultPda({
@@ -1539,9 +1040,6 @@ describe("multisig", () => {
         recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
         instructions: [testIx1],
       });
-
-      const transactionIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
 
       const signature = await multisig.rpc.vaultTransactionCreate({
         connection,
@@ -1576,6 +1074,10 @@ describe("multisig", () => {
         multisigPda
       );
 
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+      assert.strictEqual(transactionIndex.toString(), "6");
+
       // Vault, index 0.
       const [vaultPda] = multisig.getVaultPda({
         multisigPda,
@@ -1594,10 +1096,6 @@ describe("multisig", () => {
         recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
         instructions: [testIx],
       });
-
-      const transactionIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
-      assert.strictEqual(transactionIndex.toString(), "7");
 
       const signature = await multisig.rpc.vaultTransactionCreate({
         connection,
@@ -1623,24 +1121,137 @@ describe("multisig", () => {
     });
   });
 
-  describe("vault_transaction_approve", () => {
+  describe("proposal_create", () => {
+    it("error: invalid transaction index", async () => {
+      const rentPayer = await generateFundedKeypair(connection);
+
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Attempt to create a proposal for a transaction that doesn't exist.
+      const transactionIndex = 7n;
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.proposalCreate({
+            connection,
+            feePayer: rentPayer,
+            multisigPda,
+            transactionIndex,
+            rentPayer,
+          }),
+        /Invalid transaction index/
+      );
+    });
+
+    it("anyone can create proposals for transactions", async () => {
+      const rentPayer = await generateFundedKeypair(connection);
+
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // The first config transaction.
+      const transactionIndex = 1n;
+
+      const signature = await multisig.rpc.proposalCreate({
+        connection,
+        feePayer: rentPayer,
+        multisigPda,
+        transactionIndex,
+        rentPayer,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Fetch the newly created Proposal account.
+      const [proposalPda, proposalBump] = multisig.getProposalPda({
+        multisigPda,
+        transactionIndex,
+      });
+      const proposalAccount = await Proposal.fromAccountAddress(
+        connection,
+        proposalPda
+      );
+
+      // Make sure the proposal was created correctly.
+      assert.strictEqual(
+        proposalAccount.multisig.toBase58(),
+        multisigPda.toBase58()
+      );
+      assert.strictEqual(
+        proposalAccount.transactionIndex.toString(),
+        transactionIndex.toString()
+      );
+      assert.ok(multisig.types.isProposalStatusActive(proposalAccount.status));
+      assert.ok(isCloseToNow(toBigInt(proposalAccount.status.timestamp)));
+      assert.strictEqual(proposalAccount.bump, proposalBump);
+      assert.deepEqual(proposalAccount.approved, []);
+      assert.deepEqual(proposalAccount.rejected, []);
+      assert.deepEqual(proposalAccount.cancelled, []);
+
+      // Also create proposals for the rest of the config transactions.
+
+      const transactionIndex2 = 2n;
+      const signature2 = await multisig.rpc.proposalCreate({
+        connection,
+        feePayer: rentPayer,
+        multisigPda,
+        transactionIndex: transactionIndex2,
+        rentPayer,
+      });
+      await connection.confirmTransaction(signature2);
+      const [proposalPda2] = multisig.getProposalPda({
+        multisigPda,
+        transactionIndex: transactionIndex2,
+      });
+      const proposalAccount2 = await Proposal.fromAccountAddress(
+        connection,
+        proposalPda2
+      );
+      assert.strictEqual(
+        proposalAccount2.transactionIndex.toString(),
+        transactionIndex2.toString()
+      );
+
+      const transactionIndex3 = 3n;
+      const signature3 = await multisig.rpc.proposalCreate({
+        connection,
+        feePayer: rentPayer,
+        multisigPda,
+        transactionIndex: transactionIndex3,
+        rentPayer,
+      });
+      await connection.confirmTransaction(signature3);
+      const [proposalPda3] = multisig.getProposalPda({
+        multisigPda,
+        transactionIndex: transactionIndex3,
+      });
+      const proposalAccount3 = await Proposal.fromAccountAddress(
+        connection,
+        proposalPda3
+      );
+      assert.strictEqual(
+        proposalAccount3.transactionIndex.toString(),
+        transactionIndex3.toString()
+      );
+    });
+  });
+
+  describe("proposal_approve", () => {
     it("error: not a member", async () => {
       const nonMember = await generateFundedKeypair(connection);
 
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
 
-      // Approve the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(6);
+      // Approve the proposal for the first config transaction.
+      const transactionIndex = 1n;
 
       await assert.rejects(
         () =>
-          multisig.rpc.vaultTransactionApprove({
+          multisig.rpc.proposalApprove({
             connection,
             feePayer: nonMember,
             multisigPda,
@@ -1655,59 +1266,57 @@ describe("multisig", () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
 
-      // Approve the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(6);
+      // Approve the proposal for the first config transaction.
+      const transactionIndex = 1n;
 
       await assert.rejects(
         () =>
-          multisig.rpc.vaultTransactionApprove({
+          multisig.rpc.proposalApprove({
             connection,
             feePayer: members.executor,
             multisigPda,
             transactionIndex,
+            // Executor is not authorized to approve config transactions.
             member: members.executor,
           }),
         /Attempted to perform an unauthorized action/
       );
     });
 
-    it("approve vault transaction", async () => {
+    it("approve config transaction", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
 
-      // Approve the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(5);
+      // Approve the proposal for the first config transaction.
+      const transactionIndex = 1n;
 
-      const signature = await multisig.rpc.vaultTransactionApprove({
+      const signature = await multisig.rpc.proposalApprove({
         connection,
         feePayer: members.voter,
         multisigPda,
         transactionIndex,
         member: members.voter,
-        memo: "LGTM",
       });
       await connection.confirmTransaction(signature);
 
-      // Verify the transaction account.
-      const [transactionPda] = multisig.getTransactionPda({
+      // Fetch the Proposal account.
+      const [proposalPda] = multisig.getProposalPda({
         multisigPda,
-        index: transactionIndex,
+        transactionIndex,
       });
-      const transactionAccount = await VaultTransaction.fromAccountAddress(
+      const proposalAccount = await Proposal.fromAccountAddress(
         connection,
-        transactionPda
+        proposalPda
       );
-      assert.deepEqual(transactionAccount.approved, [members.voter.publicKey]);
-      assert.deepEqual(transactionAccount.rejected, []);
-      assert.deepEqual(transactionAccount.cancelled, []);
-      // Our threshold is 2, so the transaction is not yet ExecutionReady.
-      assert.strictEqual(transactionAccount.status, TransactionStatus.Active);
+
+      // Assertions.
+      assert.deepEqual(proposalAccount.approved, [members.voter.publicKey]);
+      assert.deepEqual(proposalAccount.rejected, []);
+      assert.deepEqual(proposalAccount.cancelled, []);
+      // Our threshold is 2, so the proposal is not yet Approved.
+      assert.ok(multisig.types.isProposalStatusActive(proposalAccount.status));
     });
 
     it("error: already approved", async () => {
@@ -1715,12 +1324,12 @@ describe("multisig", () => {
         createKey: autonomousMultisigCreateKey.publicKey,
       });
 
-      // Approve the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(5);
+      // Approve the proposal for the first config transaction once again.
+      const transactionIndex = 1n;
 
       await assert.rejects(
         () =>
-          multisig.rpc.vaultTransactionApprove({
+          multisig.rpc.proposalApprove({
             connection,
             feePayer: members.voter,
             multisigPda,
@@ -1731,46 +1340,45 @@ describe("multisig", () => {
       );
     });
 
-    it("approve transaction and reach threshold", async () => {
+    it("approve config transaction and reach threshold", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
 
-      // Approve the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(5);
+      // Approve the proposal for the first config transaction.
+      const transactionIndex = 1n;
 
-      const signature = await multisig.rpc.vaultTransactionApprove({
+      const signature = await multisig.rpc.proposalApprove({
         connection,
         feePayer: members.almighty,
         multisigPda,
         transactionIndex,
         member: members.almighty,
-        memo: "LGTM",
-        signers: [members.almighty],
       });
       await connection.confirmTransaction(signature);
 
-      // Verify the transaction account.
-      const [transactionPda] = multisig.getTransactionPda({
+      // Fetch the Proposal account.
+      const [proposalPda] = multisig.getProposalPda({
         multisigPda,
-        index: transactionIndex,
+        transactionIndex,
       });
-      const transactionAccount = await VaultTransaction.fromAccountAddress(
+      const proposalAccount = await Proposal.fromAccountAddress(
         connection,
-        transactionPda
+        proposalPda
       );
+
+      // Assertions.
       assert.deepEqual(
-        transactionAccount.approved.map((key) => key.toBase58()),
+        proposalAccount.approved.map((key) => key.toBase58()),
         [members.voter.publicKey, members.almighty.publicKey]
           .sort(comparePubkeys)
           .map((key) => key.toBase58())
       );
-      assert.deepEqual(transactionAccount.rejected, []);
-      assert.deepEqual(transactionAccount.cancelled, []);
-      // We reached the threshold, so the transaction is ExecutionReady now.
-      assert.strictEqual(
-        transactionAccount.status,
-        TransactionStatus.ExecuteReady
+      assert.deepEqual(proposalAccount.rejected, []);
+      assert.deepEqual(proposalAccount.cancelled, []);
+      // Our threshold is 2, so the transaction is now Approved.
+      assert.ok(
+        multisig.types.isProposalStatusApproved(proposalAccount.status)
       );
     });
 
@@ -1778,10 +1386,31 @@ describe("multisig", () => {
 
     it("error: invalid transaction status");
 
-    it("error: transaction is not for multisig");
+    it("error: proposal is not for multisig");
   });
 
-  describe("vault_transaction_reject", () => {
+  describe("proposal_reject", () => {
+    it("error: try to reject an approved proposal", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Reject the proposal for the first config transaction.
+      const transactionIndex = 1n;
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.proposalReject({
+            connection,
+            feePayer: members.voter,
+            multisigPda,
+            transactionIndex,
+            member: members.voter,
+          }),
+        /Invalid proposal status/
+      );
+    });
+
     it("error: not a member", async () => {
       const nonMember = await generateFundedKeypair(connection);
 
@@ -1789,12 +1418,12 @@ describe("multisig", () => {
         createKey: autonomousMultisigCreateKey.publicKey,
       });
 
-      // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(6);
+      // Reject the proposal for the second config transaction.
+      const transactionIndex = 2n;
 
       await assert.rejects(
         () =>
-          multisig.rpc.vaultTransactionReject({
+          multisig.rpc.proposalReject({
             connection,
             feePayer: nonMember,
             multisigPda,
@@ -1810,12 +1439,12 @@ describe("multisig", () => {
         createKey: autonomousMultisigCreateKey.publicKey,
       });
 
-      // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(6);
+      // Reject the proposal for the second config transaction.
+      const transactionIndex = 2n;
 
       await assert.rejects(
         () =>
-          multisig.rpc.vaultTransactionApprove({
+          multisig.rpc.proposalReject({
             connection,
             feePayer: members.executor,
             multisigPda,
@@ -1826,7 +1455,7 @@ describe("multisig", () => {
       );
     });
 
-    it("reject transaction and reach cutoff", async () => {
+    it("reject proposal and reach cutoff", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
@@ -1835,10 +1464,10 @@ describe("multisig", () => {
         multisigPda
       );
 
-      // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(6);
+      // Reject the proposal for the second config transaction.
+      const transactionIndex = 2n;
 
-      const signature = await multisig.rpc.vaultTransactionReject({
+      const signature = await multisig.rpc.proposalReject({
         connection,
         feePayer: members.voter,
         multisigPda,
@@ -1848,18 +1477,18 @@ describe("multisig", () => {
       });
       await connection.confirmTransaction(signature);
 
-      // Verify the transaction account.
-      const [transactionPda] = multisig.getTransactionPda({
+      // Fetch the Proposal account.
+      const [proposalPda] = multisig.getProposalPda({
         multisigPda,
-        index: transactionIndex,
+        transactionIndex,
       });
-      const transactionAccount = await VaultTransaction.fromAccountAddress(
+      const proposalAccount = await Proposal.fromAccountAddress(
         connection,
-        transactionPda
+        proposalPda
       );
-      assert.deepEqual(transactionAccount.approved, []);
-      assert.deepEqual(transactionAccount.rejected, [members.voter.publicKey]);
-      assert.deepEqual(transactionAccount.cancelled, []);
+      assert.deepEqual(proposalAccount.approved, []);
+      assert.deepEqual(proposalAccount.rejected, [members.voter.publicKey]);
+      assert.deepEqual(proposalAccount.cancelled, []);
       // Our threshold is 2, and 2 voters, so the cutoff is 1...
       assert.strictEqual(multisigAccount.threshold, 2);
       assert.strictEqual(
@@ -1868,8 +1497,10 @@ describe("multisig", () => {
         ).length,
         2
       );
-      // ...thus we've reached the cutoff, and the transaction is now Rejected.
-      assert.strictEqual(transactionAccount.status, TransactionStatus.Rejected);
+      // ...thus we've reached the cutoff, and the proposal is now Rejected.
+      assert.ok(
+        multisig.types.isProposalStatusRejected(proposalAccount.status)
+      );
     });
 
     it("error: invalid status (Rejected)", async () => {
@@ -1877,19 +1508,19 @@ describe("multisig", () => {
         createKey: autonomousMultisigCreateKey.publicKey,
       });
 
-      // Reject the second vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(6);
+      // Reject the proposal for the second config transaction.
+      const transactionIndex = 2n;
 
       await assert.rejects(
         () =>
-          multisig.rpc.vaultTransactionReject({
+          multisig.rpc.proposalReject({
             connection,
             feePayer: members.almighty,
             multisigPda,
             transactionIndex,
             member: members.almighty,
           }),
-        /Invalid transaction status/
+        /Invalid proposal status/
       );
     });
 
@@ -1898,17 +1529,17 @@ describe("multisig", () => {
     it("error: transaction is not for multisig");
   });
 
-  describe("vault_transaction_cancel", () => {
-    it("cancel vault transaction", async () => {
+  describe("proposal_cancel", () => {
+    it("cancel proposal", async () => {
       const [multisigPda] = multisig.getMultisigPda({
         createKey: autonomousMultisigCreateKey.publicKey,
       });
 
-      // Cancel the third vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(7);
+      // Cancel the proposal for the third config transaction.
+      const transactionIndex = 3n;
 
       // First approve the transaction.
-      const approveSignature1 = await multisig.rpc.vaultTransactionApprove({
+      const approveSignature1 = await multisig.rpc.proposalApprove({
         connection,
         feePayer: members.voter,
         multisigPda,
@@ -1917,7 +1548,7 @@ describe("multisig", () => {
       });
       await connection.confirmTransaction(approveSignature1);
 
-      const approveSignature2 = await multisig.rpc.vaultTransactionApprove({
+      const approveSignature2 = await multisig.rpc.proposalApprove({
         connection,
         feePayer: members.almighty,
         multisigPda,
@@ -1926,43 +1557,40 @@ describe("multisig", () => {
       });
       await connection.confirmTransaction(approveSignature2);
 
-      // The transaction must be `ExecuteReady` now.
-      const [transactionPda] = multisig.getTransactionPda({
+      // The proposal must be `Approved` now.
+      const [proposalPda] = multisig.getProposalPda({
         multisigPda,
-        index: transactionIndex,
+        transactionIndex,
       });
-      let vaultTransactionAccount = await VaultTransaction.fromAccountAddress(
+      let proposalAccount = await Proposal.fromAccountAddress(
         connection,
-        transactionPda
+        proposalPda
       );
-      assert.strictEqual(
-        vaultTransactionAccount.status,
-        TransactionStatus.ExecuteReady
+      assert.ok(
+        multisig.types.isProposalStatusApproved(proposalAccount.status)
       );
 
       // Now cancel the transaction.
-      const cancelSignature1 = await multisig.rpc.vaultTransactionCancel({
+      const cancelSignature1 = await multisig.rpc.proposalCancel({
         connection,
         feePayer: members.voter,
         multisigPda,
         transactionIndex,
         member: members.voter,
       });
-
       await connection.confirmTransaction(cancelSignature1);
 
-      vaultTransactionAccount = await VaultTransaction.fromAccountAddress(
+      proposalAccount = await Proposal.fromAccountAddress(
         connection,
-        transactionPda
+        proposalPda
       );
-      // Our threshold is 2, so after the first cancel, the transaction is still `ExecuteReady`.
-      assert.deepEqual(
-        vaultTransactionAccount.status,
-        TransactionStatus.ExecuteReady
+      // Our threshold is 2, so after the first cancel, the proposal is still `Approved`.
+      assert.ok(
+        multisig.types.isProposalStatusApproved(proposalAccount.status)
       );
 
       // Second member cancels the transaction.
-      const cancelSignature2 = await multisig.rpc.vaultTransactionCancel({
+      const cancelSignature2 = await multisig.rpc.proposalCancel({
         connection,
         feePayer: members.almighty,
         multisigPda,
@@ -1971,14 +1599,13 @@ describe("multisig", () => {
       });
       await connection.confirmTransaction(cancelSignature2);
 
-      vaultTransactionAccount = await VaultTransaction.fromAccountAddress(
+      proposalAccount = await Proposal.fromAccountAddress(
         connection,
-        transactionPda
+        proposalPda
       );
       // Reached the threshold, so the transaction should be `Cancelled` now.
-      assert.deepEqual(
-        vaultTransactionAccount.status,
-        TransactionStatus.Cancelled
+      assert.ok(
+        multisig.types.isProposalStatusCancelled(proposalAccount.status)
       );
     });
   });
@@ -1990,7 +1617,7 @@ describe("multisig", () => {
       });
 
       // Execute the first vault transaction.
-      const transactionIndex = multisig.utils.toBigInt(5);
+      const transactionIndex = 4n;
 
       const [transactionPda] = multisig.getTransactionPda({
         multisigPda,
@@ -2001,6 +1628,44 @@ describe("multisig", () => {
         transactionPda
       );
 
+      const [proposalPda] = multisig.getProposalPda({
+        multisigPda,
+        transactionIndex,
+      });
+      const proposalAccountInfo = await connection.getAccountInfo(proposalPda);
+      // This transaction doesn't have a proposal yet.
+      assert.strictEqual(proposalAccountInfo, null);
+
+      // Create a proposal for the transaction.
+      let signature = await multisig.rpc.proposalCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda,
+        transactionIndex,
+        rentPayer: members.proposer,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Approve the proposal by the first member.
+      signature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex,
+        member: members.voter,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Approve the proposal by the second member.
+      signature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex,
+        member: members.almighty,
+      });
+      await connection.confirmTransaction(signature);
+
       const [vaultPda] = multisig.getVaultPda({
         multisigPda,
         index: transactionAccount.vaultIndex,
@@ -2008,7 +1673,8 @@ describe("multisig", () => {
       const preVaultBalance = await connection.getBalance(vaultPda);
       assert.strictEqual(preVaultBalance, 2 * LAMPORTS_PER_SOL);
 
-      const signature = await multisig.rpc.vaultTransactionExecute({
+      // Execute the transaction.
+      signature = await multisig.rpc.vaultTransactionExecute({
         connection,
         feePayer: members.executor,
         multisigPda,
@@ -2019,11 +1685,13 @@ describe("multisig", () => {
       await connection.confirmTransaction(signature);
 
       // Verify the transaction account.
-      transactionAccount = await VaultTransaction.fromAccountAddress(
+      const proposalAccount = await Proposal.fromAccountAddress(
         connection,
-        transactionPda
+        proposalPda
       );
-      assert.strictEqual(transactionAccount.status, TransactionStatus.Executed);
+      assert.ok(
+        multisig.types.isProposalStatusExecuted(proposalAccount.status)
+      );
 
       const postVaultBalance = await connection.getBalance(vaultPda);
       // Transferred 2 SOL to payee.
@@ -2039,6 +1707,141 @@ describe("multisig", () => {
     it("error: transaction is not for multisig");
 
     it("error: execute reentrancy");
+  });
+
+  describe("config_transaction_execute", () => {
+    it("error: invalid proposal status (Cancelled)", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Attempt to execute a transaction with a cancelled proposal.
+      const transactionIndex = 3n;
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.configTransactionExecute({
+            connection,
+            feePayer: members.almighty,
+            multisigPda,
+            transactionIndex,
+            rentPayer: members.almighty,
+            member: members.almighty,
+          }),
+        /Invalid proposal status/
+      );
+    });
+
+    it("execute a config transaction", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+
+      // Execute the first config transaction.
+      const transactionIndex = 1n;
+
+      const signature = await multisig.rpc.configTransactionExecute({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex,
+        member: members.almighty,
+        rentPayer: members.almighty,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Verify the transaction account.
+      const [proposalPda] = multisig.getProposalPda({
+        multisigPda,
+        transactionIndex,
+      });
+      const proposalAccount = await Proposal.fromAccountAddress(
+        connection,
+        proposalPda
+      );
+      assert.ok(
+        multisig.types.isProposalStatusExecuted(proposalAccount.status)
+      );
+
+      // Verify the multisig account.
+      const multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+      // The threshold should have been updated.
+      assert.strictEqual(multisigAccount.threshold, 1);
+    });
+
+    it("create, approve, execute in 1 Solana tx", async () => {
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: autonomousMultisigCreateKey.publicKey,
+      });
+      let multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      const transactionIndex =
+        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+
+      const createTransactionIx = multisig.instructions.configTransactionCreate(
+        {
+          multisigPda,
+          transactionIndex,
+          creator: members.almighty.publicKey,
+          // Revert the threshold back to 2.
+          actions: [{ __kind: "ChangeThreshold", newThreshold: 2 }],
+        }
+      );
+      const createProposalIx = multisig.instructions.proposalCreate({
+        multisigPda,
+        transactionIndex,
+        rentPayer: members.almighty.publicKey,
+      });
+
+      const approveProposalIx = multisig.instructions.proposalApprove({
+        multisigPda,
+        transactionIndex,
+        member: members.almighty.publicKey,
+      });
+
+      const executeTransactionIx =
+        multisig.instructions.configTransactionExecute({
+          multisigPda,
+          transactionIndex,
+          member: members.almighty.publicKey,
+          rentPayer: members.almighty.publicKey,
+        });
+
+      const message = new TransactionMessage({
+        payerKey: members.almighty.publicKey,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [
+          createTransactionIx,
+          createProposalIx,
+          approveProposalIx,
+          executeTransactionIx,
+        ],
+      }).compileToV0Message();
+
+      const tx = new VersionedTransaction(message);
+
+      tx.sign([members.almighty]);
+
+      const signature = await connection.sendTransaction(tx, {
+        skipPreflight: true,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Verify the multisig account.
+      multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      // The threshold should have been updated.
+      assert.strictEqual(multisigAccount.threshold, 2);
+    });
   });
 
   describe("utils", () => {
@@ -2189,27 +1992,35 @@ describe("multisig", () => {
         new Uint8Array([mintBump])
       );
 
+      // Create Proposal
+      signature = await multisig.rpc.proposalCreate({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex,
+        rentPayer: members.voter,
+      });
+      await connection.confirmTransaction(signature);
+
       // Approve 1
-      signature = await multisig.rpc.vaultTransactionApprove({
+      signature = await multisig.rpc.proposalApprove({
         connection,
         feePayer: members.voter,
         multisigPda,
         transactionIndex,
         member: members.voter,
         memo: "LGTM",
-        signers: [members.voter],
       });
       await connection.confirmTransaction(signature);
 
       // Approve 2
-      signature = await multisig.rpc.vaultTransactionApprove({
+      signature = await multisig.rpc.proposalApprove({
         connection,
         feePayer: members.almighty,
         multisigPda,
         transactionIndex,
         member: members.almighty,
         memo: "LGTM too",
-        signers: [members.almighty],
       });
       await connection.confirmTransaction(signature);
 
@@ -2269,4 +2080,10 @@ async function createTestTransferInstruction(
 
 function comparePubkeys(a: PublicKey, b: PublicKey) {
   return a.toBuffer().compare(b.toBuffer());
+}
+
+/** Returns true if the given unix epoch is within a couple of seconds of now. */
+function isCloseToNow(unixEpoch: number | bigint) {
+  const timestamp = Number(unixEpoch) * 1000;
+  return Math.abs(timestamp - Date.now()) < 2000;
 }

@@ -2,15 +2,15 @@ use anchor_lang::prelude::*;
 
 pub use config_transaction::*;
 pub use multisig::*;
+pub use proposal::*;
 pub use seeds::*;
 pub use vault_transaction::*;
-pub use votes::*;
 
 mod config_transaction;
 mod multisig;
+mod proposal;
 mod seeds;
 mod vault_transaction;
-mod votes;
 
 #[derive(AnchorDeserialize, AnchorSerialize, Eq, PartialEq, Clone)]
 pub struct Member {
@@ -63,17 +63,19 @@ pub enum ConfigAction {
     ChangeThreshold { new_threshold: u16 },
 }
 
+/// The status of a proposal.
+/// Each variant wraps a timestamp of when the status was set.
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
 #[non_exhaustive]
-pub enum TransactionStatus {
-    /// Transaction is live and ready for voting.
-    Active,
-    /// Transaction has been rejected.
-    Rejected,
-    /// Transaction has been approved and is pending execution.
-    ExecuteReady,
-    /// Transaction has been executed.
-    Executed,
-    /// Transaction has been cancelled.
-    Cancelled,
+pub enum ProposalStatus {
+    /// Proposal is live and ready for voting.
+    Active { timestamp: i64 },
+    /// Proposal has been rejected.
+    Rejected { timestamp: i64 },
+    /// Proposal has been approved and is pending execution.
+    Approved { timestamp: i64 },
+    /// Proposal has been executed.
+    Executed { timestamp: i64 },
+    /// Proposal has been cancelled.
+    Cancelled { timestamp: i64 },
 }

@@ -6,6 +6,7 @@ const SEED_PREFIX = toUtfBytes("multisig");
 const SEED_MULTISIG = toUtfBytes("multisig");
 const SEED_VAULT = toUtfBytes("vault");
 const SEED_TRANSACTION = toUtfBytes("transaction");
+const SEED_PROPOSAL = toUtfBytes("proposal");
 const SEED_EPHEMERAL_SIGNER = toUtfBytes("ephemeral_signer");
 
 export function getMultisigPda({
@@ -69,6 +70,28 @@ export function getTransactionPda({
 }): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [SEED_PREFIX, multisigPda.toBytes(), SEED_TRANSACTION, toU64Bytes(index)],
+    programId
+  );
+}
+
+export function getProposalPda({
+  multisigPda,
+  transactionIndex,
+  programId = PROGRAM_ID,
+}: {
+  multisigPda: PublicKey;
+  /** Transaction index. */
+  transactionIndex: bigint;
+  programId?: PublicKey;
+}): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [
+      SEED_PREFIX,
+      multisigPda.toBytes(),
+      SEED_TRANSACTION,
+      toU64Bytes(transactionIndex),
+      SEED_PROPOSAL,
+    ],
     programId
   );
 }

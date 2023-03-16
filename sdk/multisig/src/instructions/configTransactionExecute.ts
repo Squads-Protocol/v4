@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import { createConfigTransactionExecuteInstruction } from "../generated";
-import { getTransactionPda } from "../pda";
+import { getProposalPda, getTransactionPda } from "../pda";
 
 export function configTransactionExecute({
   multisigPda,
@@ -13,14 +13,19 @@ export function configTransactionExecute({
   member: PublicKey;
   rentPayer: PublicKey;
 }) {
+  const [proposalPda] = getProposalPda({
+    multisigPda,
+    transactionIndex,
+  });
   const [transactionPda] = getTransactionPda({
     multisigPda,
     index: transactionIndex,
   });
 
   return createConfigTransactionExecuteInstruction({
-    member,
     multisig: multisigPda,
+    member,
+    proposal: proposalPda,
     transaction: transactionPda,
     rentPayer,
   });

@@ -28,7 +28,7 @@ pub struct VaultTransactionCreate<'info> {
     #[account(
         init,
         payer = creator,
-        space = VaultTransaction::size(multisig.members.len(), args.ephemeral_signers, &args.transaction_message)?,
+        space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message)?,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
@@ -52,7 +52,6 @@ impl VaultTransactionCreate<'_> {
         } = self;
 
         // creator
-
         require!(
             multisig.is_member(creator.key()).is_some(),
             MultisigError::NotAMember
@@ -109,18 +108,13 @@ impl VaultTransactionCreate<'_> {
         let transaction_index = multisig.transaction_index.checked_add(1).unwrap();
 
         // Initialize the transaction fields.
-        transaction.creator = creator.key();
         transaction.multisig = multisig_key;
-        transaction.transaction_index = transaction_index;
-        transaction.settled_at = 0;
-        transaction.status = TransactionStatus::Active;
+        transaction.creator = creator.key();
+        transaction.index = transaction_index;
         transaction.bump = *ctx.bumps.get("transaction").unwrap();
         transaction.vault_index = args.vault_index;
         transaction.vault_bump = vault_bump;
         transaction.ephemeral_signer_bumps = additional_signer_bumps;
-        transaction.approved = Vec::new();
-        transaction.rejected = Vec::new();
-        transaction.cancelled = Vec::new();
         transaction.message = transaction_message.try_into()?;
 
         // Updated last transaction index in the multisig account.

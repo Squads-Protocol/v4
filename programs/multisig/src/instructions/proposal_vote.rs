@@ -1,0 +1,151 @@
+use anchor_lang::prelude::*;
+
+use crate::errors::*;
+use crate::events::*;
+use crate::state::*;
+
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct ProposalVoteArgs {
+    pub memo: Option<String>,
+}
+
+#[derive(Accounts)]
+pub struct ProposalVote<'info> {
+    #[account(
+        mut,
+        seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
+        bump = multisig.bump,
+    )]
+    pub multisig: Account<'info, Multisig>,
+
+    #[account(
+        mut,
+        seeds = [
+            SEED_PREFIX,
+            multisig.key().as_ref(),
+            SEED_TRANSACTION,
+            &proposal.transaction_index.to_le_bytes(),
+            SEED_PROPOSAL,
+        ],
+        bump = proposal.bump,
+    )]
+    pub proposal: Account<'info, Proposal>,
+
+    #[account(mut)]
+    pub member: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+impl ProposalVote<'_> {
+    fn validate(&self, vote: Vote) -> Result<()> {
+        let Self {
+            multisig,
+            proposal,
+            member,
+            ..
+        } = self;
+
+        // proposal
+        match vote {
+            Vote::Approve | Vote::Reject => {
+                require!(
+                    matches!(proposal.status, ProposalStatus::Active { .. }),
+                    MultisigError::InvalidProposalStatus
+                );
+            }
+            Vote::Cancel => {
+                require!(
+                    matches!(proposal.status, ProposalStatus::Approved { .. }),
+                    MultisigError::InvalidProposalStatus
+                );
+            }
+        }
+        require!(
+            proposal.transaction_index > multisig.stale_transaction_index,
+            MultisigError::StaleProposal
+        );
+        require_keys_eq!(
+            proposal.multisig,
+            multisig.key(),
+            MultisigError::ProposalNotForMultisig
+        );
+
+        // creator
+        require!(
+            multisig.is_member(member.key()).is_some(),
+            MultisigError::NotAMember
+        );
+        require!(
+            multisig.member_has_permission(member.key(), Permission::Vote),
+            MultisigError::Unauthorized
+        );
+
+        Ok(())
+    }
+
+    /// Approve a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Active`.
+    #[access_control(ctx.accounts.validate(Vote::Approve))]
+    pub fn proposal_approve(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+        let proposal = &mut ctx.accounts.proposal;
+        let member = &mut ctx.accounts.member;
+
+        proposal.approve(member.key(), usize::from(multisig.threshold))?;
+
+        emit!(ProposalApproved {
+            multisig: multisig.key(),
+            proposal: proposal.key(),
+            memo: args.memo,
+        });
+
+        Ok(())
+    }
+
+    /// Reject a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Active`.
+    #[access_control(ctx.accounts.validate(Vote::Reject))]
+    pub fn proposal_reject(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+        let proposal = &mut ctx.accounts.proposal;
+        let member = &mut ctx.accounts.member;
+
+        let cutoff = Multisig::cutoff(multisig);
+
+        proposal.reject(member.key(), cutoff)?;
+
+        emit!(ProposalRejected {
+            multisig: multisig.key(),
+            proposal: proposal.key(),
+            memo: args.memo,
+        });
+
+        Ok(())
+    }
+
+    /// Cancel a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Approved`.
+    #[access_control(ctx.accounts.validate(Vote::Cancel))]
+    pub fn proposal_cancel(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+        let proposal = &mut ctx.accounts.proposal;
+        let member = &mut ctx.accounts.member;
+
+        proposal.cancel(member.key(), usize::from(multisig.threshold))?;
+
+        emit!(ProposalCancelled {
+            multisig: multisig.key(),
+            proposal: proposal.key(),
+            memo: args.memo,
+        });
+
+        Ok(())
+    }
+}
+
+pub enum Vote {
+    Approve,
+    Reject,
+    Cancel,
+}

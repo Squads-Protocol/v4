@@ -8,7 +8,8 @@ import {
 import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
 
-export async function configTransactionApprove({
+/** Cancel a config transaction on behalf of the `member`. */
+export async function proposalCancel({
   connection,
   feePayer,
   member,
@@ -27,7 +28,7 @@ export async function configTransactionApprove({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.configTransactionApprove({
+  const tx = transactions.proposalCancel({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,

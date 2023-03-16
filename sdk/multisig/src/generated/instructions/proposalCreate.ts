@@ -8,89 +8,95 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  VaultTransactionVoteArgs,
-  vaultTransactionVoteArgsBeet,
-} from '../types/VaultTransactionVoteArgs'
+  ProposalCreateArgs,
+  proposalCreateArgsBeet,
+} from '../types/ProposalCreateArgs'
 
 /**
  * @category Instructions
- * @category VaultTransactionCancel
+ * @category ProposalCreate
  * @category generated
  */
-export type VaultTransactionCancelInstructionArgs = {
-  args: VaultTransactionVoteArgs
+export type ProposalCreateInstructionArgs = {
+  args: ProposalCreateArgs
 }
 /**
  * @category Instructions
- * @category VaultTransactionCancel
+ * @category ProposalCreate
  * @category generated
  */
-export const vaultTransactionCancelStruct = new beet.FixableBeetArgsStruct<
-  VaultTransactionCancelInstructionArgs & {
+export const proposalCreateStruct = new beet.BeetArgsStruct<
+  ProposalCreateInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', vaultTransactionVoteArgsBeet],
+    ['args', proposalCreateArgsBeet],
   ],
-  'VaultTransactionCancelInstructionArgs'
+  'ProposalCreateInstructionArgs'
 )
 /**
- * Accounts required by the _vaultTransactionCancel_ instruction
+ * Accounts required by the _proposalCreate_ instruction
  *
- * @property [] multisig
- * @property [_writable_] transaction
- * @property [**signer**] member
+ * @property [_writable_] multisig
+ * @property [_writable_] proposal
+ * @property [_writable_, **signer**] rentPayer
  * @category Instructions
- * @category VaultTransactionCancel
+ * @category ProposalCreate
  * @category generated
  */
-export type VaultTransactionCancelInstructionAccounts = {
+export type ProposalCreateInstructionAccounts = {
   multisig: web3.PublicKey
-  transaction: web3.PublicKey
-  member: web3.PublicKey
+  proposal: web3.PublicKey
+  rentPayer: web3.PublicKey
+  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const vaultTransactionCancelInstructionDiscriminator = [
-  107, 181, 185, 131, 255, 185, 50, 17,
+export const proposalCreateInstructionDiscriminator = [
+  220, 60, 73, 224, 30, 108, 79, 159,
 ]
 
 /**
- * Creates a _VaultTransactionCancel_ instruction.
+ * Creates a _ProposalCreate_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category VaultTransactionCancel
+ * @category ProposalCreate
  * @category generated
  */
-export function createVaultTransactionCancelInstruction(
-  accounts: VaultTransactionCancelInstructionAccounts,
-  args: VaultTransactionCancelInstructionArgs,
+export function createProposalCreateInstruction(
+  accounts: ProposalCreateInstructionAccounts,
+  args: ProposalCreateInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = vaultTransactionCancelStruct.serialize({
-    instructionDiscriminator: vaultTransactionCancelInstructionDiscriminator,
+  const [data] = proposalCreateStruct.serialize({
+    instructionDiscriminator: proposalCreateInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: false,
-      isSigner: false,
-    },
-    {
-      pubkey: accounts.transaction,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.member,
-      isWritable: false,
+      pubkey: accounts.proposal,
+      isWritable: true,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.rentPayer,
+      isWritable: true,
       isSigner: true,
+    },
+    {
+      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
+      isWritable: false,
+      isSigner: false,
     },
   ]
 

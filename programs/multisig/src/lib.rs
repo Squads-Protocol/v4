@@ -52,35 +52,8 @@ pub mod multisig {
         ConfigTransactionCreate::config_transaction_create(ctx, args)
     }
 
-    /// Approve a config transaction on behalf of the `member`.
-    /// The transaction must be `Active`.
-    pub fn config_transaction_approve(
-        ctx: Context<ConfigTransactionVote>,
-        args: ConfigTransactionVoteArgs,
-    ) -> Result<()> {
-        ConfigTransactionVote::config_transaction_approve(ctx, args)
-    }
-
-    /// Reject a config transaction on behalf of the `member`.
-    /// The transaction must be `Active`.
-    pub fn config_transaction_reject(
-        ctx: Context<ConfigTransactionVote>,
-        args: ConfigTransactionVoteArgs,
-    ) -> Result<()> {
-        ConfigTransactionVote::config_transaction_reject(ctx, args)
-    }
-
-    /// Cancel a config transaction on behalf of the `member`.
-    /// The transaction must be `ExecuteReady`.
-    pub fn config_transaction_cancel(
-        ctx: Context<ConfigTransactionVote>,
-        args: ConfigTransactionVoteArgs,
-    ) -> Result<()> {
-        ConfigTransactionVote::config_transaction_cancel(ctx, args)
-    }
-
     /// Execute a config transaction.
-    /// The transaction must be `ExecuteReady`.
+    /// The transaction must be `Approved`.
     pub fn config_transaction_execute(ctx: Context<ConfigTransactionExecute>) -> Result<()> {
         ConfigTransactionExecute::config_transaction_execute(ctx)
     }
@@ -93,36 +66,32 @@ pub mod multisig {
         VaultTransactionCreate::vault_transaction_create(ctx, args)
     }
 
-    /// Approve a vault transaction on behalf of the `member`.
-    /// The transaction must be `Active`.
-    pub fn vault_transaction_approve(
-        ctx: Context<VaultTransactionVote>,
-        args: VaultTransactionVoteArgs,
-    ) -> Result<()> {
-        VaultTransactionVote::vault_transaction_approve(ctx, args)
-    }
-
-    /// Reject a vault transaction on behalf of the `member`.
-    /// The transaction must be `Active`.
-    pub fn vault_transaction_reject(
-        ctx: Context<VaultTransactionVote>,
-        args: VaultTransactionVoteArgs,
-    ) -> Result<()> {
-        VaultTransactionVote::vault_transaction_reject(ctx, args)
-    }
-
-    /// Cancel a vault transaction on behalf of the `member`.
-    /// The transaction must be `ExecuteReady`.
-    pub fn vault_transaction_cancel(
-        ctx: Context<VaultTransactionVote>,
-        args: VaultTransactionVoteArgs,
-    ) -> Result<()> {
-        VaultTransactionVote::vault_transaction_cancel(ctx, args)
-    }
-
     /// Execute a vault transaction.
-    /// The transaction must be `ExecuteReady`.
+    /// The transaction must be `Approved`.
     pub fn vault_transaction_execute(ctx: Context<VaultTransactionExecute>) -> Result<()> {
         VaultTransactionExecute::vault_transaction_execute(ctx)
+    }
+
+    /// Create a new multisig proposal.
+    pub fn proposal_create(ctx: Context<ProposalCreate>, args: ProposalCreateArgs) -> Result<()> {
+        ProposalCreate::proposal_create(ctx, args)
+    }
+
+    /// Approve a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Active`.
+    pub fn proposal_approve(ctx: Context<ProposalVote>, args: ProposalVoteArgs) -> Result<()> {
+        ProposalVote::proposal_approve(ctx, args)
+    }
+
+    /// Reject a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Active`.
+    pub fn proposal_reject(ctx: Context<ProposalVote>, args: ProposalVoteArgs) -> Result<()> {
+        ProposalVote::proposal_reject(ctx, args)
+    }
+
+    /// Cancel a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Approved`.
+    pub fn proposal_cancel(ctx: Context<ProposalVote>, args: ProposalVoteArgs) -> Result<()> {
+        ProposalVote::proposal_cancel(ctx, args)
     }
 }

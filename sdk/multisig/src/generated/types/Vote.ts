@@ -10,18 +10,17 @@ import * as beet from '@metaplex-foundation/beet'
  * @category enums
  * @category generated
  */
-export enum TransactionStatus {
-  Active,
-  Rejected,
-  ExecuteReady,
-  Executed,
-  Cancelled,
+export enum Vote {
+  Approve,
+  Reject,
+  Cancel,
 }
 
 /**
  * @category userTypes
  * @category generated
  */
-export const transactionStatusBeet = beet.fixedScalarEnum(
-  TransactionStatus
-) as beet.FixedSizeBeet<TransactionStatus, TransactionStatus>
+export const voteBeet = beet.fixedScalarEnum(Vote) as beet.FixedSizeBeet<
+  Vote,
+  Vote
+>

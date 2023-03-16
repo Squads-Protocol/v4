@@ -45,46 +45,55 @@ pub struct TransactionCreated {
     pub memo: Option<String>,
 }
 
-/// Transaction is approved.
-#[event]
-pub struct TransactionApproved {
-    /// The multisig account.
-    pub multisig: Pubkey,
-    /// The transaction account.
-    pub transaction: Pubkey,
-    #[index]
-    /// Memo that was added by the creator.
-    pub memo: Option<String>,
-}
-
-/// Transaction is rejected.
-#[event]
-pub struct TransactionRejected {
-    /// The multisig account.
-    pub multisig: Pubkey,
-    /// The transaction account.
-    pub transaction: Pubkey,
-    #[index]
-    /// Memo that was added by the creator.
-    pub memo: Option<String>,
-}
-/// Transaction is cancelled.
-#[event]
-pub struct TransactionCancelled {
-    /// The multisig account.
-    pub multisig: Pubkey,
-    /// The transaction account.
-    pub transaction: Pubkey,
-    #[index]
-    /// Memo that was added by the creator.
-    pub memo: Option<String>,
-}
-
-/// New multisig transaction account is created.
+/// Transaction account is executed.
 #[event]
 pub struct TransactionExecuted {
     /// The multisig account.
     pub multisig: Pubkey,
     /// The transaction account.
     pub transaction: Pubkey,
+}
+
+/// New multisig proposal account is created.
+#[event]
+pub struct ProposalCreated {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    /// The transaction account.
+    pub proposal: Pubkey,
+}
+
+/// Proposal is approved.
+#[event]
+pub struct ProposalApproved {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    /// The proposal account.
+    pub proposal: Pubkey,
+    #[index]
+    /// Memo that was added by the creator.
+    pub memo: Option<String>,
+}
+
+/// Proposal is rejected.
+#[event]
+pub struct ProposalRejected {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    /// The proposal account.
+    pub proposal: Pubkey,
+    #[index]
+    /// Memo that was added by the creator.
+    pub memo: Option<String>,
+}
+/// Proposal is cancelled.
+#[event]
+pub struct ProposalCancelled {
+    /// The multisig account.
+    pub multisig: Pubkey,
+    /// The proposal account.
+    pub proposal: Pubkey,
+    #[index]
+    /// Memo that was added by the creator.
+    pub memo: Option<String>,
 }

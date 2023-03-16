@@ -1,5 +1,10 @@
 import { AccountMeta, Connection, PublicKey } from "@solana/web3.js";
-import { getEphemeralSignerPda, getTransactionPda, getVaultPda } from "../pda";
+import {
+  getEphemeralSignerPda,
+  getProposalPda,
+  getTransactionPda,
+  getVaultPda,
+} from "../pda";
 import {
   createVaultTransactionExecuteInstruction,
   VaultTransaction,
@@ -18,6 +23,10 @@ export async function vaultTransactionExecute({
   transactionIndex: bigint;
   member: PublicKey;
 }) {
+  const [proposalPda] = getProposalPda({
+    multisigPda,
+    transactionIndex,
+  });
   const [transactionPda] = getTransactionPda({
     multisigPda,
     index: transactionIndex,
@@ -124,8 +133,9 @@ export async function vaultTransactionExecute({
 
   return createVaultTransactionExecuteInstruction({
     multisig: multisigPda,
-    transaction: transactionPda,
     member,
+    proposal: proposalPda,
+    transaction: transactionPda,
     anchorRemainingAccounts: remainingAccounts,
   });
 }

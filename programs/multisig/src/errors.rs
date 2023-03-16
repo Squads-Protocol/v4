@@ -16,10 +16,14 @@ pub enum MultisigError {
     NotAMember,
     #[msg("TransactionMessage is malformed.")]
     InvalidTransactionMessage,
-    #[msg("Transaction is stale")]
-    StaleTransaction,
-    #[msg("Invalid transaction status")]
-    InvalidTransactionStatus,
+    #[msg("Proposal is stale")]
+    StaleProposal,
+    #[msg("Invalid proposal status")]
+    InvalidProposalStatus,
+    #[msg("Invalid transaction index")]
+    InvalidTransactionIndex,
+    #[msg("Proposal does not belong to the multisig")]
+    ProposalNotForMultisig,
     #[msg("Transaction does not belong to the multisig")]
     TransactionNotForMultisig,
     #[msg("Member already approved the transaction")]
@@ -42,7 +46,7 @@ pub enum MultisigError {
     InvalidStaleTransactionIndex,
     #[msg("Instruction not supported for controlled multisig")]
     NotSupportedForControlled,
-    #[msg("Transaction time lock has not been released")]
+    #[msg("Proposal time lock has not been released")]
     TimeLockNotReleased,
     #[msg("Config transaction must have at least one action")]
     NoActions,

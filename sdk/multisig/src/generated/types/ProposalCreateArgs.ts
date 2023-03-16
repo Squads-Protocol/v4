@@ -6,16 +6,16 @@
  */
 
 import * as beet from '@metaplex-foundation/beet'
-export type VaultTransactionVoteArgs = {
-  memo: beet.COption<string>
+export type ProposalCreateArgs = {
+  transactionIndex: beet.bignum
 }
 
 /**
  * @category userTypes
  * @category generated
  */
-export const vaultTransactionVoteArgsBeet =
-  new beet.FixableBeetArgsStruct<VaultTransactionVoteArgs>(
-    [['memo', beet.coption(beet.utf8String)]],
-    'VaultTransactionVoteArgs'
+export const proposalCreateArgsBeet =
+  new beet.BeetArgsStruct<ProposalCreateArgs>(
+    [['transactionIndex', beet.u64]],
+    'ProposalCreateArgs'
   )

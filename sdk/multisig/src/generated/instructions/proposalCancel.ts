@@ -8,89 +8,95 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  ConfigTransactionVoteArgs,
-  configTransactionVoteArgsBeet,
-} from '../types/ConfigTransactionVoteArgs'
+  ProposalVoteArgs,
+  proposalVoteArgsBeet,
+} from '../types/ProposalVoteArgs'
 
 /**
  * @category Instructions
- * @category ConfigTransactionApprove
+ * @category ProposalCancel
  * @category generated
  */
-export type ConfigTransactionApproveInstructionArgs = {
-  args: ConfigTransactionVoteArgs
+export type ProposalCancelInstructionArgs = {
+  args: ProposalVoteArgs
 }
 /**
  * @category Instructions
- * @category ConfigTransactionApprove
+ * @category ProposalCancel
  * @category generated
  */
-export const configTransactionApproveStruct = new beet.FixableBeetArgsStruct<
-  ConfigTransactionApproveInstructionArgs & {
+export const proposalCancelStruct = new beet.FixableBeetArgsStruct<
+  ProposalCancelInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', configTransactionVoteArgsBeet],
+    ['args', proposalVoteArgsBeet],
   ],
-  'ConfigTransactionApproveInstructionArgs'
+  'ProposalCancelInstructionArgs'
 )
 /**
- * Accounts required by the _configTransactionApprove_ instruction
+ * Accounts required by the _proposalCancel_ instruction
  *
- * @property [] multisig
- * @property [_writable_] transaction
- * @property [**signer**] member
+ * @property [_writable_] multisig
+ * @property [_writable_] proposal
+ * @property [_writable_, **signer**] member
  * @category Instructions
- * @category ConfigTransactionApprove
+ * @category ProposalCancel
  * @category generated
  */
-export type ConfigTransactionApproveInstructionAccounts = {
+export type ProposalCancelInstructionAccounts = {
   multisig: web3.PublicKey
-  transaction: web3.PublicKey
+  proposal: web3.PublicKey
   member: web3.PublicKey
+  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const configTransactionApproveInstructionDiscriminator = [
-  224, 64, 69, 29, 11, 24, 247, 166,
+export const proposalCancelInstructionDiscriminator = [
+  27, 42, 127, 237, 38, 163, 84, 203,
 ]
 
 /**
- * Creates a _ConfigTransactionApprove_ instruction.
+ * Creates a _ProposalCancel_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category ConfigTransactionApprove
+ * @category ProposalCancel
  * @category generated
  */
-export function createConfigTransactionApproveInstruction(
-  accounts: ConfigTransactionApproveInstructionAccounts,
-  args: ConfigTransactionApproveInstructionArgs,
+export function createProposalCancelInstruction(
+  accounts: ProposalCancelInstructionAccounts,
+  args: ProposalCancelInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = configTransactionApproveStruct.serialize({
-    instructionDiscriminator: configTransactionApproveInstructionDiscriminator,
+  const [data] = proposalCancelStruct.serialize({
+    instructionDiscriminator: proposalCancelInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: false,
+      isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.transaction,
+      pubkey: accounts.proposal,
       isWritable: true,
       isSigner: false,
     },
     {
       pubkey: accounts.member,
-      isWritable: false,
+      isWritable: true,
       isSigner: true,
+    },
+    {
+      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
+      isWritable: false,
+      isSigner: false,
     },
   ]
 

@@ -9,10 +9,6 @@ import * as web3 from '@solana/web3.js'
 import * as beet from '@metaplex-foundation/beet'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
 import {
-  TransactionStatus,
-  transactionStatusBeet,
-} from '../types/TransactionStatus'
-import {
   VaultTransactionMessage,
   vaultTransactionMessageBeet,
 } from '../types/VaultTransactionMessage'
@@ -23,18 +19,13 @@ import {
  * @category generated
  */
 export type VaultTransactionArgs = {
-  creator: web3.PublicKey
   multisig: web3.PublicKey
-  transactionIndex: beet.bignum
-  settledAt: beet.bignum
-  status: TransactionStatus
+  creator: web3.PublicKey
+  index: beet.bignum
   bump: number
   vaultIndex: number
   vaultBump: number
   ephemeralSignerBumps: Uint8Array
-  approved: web3.PublicKey[]
-  rejected: web3.PublicKey[]
-  cancelled: web3.PublicKey[]
   message: VaultTransactionMessage
 }
 
@@ -50,18 +41,13 @@ export const vaultTransactionDiscriminator = [
  */
 export class VaultTransaction implements VaultTransactionArgs {
   private constructor(
-    readonly creator: web3.PublicKey,
     readonly multisig: web3.PublicKey,
-    readonly transactionIndex: beet.bignum,
-    readonly settledAt: beet.bignum,
-    readonly status: TransactionStatus,
+    readonly creator: web3.PublicKey,
+    readonly index: beet.bignum,
     readonly bump: number,
     readonly vaultIndex: number,
     readonly vaultBump: number,
     readonly ephemeralSignerBumps: Uint8Array,
-    readonly approved: web3.PublicKey[],
-    readonly rejected: web3.PublicKey[],
-    readonly cancelled: web3.PublicKey[],
     readonly message: VaultTransactionMessage
   ) {}
 
@@ -70,18 +56,13 @@ export class VaultTransaction implements VaultTransactionArgs {
    */
   static fromArgs(args: VaultTransactionArgs) {
     return new VaultTransaction(
-      args.creator,
       args.multisig,
-      args.transactionIndex,
-      args.settledAt,
-      args.status,
+      args.creator,
+      args.index,
       args.bump,
       args.vaultIndex,
       args.vaultBump,
       args.ephemeralSignerBumps,
-      args.approved,
-      args.rejected,
-      args.cancelled,
       args.message
     )
   }
@@ -191,10 +172,10 @@ export class VaultTransaction implements VaultTransactionArgs {
    */
   pretty() {
     return {
-      creator: this.creator.toBase58(),
       multisig: this.multisig.toBase58(),
-      transactionIndex: (() => {
-        const x = <{ toNumber: () => number }>this.transactionIndex
+      creator: this.creator.toBase58(),
+      index: (() => {
+        const x = <{ toNumber: () => number }>this.index
         if (typeof x.toNumber === 'function') {
           try {
             return x.toNumber()
@@ -204,25 +185,10 @@ export class VaultTransaction implements VaultTransactionArgs {
         }
         return x
       })(),
-      settledAt: (() => {
-        const x = <{ toNumber: () => number }>this.settledAt
-        if (typeof x.toNumber === 'function') {
-          try {
-            return x.toNumber()
-          } catch (_) {
-            return x
-          }
-        }
-        return x
-      })(),
-      status: 'TransactionStatus.' + TransactionStatus[this.status],
       bump: this.bump,
       vaultIndex: this.vaultIndex,
       vaultBump: this.vaultBump,
       ephemeralSignerBumps: this.ephemeralSignerBumps,
-      approved: this.approved,
-      rejected: this.rejected,
-      cancelled: this.cancelled,
       message: this.message,
     }
   }
@@ -240,18 +206,13 @@ export const vaultTransactionBeet = new beet.FixableBeetStruct<
 >(
   [
     ['accountDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['creator', beetSolana.publicKey],
     ['multisig', beetSolana.publicKey],
-    ['transactionIndex', beet.u64],
-    ['settledAt', beet.i64],
-    ['status', transactionStatusBeet],
+    ['creator', beetSolana.publicKey],
+    ['index', beet.u64],
     ['bump', beet.u8],
     ['vaultIndex', beet.u8],
     ['vaultBump', beet.u8],
     ['ephemeralSignerBumps', beet.bytes],
-    ['approved', beet.array(beetSolana.publicKey)],
-    ['rejected', beet.array(beetSolana.publicKey)],
-    ['cancelled', beet.array(beetSolana.publicKey)],
     ['message', vaultTransactionMessageBeet],
   ],
   VaultTransaction.fromArgs,

@@ -23,8 +23,9 @@ export const configTransactionExecuteStruct = new beet.BeetArgsStruct<{
  * Accounts required by the _configTransactionExecute_ instruction
  *
  * @property [_writable_] multisig
- * @property [_writable_] transaction
  * @property [**signer**] member
+ * @property [_writable_] proposal
+ * @property [_writable_] transaction
  * @property [_writable_, **signer**] rentPayer
  * @category Instructions
  * @category ConfigTransactionExecute
@@ -32,8 +33,9 @@ export const configTransactionExecuteStruct = new beet.BeetArgsStruct<{
  */
 export type ConfigTransactionExecuteInstructionAccounts = {
   multisig: web3.PublicKey
-  transaction: web3.PublicKey
   member: web3.PublicKey
+  proposal: web3.PublicKey
+  transaction: web3.PublicKey
   rentPayer: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
@@ -65,14 +67,19 @@ export function createConfigTransactionExecuteInstruction(
       isSigner: false,
     },
     {
-      pubkey: accounts.transaction,
+      pubkey: accounts.member,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.proposal,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.member,
-      isWritable: false,
-      isSigner: true,
+      pubkey: accounts.transaction,
+      isWritable: true,
+      isSigner: false,
     },
     {
       pubkey: accounts.rentPayer,

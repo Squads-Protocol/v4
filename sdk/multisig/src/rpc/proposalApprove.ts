@@ -8,32 +8,26 @@ import {
 import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
 
-/**
- * Cancel the transaction on behalf of the `member`.
- * The transaction must be `Active`.
- */
-export async function vaultTransactionCancel({
+export async function proposalApprove({
   connection,
   feePayer,
+  member,
   multisigPda,
   transactionIndex,
-  member,
   memo,
-  signers,
   sendOptions,
 }: {
   connection: Connection;
   feePayer: Signer;
+  member: Signer;
   multisigPda: PublicKey;
   transactionIndex: bigint;
-  member: Signer;
   memo?: string;
-  signers?: Signer[];
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.vaultTransactionCancel({
+  const tx = transactions.proposalApprove({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
@@ -42,7 +36,7 @@ export async function vaultTransactionCancel({
     memo,
   });
 
-  tx.sign([feePayer, member, ...(signers ?? [])]);
+  tx.sign([feePayer, member]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

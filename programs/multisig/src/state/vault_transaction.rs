@@ -4,24 +4,17 @@ use anchor_lang::solana_program::borsh::get_instance_packed_len;
 use crate::errors::*;
 use crate::instructions::{CompiledInstruction, MessageAddressTableLookup, TransactionMessage};
 
-use super::{TransactionStatus, Votes};
-
 /// Stores data required for tracking the voting and execution status of a vault transaction.
 /// Vault transaction is a transaction that's executed on behalf of the multisig vault PDA
 /// and wraps arbitrary Solana instructions, typically calling into other Solana programs.
 #[account]
 pub struct VaultTransaction {
-    /// Member of the Multisig who submitted the transaction.
-    pub creator: Pubkey,
     /// The multisig this belongs to.
     pub multisig: Pubkey,
+    /// Member of the Multisig who submitted the transaction.
+    pub creator: Pubkey,
     /// Index of this transaction within the multisig.
-    pub transaction_index: u64,
-    /// Unix Epoch when the transaction vote has settled, so it became either approved or rejected.
-    /// `0` if the transaction is not settled yet.
-    pub settled_at: i64,
-    /// The status of the transaction.
-    pub status: TransactionStatus,
+    pub index: u64,
     /// bump for the transaction seeds.
     pub bump: u8,
     /// Index of the vault this transaction belongs to.
@@ -36,76 +29,27 @@ pub struct VaultTransaction {
     /// during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,
     /// thus "signing" on behalf of these PDAs.  
     pub ephemeral_signer_bumps: Vec<u8>,
-    /// keys that have approved/signed.
-    pub approved: Vec<Pubkey>,
-    /// keys that have rejected.
-    pub rejected: Vec<Pubkey>,
-    /// keys that have cancelled (ExecuteReady only).
-    pub cancelled: Vec<Pubkey>,
     /// data required for executing the transaction.
     pub message: VaultTransactionMessage,
 }
 
 impl VaultTransaction {
-    pub fn size(
-        members_length: usize,
-        additional_signers_length: u8,
-        transaction_message: &[u8],
-    ) -> Result<usize> {
+    pub fn size(additional_signers_length: u8, transaction_message: &[u8]) -> Result<usize> {
         let transaction_message: VaultTransactionMessage =
             TransactionMessage::deserialize(&mut &transaction_message[..])?.try_into()?;
         let message_size = get_instance_packed_len(&transaction_message).unwrap_or_default();
 
         Ok(
             8 +   // anchor account discriminator
-            32 +  // creator
             32 +  // multisig
-            8 +   // transaction_index
-            8 +   // settled_at
-            1 +   // status
+            32 +  // creator
+            8 +   // index
             1 +   // bump 
             1 +   // vault_index
             1 +   // vault_bump
-            (4 + usize::from(additional_signers_length)) +   // additional_signer_bumps vec 
-            (4 + (members_length * 32)) + // approved vec
-            (4 + (members_length * 32)) + // rejected vec
-            (4 + (members_length * 32)) + // cancelled vec
+            (4 + usize::from(additional_signers_length)) +   // additional_signer_bumps vec
             message_size, // message
         )
-    }
-}
-
-impl Votes for VaultTransaction {
-    fn status(&mut self) -> &mut TransactionStatus {
-        &mut self.status
-    }
-
-    fn settled_at(&mut self) -> &mut i64 {
-        &mut self.settled_at
-    }
-
-    fn approved(&self) -> &Vec<Pubkey> {
-        &self.approved
-    }
-
-    fn approved_mut(&mut self) -> &mut Vec<Pubkey> {
-        &mut self.approved
-    }
-
-    fn rejected(&self) -> &Vec<Pubkey> {
-        &self.rejected
-    }
-
-    fn rejected_mut(&mut self) -> &mut Vec<Pubkey> {
-        &mut self.rejected
-    }
-
-    fn cancelled(&self) -> &Vec<Pubkey> {
-        &self.cancelled
-    }
-
-    fn cancelled_mut(&mut self) -> &mut Vec<Pubkey> {
-        &mut self.cancelled
     }
 }
 

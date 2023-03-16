@@ -10,7 +10,7 @@ import * as instructions from "../instructions/index.js";
  * Returns unsigned `VersionedTransaction` that needs to be
  * signed by `member` and `feePayer` before sending it.
  */
-export function configTransactionCancel({
+export function proposalReject({
   blockhash,
   feePayer,
   multisigPda,
@@ -29,7 +29,7 @@ export function configTransactionCancel({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      instructions.configTransactionCancel({
+      instructions.proposalReject({
         member,
         multisigPda,
         transactionIndex,

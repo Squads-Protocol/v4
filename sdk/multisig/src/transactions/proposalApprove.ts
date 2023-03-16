@@ -3,9 +3,14 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
+
 import * as instructions from "../instructions/index.js";
 
-export function vaultTransactionCancel({
+/**
+ * Returns unsigned `VersionedTransaction` that needs to be
+ * signed by `member` and `feePayer` before sending it.
+ */
+export function proposalApprove({
   blockhash,
   feePayer,
   multisigPda,
@@ -24,10 +29,10 @@ export function vaultTransactionCancel({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      instructions.vaultTransactionCancel({
+      instructions.proposalApprove({
+        member,
         multisigPda,
         transactionIndex,
-        member,
         memo,
       }),
     ],
