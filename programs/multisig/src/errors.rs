@@ -22,10 +22,6 @@ pub enum MultisigError {
     InvalidProposalStatus,
     #[msg("Invalid transaction index")]
     InvalidTransactionIndex,
-    #[msg("Proposal does not belong to the multisig")]
-    ProposalNotForMultisig,
-    #[msg("Transaction does not belong to the multisig")]
-    TransactionNotForMultisig,
     #[msg("Member already approved the transaction")]
     AlreadyApproved,
     #[msg("Member already rejected the transaction")]

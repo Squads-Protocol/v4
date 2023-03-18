@@ -3,37 +3,33 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-
 import * as instructions from "../instructions/index.js";
 
 /**
  * Returns unsigned `VersionedTransaction` that needs to be
  * signed by `member` and `feePayer` before sending it.
  */
-export function proposalCreate({
+export function proposalActivate({
   blockhash,
   feePayer,
   multisigPda,
   transactionIndex,
-  rentPayer,
-  isDraft,
+  member,
 }: {
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
   transactionIndex: bigint;
-  rentPayer: PublicKey;
-  isDraft?: boolean;
+  member: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      instructions.proposalCreate({
+      instructions.proposalActivate({
+        member,
         multisigPda,
-        rentPayer,
         transactionIndex,
-        isDraft,
       }),
     ],
   }).compileToV0Message();

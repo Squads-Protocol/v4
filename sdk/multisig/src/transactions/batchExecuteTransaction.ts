@@ -1,39 +1,42 @@
 import {
+  Connection,
   PublicKey,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-
-import * as instructions from "../instructions/index.js";
+import * as instructions from "../instructions";
 
 /**
  * Returns unsigned `VersionedTransaction` that needs to be
- * signed by `member` and `feePayer` before sending it.
+ * signed by `creator` and `feePayer` before sending it.
  */
-export function proposalCreate({
+export async function batchExecuteTransaction({
+  connection,
   blockhash,
   feePayer,
   multisigPda,
+  member,
+  batchIndex,
   transactionIndex,
-  rentPayer,
-  isDraft,
 }: {
+  connection: Connection;
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
-  transactionIndex: bigint;
-  rentPayer: PublicKey;
-  isDraft?: boolean;
-}): VersionedTransaction {
+  member: PublicKey;
+  batchIndex: bigint;
+  transactionIndex: number;
+}): Promise<VersionedTransaction> {
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      instructions.proposalCreate({
+      await instructions.batchExecuteTransaction({
+        connection,
         multisigPda,
-        rentPayer,
+        member,
+        batchIndex,
         transactionIndex,
-        isDraft,
       }),
     ],
   }).compileToV0Message();

@@ -6,10 +6,12 @@ export function proposalCreate({
   multisigPda,
   rentPayer,
   transactionIndex,
+  isDraft = false,
 }: {
   multisigPda: PublicKey;
   rentPayer: PublicKey;
   transactionIndex: bigint;
+  isDraft?: boolean;
 }) {
   const [proposalPda] = getProposalPda({
     multisigPda,
@@ -22,6 +24,6 @@ export function proposalCreate({
 
   return createProposalCreateInstruction(
     { rentPayer, multisig: multisigPda, proposal: proposalPda },
-    { args: { transactionIndex: Number(transactionIndex) } }
+    { args: { transactionIndex: Number(transactionIndex), draft: isDraft } }
   );
 }

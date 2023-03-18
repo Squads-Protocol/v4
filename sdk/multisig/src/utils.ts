@@ -1,7 +1,17 @@
 import { u8, u32, u64, bignum } from "@metaplex-foundation/beet";
 import { Buffer } from "buffer";
 import { VaultTransactionMessage } from "./generated";
-import { VersionedTransaction } from "@solana/web3.js";
+import {
+  AccountMeta,
+  AddressLookupTableAccount,
+  Connection,
+  PublicKey,
+  TransactionMessage,
+  VersionedTransaction,
+} from "@solana/web3.js";
+import { transactionMessageBeet } from "./types";
+import { getEphemeralSignerPda } from "./pda";
+import invariant from "invariant";
 
 export function toUtfBytes(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -72,4 +82,156 @@ export function isStaticWritableIndex(
 
 export function isSignerIndex(message: VaultTransactionMessage, index: number) {
   return index < message.numSigners;
+}
+
+/** We use custom serialization for `transaction_message` that ensures as small byte size as possible. */
+export function transactionMessageToMultisigTransactionMessageBytes({
+  message,
+  addressLookupTableAccounts,
+  vaultPda,
+}: {
+  message: TransactionMessage;
+  addressLookupTableAccounts?: AddressLookupTableAccount[];
+  vaultPda: PublicKey;
+}): Uint8Array {
+  // // Make sure authority is marked as non-signer in all instructions,
+  // // otherwise the message will be serialized in incorrect format.
+  // message.instructions.forEach((instruction) => {
+  //   instruction.keys.forEach((key) => {
+  //     if (key.pubkey.equals(vaultPda)) {
+  //       key.isSigner = false;
+  //     }
+  //   });
+  // });
+
+  const compiledMessage = message.compileToV0Message(
+    addressLookupTableAccounts
+  );
+
+  // We use custom serialization for `transaction_message` that ensures as small byte size as possible.
+  const [transactionMessageBytes] = transactionMessageBeet.serialize({
+    numSigners: compiledMessage.header.numRequiredSignatures,
+    numWritableSigners:
+      compiledMessage.header.numRequiredSignatures -
+      compiledMessage.header.numReadonlySignedAccounts,
+    numWritableNonSigners:
+      compiledMessage.staticAccountKeys.length -
+      compiledMessage.header.numRequiredSignatures -
+      compiledMessage.header.numReadonlyUnsignedAccounts,
+    accountKeys: compiledMessage.staticAccountKeys,
+    instructions: compiledMessage.compiledInstructions.map((ix) => {
+      return {
+        programIdIndex: ix.programIdIndex,
+        accountIndexes: ix.accountKeyIndexes,
+        data: Array.from(ix.data),
+      };
+    }),
+    addressTableLookups: compiledMessage.addressTableLookups,
+  });
+
+  return transactionMessageBytes;
+}
+
+/** Populate remaining accounts required for execution of the transaction. */
+export async function remainingAccountsForTransactionExecute({
+  connection,
+  transactionPda,
+  vaultPda,
+  message,
+  ephemeralSignerBumps,
+}: {
+  connection: Connection;
+  message: VaultTransactionMessage;
+  ephemeralSignerBumps: number[];
+  vaultPda: PublicKey;
+  transactionPda: PublicKey;
+}): Promise<AccountMeta[]> {
+  const ephemeralSignerPdas = ephemeralSignerBumps.map(
+    (_, additionalSignerIndex) => {
+      return getEphemeralSignerPda({
+        transactionPda,
+        ephemeralSignerIndex: additionalSignerIndex,
+      })[0];
+    }
+  );
+
+  const addressLookupTableKeys = message.addressTableLookups.map(
+    ({ accountKey }) => accountKey
+  );
+  const addressLookupTableAccounts = new Map(
+    await Promise.all(
+      addressLookupTableKeys.map(async (key) => {
+        const { value } = await connection.getAddressLookupTable(key);
+        if (!value) {
+          throw new Error(
+            `Address lookup table account ${key.toBase58()} not found`
+          );
+        }
+        return [key.toBase58(), value] as const;
+      })
+    )
+  );
+
+  // Populate remaining accounts required for execution of the transaction.
+  const remainingAccounts: AccountMeta[] = [];
+  // First add the lookup table accounts used by the transaction. They are needed for on-chain validation.
+  remainingAccounts.push(
+    ...addressLookupTableKeys.map((key) => {
+      return { pubkey: key, isSigner: false, isWritable: false };
+    })
+  );
+  // Then add static account keys included into the message.
+  for (const [accountIndex, accountKey] of message.accountKeys.entries()) {
+    remainingAccounts.push({
+      pubkey: accountKey,
+      isWritable: isStaticWritableIndex(message, accountIndex),
+      // NOTE: vaultPda and ephemeralSignerPdas cannot be marked as signers,
+      // because they are PDAs and hence won't have their signatures on the transaction.
+      isSigner:
+        isSignerIndex(message, accountIndex) &&
+        !accountKey.equals(vaultPda) &&
+        !ephemeralSignerPdas.find((k) => accountKey.equals(k)),
+    });
+  }
+  // Then add accounts that will be loaded with address lookup tables.
+  for (const lookup of message.addressTableLookups) {
+    const lookupTableAccount = addressLookupTableAccounts.get(
+      lookup.accountKey.toBase58()
+    );
+    invariant(
+      lookupTableAccount,
+      `Address lookup table account ${lookup.accountKey.toBase58()} not found`
+    );
+
+    for (const accountIndex of lookup.writableIndexes) {
+      const pubkey: PublicKey =
+        lookupTableAccount.state.addresses[accountIndex];
+      invariant(
+        pubkey,
+        `Address lookup table account ${lookup.accountKey.toBase58()} does not contain address at index ${accountIndex}`
+      );
+      remainingAccounts.push({
+        pubkey,
+        isWritable: true,
+        // Accounts in address lookup tables can not be signers.
+        isSigner: false,
+      });
+    }
+    for (const accountIndex of lookup.readonlyIndexes) {
+      const pubkey: PublicKey =
+        lookupTableAccount.state.addresses[accountIndex];
+      invariant(
+        pubkey,
+        `Address lookup table account ${lookup.accountKey.toBase58()} does not contain address at index ${accountIndex}`
+      );
+      remainingAccounts.push({
+        pubkey,
+        isWritable: false,
+        // Accounts in address lookup tables can not be signers.
+        isSigner: false,
+      });
+    }
+  }
+
+  return remainingAccounts;
 }

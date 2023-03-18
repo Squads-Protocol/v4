@@ -8,73 +8,77 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  ProposalVoteArgs,
-  proposalVoteArgsBeet,
-} from '../types/ProposalVoteArgs'
+  BatchAddTransactionArgs,
+  batchAddTransactionArgsBeet,
+} from '../types/BatchAddTransactionArgs'
 
 /**
  * @category Instructions
- * @category ProposalReject
+ * @category BatchAddTransaction
  * @category generated
  */
-export type ProposalRejectInstructionArgs = {
-  args: ProposalVoteArgs
+export type BatchAddTransactionInstructionArgs = {
+  args: BatchAddTransactionArgs
 }
 /**
  * @category Instructions
- * @category ProposalReject
+ * @category BatchAddTransaction
  * @category generated
  */
-export const proposalRejectStruct = new beet.FixableBeetArgsStruct<
-  ProposalRejectInstructionArgs & {
+export const batchAddTransactionStruct = new beet.FixableBeetArgsStruct<
+  BatchAddTransactionInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', proposalVoteArgsBeet],
+    ['args', batchAddTransactionArgsBeet],
   ],
-  'ProposalRejectInstructionArgs'
+  'BatchAddTransactionInstructionArgs'
 )
 /**
- * Accounts required by the _proposalReject_ instruction
+ * Accounts required by the _batchAddTransaction_ instruction
  *
  * @property [] multisig
  * @property [_writable_, **signer**] member
- * @property [_writable_] proposal
+ * @property [] proposal
+ * @property [_writable_] batch
+ * @property [_writable_] transaction
  * @category Instructions
- * @category ProposalReject
+ * @category BatchAddTransaction
  * @category generated
  */
-export type ProposalRejectInstructionAccounts = {
+export type BatchAddTransactionInstructionAccounts = {
   multisig: web3.PublicKey
   member: web3.PublicKey
   proposal: web3.PublicKey
+  batch: web3.PublicKey
+  transaction: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const proposalRejectInstructionDiscriminator = [
-  243, 62, 134, 156, 230, 106, 246, 135,
+export const batchAddTransactionInstructionDiscriminator = [
+  89, 100, 224, 18, 69, 70, 54, 76,
 ]
 
 /**
- * Creates a _ProposalReject_ instruction.
+ * Creates a _BatchAddTransaction_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category ProposalReject
+ * @category BatchAddTransaction
  * @category generated
  */
-export function createProposalRejectInstruction(
-  accounts: ProposalRejectInstructionAccounts,
-  args: ProposalRejectInstructionArgs,
+export function createBatchAddTransactionInstruction(
+  accounts: BatchAddTransactionInstructionAccounts,
+  args: BatchAddTransactionInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = proposalRejectStruct.serialize({
-    instructionDiscriminator: proposalRejectInstructionDiscriminator,
+  const [data] = batchAddTransactionStruct.serialize({
+    instructionDiscriminator: batchAddTransactionInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [
@@ -90,6 +94,16 @@ export function createProposalRejectInstruction(
     },
     {
       pubkey: accounts.proposal,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.batch,
+      isWritable: true,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.transaction,
       isWritable: true,
       isSigner: false,
     },

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use super::{ConfigAction, Member};
+use super::Member;
 
 /// Stores data required for execution of a multisig configuration transaction.
 /// Config transaction can perform a predefined set of actions on the Multisig PDA, such as adding/removing members,
@@ -28,4 +28,15 @@ impl ConfigTransaction {
         1 +   // bump 
         (4 + actions_len * (1 + Member::size())) // actions vec
     }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ConfigAction {
+    /// Add a new member to the multisig.
+    AddMember { new_member: Member },
+    /// Remove a member from the multisig.
+    RemoveMember { old_member: Pubkey },
+    /// Change the threshold of the multisig.
+    ChangeThreshold { new_threshold: u16 },
 }

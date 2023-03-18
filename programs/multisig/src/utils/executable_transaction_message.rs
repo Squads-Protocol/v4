@@ -3,9 +3,12 @@ use std::convert::From;
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
+use anchor_lang::solana_program::program::invoke_signed;
+use anchor_lang::Discriminator;
 use solana_address_lookup_table_program::state::AddressLookupTable;
 
 use crate::errors::*;
+use crate::id;
 use crate::state::*;
 
 /// Sanitized and validated combination of a `MsTransactionMessage` and `AccountInfo`s it references.
@@ -27,7 +30,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         message_account_infos: &'a [AccountInfo<'info>],
         address_lookup_table_account_infos: &'a [AccountInfo<'info>],
         vault_pubkey: &'a Pubkey,
-        additional_signer_pdas: &'a [Pubkey],
+        ephemeral_signer_pdas: &'a [Pubkey],
     ) -> Result<Self> {
         // CHECK: `address_lookup_table_account_infos` must be valid `AddressLookupTable`s
         //         and be the ones mentioned in `message.address_table_lookups`.
@@ -73,20 +76,18 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 *account_key,
                 MultisigError::InvalidAccount
             );
-            require_eq!(
-                account_info.is_writable,
-                message.is_static_writable_index(i),
-                MultisigError::InvalidAccount
-            );
-            // For authority or additional_signer_pdas `is_signer` might differ because it's always false in the passed account infos.
-            if account_info.key != vault_pubkey
-                && !additional_signer_pdas.contains(account_info.key)
+            // If the account is marked as signer in the message, it must be a signer in the account infos too.
+            // Unless it's a vault or an ephemeral signer PDA, as they cannot be passed as signers to `remaining_accounts`,
+            // because they are PDA's and can't sign the transaction.
+            if message.is_signer_index(i)
+                && account_info.key != vault_pubkey
+                && !ephemeral_signer_pdas.contains(account_info.key)
             {
-                require_eq!(
-                    account_info.is_signer,
-                    message.is_signer_index(i),
-                    MultisigError::InvalidAccount
-                );
+                require!(account_info.is_signer, MultisigError::InvalidAccount);
+            }
+            // If the account is marked as writable in the message, it must be writable in the account infos too.
+            if message.is_static_writable_index(i) {
+                require!(account_info.is_writable, MultisigError::InvalidAccount);
             }
             account_infos_by_message_index.insert(i, account_info);
         }
@@ -105,7 +106,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             let lookup_table = AddressLookupTable::deserialize(lookup_table_data)
                 .map_err(|_| MultisigError::InvalidAccount)?;
 
-            // Accounts listed as writable in lookup, should be loaded as writable and non-signers.
+            // Accounts listed as writable in lookup, should be loaded as writable.
             for (i, index_in_lookup_table) in lookup.writable_indexes.iter().enumerate() {
                 // Check the modifiers.
                 let index = message_indexes_cursor + i;
@@ -115,11 +116,6 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 require_eq!(
                     loaded_account_info.is_writable,
                     true,
-                    MultisigError::InvalidAccount
-                );
-                require_eq!(
-                    loaded_account_info.is_signer,
-                    false,
                     MultisigError::InvalidAccount
                 );
                 // Check that the pubkey matches the one from the actual lookup table.
@@ -137,23 +133,13 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             }
             message_indexes_cursor += lookup.writable_indexes.len();
 
-            // Accounts listed as readonly in lookup, should be loaded as readonly and non-signers.
+            // Accounts listed as readonly in lookup.
             for (i, index_in_lookup_table) in lookup.readonly_indexes.iter().enumerate() {
                 // Check the modifiers.
                 let index = message_indexes_cursor + i;
                 let loaded_account_info = &message_account_infos
                     .get(index)
                     .ok_or(MultisigError::InvalidNumberOfAccounts)?;
-                require_eq!(
-                    loaded_account_info.is_writable,
-                    false,
-                    MultisigError::InvalidAccount
-                );
-                require_eq!(
-                    loaded_account_info.is_signer,
-                    false,
-                    MultisigError::InvalidAccount
-                );
                 // Check that the pubkey matches the one from the actual lookup table.
                 let pubkey_from_lookup_table = lookup_table
                     .addresses
@@ -174,6 +160,44 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             message,
             account_infos_by_message_index,
         })
+    }
+
+    pub fn execute_message(
+        &self,
+        vault_seeds: &[Vec<u8>],
+        ephemeral_signer_seeds: &[Vec<Vec<u8>>],
+    ) -> Result<()> {
+        for (ix, account_infos) in self.to_instructions_and_accounts().iter() {
+            // Make sure we don't allow reentrancy of transaction_execute.
+            // FIXME: Also prevent reentrancy of batch_transaction_execute.
+            if ix.program_id == id() {
+                require!(
+                    ix.data[..8] != crate::instruction::VaultTransactionExecute::DISCRIMINATOR,
+                    MultisigError::ExecuteReentrancy
+                )
+            }
+
+            // Convert vault_seeds to Vec<&[u8]>.
+            let vault_seeds = vault_seeds.iter().map(Vec::as_slice).collect::<Vec<_>>();
+
+            // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
+            let ephemeral_signer_seeds = &ephemeral_signer_seeds
+                .iter()
+                .map(|seeds| seeds.iter().map(Vec::as_slice).collect::<Vec<&[u8]>>())
+                .collect::<Vec<Vec<&[u8]>>>();
+            // Second round of type conversion; from Vec<Vec<&[u8]>> to Vec<&[&[u8]]>.
+            let mut signer_seeds = ephemeral_signer_seeds
+                .iter()
+                .map(Vec::as_slice)
+                .collect::<Vec<&[&[u8]]>>();
+
+            // Add the vault seeds.
+            signer_seeds.push(&vault_seeds);
+
+            invoke_signed(ix, account_infos, &signer_seeds)?;
+        }
+
+        Ok(())
     }
 
     pub fn to_instructions_and_accounts(&self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {

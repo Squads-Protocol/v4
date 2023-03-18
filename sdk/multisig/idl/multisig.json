@@ -402,6 +402,147 @@
       "args": []
     },
     {
+      "name": "batchCreate",
+      "docs": [
+        "Create a new batch."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "batch",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "BatchCreateArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "batchAddTransaction",
+      "docs": [
+        "Add a transaction to the batch."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Multisig account this batch belongs to."
+          ]
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "Member of the multisig."
+          ]
+        },
+        {
+          "name": "proposal",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "The proposal account associated with the batch."
+          ]
+        },
+        {
+          "name": "batch",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "`VaultBatchTransaction` account to initialize and add to the `batch`."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "BatchAddTransactionArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "batchExecuteTransaction",
+      "docs": [
+        "Execute a transaction from the batch."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Multisig account this batch belongs to."
+          ]
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Member of the multisig."
+          ]
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The proposal account associated with the batch.",
+            "If `transaction` is the last in the batch, the `proposal` status will be set to `Executed`."
+          ]
+        },
+        {
+          "name": "batch",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Batch transaction to execute."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "proposalCreate",
       "docs": [
         "Create a new multisig proposal."
@@ -438,6 +579,30 @@
       ]
     },
     {
+      "name": "proposalActivate",
+      "docs": [
+        "Update status of a multisig proposal from `Draft` to `Active`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "proposalApprove",
       "docs": [
         "Approve a multisig proposal on behalf of the `member`.",
@@ -446,18 +611,18 @@
       "accounts": [
         {
           "name": "multisig",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "proposal",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
           "name": "member",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "systemProgram",
@@ -483,18 +648,18 @@
       "accounts": [
         {
           "name": "multisig",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "proposal",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
           "name": "member",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "systemProgram",
@@ -520,18 +685,18 @@
       "accounts": [
         {
           "name": "multisig",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "proposal",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
           "name": "member",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "systemProgram",
@@ -550,6 +715,117 @@
     }
   ],
   "accounts": [
+    {
+      "name": "Batch",
+      "docs": [
+        "Stores data required for serial execution of a batch of multisig vault transactions.",
+        "Vault transaction is a transaction that's executed on behalf of the multisig vault PDA",
+        "and wraps arbitrary Solana instructions, typically calling into other Solana programs.",
+        "The transactions themselves are stored in separate PDAs associated with the this account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "multisig",
+            "docs": [
+              "The multisig this belongs to."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "Member of the Multisig who submitted the batch."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "index",
+            "docs": [
+              "Index of this batch within the multisig transactions."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "Index of the vault this batch belongs to."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "vaultBump",
+            "docs": [
+              "Derivation bump of the vault PDA this batch belongs to."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "size",
+            "docs": [
+              "Number of transactions in the batch."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "executedTransactionIndex",
+            "docs": [
+              "Index of the last executed transaction within the batch.",
+              "0 means that no transactions have been executed yet."
+            ],
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultBatchTransaction",
+      "docs": [
+        "Stores data required for execution of one transaction from a batch."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "ephemeralSignerBumps",
+            "docs": [
+              "Derivation bumps for additional signers.",
+              "Some transactions require multiple signers. Often these additional signers are \"ephemeral\" keypairs",
+              "that are generated on the client with a sole purpose of signing the transaction and be discarded immediately after.",
+              "When wrapping such transactions into multisig ones, we replace these \"ephemeral\" signing keypairs",
+              "with PDAs derived from the MultisigTransaction's `transaction_index` and controlled by the Multisig Program;",
+              "during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,",
+              "thus \"signing\" on behalf of these PDAs."
+            ],
+            "type": "bytes"
+          },
+          {
+            "name": "message",
+            "docs": [
+              "data required for executing the transaction."
+            ],
+            "type": {
+              "defined": "VaultTransactionMessage"
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "ConfigTransaction",
       "docs": [
@@ -836,6 +1112,46 @@
   ],
   "types": [
     {
+      "name": "BatchAddTransactionArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ephemeralSigners",
+            "docs": [
+              "Number of ephemeral signing PDAs required by the transaction."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "transactionMessage",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BatchCreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "Index of the vault this transaction belongs to."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "memo",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "ConfigTransactionCreateArgs",
       "type": {
         "kind": "struct",
@@ -1027,6 +1343,13 @@
               "Index of the multisig transaction this proposal is associated with."
             ],
             "type": "u64"
+          },
+          {
+            "name": "draft",
+            "docs": [
+              "Whether the proposal should be initialized with status `Draft`."
+            ],
+            "type": "bool"
           }
         ]
       }
@@ -1073,6 +1396,39 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Member",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "key",
+            "type": "publicKey"
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": "Permissions"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Permissions",
+      "docs": [
+        "Bitmask for permissions."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mask",
+            "type": "u8"
           }
         ]
       }
@@ -1211,39 +1567,6 @@
       }
     },
     {
-      "name": "Member",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "key",
-            "type": "publicKey"
-          },
-          {
-            "name": "permissions",
-            "type": {
-              "defined": "Permissions"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Permissions",
-      "docs": [
-        "Bitmask for permissions."
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "mask",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
       "name": "ConfigUpdateType",
       "type": {
         "kind": "enum",
@@ -1335,6 +1658,15 @@
       "type": {
         "kind": "enum",
         "variants": [
+          {
+            "name": "Draft",
+            "fields": [
+              {
+                "name": "timestamp",
+                "type": "i64"
+              }
+            ]
+          },
           {
             "name": "Active",
             "fields": [
@@ -1598,71 +1930,61 @@
     },
     {
       "code": 6010,
-      "name": "ProposalNotForMultisig",
-      "msg": "Proposal does not belong to the multisig"
-    },
-    {
-      "code": 6011,
-      "name": "TransactionNotForMultisig",
-      "msg": "Transaction does not belong to the multisig"
-    },
-    {
-      "code": 6012,
       "name": "AlreadyApproved",
       "msg": "Member already approved the transaction"
     },
     {
-      "code": 6013,
+      "code": 6011,
       "name": "AlreadyRejected",
       "msg": "Member already rejected the transaction"
     },
     {
-      "code": 6014,
+      "code": 6012,
       "name": "AlreadyCancelled",
       "msg": "Member already cancelled the transaction"
     },
     {
-      "code": 6015,
+      "code": 6013,
       "name": "InvalidNumberOfAccounts",
       "msg": "Wrong number of accounts provided"
     },
     {
-      "code": 6016,
+      "code": 6014,
       "name": "InvalidAccount",
       "msg": "Invalid account provided"
     },
     {
-      "code": 6017,
+      "code": 6015,
       "name": "ExecuteReentrancy",
       "msg": "`transaction_execute` reentrancy is forbidden"
     },
     {
-      "code": 6018,
+      "code": 6016,
       "name": "RemoveLastMember",
       "msg": "Cannot remove last member"
     },
     {
-      "code": 6019,
+      "code": 6017,
       "name": "NoVoters",
       "msg": "Members don't include any voters"
     },
     {
-      "code": 6020,
+      "code": 6018,
       "name": "InvalidStaleTransactionIndex",
       "msg": "`stale_transaction_index` must be <= `transaction_index`"
     },
     {
-      "code": 6021,
+      "code": 6019,
       "name": "NotSupportedForControlled",
       "msg": "Instruction not supported for controlled multisig"
     },
     {
-      "code": 6022,
+      "code": 6020,
       "name": "TimeLockNotReleased",
       "msg": "Proposal time lock has not been released"
     },
     {
-      "code": 6023,
+      "code": 6021,
       "name": "NoActions",
       "msg": "Config transaction must have at least one action"
     }

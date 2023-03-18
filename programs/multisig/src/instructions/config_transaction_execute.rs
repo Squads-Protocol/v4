@@ -58,7 +58,6 @@ impl ConfigTransactionExecute<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
             multisig,
-            transaction,
             proposal,
             member,
             ..
@@ -75,11 +74,6 @@ impl ConfigTransactionExecute<'_> {
         );
 
         // proposal
-        require_keys_eq!(
-            proposal.multisig,
-            multisig.key(),
-            MultisigError::ProposalNotForMultisig
-        );
         match proposal.status {
             ProposalStatus::Approved { timestamp } => {
                 require!(
@@ -90,12 +84,7 @@ impl ConfigTransactionExecute<'_> {
             _ => return err!(MultisigError::InvalidProposalStatus),
         }
 
-        // transaction
-        require_keys_eq!(
-            transaction.multisig,
-            multisig.key(),
-            MultisigError::TransactionNotForMultisig
-        );
+        // `transaction` is validated by its seeds.
 
         Ok(())
     }

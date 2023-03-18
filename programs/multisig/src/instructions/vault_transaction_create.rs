@@ -88,18 +88,18 @@ impl VaultTransactionCreate<'_> {
         ];
         let (_, vault_bump) = Pubkey::find_program_address(vault_seeds, ctx.program_id);
 
-        let additional_signer_bumps: Vec<u8> = (0..args.ephemeral_signers)
+        let ephemeral_signer_bumps: Vec<u8> = (0..args.ephemeral_signers)
             .into_iter()
-            .map(|additional_signer_index| {
-                let additional_signer_seeds = &[
+            .map(|ephemeral_signer_index| {
+                let ephemeral_signer_seeds = &[
                     SEED_PREFIX,
                     transaction_key.as_ref(),
                     SEED_EPHEMERAL_SIGNER,
-                    &additional_signer_index.to_le_bytes(),
+                    &ephemeral_signer_index.to_le_bytes(),
                 ];
 
                 let (_, bump) =
-                    Pubkey::find_program_address(additional_signer_seeds, ctx.program_id);
+                    Pubkey::find_program_address(ephemeral_signer_seeds, ctx.program_id);
                 bump
             })
             .collect();
@@ -114,7 +114,7 @@ impl VaultTransactionCreate<'_> {
         transaction.bump = *ctx.bumps.get("transaction").unwrap();
         transaction.vault_index = args.vault_index;
         transaction.vault_bump = vault_bump;
-        transaction.ephemeral_signer_bumps = additional_signer_bumps;
+        transaction.ephemeral_signer_bumps = ephemeral_signer_bumps;
         transaction.message = transaction_message.try_into()?;
 
         // Updated last transaction index in the multisig account.

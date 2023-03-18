@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::ProposalStatus;
 
 /// Stores the data required for tracking the status of a multisig proposal.
 /// Each `Proposal` has a 1:1 association with a transaction account, e.g. a `VaultTransaction` or a `ConfigTransaction`;
@@ -122,4 +121,23 @@ impl Proposal {
     fn remove_approval_vote(&mut self, index: usize) {
         self.approved.remove(index);
     }
+}
+
+/// The status of a proposal.
+/// Each variant wraps a timestamp of when the status was set.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
+#[non_exhaustive]
+pub enum ProposalStatus {
+    /// Proposal is in the draft mode and can be voted on.
+    Draft { timestamp: i64 },
+    /// Proposal is live and ready for voting.
+    Active { timestamp: i64 },
+    /// Proposal has been rejected.
+    Rejected { timestamp: i64 },
+    /// Proposal has been approved and is pending execution.
+    Approved { timestamp: i64 },
+    /// Proposal has been executed.
+    Executed { timestamp: i64 },
+    /// Proposal has been cancelled.
+    Cancelled { timestamp: i64 },
 }

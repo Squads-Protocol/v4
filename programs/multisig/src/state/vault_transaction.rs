@@ -34,7 +34,7 @@ pub struct VaultTransaction {
 }
 
 impl VaultTransaction {
-    pub fn size(additional_signers_length: u8, transaction_message: &[u8]) -> Result<usize> {
+    pub fn size(ephemeral_signers_length: u8, transaction_message: &[u8]) -> Result<usize> {
         let transaction_message: VaultTransactionMessage =
             TransactionMessage::deserialize(&mut &transaction_message[..])?.try_into()?;
         let message_size = get_instance_packed_len(&transaction_message).unwrap_or_default();
@@ -47,7 +47,7 @@ impl VaultTransaction {
             1 +   // bump 
             1 +   // vault_index
             1 +   // vault_bump
-            (4 + usize::from(additional_signers_length)) +   // additional_signer_bumps vec
+            (4 + usize::from(ephemeral_signers_length)) +   // ephemeral_signers_bumps vec
             message_size, // message
         )
     }

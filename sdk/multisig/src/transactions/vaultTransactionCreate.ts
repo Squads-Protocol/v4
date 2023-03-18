@@ -5,8 +5,8 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import { getTransactionPda, getVaultPda } from "../pda";
-import { transactionMessageBeet } from "../types";
 import { createVaultTransactionCreateInstruction } from "../generated";
+import { transactionMessageToMultisigTransactionMessageBytes } from "../utils";
 
 /**
  * Returns unsigned `VersionedTransaction` that needs to be
@@ -38,7 +38,7 @@ export function vaultTransactionCreate({
   addressLookupTableAccounts?: AddressLookupTableAccount[];
   memo?: string;
 }): VersionedTransaction {
-  const [authorityPDA] = getVaultPda({
+  const [vaultPda] = getVaultPda({
     multisigPda,
     index: vaultIndex,
   });
@@ -48,40 +48,12 @@ export function vaultTransactionCreate({
     index: transactionIndex,
   });
 
-  // Make sure authority is marked as non-signer in all instructions,
-  // otherwise the message will be serialized in incorrect format.
-  transactionMessage.instructions.forEach((instruction) => {
-    instruction.keys.forEach((key) => {
-      if (key.pubkey.equals(authorityPDA)) {
-        key.isSigner = false;
-      }
+  const transactionMessageBytes =
+    transactionMessageToMultisigTransactionMessageBytes({
+      message: transactionMessage,
+      addressLookupTableAccounts,
+      vaultPda,
     });
-  });
-
-  const compiledMessage = transactionMessage.compileToV0Message(
-    addressLookupTableAccounts
-  );
-
-  // We use custom serialization for `transaction_message` that ensures as small byte size as possible.
-  const [transactionMessageBytes] = transactionMessageBeet.serialize({
-    numSigners: compiledMessage.header.numRequiredSignatures,
-    numWritableSigners:
-      compiledMessage.header.numRequiredSignatures -
-      compiledMessage.header.numReadonlySignedAccounts,
-    numWritableNonSigners:
-      compiledMessage.staticAccountKeys.length -
-      compiledMessage.header.numRequiredSignatures -
-      compiledMessage.header.numReadonlyUnsignedAccounts,
-    accountKeys: compiledMessage.staticAccountKeys,
-    instructions: compiledMessage.compiledInstructions.map((ix) => {
-      return {
-        programIdIndex: ix.programIdIndex,
-        accountIndexes: ix.accountKeyIndexes,
-        data: Array.from(ix.data),
-      };
-    }),
-    addressTableLookups: compiledMessage.addressTableLookups,
-  });
 
   const message = new TransactionMessage({
     payerKey: feePayer,

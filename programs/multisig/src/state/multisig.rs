@@ -4,8 +4,6 @@ use anchor_lang::system_program;
 use crate::errors::*;
 use crate::events::*;
 
-use super::{Member, Permission};
-
 #[account]
 pub struct Multisig {
     /// Key that is used to seed the multisig PDA.
@@ -203,5 +201,45 @@ impl Multisig {
         self.members.remove(old_member_index);
 
         Ok(())
+    }
+}
+
+#[derive(AnchorDeserialize, AnchorSerialize, Eq, PartialEq, Clone)]
+pub struct Member {
+    pub key: Pubkey,
+    pub permissions: Permissions,
+}
+
+impl Member {
+    pub fn size() -> usize {
+        32 + // key 
+            1 // role
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Permission {
+    Initiate = 1 << 0,
+    Vote = 1 << 1,
+    Execute = 1 << 2,
+}
+
+/// Bitmask for permissions.
+#[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy, Default, Debug)]
+pub struct Permissions {
+    pub mask: u8,
+}
+
+impl Permissions {
+    pub fn from_vec(permissions: &[Permission]) -> Self {
+        let mut mask = 0;
+        for permission in permissions {
+            mask |= *permission as u8;
+        }
+        Self { mask }
+    }
+
+    pub fn has(&self, permission: Permission) -> bool {
+        self.mask & (permission as u8) != 0
     }
 }

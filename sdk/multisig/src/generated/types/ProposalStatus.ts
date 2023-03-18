@@ -16,6 +16,7 @@ import * as beet from '@metaplex-foundation/beet'
  * @private
  */
 export type ProposalStatusRecord = {
+  Draft: { timestamp: beet.bignum }
   Active: { timestamp: beet.bignum }
   Rejected: { timestamp: beet.bignum }
   Approved: { timestamp: beet.bignum }
@@ -36,6 +37,9 @@ export type ProposalStatusRecord = {
  */
 export type ProposalStatus = beet.DataEnumKeyAsKind<ProposalStatusRecord>
 
+export const isProposalStatusDraft = (
+  x: ProposalStatus
+): x is ProposalStatus & { __kind: 'Draft' } => x.__kind === 'Draft'
 export const isProposalStatusActive = (
   x: ProposalStatus
 ): x is ProposalStatus & { __kind: 'Active' } => x.__kind === 'Active'
@@ -57,6 +61,14 @@ export const isProposalStatusCancelled = (
  * @category generated
  */
 export const proposalStatusBeet = beet.dataEnum<ProposalStatusRecord>([
+  [
+    'Draft',
+    new beet.BeetArgsStruct<ProposalStatusRecord['Draft']>(
+      [['timestamp', beet.i64]],
+      'ProposalStatusRecord["Draft"]'
+    ),
+  ],
+
   [
     'Active',
     new beet.BeetArgsStruct<ProposalStatusRecord['Active']>(

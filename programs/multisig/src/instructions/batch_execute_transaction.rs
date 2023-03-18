@@ -1,63 +1,78 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::*;
 use crate::state::*;
 use crate::utils::*;
 
 #[derive(Accounts)]
-pub struct VaultTransactionExecute<'info> {
+pub struct BatchExecuteTransaction<'info> {
+    /// Multisig account this batch belongs to.
     #[account(
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]
-    pub multisig: Box<Account<'info, Multisig>>,
+    pub multisig: Account<'info, Multisig>,
 
-    /// The proposal account associated with the transaction.
+    /// Member of the multisig.
+    pub member: Signer<'info>,
+
+    /// The proposal account associated with the batch.
+    /// If `transaction` is the last in the batch, the `proposal` status will be set to `Executed`.
     #[account(
         mut,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION,
-            &transaction.index.to_le_bytes(),
+            &batch.index.to_le_bytes(),
             SEED_PROPOSAL,
         ],
         bump = proposal.bump,
     )]
     pub proposal: Account<'info, Proposal>,
 
-    /// The transaction to execute.
     #[account(
         mut,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION,
-            &transaction.index.to_le_bytes(),
+            &batch.index.to_le_bytes(),
+        ],
+        bump = batch.bump,
+    )]
+    pub batch: Account<'info, Batch>,
+
+    /// Batch transaction to execute.
+    #[account(
+        seeds = [
+            SEED_PREFIX,
+            multisig.key().as_ref(),
+            SEED_TRANSACTION,
+            &batch.index.to_le_bytes(),
+            SEED_BATCH_TRANSACTION,
+            &batch.executed_transaction_index.checked_add(1).unwrap().to_le_bytes(),
         ],
         bump = transaction.bump,
     )]
-    pub transaction: Account<'info, VaultTransaction>,
-
-    #[account(mut)]
-    pub member: Signer<'info>,
+    pub transaction: Account<'info, VaultBatchTransaction>,
+    //
     // `remaining_accounts` must include the following accounts in the exact order:
     // 1. AddressLookupTable accounts in the order they appear in `message.address_table_lookups`.
     // 2. Accounts in the order they appear in `message.account_keys`.
     // 3. Accounts in the order they appear in `message.address_table_lookups`.
 }
 
-impl VaultTransactionExecute<'_> {
+impl BatchExecuteTransaction<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
             multisig,
-            proposal,
             member,
+            proposal,
             ..
         } = self;
 
-        // member
+        // `member`
         require!(
             multisig.is_member(member.key()).is_some(),
             MultisigError::NotAMember
@@ -67,7 +82,7 @@ impl VaultTransactionExecute<'_> {
             MultisigError::Unauthorized
         );
 
-        // proposal
+        // `proposal`
         match proposal.status {
             ProposalStatus::Approved { timestamp } => {
                 require!(
@@ -76,30 +91,32 @@ impl VaultTransactionExecute<'_> {
                 );
             }
             _ => return err!(MultisigError::InvalidProposalStatus),
-        }
+        };
+
+        // `batch` is validated by its seeds.
 
         // `transaction` is validated by its seeds.
 
         Ok(())
     }
 
-    /// Execute the multisig transaction.
-    /// The transaction must be `Approved`.
+    /// Execute a transaction from the batch.
     #[access_control(ctx.accounts.validate())]
-    pub fn vault_transaction_execute(ctx: Context<Self>) -> Result<()> {
+    pub fn batch_execute_transaction(ctx: Context<BatchExecuteTransaction>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
+        let batch = &mut ctx.accounts.batch;
         let transaction = &mut ctx.accounts.transaction;
 
         let multisig_key = multisig.key();
-        let transaction_key = transaction.key();
+        let batch_key = batch.key();
 
         let vault_seeds = &[
             SEED_PREFIX,
             multisig_key.as_ref(),
             SEED_VAULT,
-            &transaction.vault_index.to_le_bytes(),
-            &[transaction.vault_bump],
+            &batch.vault_index.to_le_bytes(),
+            &[batch.vault_bump],
         ];
 
         let transaction_message = &transaction.message;
@@ -117,7 +134,7 @@ impl VaultTransactionExecute<'_> {
         let vault_pubkey = Pubkey::create_program_address(vault_seeds, ctx.program_id).unwrap();
 
         let (ephemeral_signer_keys, ephemeral_signer_seeds) =
-            derive_ephemeral_signers(transaction_key, &transaction.ephemeral_signer_bumps);
+            derive_ephemeral_signers(batch_key, &transaction.ephemeral_signer_bumps);
 
         let executable_message = ExecutableTransactionMessage::new_validated(
             transaction_message,
@@ -136,15 +153,20 @@ impl VaultTransactionExecute<'_> {
             &ephemeral_signer_seeds,
         )?;
 
-        // Mark the proposal as executed.
-        proposal.status = ProposalStatus::Executed {
-            timestamp: Clock::get()?.unix_timestamp,
-        };
+        // Increment the executed transaction index.
+        batch.executed_transaction_index = batch
+            .executed_transaction_index
+            .checked_add(1)
+            .expect("overflow");
 
-        emit!(TransactionExecuted {
-            multisig: multisig_key,
-            transaction: transaction.key(),
-        });
+        // If this is the last transaction in the batch, set the proposal status to `Executed`.
+        if batch.executed_transaction_index == batch.size {
+            proposal.status = ProposalStatus::Executed {
+                timestamp: Clock::get()?.unix_timestamp,
+            };
+        }
+
+        batch.invariant()?;
 
         Ok(())
     }

@@ -1,12 +1,13 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "./generated";
-import { toU64Bytes, toU8Bytes, toUtfBytes } from "./utils";
+import { toU32Bytes, toU64Bytes, toU8Bytes, toUtfBytes } from "./utils";
 
 const SEED_PREFIX = toUtfBytes("multisig");
 const SEED_MULTISIG = toUtfBytes("multisig");
 const SEED_VAULT = toUtfBytes("vault");
 const SEED_TRANSACTION = toUtfBytes("transaction");
 const SEED_PROPOSAL = toUtfBytes("proposal");
+const SEED_BATCH_TRANSACTION = toUtfBytes("batch_transaction");
 const SEED_EPHEMERAL_SIGNER = toUtfBytes("ephemeral_signer");
 
 export function getMultisigPda({
@@ -91,6 +92,30 @@ export function getProposalPda({
       SEED_TRANSACTION,
       toU64Bytes(transactionIndex),
       SEED_PROPOSAL,
+    ],
+    programId
+  );
+}
+
+export function getBatchTransactionPda({
+  multisigPda,
+  batchIndex,
+  transactionIndex,
+  programId = PROGRAM_ID,
+}: {
+  multisigPda: PublicKey;
+  batchIndex: bigint;
+  transactionIndex: number;
+  programId?: PublicKey;
+}): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [
+      SEED_PREFIX,
+      multisigPda.toBytes(),
+      SEED_TRANSACTION,
+      toU64Bytes(batchIndex),
+      SEED_BATCH_TRANSACTION,
+      toU32Bytes(transactionIndex),
     ],
     programId
   );

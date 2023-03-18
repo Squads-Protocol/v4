@@ -88,9 +88,32 @@ pub mod multisig {
         VaultTransactionExecute::vault_transaction_execute(ctx)
     }
 
+    /// Create a new batch.
+    pub fn batch_create(ctx: Context<BatchCreate>, args: BatchCreateArgs) -> Result<()> {
+        BatchCreate::batch_create(ctx, args)
+    }
+
+    /// Add a transaction to the batch.
+    pub fn batch_add_transaction(
+        ctx: Context<BatchAddTransaction>,
+        args: BatchAddTransactionArgs,
+    ) -> Result<()> {
+        BatchAddTransaction::batch_add_transaction(ctx, args)
+    }
+
+    /// Execute a transaction from the batch.
+    pub fn batch_execute_transaction(ctx: Context<BatchExecuteTransaction>) -> Result<()> {
+        BatchExecuteTransaction::batch_execute_transaction(ctx)
+    }
+
     /// Create a new multisig proposal.
     pub fn proposal_create(ctx: Context<ProposalCreate>, args: ProposalCreateArgs) -> Result<()> {
         ProposalCreate::proposal_create(ctx, args)
+    }
+
+    /// Update status of a multisig proposal from `Draft` to `Active`.
+    pub fn proposal_activate(ctx: Context<ProposalActivate>) -> Result<()> {
+        ProposalActivate::proposal_activate(ctx)
     }
 
     /// Approve a multisig proposal on behalf of the `member`.

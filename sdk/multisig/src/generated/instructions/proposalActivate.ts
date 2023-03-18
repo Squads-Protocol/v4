@@ -7,75 +7,53 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
-import {
-  ProposalVoteArgs,
-  proposalVoteArgsBeet,
-} from '../types/ProposalVoteArgs'
 
 /**
  * @category Instructions
- * @category ProposalReject
+ * @category ProposalActivate
  * @category generated
  */
-export type ProposalRejectInstructionArgs = {
-  args: ProposalVoteArgs
-}
-/**
- * @category Instructions
- * @category ProposalReject
- * @category generated
- */
-export const proposalRejectStruct = new beet.FixableBeetArgsStruct<
-  ProposalRejectInstructionArgs & {
-    instructionDiscriminator: number[] /* size: 8 */
-  }
->(
-  [
-    ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', proposalVoteArgsBeet],
-  ],
-  'ProposalRejectInstructionArgs'
+export const proposalActivateStruct = new beet.BeetArgsStruct<{
+  instructionDiscriminator: number[] /* size: 8 */
+}>(
+  [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
+  'ProposalActivateInstructionArgs'
 )
 /**
- * Accounts required by the _proposalReject_ instruction
+ * Accounts required by the _proposalActivate_ instruction
  *
  * @property [] multisig
  * @property [_writable_, **signer**] member
  * @property [_writable_] proposal
  * @category Instructions
- * @category ProposalReject
+ * @category ProposalActivate
  * @category generated
  */
-export type ProposalRejectInstructionAccounts = {
+export type ProposalActivateInstructionAccounts = {
   multisig: web3.PublicKey
   member: web3.PublicKey
   proposal: web3.PublicKey
-  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const proposalRejectInstructionDiscriminator = [
-  243, 62, 134, 156, 230, 106, 246, 135,
+export const proposalActivateInstructionDiscriminator = [
+  11, 34, 92, 248, 154, 27, 51, 106,
 ]
 
 /**
- * Creates a _ProposalReject_ instruction.
+ * Creates a _ProposalActivate_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
- * @param args to provide as instruction data to the program
- *
  * @category Instructions
- * @category ProposalReject
+ * @category ProposalActivate
  * @category generated
  */
-export function createProposalRejectInstruction(
-  accounts: ProposalRejectInstructionAccounts,
-  args: ProposalRejectInstructionArgs,
+export function createProposalActivateInstruction(
+  accounts: ProposalActivateInstructionAccounts,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = proposalRejectStruct.serialize({
-    instructionDiscriminator: proposalRejectInstructionDiscriminator,
-    ...args,
+  const [data] = proposalActivateStruct.serialize({
+    instructionDiscriminator: proposalActivateInstructionDiscriminator,
   })
   const keys: web3.AccountMeta[] = [
     {
@@ -91,11 +69,6 @@ export function createProposalRejectInstruction(
     {
       pubkey: accounts.proposal,
       isWritable: true,
-      isSigner: false,
-    },
-    {
-      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
-      isWritable: false,
       isSigner: false,
     },
   ]

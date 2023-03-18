@@ -1,3 +1,5 @@
+export * from './BatchAddTransactionArgs'
+export * from './BatchCreateArgs'
 export * from './ConfigAction'
 export * from './ConfigTransactionCreateArgs'
 export * from './ConfigUpdateType'

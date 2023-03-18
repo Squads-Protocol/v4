@@ -8,35 +8,41 @@ import {
 import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
 
-export async function proposalCreate({
+/** Create a new vault transactions batch. */
+export async function batchCreate({
   connection,
   feePayer,
-  rentPayer,
   multisigPda,
-  transactionIndex,
-  isDraft,
+  batchIndex,
+  creator,
+  vaultIndex,
+  memo,
+  signers,
   sendOptions,
 }: {
   connection: Connection;
   feePayer: Signer;
-  rentPayer: Signer;
   multisigPda: PublicKey;
-  transactionIndex: bigint;
-  isDraft?: boolean;
+  batchIndex: bigint;
+  creator: Signer;
+  vaultIndex: number;
+  memo?: string;
+  signers?: Signer[];
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.proposalCreate({
+  const tx = transactions.batchCreate({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
-    transactionIndex,
-    rentPayer: rentPayer.publicKey,
-    isDraft,
+    batchIndex,
+    creator: creator.publicKey,
+    vaultIndex,
+    memo,
   });
 
-  tx.sign([feePayer, rentPayer]);
+  tx.sign([feePayer, creator, ...(signers ?? [])]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

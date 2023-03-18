@@ -39,17 +39,17 @@ export const proposalApproveStruct = new beet.FixableBeetArgsStruct<
 /**
  * Accounts required by the _proposalApprove_ instruction
  *
- * @property [_writable_] multisig
- * @property [_writable_] proposal
+ * @property [] multisig
  * @property [_writable_, **signer**] member
+ * @property [_writable_] proposal
  * @category Instructions
  * @category ProposalApprove
  * @category generated
  */
 export type ProposalApproveInstructionAccounts = {
   multisig: web3.PublicKey
-  proposal: web3.PublicKey
   member: web3.PublicKey
+  proposal: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -80,18 +80,18 @@ export function createProposalApproveInstruction(
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: true,
-      isSigner: false,
-    },
-    {
-      pubkey: accounts.proposal,
-      isWritable: true,
+      isWritable: false,
       isSigner: false,
     },
     {
       pubkey: accounts.member,
       isWritable: true,
       isSigner: true,
+    },
+    {
+      pubkey: accounts.proposal,
+      isWritable: true,
+      isSigner: false,
     },
     {
       pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,

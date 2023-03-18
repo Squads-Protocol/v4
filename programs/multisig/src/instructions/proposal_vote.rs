@@ -12,11 +12,13 @@ pub struct ProposalVoteArgs {
 #[derive(Accounts)]
 pub struct ProposalVote<'info> {
     #[account(
-        mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]
     pub multisig: Account<'info, Multisig>,
+
+    #[account(mut)]
+    pub member: Signer<'info>,
 
     #[account(
         mut,
@@ -31,9 +33,6 @@ pub struct ProposalVote<'info> {
     )]
     pub proposal: Account<'info, Proposal>,
 
-    #[account(mut)]
-    pub member: Signer<'info>,
-
     pub system_program: Program<'info, System>,
 }
 
@@ -45,6 +44,16 @@ impl ProposalVote<'_> {
             member,
             ..
         } = self;
+
+        // member
+        require!(
+            multisig.is_member(member.key()).is_some(),
+            MultisigError::NotAMember
+        );
+        require!(
+            multisig.member_has_permission(member.key(), Permission::Vote),
+            MultisigError::Unauthorized
+        );
 
         // proposal
         match vote {
@@ -64,21 +73,6 @@ impl ProposalVote<'_> {
         require!(
             proposal.transaction_index > multisig.stale_transaction_index,
             MultisigError::StaleProposal
-        );
-        require_keys_eq!(
-            proposal.multisig,
-            multisig.key(),
-            MultisigError::ProposalNotForMultisig
-        );
-
-        // creator
-        require!(
-            multisig.is_member(member.key()).is_some(),
-            MultisigError::NotAMember
-        );
-        require!(
-            multisig.member_has_permission(member.key(), Permission::Vote),
-            MultisigError::Unauthorized
         );
 
         Ok(())

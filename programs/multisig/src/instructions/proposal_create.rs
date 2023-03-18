@@ -8,6 +8,8 @@ use crate::state::*;
 pub struct ProposalCreateArgs {
     /// Index of the multisig transaction this proposal is associated with.
     pub transaction_index: u64,
+    /// Whether the proposal should be initialized with status `Draft`.
+    pub draft: bool,
 }
 
 #[derive(Accounts)]
@@ -67,8 +69,14 @@ impl ProposalCreate<'_> {
 
         proposal.multisig = ctx.accounts.multisig.key();
         proposal.transaction_index = args.transaction_index;
-        proposal.status = ProposalStatus::Active {
-            timestamp: Clock::get()?.unix_timestamp,
+        proposal.status = if args.draft {
+            ProposalStatus::Draft {
+                timestamp: Clock::get()?.unix_timestamp,
+            }
+        } else {
+            ProposalStatus::Active {
+                timestamp: Clock::get()?.unix_timestamp,
+            }
         };
         proposal.bump = *ctx.bumps.get("proposal").unwrap();
         proposal.approved = vec![];

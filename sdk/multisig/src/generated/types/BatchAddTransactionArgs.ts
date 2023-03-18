@@ -6,20 +6,20 @@
  */
 
 import * as beet from '@metaplex-foundation/beet'
-export type ProposalCreateArgs = {
-  transactionIndex: beet.bignum
-  draft: boolean
+export type BatchAddTransactionArgs = {
+  ephemeralSigners: number
+  transactionMessage: Uint8Array
 }
 
 /**
  * @category userTypes
  * @category generated
  */
-export const proposalCreateArgsBeet =
-  new beet.BeetArgsStruct<ProposalCreateArgs>(
+export const batchAddTransactionArgsBeet =
+  new beet.FixableBeetArgsStruct<BatchAddTransactionArgs>(
     [
-      ['transactionIndex', beet.u64],
-      ['draft', beet.bool],
+      ['ephemeralSigners', beet.u8],
+      ['transactionMessage', beet.bytes],
     ],
-    'ProposalCreateArgs'
+    'BatchAddTransactionArgs'
   )
