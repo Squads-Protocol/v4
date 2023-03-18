@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
 use crate::errors::*;
-use crate::events::*;
 
 #[account]
 pub struct Multisig {
@@ -140,19 +139,8 @@ impl Multisig {
 
     /// Captures the fact that the multisig config has changed in the multisig state
     /// and emits a `ConfigUpdatedEvent`.
-    pub fn config_updated(
-        &mut self,
-        multisig_address: Pubkey,
-        update: ConfigUpdateType,
-        memo: Option<String>,
-    ) {
+    pub fn config_updated(&mut self) {
         self.stale_transaction_index = self.transaction_index;
-
-        emit!(MultisigConfigUpdated {
-            multisig: multisig_address,
-            update,
-            memo
-        })
     }
 
     /// Returns `Some(index)` if `member_pubkey` is a member, with `index` into the `members` vec.

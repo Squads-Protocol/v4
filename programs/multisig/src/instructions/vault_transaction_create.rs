@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::*;
 use crate::state::*;
 use crate::utils::*;
 
@@ -121,12 +120,6 @@ impl VaultTransactionCreate<'_> {
         multisig.transaction_index = transaction_index;
 
         multisig.invariant()?;
-
-        emit!(TransactionCreated {
-            multisig: multisig_key,
-            transaction: transaction.key(),
-            memo: args.memo,
-        });
 
         Ok(())
     }

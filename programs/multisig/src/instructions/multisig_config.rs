@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::ConfigUpdateType;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -76,12 +75,11 @@ impl MultisigConfig<'_> {
     /// Add a member/key to the multisig and reallocate space if necessary.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
-        let MultisigAddMemberArgs { new_member, memo } = args;
+        let MultisigAddMemberArgs { new_member, .. } = args;
 
         let system_program = &ctx.accounts.system_program;
         let rent_payer = &ctx.accounts.rent_payer;
         let multisig = &mut ctx.accounts.multisig;
-        let multisig_key = multisig.to_account_info().key();
 
         // Check if we need to reallocate space.
         let reallocated = Multisig::realloc_if_needed(
@@ -99,11 +97,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        multisig.config_updated(
-            multisig_key,
-            ConfigUpdateType::AddMember { reallocated },
-            memo,
-        );
+        multisig.config_updated();
 
         Ok(())
     }
@@ -115,7 +109,6 @@ impl MultisigConfig<'_> {
         args: MultisigRemoveMemberArgs,
     ) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
-        let multisig_key = multisig.to_account_info().key();
 
         require!(multisig.members.len() > 1, MultisigError::RemoveLastMember);
 
@@ -132,7 +125,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        multisig.config_updated(multisig_key, ConfigUpdateType::RemoveMember, args.memo);
+        multisig.config_updated();
 
         Ok(())
     }
@@ -142,19 +135,15 @@ impl MultisigConfig<'_> {
         ctx: Context<Self>,
         args: MultisigChangeThresholdArgs,
     ) -> Result<()> {
-        let MultisigChangeThresholdArgs {
-            new_threshold,
-            memo,
-        } = args;
+        let MultisigChangeThresholdArgs { new_threshold, .. } = args;
 
         let multisig = &mut ctx.accounts.multisig;
-        let multisig_key = multisig.to_account_info().key();
 
         multisig.threshold = new_threshold;
 
         multisig.invariant()?;
 
-        multisig.config_updated(multisig_key, ConfigUpdateType::ChangeThreshold, memo);
+        multisig.config_updated();
 
         Ok(())
     }
@@ -163,13 +152,12 @@ impl MultisigConfig<'_> {
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_set_time_lock(ctx: Context<Self>, args: MultisigSetTimeLockArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
-        let multisig_key = multisig.key();
 
         multisig.time_lock = args.time_lock;
 
         multisig.invariant()?;
 
-        multisig.config_updated(multisig_key, ConfigUpdateType::SetTimeLock, args.memo);
+        multisig.config_updated();
 
         Ok(())
     }
@@ -181,17 +169,12 @@ impl MultisigConfig<'_> {
         args: MultisigSetConfigAuthorityArgs,
     ) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
-        let multisig_key = multisig.key();
 
         multisig.config_authority = args.config_authority;
 
         multisig.invariant()?;
 
-        multisig.config_updated(
-            multisig_key,
-            ConfigUpdateType::SetConfigAuthority,
-            args.memo,
-        );
+        multisig.config_updated();
 
         Ok(())
     }

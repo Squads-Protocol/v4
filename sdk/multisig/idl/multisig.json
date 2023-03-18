@@ -808,7 +808,7 @@
               "Some transactions require multiple signers. Often these additional signers are \"ephemeral\" keypairs",
               "that are generated on the client with a sole purpose of signing the transaction and be discarded immediately after.",
               "When wrapping such transactions into multisig ones, we replace these \"ephemeral\" signing keypairs",
-              "with PDAs derived from the MultisigTransaction's `transaction_index` and controlled by the Multisig Program;",
+              "with PDAs derived from the transaction's `transaction_index` and controlled by the Multisig Program;",
               "during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,",
               "thus \"signing\" on behalf of these PDAs."
             ],
@@ -1567,35 +1567,6 @@
       }
     },
     {
-      "name": "ConfigUpdateType",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "AddMember",
-            "fields": [
-              {
-                "name": "reallocated",
-                "type": "bool"
-              }
-            ]
-          },
-          {
-            "name": "RemoveMember"
-          },
-          {
-            "name": "ChangeThreshold"
-          },
-          {
-            "name": "SetConfigAuthority"
-          },
-          {
-            "name": "SetTimeLock"
-          }
-        ]
-      }
-    },
-    {
       "name": "Vote",
       "type": {
         "kind": "enum",
@@ -1714,167 +1685,6 @@
           }
         ]
       }
-    }
-  ],
-  "events": [
-    {
-      "name": "MultisigCreated",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
-      "name": "MultisigConfigUpdated",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "update",
-          "type": {
-            "defined": "ConfigUpdateType"
-          },
-          "index": true
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
-      "name": "TransactionCreated",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "transaction",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
-      "name": "TransactionExecuted",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "transaction",
-          "type": "publicKey",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "ProposalCreated",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "proposal",
-          "type": "publicKey",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "ProposalApproved",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "proposal",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
-      "name": "ProposalRejected",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "proposal",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
-    },
-    {
-      "name": "ProposalCancelled",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "proposal",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "memo",
-          "type": {
-            "option": "string"
-          },
-          "index": true
-        }
-      ]
     }
   ],
   "errors": [

@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::*;
 use crate::state::*;
 use crate::utils::*;
 
@@ -140,11 +139,6 @@ impl VaultTransactionExecute<'_> {
         proposal.status = ProposalStatus::Executed {
             timestamp: Clock::get()?.unix_timestamp,
         };
-
-        emit!(TransactionExecuted {
-            multisig: multisig_key,
-            transaction: transaction.key(),
-        });
 
         Ok(())
     }

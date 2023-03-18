@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::*;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -81,18 +80,12 @@ impl ProposalVote<'_> {
     /// Approve a multisig proposal on behalf of the `member`.
     /// The proposal must be `Active`.
     #[access_control(ctx.accounts.validate(Vote::Approve))]
-    pub fn proposal_approve(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_approve(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
 
         proposal.approve(member.key(), usize::from(multisig.threshold))?;
-
-        emit!(ProposalApproved {
-            multisig: multisig.key(),
-            proposal: proposal.key(),
-            memo: args.memo,
-        });
 
         Ok(())
     }
@@ -100,7 +93,7 @@ impl ProposalVote<'_> {
     /// Reject a multisig proposal on behalf of the `member`.
     /// The proposal must be `Active`.
     #[access_control(ctx.accounts.validate(Vote::Reject))]
-    pub fn proposal_reject(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_reject(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
@@ -109,30 +102,18 @@ impl ProposalVote<'_> {
 
         proposal.reject(member.key(), cutoff)?;
 
-        emit!(ProposalRejected {
-            multisig: multisig.key(),
-            proposal: proposal.key(),
-            memo: args.memo,
-        });
-
         Ok(())
     }
 
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
     #[access_control(ctx.accounts.validate(Vote::Cancel))]
-    pub fn proposal_cancel(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_cancel(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
 
         proposal.cancel(member.key(), usize::from(multisig.threshold))?;
-
-        emit!(ProposalCancelled {
-            multisig: multisig.key(),
-            proposal: proposal.key(),
-            memo: args.memo,
-        });
 
         Ok(())
     }

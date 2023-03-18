@@ -7,12 +7,10 @@ extern crate core;
 
 use anchor_lang::prelude::*;
 
-pub use events::*;
 pub use instructions::*;
 pub use state::*;
 
 pub mod errors;
-pub mod events;
 pub mod instructions;
 pub mod state;
 mod utils;

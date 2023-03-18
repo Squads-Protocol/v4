@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::*;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -76,7 +75,6 @@ impl ConfigTransactionCreate<'_> {
         let creator = &mut ctx.accounts.creator;
 
         let multisig_key = multisig.key();
-        let transaction_key = transaction.key();
 
         // Increment the transaction index.
         let transaction_index = multisig.transaction_index.checked_add(1).unwrap();
@@ -92,12 +90,6 @@ impl ConfigTransactionCreate<'_> {
         multisig.transaction_index = transaction_index;
 
         multisig.invariant()?;
-
-        emit!(TransactionCreated {
-            multisig: multisig_key,
-            transaction: transaction_key,
-            memo: args.memo,
-        });
 
         Ok(())
     }

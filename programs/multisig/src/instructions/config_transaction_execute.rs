@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::*;
 use crate::state::*;
 
 #[derive(Accounts)]
@@ -99,9 +98,6 @@ impl ConfigTransactionExecute<'_> {
         let rent_payer = &ctx.accounts.rent_payer;
         let system_program = &ctx.accounts.system_program;
 
-        let multisig_key = multisig.key();
-        let transaction_key = transaction.key();
-
         // Check applying the config actions will require reallocation of space for the multisig account.
         let new_members_length =
             members_length_after_actions(multisig.members.len(), &transaction.actions);
@@ -121,23 +117,19 @@ impl ConfigTransactionExecute<'_> {
                 ConfigAction::AddMember { new_member } => {
                     multisig.add_member(new_member.to_owned());
 
-                    multisig.config_updated(
-                        multisig_key,
-                        ConfigUpdateType::AddMember { reallocated },
-                        None,
-                    );
+                    multisig.config_updated();
                 }
 
                 ConfigAction::RemoveMember { old_member } => {
                     multisig.remove_member(old_member.to_owned())?;
 
-                    multisig.config_updated(multisig_key, ConfigUpdateType::RemoveMember, None);
+                    multisig.config_updated();
                 }
 
                 ConfigAction::ChangeThreshold { new_threshold } => {
                     multisig.threshold = *new_threshold;
 
-                    multisig.config_updated(multisig_key, ConfigUpdateType::ChangeThreshold, None);
+                    multisig.config_updated();
                 }
             }
         }
@@ -158,11 +150,6 @@ impl ConfigTransactionExecute<'_> {
         proposal.status = ProposalStatus::Executed {
             timestamp: Clock::get()?.unix_timestamp,
         };
-
-        emit!(TransactionExecuted {
-            multisig: multisig_key,
-            transaction: transaction_key,
-        });
 
         Ok(())
     }

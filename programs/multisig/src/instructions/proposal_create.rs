@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::events::*;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -82,11 +81,6 @@ impl ProposalCreate<'_> {
         proposal.approved = vec![];
         proposal.rejected = vec![];
         proposal.cancelled = vec![];
-
-        emit!(ProposalCreated {
-            multisig: ctx.accounts.multisig.key(),
-            proposal: proposal.key(),
-        });
 
         Ok(())
     }

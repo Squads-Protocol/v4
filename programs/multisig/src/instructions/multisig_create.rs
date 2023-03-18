@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 
-use crate::events::*;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -66,11 +65,6 @@ impl MultisigCreate<'_> {
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
 
         multisig.invariant()?;
-
-        emit!(MultisigCreated {
-            multisig: multisig.to_account_info().key(),
-            memo: args.memo,
-        });
 
         Ok(())
     }
