@@ -27,19 +27,20 @@ export async function batchExecuteTransaction({
   batchIndex: bigint;
   transactionIndex: number;
 }): Promise<VersionedTransaction> {
+  const { instruction, lookupTableAccounts } =
+    await instructions.batchExecuteTransaction({
+      connection,
+      multisigPda,
+      member,
+      batchIndex,
+      transactionIndex,
+    });
+
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
-    instructions: [
-      await instructions.batchExecuteTransaction({
-        connection,
-        multisigPda,
-        member,
-        batchIndex,
-        transactionIndex,
-      }),
-    ],
-  }).compileToV0Message();
+    instructions: [instruction],
+  }).compileToV0Message(lookupTableAccounts);
 
   return new VersionedTransaction(message);
 }

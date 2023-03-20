@@ -25,18 +25,19 @@ export async function vaultTransactionExecute({
   transactionIndex: bigint;
   member: PublicKey;
 }): Promise<VersionedTransaction> {
-  const ix = await instructions.vaultTransactionExecute({
-    connection,
-    multisigPda,
-    member,
-    transactionIndex,
-  });
+  const { instruction, lookupTableAccounts } =
+    await instructions.vaultTransactionExecute({
+      connection,
+      multisigPda,
+      member,
+      transactionIndex,
+    });
 
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
-    instructions: [ix],
-  }).compileToV0Message();
+    instructions: [instruction],
+  }).compileToV0Message(lookupTableAccounts);
 
   return new VersionedTransaction(message);
 }

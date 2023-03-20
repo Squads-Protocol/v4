@@ -1,4 +1,9 @@
-import { Connection, PublicKey } from "@solana/web3.js";
+import {
+  AddressLookupTableAccount,
+  Connection,
+  PublicKey,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import {
   Batch,
   createBatchExecuteTransactionInstruction,
@@ -10,7 +15,7 @@ import {
   getTransactionPda,
   getVaultPda,
 } from "../pda";
-import { remainingAccountsForTransactionExecute } from "../utils";
+import { accountsForTransactionExecute } from "../utils";
 
 export async function batchExecuteTransaction({
   connection,
@@ -24,7 +29,10 @@ export async function batchExecuteTransaction({
   member: PublicKey;
   batchIndex: bigint;
   transactionIndex: number;
-}) {
+}): Promise<{
+  instruction: TransactionInstruction;
+  lookupTableAccounts: AddressLookupTableAccount[];
+}> {
   const [proposalPda] = getProposalPda({
     multisigPda,
     transactionIndex: batchIndex,
@@ -51,20 +59,24 @@ export async function batchExecuteTransaction({
       batchTransactionPda
     );
 
-  const remainingAccounts = await remainingAccountsForTransactionExecute({
-    connection,
-    message: batchTransactionAccount.message,
-    ephemeralSignerBumps: [...batchTransactionAccount.ephemeralSignerBumps],
-    vaultPda,
-    transactionPda: batchPda,
-  });
+  const { accountMetas, lookupTableAccounts } =
+    await accountsForTransactionExecute({
+      connection,
+      message: batchTransactionAccount.message,
+      ephemeralSignerBumps: [...batchTransactionAccount.ephemeralSignerBumps],
+      vaultPda,
+      transactionPda: batchPda,
+    });
 
-  return createBatchExecuteTransactionInstruction({
-    multisig: multisigPda,
-    member,
-    proposal: proposalPda,
-    batch: batchPda,
-    transaction: batchTransactionPda,
-    anchorRemainingAccounts: remainingAccounts,
-  });
+  return {
+    instruction: createBatchExecuteTransactionInstruction({
+      multisig: multisigPda,
+      member,
+      proposal: proposalPda,
+      batch: batchPda,
+      transaction: batchTransactionPda,
+      anchorRemainingAccounts: accountMetas,
+    }),
+    lookupTableAccounts,
+  };
 }

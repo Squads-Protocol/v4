@@ -2264,19 +2264,14 @@ describe("multisig", () => {
 
       // Execute the transactions from the batch sequentially one-by-one.
       for (const transactionIndex of range(1, testTransactionMessages.length)) {
-        signature = await multisig.rpc
-          .batchExecuteTransaction({
-            connection,
-            feePayer: feePayer,
-            multisigPda,
-            member: members.executor,
-            batchIndex,
-            transactionIndex,
-          })
-          .catch((err: any) => {
-            console.error(err.logs);
-            throw err;
-          });
+        signature = await multisig.rpc.batchExecuteTransaction({
+          connection,
+          feePayer: feePayer,
+          multisigPda,
+          member: members.executor,
+          batchIndex,
+          transactionIndex,
+        });
         await connection.confirmTransaction(signature);
       }
 

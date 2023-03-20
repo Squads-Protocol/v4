@@ -1,10 +1,15 @@
-import { Connection, PublicKey } from "@solana/web3.js";
+import {
+  AddressLookupTableAccount,
+  Connection,
+  PublicKey,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import { getProposalPda, getTransactionPda, getVaultPda } from "../pda";
 import {
   createVaultTransactionExecuteInstruction,
   VaultTransaction,
 } from "../generated";
-import { remainingAccountsForTransactionExecute } from "../utils";
+import { accountsForTransactionExecute } from "../utils";
 
 export async function vaultTransactionExecute({
   connection,
@@ -16,7 +21,10 @@ export async function vaultTransactionExecute({
   multisigPda: PublicKey;
   transactionIndex: bigint;
   member: PublicKey;
-}) {
+}): Promise<{
+  instruction: TransactionInstruction;
+  lookupTableAccounts: AddressLookupTableAccount[];
+}> {
   const [proposalPda] = getProposalPda({
     multisigPda,
     transactionIndex,
@@ -35,19 +43,23 @@ export async function vaultTransactionExecute({
     index: transactionAccount.vaultIndex,
   });
 
-  const remainingAccounts = await remainingAccountsForTransactionExecute({
-    connection,
-    message: transactionAccount.message,
-    ephemeralSignerBumps: [...transactionAccount.ephemeralSignerBumps],
-    vaultPda,
-    transactionPda,
-  });
+  const { accountMetas, lookupTableAccounts } =
+    await accountsForTransactionExecute({
+      connection,
+      message: transactionAccount.message,
+      ephemeralSignerBumps: [...transactionAccount.ephemeralSignerBumps],
+      vaultPda,
+      transactionPda,
+    });
 
-  return createVaultTransactionExecuteInstruction({
-    multisig: multisigPda,
-    member,
-    proposal: proposalPda,
-    transaction: transactionPda,
-    anchorRemainingAccounts: remainingAccounts,
-  });
+  return {
+    instruction: createVaultTransactionExecuteInstruction({
+      multisig: multisigPda,
+      member,
+      proposal: proposalPda,
+      transaction: transactionPda,
+      anchorRemainingAccounts: accountMetas,
+    }),
+    lookupTableAccounts,
+  };
 }

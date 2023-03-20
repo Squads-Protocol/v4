@@ -133,7 +133,7 @@ export function transactionMessageToMultisigTransactionMessageBytes({
 }
 
 /** Populate remaining accounts required for execution of the transaction. */
-export async function remainingAccountsForTransactionExecute({
+export async function accountsForTransactionExecute({
   connection,
   transactionPda,
   vaultPda,
@@ -145,7 +145,12 @@ export async function remainingAccountsForTransactionExecute({
   ephemeralSignerBumps: number[];
   vaultPda: PublicKey;
   transactionPda: PublicKey;
-}): Promise<AccountMeta[]> {
+}): Promise<{
+  /** Account metas used in the `message`. */
+  accountMetas: AccountMeta[];
+  /** Address lookup table accounts used in the `message`. */
+  lookupTableAccounts: AddressLookupTableAccount[];
+}> {
   const ephemeralSignerPdas = ephemeralSignerBumps.map(
     (_, additionalSignerIndex) => {
       return getEphemeralSignerPda({
@@ -172,17 +177,17 @@ export async function remainingAccountsForTransactionExecute({
     )
   );
 
-  // Populate remaining accounts required for execution of the transaction.
-  const remainingAccounts: AccountMeta[] = [];
+  // Populate account metas required for execution of the transaction.
+  const accountMetas: AccountMeta[] = [];
   // First add the lookup table accounts used by the transaction. They are needed for on-chain validation.
-  remainingAccounts.push(
+  accountMetas.push(
     ...addressLookupTableKeys.map((key) => {
       return { pubkey: key, isSigner: false, isWritable: false };
     })
   );
   // Then add static account keys included into the message.
   for (const [accountIndex, accountKey] of message.accountKeys.entries()) {
-    remainingAccounts.push({
+    accountMetas.push({
       pubkey: accountKey,
       isWritable: isStaticWritableIndex(message, accountIndex),
       // NOTE: vaultPda and ephemeralSignerPdas cannot be marked as signers,
@@ -210,7 +215,7 @@ export async function remainingAccountsForTransactionExecute({
         pubkey,
         `Address lookup table account ${lookup.accountKey.toBase58()} does not contain address at index ${accountIndex}`
       );
-      remainingAccounts.push({
+      accountMetas.push({
         pubkey,
         isWritable: true,
         // Accounts in address lookup tables can not be signers.
@@ -224,7 +229,7 @@ export async function remainingAccountsForTransactionExecute({
         pubkey,
         `Address lookup table account ${lookup.accountKey.toBase58()} does not contain address at index ${accountIndex}`
       );
-      remainingAccounts.push({
+      accountMetas.push({
         pubkey,
         isWritable: false,
         // Accounts in address lookup tables can not be signers.
@@ -233,5 +238,8 @@ export async function remainingAccountsForTransactionExecute({
     }
   }
 
-  return remainingAccounts;
+  return {
+    accountMetas,
+    lookupTableAccounts: [...addressLookupTableAccounts.values()],
+  };
 }
