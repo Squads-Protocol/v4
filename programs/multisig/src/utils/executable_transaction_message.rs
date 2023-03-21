@@ -169,12 +169,15 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     ) -> Result<()> {
         for (ix, account_infos) in self.to_instructions_and_accounts().iter() {
             // Make sure we don't allow reentrancy of transaction_execute.
-            // FIXME: Also prevent reentrancy of batch_transaction_execute.
             if ix.program_id == id() {
                 require!(
                     ix.data[..8] != crate::instruction::VaultTransactionExecute::DISCRIMINATOR,
                     MultisigError::ExecuteReentrancy
-                )
+                );
+                require!(
+                    ix.data[..8] != crate::instruction::BatchExecuteTransaction::DISCRIMINATOR,
+                    MultisigError::ExecuteReentrancy
+                );
             }
 
             // Convert vault_seeds to Vec<&[u8]>.
