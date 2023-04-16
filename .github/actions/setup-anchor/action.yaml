@@ -1,0 +1,36 @@
+name: "Setup Anchor"
+description: "Setup Anchor"
+runs:
+  using: "composite"
+  steps:
+    - name: Restore Cargo Cache with Installed Anchor CLI
+      id: restore-cache-anchor-cargo
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-anchor-cargo-${{ env.ANCHOR_VERSION }}
+
+    - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
+      name: Install System Dependencies for Anchor CLI
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y pkg-config build-essential libssl-dev libudev-dev
+
+    - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
+      name: Install Anchor CLI
+      shell: bash
+      run: cargo install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked
+
+    - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
+      name: Save Cargo Cache with Installed Anchor CLI
+      uses: actions/cache/save@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ steps.restore-cache-anchor-cargo.outputs.cache-primary-key }}

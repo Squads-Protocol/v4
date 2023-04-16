@@ -10,7 +10,7 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "./.keys/upgrade-authority.json"
+wallet = "~/.config/solana/id.json"
 
 [test.validator]
 url = "https://api.devnet.solana.com"
