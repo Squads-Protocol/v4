@@ -1,25 +1,25 @@
+import { createMultisigAddVaultInstruction } from "../generated";
 import { PublicKey } from "@solana/web3.js";
-import { createMultisigSetTimeLockInstruction } from "../generated";
 
-export function multisigSetTimeLock({
+export function multisigAddVault({
   multisigPda,
   configAuthority,
-  timeLock,
+  vaultIndex,
   memo,
 }: {
   multisigPda: PublicKey;
   configAuthority: PublicKey;
-  timeLock: number;
+  vaultIndex: number;
   memo?: string;
 }) {
-  return createMultisigSetTimeLockInstruction(
+  return createMultisigAddVaultInstruction(
     {
       multisig: multisigPda,
       configAuthority,
     },
     {
       args: {
-        timeLock,
+        vaultIndex,
         memo: memo ?? null,
       },
     }

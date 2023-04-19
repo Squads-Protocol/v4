@@ -48,4 +48,6 @@ pub enum MultisigError {
     NoActions,
     #[msg("Missing account")]
     MissingAccount,
+    #[msg("Invalid `vault_index`")]
+    InvalidVaultIndex,
 }

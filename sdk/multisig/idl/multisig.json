@@ -242,6 +242,60 @@
       ]
     },
     {
+      "name": "multisigAddVault",
+      "docs": [
+        "Increment the multisig `vault_index`.",
+        "This doesn't actually \"add\" a new vault, because vaults are derived from the multisig address and index, so technically",
+        "they always exist. This just increments the index so that UIs can show the \"used\" vaults.",
+        "",
+        "NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).",
+        "Uncontrolled Mustisigs should use `config_transaction_create` instead."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "isOptional": true,
+          "docs": [
+            "The account that will be charged in case the multisig account needs to reallocate space,",
+            "for example when adding a new member.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigAddVaultArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "configTransactionCreate",
       "docs": [
         "Create a new config transaction."
@@ -1289,6 +1343,32 @@
       }
     },
     {
+      "name": "MultisigAddVaultArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "The next vault index to set as the latest used.",
+              "Must be the current `vault_index + 1`.",
+              "We pass it explicitly to make this instruction idempotent."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MultisigCreateArgs",
       "type": {
         "kind": "struct",
@@ -1810,6 +1890,11 @@
       "code": 6022,
       "name": "MissingAccount",
       "msg": "Missing account"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidVaultIndex",
+      "msg": "Invalid `vault_index`"
     }
   ],
   "metadata": {
