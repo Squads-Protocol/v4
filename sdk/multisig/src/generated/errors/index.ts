@@ -505,6 +505,26 @@ createErrorFromCodeLookup.set(0x1785, () => new NoActionsError())
 createErrorFromNameLookup.set('NoActions', () => new NoActionsError())
 
 /**
+ * MissingAccount: 'Missing account'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class MissingAccountError extends Error {
+  readonly code: number = 0x1786
+  readonly name: string = 'MissingAccount'
+  constructor() {
+    super('Missing account')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, MissingAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1786, () => new MissingAccountError())
+createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

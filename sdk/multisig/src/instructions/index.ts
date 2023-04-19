@@ -4,6 +4,7 @@ export * from "./batchExecuteTransaction.js";
 export * from "./configTransactionCreate.js";
 export * from "./configTransactionExecute.js";
 export * from "./multisigCreate.js";
+export * from "./multisigAddMember.js";
 export * from "./multisigSetConfigAuthority.js";
 export * from "./multisigSetTimeLock.js";
 export * from "./proposalActivate.js";

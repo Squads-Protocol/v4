@@ -50,15 +50,14 @@ pub struct MultisigConfig<'info> {
     /// Multisig `config_authority` that must authorize the configuration change.
     pub config_authority: Signer<'info>,
 
-    // TODO: Since this account only needed for add_member, we should create a separate Accounts struct for it.
     /// The account that will be charged in case the multisig account needs to reallocate space,
     /// for example when adding a new member.
     /// This is usually the same as `config_authority`, but can be a different account if needed.
     #[account(mut)]
-    pub rent_payer: Signer<'info>,
+    pub rent_payer: Option<Signer<'info>>,
 
     /// We might need it in case reallocation is needed.
-    pub system_program: Program<'info, System>,
+    pub system_program: Option<Program<'info, System>>,
 }
 
 impl MultisigConfig<'_> {
@@ -77,8 +76,16 @@ impl MultisigConfig<'_> {
     pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
         let MultisigAddMemberArgs { new_member, .. } = args;
 
-        let system_program = &ctx.accounts.system_program;
-        let rent_payer = &ctx.accounts.rent_payer;
+        let system_program = &ctx
+            .accounts
+            .system_program
+            .as_ref()
+            .ok_or(MultisigError::MissingAccount)?;
+        let rent_payer = &ctx
+            .accounts
+            .rent_payer
+            .as_ref()
+            .ok_or(MultisigError::MissingAccount)?;
         let multisig = &mut ctx.accounts.multisig;
 
         // Check if we need to reallocate space.

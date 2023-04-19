@@ -46,4 +46,6 @@ pub enum MultisigError {
     TimeLockNotReleased,
     #[msg("Config transaction must have at least one action")]
     NoActions,
+    #[msg("Missing account")]
+    MissingAccount,
 }

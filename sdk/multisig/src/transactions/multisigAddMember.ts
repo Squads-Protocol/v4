@@ -1,9 +1,11 @@
 import {
   PublicKey,
+  SystemProgram,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { createMultisigAddMemberInstruction, Member } from "../generated";
+import { Member } from "../generated";
+import * as instructions from "../instructions/index";
 
 /**
  * Returns unsigned `VersionedTransaction` that needs to be
@@ -30,14 +32,13 @@ export function multisigAddMember({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      createMultisigAddMemberInstruction(
-        {
-          multisig: multisigPda,
-          configAuthority,
-          rentPayer,
-        },
-        { args: { newMember, memo: memo ?? null } }
-      ),
+      instructions.multisigAddMember({
+        multisigPda,
+        configAuthority,
+        rentPayer,
+        newMember,
+        memo,
+      }),
     ],
   }).compileToV0Message();
 

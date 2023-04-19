@@ -41,7 +41,7 @@ export const multisigRemoveMemberStruct = new beet.FixableBeetArgsStruct<
  *
  * @property [_writable_] multisig
  * @property [**signer**] configAuthority
- * @property [_writable_, **signer**] rentPayer
+ * @property [_writable_, **signer**] rentPayer (optional)
  * @category Instructions
  * @category MultisigRemoveMember
  * @category generated
@@ -49,7 +49,7 @@ export const multisigRemoveMemberStruct = new beet.FixableBeetArgsStruct<
 export type MultisigRemoveMemberInstructionAccounts = {
   multisig: web3.PublicKey
   configAuthority: web3.PublicKey
-  rentPayer: web3.PublicKey
+  rentPayer?: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -60,6 +60,11 @@ export const multisigRemoveMemberInstructionDiscriminator = [
 
 /**
  * Creates a _MultisigRemoveMember_ instruction.
+ *
+ * Optional accounts that are not provided will be omitted from the accounts
+ * array passed with the instruction.
+ * An optional account that is set cannot follow an optional account that is unset.
+ * Otherwise an Error is raised.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
@@ -88,17 +93,27 @@ export function createMultisigRemoveMemberInstruction(
       isWritable: false,
       isSigner: true,
     },
-    {
+  ]
+
+  if (accounts.rentPayer != null) {
+    keys.push({
       pubkey: accounts.rentPayer,
       isWritable: true,
       isSigner: true,
-    },
-    {
-      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
+    })
+  }
+  if (accounts.systemProgram != null) {
+    if (accounts.rentPayer == null) {
+      throw new Error(
+        "When providing 'systemProgram' then 'accounts.rentPayer' need(s) to be provided as well."
+      )
+    }
+    keys.push({
+      pubkey: accounts.systemProgram,
       isWritable: false,
       isSigner: false,
-    },
-  ]
+    })
+  }
 
   if (accounts.anchorRemainingAccounts != null) {
     for (const acc of accounts.anchorRemainingAccounts) {

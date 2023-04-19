@@ -22,7 +22,7 @@
     "invariant": "2.2.4"
   },
   "devDependencies": {
-    "@metaplex-foundation/solita": "0.19.3",
+    "@metaplex-foundation/solita": "0.19.4",
     "@types/invariant": "2.2.35",
     "@types/node": "18.11.17",
     "typescript": "*"
