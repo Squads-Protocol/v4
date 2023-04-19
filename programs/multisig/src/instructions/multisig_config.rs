@@ -221,7 +221,7 @@ impl MultisigConfig<'_> {
         let multisig = &mut ctx.accounts.multisig;
 
         require!(
-            args.vault_index == multisig.vault_index + 1,
+            args.vault_index == multisig.vault_index.checked_add(1).expect("overflow"),
             MultisigError::InvalidVaultIndex
         );
 
