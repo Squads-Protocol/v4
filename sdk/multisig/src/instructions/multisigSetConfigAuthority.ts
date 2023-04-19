@@ -16,8 +16,6 @@ export function multisigSetConfigAuthority({
     {
       multisig: multisigPda,
       configAuthority,
-      // Rent payer won't be used in this instruction.
-      rentPayer: configAuthority,
     },
     {
       args: {

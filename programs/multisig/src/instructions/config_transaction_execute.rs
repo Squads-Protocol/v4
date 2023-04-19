@@ -131,6 +131,22 @@ impl ConfigTransactionExecute<'_> {
 
                     multisig.config_updated();
                 }
+
+                ConfigAction::SetTimeLock { new_time_lock } => {
+                    multisig.time_lock = *new_time_lock;
+
+                    multisig.config_updated();
+                }
+
+                ConfigAction::AddVault { new_vault_index } => {
+                    require!(
+                        *new_vault_index == multisig.vault_index.checked_add(1).expect("overflow"),
+                        MultisigError::InvalidVaultIndex
+                    );
+                    multisig.vault_index = *new_vault_index;
+
+                    multisig.config_updated();
+                }
             }
         }
 
@@ -157,9 +173,11 @@ impl ConfigTransactionExecute<'_> {
 
 fn members_length_after_actions(members_length: usize, actions: &[ConfigAction]) -> usize {
     let members_delta: isize = actions.iter().fold(0, |acc, action| match action {
-        ConfigAction::AddMember { .. } => acc + 1,
-        ConfigAction::RemoveMember { .. } => acc - 1,
+        ConfigAction::AddMember { .. } => acc.checked_add(1).expect("overflow"),
+        ConfigAction::RemoveMember { .. } => acc.checked_sub(1).expect("overflow"),
         ConfigAction::ChangeThreshold { .. } => acc,
+        ConfigAction::SetTimeLock { .. } => acc,
+        ConfigAction::AddVault { .. } => acc,
     });
 
     let abs_members_delta =

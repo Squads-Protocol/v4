@@ -505,6 +505,49 @@ createErrorFromCodeLookup.set(0x1785, () => new NoActionsError())
 createErrorFromNameLookup.set('NoActions', () => new NoActionsError())
 
 /**
+ * MissingAccount: 'Missing account'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class MissingAccountError extends Error {
+  readonly code: number = 0x1786
+  readonly name: string = 'MissingAccount'
+  constructor() {
+    super('Missing account')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, MissingAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1786, () => new MissingAccountError())
+createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
+
+/**
+ * InvalidVaultIndex: 'Invalid `vault_index`'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidVaultIndexError extends Error {
+  readonly code: number = 0x1787
+  readonly name: string = 'InvalidVaultIndex'
+  constructor() {
+    super('Invalid `vault_index`')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidVaultIndexError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1787, () => new InvalidVaultIndexError())
+createErrorFromNameLookup.set(
+  'InvalidVaultIndex',
+  () => new InvalidVaultIndexError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

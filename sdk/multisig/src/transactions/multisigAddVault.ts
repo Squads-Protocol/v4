@@ -1,42 +1,33 @@
 import {
   PublicKey,
-  SystemProgram,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { Member } from "../generated";
 import * as instructions from "../instructions/index";
 
-/**
- * Returns unsigned `VersionedTransaction` that needs to be
- * signed by `configAuthority` and `feePayer` before sending it.
- */
-export function multisigAddMember({
+export function multisigAddVault({
   blockhash,
   feePayer,
   multisigPda,
   configAuthority,
-  rentPayer,
-  newMember,
+  vaultIndex,
   memo,
 }: {
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
   configAuthority: PublicKey;
-  rentPayer: PublicKey;
-  newMember: Member;
+  vaultIndex: number;
   memo?: string;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      instructions.multisigAddMember({
+      instructions.multisigAddVault({
         multisigPda,
         configAuthority,
-        rentPayer,
-        newMember,
+        vaultIndex,
         memo,
       }),
     ],

@@ -58,6 +58,19 @@ pub mod multisig {
         MultisigConfig::multisig_set_config_authority(ctx, args)
     }
 
+    /// Increment the multisig `vault_index`.
+    /// This doesn't actually "add" a new vault, because vaults are derived from the multisig address and index, so technically
+    /// they always exist. This just increments the index so that UIs can show the "used" vaults.
+    ///
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    pub fn multisig_add_vault(
+        ctx: Context<MultisigConfig>,
+        args: MultisigAddVaultArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_add_vault(ctx, args)
+    }
+
     /// Create a new config transaction.
     pub fn config_transaction_create(
         ctx: Context<ConfigTransactionCreate>,

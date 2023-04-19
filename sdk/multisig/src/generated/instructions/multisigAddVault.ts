@@ -8,45 +8,45 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  MultisigRemoveMemberArgs,
-  multisigRemoveMemberArgsBeet,
-} from '../types/MultisigRemoveMemberArgs'
+  MultisigAddVaultArgs,
+  multisigAddVaultArgsBeet,
+} from '../types/MultisigAddVaultArgs'
 
 /**
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category MultisigAddVault
  * @category generated
  */
-export type MultisigRemoveMemberInstructionArgs = {
-  args: MultisigRemoveMemberArgs
+export type MultisigAddVaultInstructionArgs = {
+  args: MultisigAddVaultArgs
 }
 /**
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category MultisigAddVault
  * @category generated
  */
-export const multisigRemoveMemberStruct = new beet.FixableBeetArgsStruct<
-  MultisigRemoveMemberInstructionArgs & {
+export const multisigAddVaultStruct = new beet.FixableBeetArgsStruct<
+  MultisigAddVaultInstructionArgs & {
     instructionDiscriminator: number[] /* size: 8 */
   }
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', multisigRemoveMemberArgsBeet],
+    ['args', multisigAddVaultArgsBeet],
   ],
-  'MultisigRemoveMemberInstructionArgs'
+  'MultisigAddVaultInstructionArgs'
 )
 /**
- * Accounts required by the _multisigRemoveMember_ instruction
+ * Accounts required by the _multisigAddVault_ instruction
  *
  * @property [_writable_] multisig
  * @property [**signer**] configAuthority
  * @property [_writable_, **signer**] rentPayer (optional)
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category MultisigAddVault
  * @category generated
  */
-export type MultisigRemoveMemberInstructionAccounts = {
+export type MultisigAddVaultInstructionAccounts = {
   multisig: web3.PublicKey
   configAuthority: web3.PublicKey
   rentPayer?: web3.PublicKey
@@ -54,12 +54,12 @@ export type MultisigRemoveMemberInstructionAccounts = {
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
-export const multisigRemoveMemberInstructionDiscriminator = [
-  217, 117, 177, 210, 182, 145, 218, 72,
+export const multisigAddVaultInstructionDiscriminator = [
+  47, 74, 24, 170, 12, 229, 89, 49,
 ]
 
 /**
- * Creates a _MultisigRemoveMember_ instruction.
+ * Creates a _MultisigAddVault_ instruction.
  *
  * Optional accounts that are not provided will be omitted from the accounts
  * array passed with the instruction.
@@ -70,16 +70,16 @@ export const multisigRemoveMemberInstructionDiscriminator = [
  * @param args to provide as instruction data to the program
  *
  * @category Instructions
- * @category MultisigRemoveMember
+ * @category MultisigAddVault
  * @category generated
  */
-export function createMultisigRemoveMemberInstruction(
-  accounts: MultisigRemoveMemberInstructionAccounts,
-  args: MultisigRemoveMemberInstructionArgs,
+export function createMultisigAddVaultInstruction(
+  accounts: MultisigAddVaultInstructionAccounts,
+  args: MultisigAddVaultInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
-  const [data] = multisigRemoveMemberStruct.serialize({
-    instructionDiscriminator: multisigRemoveMemberInstructionDiscriminator,
+  const [data] = multisigAddVaultStruct.serialize({
+    instructionDiscriminator: multisigAddVaultInstructionDiscriminator,
     ...args,
   })
   const keys: web3.AccountMeta[] = [

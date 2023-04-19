@@ -38,6 +38,16 @@ pub struct MultisigSetConfigAuthorityArgs {
     pub memo: Option<String>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct MultisigAddVaultArgs {
+    /// The next vault index to set as the latest used.
+    /// Must be the current `vault_index + 1`.
+    /// We pass it explicitly to make this instruction idempotent.
+    vault_index: u8,
+    /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
+    pub memo: Option<String>,
+}
+
 #[derive(Accounts)]
 pub struct MultisigConfig<'info> {
     #[account(
@@ -50,15 +60,14 @@ pub struct MultisigConfig<'info> {
     /// Multisig `config_authority` that must authorize the configuration change.
     pub config_authority: Signer<'info>,
 
-    // TODO: Since this account only needed for add_member, we should create a separate Accounts struct for it.
     /// The account that will be charged in case the multisig account needs to reallocate space,
     /// for example when adding a new member.
     /// This is usually the same as `config_authority`, but can be a different account if needed.
     #[account(mut)]
-    pub rent_payer: Signer<'info>,
+    pub rent_payer: Option<Signer<'info>>,
 
     /// We might need it in case reallocation is needed.
-    pub system_program: Program<'info, System>,
+    pub system_program: Option<Program<'info, System>>,
 }
 
 impl MultisigConfig<'_> {
@@ -73,12 +82,23 @@ impl MultisigConfig<'_> {
     }
 
     /// Add a member/key to the multisig and reallocate space if necessary.
+    ///
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
         let MultisigAddMemberArgs { new_member, .. } = args;
 
-        let system_program = &ctx.accounts.system_program;
-        let rent_payer = &ctx.accounts.rent_payer;
+        let system_program = &ctx
+            .accounts
+            .system_program
+            .as_ref()
+            .ok_or(MultisigError::MissingAccount)?;
+        let rent_payer = &ctx
+            .accounts
+            .rent_payer
+            .as_ref()
+            .ok_or(MultisigError::MissingAccount)?;
         let multisig = &mut ctx.accounts.multisig;
 
         // Check if we need to reallocate space.
@@ -103,6 +123,9 @@ impl MultisigConfig<'_> {
     }
 
     /// Remove a member/key from the multisig.
+    ///
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_remove_member(
         ctx: Context<Self>,
@@ -130,6 +153,8 @@ impl MultisigConfig<'_> {
         Ok(())
     }
 
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_change_threshold(
         ctx: Context<Self>,
@@ -149,6 +174,9 @@ impl MultisigConfig<'_> {
     }
 
     /// Set the `time_lock` config parameter for the multisig.
+    ///
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_set_time_lock(ctx: Context<Self>, args: MultisigSetTimeLockArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
@@ -163,6 +191,9 @@ impl MultisigConfig<'_> {
     }
 
     /// Set the multisig `config_authority`.
+    ///
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_set_config_authority(
         ctx: Context<Self>,
@@ -175,6 +206,31 @@ impl MultisigConfig<'_> {
         multisig.invariant()?;
 
         multisig.config_updated();
+
+        Ok(())
+    }
+
+    /// Increment the multisig `vault_index`.
+    /// This doesn't actually "add" a new vault, because vaults are derived from the multisig address and index, so technically
+    /// they always exist. This just increments the index so that UIs can show the "used" vaults.
+    ///
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    #[access_control(ctx.accounts.validate())]
+    pub fn multisig_add_vault(ctx: Context<Self>, args: MultisigAddVaultArgs) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+
+        require!(
+            args.vault_index == multisig.vault_index.checked_add(1).expect("overflow"),
+            MultisigError::InvalidVaultIndex
+        );
+
+        multisig.vault_index = args.vault_index;
+
+        multisig.invariant()?;
+
+        // NOTE: we don't call `multisig.config_updated` here, because this doesn't
+        // affect the transactions by any means, and really just a UI feature.
 
         Ok(())
     }
