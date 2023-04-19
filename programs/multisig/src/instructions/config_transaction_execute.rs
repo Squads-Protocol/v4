@@ -131,6 +131,22 @@ impl ConfigTransactionExecute<'_> {
 
                     multisig.config_updated();
                 }
+
+                ConfigAction::SetTimeLock { new_time_lock } => {
+                    multisig.time_lock = *new_time_lock;
+
+                    multisig.config_updated();
+                }
+
+                ConfigAction::AddVault { new_vault_index } => {
+                    require!(
+                        *new_vault_index == multisig.vault_index + 1,
+                        MultisigError::InvalidVaultIndex
+                    );
+                    multisig.vault_index = *new_vault_index;
+
+                    multisig.config_updated();
+                }
             }
         }
 
@@ -160,6 +176,8 @@ fn members_length_after_actions(members_length: usize, actions: &[ConfigAction])
         ConfigAction::AddMember { .. } => acc + 1,
         ConfigAction::RemoveMember { .. } => acc - 1,
         ConfigAction::ChangeThreshold { .. } => acc,
+        ConfigAction::SetTimeLock { .. } => acc,
+        ConfigAction::AddVault { .. } => acc,
     });
 
     let abs_members_delta =

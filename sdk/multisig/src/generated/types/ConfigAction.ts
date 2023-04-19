@@ -22,6 +22,8 @@ export type ConfigActionRecord = {
   AddMember: { newMember: Member }
   RemoveMember: { oldMember: web3.PublicKey }
   ChangeThreshold: { newThreshold: number }
+  SetTimeLock: { newTimeLock: number }
+  AddVault: { newVaultIndex: number }
 }
 
 /**
@@ -47,6 +49,12 @@ export const isConfigActionChangeThreshold = (
   x: ConfigAction
 ): x is ConfigAction & { __kind: 'ChangeThreshold' } =>
   x.__kind === 'ChangeThreshold'
+export const isConfigActionSetTimeLock = (
+  x: ConfigAction
+): x is ConfigAction & { __kind: 'SetTimeLock' } => x.__kind === 'SetTimeLock'
+export const isConfigActionAddVault = (
+  x: ConfigAction
+): x is ConfigAction & { __kind: 'AddVault' } => x.__kind === 'AddVault'
 
 /**
  * @category userTypes
@@ -74,6 +82,22 @@ export const configActionBeet = beet.dataEnum<ConfigActionRecord>([
     new beet.BeetArgsStruct<ConfigActionRecord['ChangeThreshold']>(
       [['newThreshold', beet.u16]],
       'ConfigActionRecord["ChangeThreshold"]'
+    ),
+  ],
+
+  [
+    'SetTimeLock',
+    new beet.BeetArgsStruct<ConfigActionRecord['SetTimeLock']>(
+      [['newTimeLock', beet.u32]],
+      'ConfigActionRecord["SetTimeLock"]'
+    ),
+  ],
+
+  [
+    'AddVault',
+    new beet.BeetArgsStruct<ConfigActionRecord['AddVault']>(
+      [['newVaultIndex', beet.u8]],
+      'ConfigActionRecord["AddVault"]'
     ),
   ],
 ]) as beet.FixableBeet<ConfigAction, ConfigAction>

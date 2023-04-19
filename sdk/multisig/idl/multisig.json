@@ -1704,6 +1704,24 @@
                 "type": "u16"
               }
             ]
+          },
+          {
+            "name": "SetTimeLock",
+            "fields": [
+              {
+                "name": "new_time_lock",
+                "type": "u32"
+              }
+            ]
+          },
+          {
+            "name": "AddVault",
+            "fields": [
+              {
+                "name": "new_vault_index",
+                "type": "u8"
+              }
+            ]
           }
         ]
       }

@@ -37,6 +37,10 @@ pub enum ConfigAction {
     AddMember { new_member: Member },
     /// Remove a member from the multisig.
     RemoveMember { old_member: Pubkey },
-    /// Change the threshold of the multisig.
+    /// Change the `threshold` of the multisig.
     ChangeThreshold { new_threshold: u16 },
+    /// Change the `time_lock` of the multisig.
+    SetTimeLock { new_time_lock: u32 },
+    /// Increment the `vault_index` of the multisig.
+    AddVault { new_vault_index: u8 },
 }
