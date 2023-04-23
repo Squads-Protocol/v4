@@ -5,14 +5,14 @@ use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigAddMemberArgs {
-    new_member: Member,
+    pub new_member: Member,
     /// Memo isn't used for anything, but is included in `AddMemberEvent` that can later be parsed and indexed.
     pub memo: Option<String>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigRemoveMemberArgs {
-    old_member: Pubkey,
+    pub old_member: Pubkey,
     /// Memo isn't used for anything, but is included in `RemoveMemberEvent` that can later be parsed and indexed.
     pub memo: Option<String>,
 }
@@ -43,7 +43,7 @@ pub struct MultisigAddVaultArgs {
     /// The next vault index to set as the latest used.
     /// Must be the current `vault_index + 1`.
     /// We pass it explicitly to make this instruction idempotent.
-    vault_index: u8,
+    pub vault_index: u8,
     /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
     pub memo: Option<String>,
 }
