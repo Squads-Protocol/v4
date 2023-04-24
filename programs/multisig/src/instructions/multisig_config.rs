@@ -209,29 +209,4 @@ impl MultisigConfig<'_> {
 
         Ok(())
     }
-
-    /// Increment the multisig `vault_index`.
-    /// This doesn't actually "add" a new vault, because vaults are derived from the multisig address and index, so technically
-    /// they always exist. This just increments the index so that UIs can show the "used" vaults.
-    ///
-    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
-    #[access_control(ctx.accounts.validate())]
-    pub fn multisig_add_vault(ctx: Context<Self>, args: MultisigAddVaultArgs) -> Result<()> {
-        let multisig = &mut ctx.accounts.multisig;
-
-        require!(
-            args.vault_index == multisig.vault_index.checked_add(1).expect("overflow"),
-            MultisigError::InvalidVaultIndex
-        );
-
-        multisig.vault_index = args.vault_index;
-
-        multisig.invariant()?;
-
-        // NOTE: we don't call `multisig.config_updated` here, because this doesn't
-        // affect the transactions by any means, and really just a UI feature.
-
-        Ok(())
-    }
 }

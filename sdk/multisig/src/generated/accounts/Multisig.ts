@@ -22,7 +22,7 @@ export type MultisigArgs = {
   timeLock: number
   transactionIndex: beet.bignum
   staleTransactionIndex: beet.bignum
-  vaultIndex: number
+  reserved: number
   bump: number
   members: Member[]
 }
@@ -43,7 +43,7 @@ export class Multisig implements MultisigArgs {
     readonly timeLock: number,
     readonly transactionIndex: beet.bignum,
     readonly staleTransactionIndex: beet.bignum,
-    readonly vaultIndex: number,
+    readonly reserved: number,
     readonly bump: number,
     readonly members: Member[]
   ) {}
@@ -59,7 +59,7 @@ export class Multisig implements MultisigArgs {
       args.timeLock,
       args.transactionIndex,
       args.staleTransactionIndex,
-      args.vaultIndex,
+      args.reserved,
       args.bump,
       args.members
     )
@@ -196,7 +196,7 @@ export class Multisig implements MultisigArgs {
         }
         return x
       })(),
-      vaultIndex: this.vaultIndex,
+      reserved: this.reserved,
       bump: this.bump,
       members: this.members,
     }
@@ -221,7 +221,7 @@ export const multisigBeet = new beet.FixableBeetStruct<
     ['timeLock', beet.u32],
     ['transactionIndex', beet.u64],
     ['staleTransactionIndex', beet.u64],
-    ['vaultIndex', beet.u8],
+    ['reserved', beet.u8],
     ['bump', beet.u8],
     ['members', beet.array(memberBeet)],
   ],

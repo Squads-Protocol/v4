@@ -41,6 +41,4 @@ pub enum ConfigAction {
     ChangeThreshold { new_threshold: u16 },
     /// Change the `time_lock` of the multisig.
     SetTimeLock { new_time_lock: u32 },
-    /// Increment the `vault_index` of the multisig.
-    AddVault { new_vault_index: u8 },
 }

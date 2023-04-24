@@ -26,8 +26,8 @@ pub struct Multisig {
     /// Last stale transaction index. All transactions up until this index are stale.
     /// This index is updated when multisig config (members/threshold/time_lock) changes.
     pub stale_transaction_index: u64,
-    /// Index to track the last created vault for this multisig.
-    pub vault_index: u8,
+    /// Reserved for future use.
+    pub _reserved: u8,
     /// Bump for the multisig PDA seed.
     pub bump: u8,
     /// Members of the multisig.
@@ -43,7 +43,7 @@ impl Multisig {
         4  + // time_lock
         8  + // transaction_index
         8  + // stale_transaction_index
-        1  + // vault_index
+        1  + // _reserved
         1  + // bump
         4  + // members vector length
         members_length * Member::size() // members

@@ -331,7 +331,7 @@ describe("multisig", () => {
           },
         ].sort((a, b) => comparePubkeys(a.key, b.key))
       );
-      assert.strictEqual(multisigAccount.vaultIndex, 0);
+      assert.strictEqual(multisigAccount.reserved, 0);
       assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
       assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "0");
       assert.strictEqual(
@@ -572,107 +572,6 @@ describe("multisig", () => {
       assert.strictEqual(
         multisigAccountInfo!.data.length,
         initialAllocatedSize + 10 * multisig.generated.memberBeet.byteSize
-      );
-    });
-  });
-
-  describe("multisig_add_vault", () => {
-    it("error: invalid authority");
-
-    it("increment `vault_index` on a controlled multisig", async () => {
-      // feePayer can be anyone.
-      const feePayer = await generateFundedKeypair(connection);
-
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: controlledMultisigCreateKey.publicKey,
-      });
-
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      const vaultIndex = multisigAccount.vaultIndex + 1;
-
-      let signature = await multisig.rpc.multisigAddVault({
-        connection,
-        feePayer,
-        multisigPda,
-        configAuthority: controlledMultisigConfigAuthority.publicKey,
-        vaultIndex,
-        memo: "Adding my good friend to the multisig",
-        signers: [controlledMultisigConfigAuthority],
-        sendOptions: { skipPreflight: true },
-      });
-      await connection.confirmTransaction(signature);
-
-      multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      assert.strictEqual(multisigAccount.vaultIndex, vaultIndex);
-    });
-
-    it("error: invalid vault index", async () => {
-      // feePayer can be anyone.
-      const feePayer = await generateFundedKeypair(connection);
-
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: controlledMultisigCreateKey.publicKey,
-      });
-
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.multisigAddVault({
-            connection,
-            feePayer,
-            multisigPda,
-            configAuthority: controlledMultisigConfigAuthority.publicKey,
-            // Can't jump by more than 1.
-            vaultIndex: multisigAccount.vaultIndex + 2,
-            memo: "Adding my good friend to the multisig",
-            signers: [controlledMultisigConfigAuthority],
-            sendOptions: { skipPreflight: true },
-          }),
-        /Invalid `vault_index`/
-      );
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.multisigAddVault({
-            connection,
-            feePayer,
-            multisigPda,
-            configAuthority: controlledMultisigConfigAuthority.publicKey,
-            // Can't remain the same.
-            vaultIndex: multisigAccount.vaultIndex,
-            memo: "Adding my good friend to the multisig",
-            signers: [controlledMultisigConfigAuthority],
-            sendOptions: { skipPreflight: true },
-          }),
-        /Invalid `vault_index`/
-      );
-
-      await assert.rejects(
-        () =>
-          multisig.rpc.multisigAddVault({
-            connection,
-            feePayer,
-            multisigPda,
-            configAuthority: controlledMultisigConfigAuthority.publicKey,
-            // Can't be less than the current value.
-            vaultIndex: multisigAccount.vaultIndex - 1,
-            memo: "Adding my good friend to the multisig",
-            signers: [controlledMultisigConfigAuthority],
-            sendOptions: { skipPreflight: true },
-          }),
-        /Invalid `vault_index`/
       );
     });
   });

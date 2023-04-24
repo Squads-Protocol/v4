@@ -58,7 +58,6 @@ impl MultisigCreate<'_> {
         multisig.threshold = args.threshold;
         multisig.members = members;
         multisig.time_lock = args.time_lock;
-        multisig.vault_index = 0;
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;
         multisig.create_key = ctx.accounts.create_key.to_account_info().key();
