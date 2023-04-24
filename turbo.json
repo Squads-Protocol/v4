@@ -5,6 +5,7 @@
       "cache": false
     },
     "build": {
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "package.json"],
       "dependsOn": ["^build", "generate"],
       "outputs": ["lib/**"]
     },
