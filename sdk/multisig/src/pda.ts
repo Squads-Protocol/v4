@@ -1,6 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "./generated";
 import { toU32Bytes, toU64Bytes, toU8Bytes, toUtfBytes } from "./utils";
+import invariant from "invariant";
 
 const SEED_PREFIX = toUtfBytes("multisig");
 const SEED_MULTISIG = toUtfBytes("multisig");
@@ -33,6 +34,8 @@ export function getVaultPda({
   index: number;
   programId?: PublicKey;
 }): [PublicKey, number] {
+  invariant(index >= 0 && index < 256, "Invalid vault index");
+
   return PublicKey.findProgramAddressSync(
     [SEED_PREFIX, multisigPda.toBytes(), SEED_VAULT, toU8Bytes(index)],
     programId

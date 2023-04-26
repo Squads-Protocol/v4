@@ -18,26 +18,24 @@ import {
   MINT_SIZE,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
+import {
+  createAutonomousMultisig,
+  createLocalhostConnection,
+  createTestTransferInstruction,
+  generateFundedKeypair,
+  generateMultisigMembers,
+  TestMembers,
+} from "../utils";
 
 const { toBigInt } = multisig.utils;
 const { Multisig, VaultTransaction, ConfigTransaction, Proposal, Batch } =
   multisig.accounts;
 const { Permission, Permissions } = multisig.types;
 
-describe("multisig", () => {
-  const connection = new Connection("http://127.0.0.1:8899", "confirmed");
+describe("Multisig SDK", () => {
+  const connection = createLocalhostConnection();
 
-  const members = {
-    almighty: Keypair.generate(),
-    proposer: Keypair.generate(),
-    voter: Keypair.generate(),
-    executor: Keypair.generate(),
-  };
-
-  console.log("Members:");
-  for (const [name, keypair] of Object.entries(members)) {
-    console.log(name, ":", keypair.publicKey.toBase58());
-  }
+  let members: TestMembers;
 
   // For the sake of the tests we'll create two multisigs,
   // one - autonomous where all config changes should go through the members' approval process,
@@ -48,16 +46,7 @@ describe("multisig", () => {
   let controlledMultisigConfigAuthority: Keypair;
 
   before(async () => {
-    // Airdrop 100 SOL to each member.
-    await Promise.all(
-      Object.values(members).map(async (member) => {
-        const sig = await connection.requestAirdrop(
-          member.publicKey,
-          100 * LAMPORTS_PER_SOL
-        );
-        await connection.confirmTransaction(sig);
-      })
-    );
+    members = await generateMultisigMembers(connection);
   });
 
   describe("multisig_create", () => {
@@ -254,44 +243,15 @@ describe("multisig", () => {
     });
 
     it("create a new autonomous multisig", async () => {
-      const creator = await generateFundedKeypair(connection);
-
       autonomousMultisigCreateKey = Keypair.generate();
 
-      const [multisigPda, multisigBump] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-
-      const signature = await multisig.rpc.multisigCreate({
+      const [multisigPda, multisigBump] = await createAutonomousMultisig({
         connection,
-        creator,
-        multisigPda,
-        configAuthority: null,
-        timeLock: 0,
-        threshold: 2,
-        members: [
-          { key: members.almighty.publicKey, permissions: Permissions.all() },
-          // Can only initiate transactions.
-          {
-            key: members.proposer.publicKey,
-            permissions: Permissions.fromPermissions([Permission.Initiate]),
-          },
-          // Can only vote on transactions.
-          {
-            key: members.voter.publicKey,
-            permissions: Permissions.fromPermissions([Permission.Vote]),
-          },
-          // Can only execute transactions.
-          {
-            key: members.executor.publicKey,
-            permissions: Permissions.fromPermissions([Permission.Execute]),
-          },
-        ],
         createKey: autonomousMultisigCreateKey,
-        sendOptions: { skipPreflight: true },
+        members,
+        threshold: 2,
+        timeLock: 0,
       });
-
-      await connection.confirmTransaction(signature);
 
       const multisigAccount = await Multisig.fromAccountAddress(
         connection,
@@ -1880,7 +1840,10 @@ describe("multisig", () => {
           configAuthority,
           timeLock: 0,
           members: [
-            { key: members.almighty.publicKey, permissions: Permissions.all() },
+            {
+              key: members.almighty.publicKey,
+              permissions: Permissions.all(),
+            },
           ],
           threshold: 1,
         };
@@ -1909,415 +1872,7 @@ describe("multisig", () => {
       });
     });
   });
-
-  describe("end-to-end scenarios", () => {
-    it('vault transaction with "ephemeral" signers', async () => {
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      const transactionIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
-
-      const [transactionPda] = multisig.getTransactionPda({
-        multisigPda,
-        index: transactionIndex,
-      });
-
-      // Default vault, index 0.
-      const [vaultPda] = multisig.getVaultPda({
-        multisigPda,
-        index: 0,
-      });
-
-      const lamportsForMintRent = await getMinimumBalanceForRentExemptMint(
-        connection
-      );
-
-      // Vault will pay for the mint account rent, airdrop this amount.
-      const airdropSig = await connection.requestAirdrop(
-        vaultPda,
-        lamportsForMintRent
-      );
-      await connection.confirmTransaction(airdropSig);
-
-      // Test create Mint transaction.
-      const [mintPda, mintBump] = multisig.getEphemeralSignerPda({
-        transactionPda,
-        ephemeralSignerIndex: 0,
-      });
-
-      const testTransactionMessage = new TransactionMessage({
-        payerKey: vaultPda,
-        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-        instructions: [
-          SystemProgram.createAccount({
-            fromPubkey: vaultPda,
-            newAccountPubkey: mintPda,
-            space: MINT_SIZE,
-            lamports: lamportsForMintRent,
-            programId: TOKEN_2022_PROGRAM_ID,
-          }),
-          createInitializeMint2Instruction(
-            mintPda,
-            9,
-            vaultPda,
-            vaultPda,
-            TOKEN_2022_PROGRAM_ID
-          ),
-        ],
-      });
-
-      // Create
-      let signature = await multisig.rpc.vaultTransactionCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex,
-        creator: members.proposer.publicKey,
-        vaultIndex: 0,
-        ephemeralSigners: 1,
-        transactionMessage: testTransactionMessage,
-        memo: "Create new mint",
-      });
-      await connection.confirmTransaction(signature);
-
-      multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-      assert.strictEqual(
-        multisigAccount.transactionIndex.toString(),
-        transactionIndex.toString()
-      );
-
-      // Verify the transaction account
-      let transactionAccount = await VaultTransaction.fromAccountAddress(
-        connection,
-        transactionPda
-      );
-      assert.deepEqual(
-        transactionAccount.ephemeralSignerBumps,
-        new Uint8Array([mintBump])
-      );
-
-      // Create Proposal
-      signature = await multisig.rpc.proposalCreate({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex,
-        rentPayer: members.voter,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Approve 1
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex,
-        member: members.voter,
-        memo: "LGTM",
-      });
-      await connection.confirmTransaction(signature);
-
-      // Approve 2
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex,
-        member: members.almighty,
-        memo: "LGTM too",
-      });
-      await connection.confirmTransaction(signature);
-
-      // Execute
-      signature = await multisig.rpc.vaultTransactionExecute({
-        connection,
-        feePayer: members.executor,
-        multisigPda,
-        transactionIndex,
-        member: members.executor.publicKey,
-        signers: [members.executor],
-        sendOptions: { skipPreflight: true },
-      });
-      await connection.confirmTransaction(signature);
-
-      // Assert the mint account is initialized.
-      const mintAccount = await getMint(
-        connection,
-        mintPda,
-        undefined,
-        TOKEN_2022_PROGRAM_ID
-      );
-      assert.ok(mintAccount.isInitialized);
-      assert.strictEqual(
-        mintAccount.mintAuthority?.toBase58(),
-        vaultPda.toBase58()
-      );
-      assert.strictEqual(mintAccount.decimals, 9);
-      assert.strictEqual(mintAccount.supply, 0n);
-    });
-
-    it("create and execute batch", async () => {
-      // Use a different fee payer for the batch execution to isolate member balance changes.
-      const feePayer = await generateFundedKeypair(connection);
-
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: autonomousMultisigCreateKey.publicKey,
-      });
-      let multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-
-      const vaultIndex = 0;
-      const batchIndex =
-        multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
-
-      const [proposalPda] = multisig.getProposalPda({
-        multisigPda,
-        transactionIndex: batchIndex,
-      });
-
-      // Default vault, index 0.
-      const [vaultPda] = multisig.getVaultPda({
-        multisigPda,
-        index: 0,
-      });
-
-      // Prepare transactions for the batch.
-      // We are going to make a payout of 1 SOL to every member of the multisig
-      // first as a separate transaction per member, then in a single transaction
-      // that also uses an Account Lookup Table containing all member addresses.
-      // Airdrop SOL amount required for the payout to the Vault.
-      const airdropSig = await connection.requestAirdrop(
-        vaultPda,
-        // Each member will be paid 2 x 1 SOL.
-        Object.keys(members).length * 2 * LAMPORTS_PER_SOL
-      );
-      await connection.confirmTransaction(airdropSig);
-      const {
-        value: { blockhash },
-        context: { slot },
-      } = await connection.getLatestBlockhashAndContext("finalized");
-
-      const testTransactionMessages = [] as {
-        message: TransactionMessage;
-        addressLookupTableAccounts: AddressLookupTableAccount[];
-      }[];
-      for (const member of Object.values(members)) {
-        const ix = createTestTransferInstruction(
-          vaultPda,
-          member.publicKey,
-          LAMPORTS_PER_SOL
-        );
-        testTransactionMessages.push({
-          message: new TransactionMessage({
-            payerKey: vaultPda,
-            recentBlockhash: blockhash,
-            instructions: [ix],
-          }),
-          addressLookupTableAccounts: [],
-        });
-      }
-
-      // Create a lookup table with all member addresses.
-      const memberAddresses = Object.values(members).map((m) => m.publicKey);
-      const [lookupTableIx, lookupTableAddress] =
-        AddressLookupTableProgram.createLookupTable({
-          authority: feePayer.publicKey,
-          payer: feePayer.publicKey,
-          recentSlot: slot,
-        });
-      const extendTableIx = AddressLookupTableProgram.extendLookupTable({
-        payer: feePayer.publicKey,
-        authority: feePayer.publicKey,
-        lookupTable: lookupTableAddress,
-        addresses: [SystemProgram.programId, ...memberAddresses],
-      });
-
-      const createLookupTableTx = new VersionedTransaction(
-        new TransactionMessage({
-          payerKey: feePayer.publicKey,
-          recentBlockhash: blockhash,
-          instructions: [lookupTableIx, extendTableIx],
-        }).compileToV0Message()
-      );
-      createLookupTableTx.sign([feePayer]);
-      let signature = await connection
-        .sendRawTransaction(createLookupTableTx.serialize())
-        .catch((err: any) => {
-          console.error(err.logs);
-          throw err;
-        });
-      await connection.confirmTransaction(signature);
-
-      const lookupTableAccount = await connection
-        .getAddressLookupTable(lookupTableAddress)
-        .then((res) => res.value);
-      assert.ok(lookupTableAccount);
-
-      const batchTransferIxs = Object.values(members).map((member) =>
-        createTestTransferInstruction(
-          vaultPda,
-          member.publicKey,
-          LAMPORTS_PER_SOL
-        )
-      );
-      testTransactionMessages.push({
-        message: new TransactionMessage({
-          payerKey: vaultPda,
-          recentBlockhash: blockhash,
-          instructions: batchTransferIxs,
-        }),
-        addressLookupTableAccounts: [lookupTableAccount],
-      });
-
-      // Create a batch account.
-      signature = await multisig.rpc.batchCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        creator: members.proposer,
-        batchIndex,
-        vaultIndex,
-        memo: "Distribute funds to members",
-      });
-      await connection.confirmTransaction(signature);
-
-      // Initialize the proposal for the batch.
-      signature = await multisig.rpc.proposalCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: batchIndex,
-        rentPayer: members.proposer,
-        isDraft: true,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Add transactions to the batch.
-      for (const [
-        index,
-        { message, addressLookupTableAccounts },
-      ] of testTransactionMessages.entries()) {
-        signature = await multisig.rpc.batchAddTransaction({
-          connection,
-          feePayer: members.proposer,
-          multisigPda,
-          member: members.proposer,
-          batchIndex,
-          // Batch transaction indices start at 1.
-          transactionIndex: index + 1,
-          ephemeralSigners: 0,
-          transactionMessage: message,
-          addressLookupTableAccounts,
-        });
-        await connection.confirmTransaction(signature);
-      }
-
-      // Activate the proposal (finalize the batch).
-      signature = await multisig.rpc.proposalActivate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        member: members.proposer,
-        transactionIndex: batchIndex,
-      });
-      await connection.confirmTransaction(signature);
-
-      // First approval for the batch proposal.
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        member: members.voter,
-        transactionIndex: batchIndex,
-        memo: "LGTM",
-      });
-      await connection.confirmTransaction(signature);
-
-      // Second approval for the batch proposal.
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        member: members.almighty,
-        transactionIndex: batchIndex,
-        memo: "LGTM too",
-      });
-      await connection.confirmTransaction(signature);
-
-      // Fetch the member balances before the batch execution.
-      const preBalances = [] as number[];
-      for (const member of Object.values(members)) {
-        const balance = await connection.getBalance(member.publicKey);
-        preBalances.push(balance);
-      }
-
-      // Execute the transactions from the batch sequentially one-by-one.
-      for (const transactionIndex of range(1, testTransactionMessages.length)) {
-        signature = await multisig.rpc.batchExecuteTransaction({
-          connection,
-          feePayer: feePayer,
-          multisigPda,
-          member: members.executor,
-          batchIndex,
-          transactionIndex,
-        });
-        await connection.confirmTransaction(signature);
-      }
-
-      // Proposal status must be "Executed".
-      const proposalAccount = await Proposal.fromAccountAddress(
-        connection,
-        proposalPda
-      );
-      assert.ok(
-        multisig.types.isProposalStatusExecuted(proposalAccount.status)
-      );
-
-      // Verify that the members received the funds.
-      for (const [index, preBalance] of preBalances.entries()) {
-        const postBalance = await connection.getBalance(
-          Object.values(members)[index].publicKey
-        );
-        assert.strictEqual(postBalance, preBalance + 2 * LAMPORTS_PER_SOL);
-      }
-    });
-  });
 });
-
-async function generateFundedKeypair(connection: Connection) {
-  const keypair = Keypair.generate();
-
-  const tx = await connection.requestAirdrop(
-    keypair.publicKey,
-    1 * LAMPORTS_PER_SOL
-  );
-  await connection.confirmTransaction(tx);
-
-  return keypair;
-}
-
-function createTestTransferInstruction(
-  authority: PublicKey,
-  recipient: PublicKey,
-  amount = 1000000
-) {
-  return SystemProgram.transfer({
-    fromPubkey: authority,
-    lamports: amount,
-    toPubkey: recipient,
-  });
-}
 
 function comparePubkeys(a: PublicKey, b: PublicKey) {
   return a.toBuffer().compare(b.toBuffer());
@@ -2327,13 +1882,4 @@ function comparePubkeys(a: PublicKey, b: PublicKey) {
 function isCloseToNow(unixEpoch: number | bigint) {
   const timestamp = Number(unixEpoch) * 1000;
   return Math.abs(timestamp - Date.now()) < 2000;
-}
-
-/** Returns an array of numbers from min to max (inclusive) with the given step. */
-function range(min: number, max: number, step: number = 1) {
-  const result = [];
-  for (let i = min; i <= max; i += step) {
-    result.push(i);
-  }
-  return result;
 }
