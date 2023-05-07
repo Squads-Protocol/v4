@@ -70,8 +70,8 @@
           "isSigner": true,
           "isOptional": true,
           "docs": [
-            "The account that will be charged in case the multisig account needs to reallocate space,",
-            "for example when adding a new member.",
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
             "This is usually the same as `config_authority`, but can be a different account if needed."
           ]
         },
@@ -119,8 +119,8 @@
           "isSigner": true,
           "isOptional": true,
           "docs": [
-            "The account that will be charged in case the multisig account needs to reallocate space,",
-            "for example when adding a new member.",
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
             "This is usually the same as `config_authority`, but can be a different account if needed."
           ]
         },
@@ -168,8 +168,8 @@
           "isSigner": true,
           "isOptional": true,
           "docs": [
-            "The account that will be charged in case the multisig account needs to reallocate space,",
-            "for example when adding a new member.",
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
             "This is usually the same as `config_authority`, but can be a different account if needed."
           ]
         },
@@ -217,8 +217,8 @@
           "isSigner": true,
           "isOptional": true,
           "docs": [
-            "The account that will be charged in case the multisig account needs to reallocate space,",
-            "for example when adding a new member.",
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
             "This is usually the same as `config_authority`, but can be a different account if needed."
           ]
         },
@@ -320,9 +320,10 @@
           "name": "rentPayer",
           "isMut": true,
           "isSigner": true,
+          "isOptional": true,
           "docs": [
             "The account that will be charged in case the multisig account needs to reallocate space,",
-            "for example when adding a new member.",
+            "for example when adding a new member or a spending limit.",
             "This is usually the same as `member`, but can be a different account if needed."
           ]
         },
@@ -330,6 +331,7 @@
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false,
+          "isOptional": true,
           "docs": [
             "We might need it in case reallocation is needed."
           ]
@@ -1041,6 +1043,104 @@
       }
     },
     {
+      "name": "SpendingLimit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "multisig",
+            "docs": [
+              "The multisig this belongs to."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "createKey",
+            "docs": [
+              "Key that is used to seed the SpendingLimit PDA."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "The index of the vault that the spending limit is for."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "The token mint the spending limit is for."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "The amount of tokens that can be spent in a period.",
+              "This amount is in decimals of the mint,",
+              "so 1 SOL would be `1_000_000_000` and 1 USDC would be `1_000_000`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "docs": [
+              "The reset period of the spending limit.",
+              "When it passes, the remaining amount is reset, unless it's `Period::OneTime`."
+            ],
+            "type": {
+              "defined": "Period"
+            }
+          },
+          {
+            "name": "remainingAmount",
+            "docs": [
+              "The remaining amount of tokens that can be spent in the current period.",
+              "When reaches 0, the spending limit cannot be used anymore until the period reset."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lastReset",
+            "docs": [
+              "Unix timestamp marking the last time the spending limit was reset (or created)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "members",
+            "docs": [
+              "Members of the multisig that can use the spending limit.",
+              "In case a member is removed from the multisig, the spending limit will remain existent",
+              "(until explicitly deleted), but the removed member will not be able to use it anymore."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "destinations",
+            "docs": [
+              "The destination addresses the spending limit is allowed to sent funds to.",
+              "If empty, funds can be sent to any address."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "VaultTransaction",
       "docs": [
         "Stores data required for tracking the voting and execution status of a vault transaction.",
@@ -1195,7 +1295,7 @@
           {
             "name": "memo",
             "docs": [
-              "Memo isn't used for anything, but is included in `AddMemberEvent` that can later be parsed and indexed."
+              "Memo is used for indexing only."
             ],
             "type": {
               "option": "string"
@@ -1216,7 +1316,7 @@
           {
             "name": "memo",
             "docs": [
-              "Memo isn't used for anything, but is included in `RemoveMemberEvent` that can later be parsed and indexed."
+              "Memo is used for indexing only."
             ],
             "type": {
               "option": "string"
@@ -1237,7 +1337,7 @@
           {
             "name": "memo",
             "docs": [
-              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
+              "Memo is used for indexing only."
             ],
             "type": {
               "option": "string"
@@ -1258,7 +1358,7 @@
           {
             "name": "memo",
             "docs": [
-              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
+              "Memo is used for indexing only."
             ],
             "type": {
               "option": "string"
@@ -1279,33 +1379,7 @@
           {
             "name": "memo",
             "docs": [
-              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
-            ],
-            "type": {
-              "option": "string"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "MultisigAddVaultArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "vaultIndex",
-            "docs": [
-              "The next vault index to set as the latest used.",
-              "Must be the current `vault_index + 1`.",
-              "We pass it explicitly to make this instruction idempotent."
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "memo",
-            "docs": [
-              "Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed."
+              "Memo is used for indexing only."
             ],
             "type": {
               "option": "string"
@@ -1357,7 +1431,7 @@
           {
             "name": "memo",
             "docs": [
-              "Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed."
+              "Memo is used for indexing only."
             ],
             "type": {
               "option": "string"
@@ -1659,6 +1733,72 @@
                 "type": "u32"
               }
             ]
+          },
+          {
+            "name": "AddSpendingLimit",
+            "fields": [
+              {
+                "name": "create_key",
+                "docs": [
+                  "Key that is used to seed the SpendingLimit PDA."
+                ],
+                "type": "publicKey"
+              },
+              {
+                "name": "vault_index",
+                "docs": [
+                  "The index of the vault that the spending limit is for."
+                ],
+                "type": "u8"
+              },
+              {
+                "name": "mint",
+                "docs": [
+                  "The token mint the spending limit is for."
+                ],
+                "type": "publicKey"
+              },
+              {
+                "name": "amount",
+                "docs": [
+                  "The amount of tokens that can be spent in a period.",
+                  "This amount is in decimals of the mint,",
+                  "so 1 SOL would be `1_000_000_000` and 1 USDC would be `1_000_000`."
+                ],
+                "type": "u64"
+              },
+              {
+                "name": "period",
+                "docs": [
+                  "The reset period of the spending limit.",
+                  "When it passes, the remaining amount is reset, unless it's `Period::OneTime`."
+                ],
+                "type": {
+                  "defined": "Period"
+                }
+              },
+              {
+                "name": "members",
+                "docs": [
+                  "Members of the multisig that can use the spending limit.",
+                  "In case a member is removed from the multisig, the spending limit will remain existent",
+                  "(until explicitly deleted), but the removed member will not be able to use it anymore."
+                ],
+                "type": {
+                  "vec": "publicKey"
+                }
+              },
+              {
+                "name": "destinations",
+                "docs": [
+                  "The destination addresses the spending limit is allowed to sent funds to.",
+                  "If empty, funds can be sent to any address."
+                ],
+                "type": {
+                  "vec": "publicKey"
+                }
+              }
+            ]
           }
         ]
       }
@@ -1725,6 +1865,29 @@
                 "type": "i64"
               }
             ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Period",
+      "docs": [
+        "The reset period of the spending limit."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "OneTime"
+          },
+          {
+            "name": "Day"
+          },
+          {
+            "name": "Week"
+          },
+          {
+            "name": "Month"
           }
         ]
       }

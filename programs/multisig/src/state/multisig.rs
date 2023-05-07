@@ -46,7 +46,7 @@ impl Multisig {
         1  + // _reserved
         1  + // bump
         4  + // members vector length
-        members_length * Member::size() // members
+        members_length * Member::INIT_SPACE // members
     }
 
     pub fn num_voters(members: &[Member]) -> usize {
@@ -86,7 +86,7 @@ impl Multisig {
         }
 
         // We need to allocate more space. To avoid doing this operation too often, we increment it by 10 members.
-        let new_size = current_account_size + (10 * Member::size());
+        let new_size = current_account_size + (10 * Member::INIT_SPACE);
         // Reallocate more space.
         AccountInfo::realloc(&multisig, new_size, false)?;
 
@@ -94,6 +94,7 @@ impl Multisig {
         let rent_exempt_lamports = Rent::get().unwrap().minimum_balance(new_size).max(1);
         let top_up_lamports =
             rent_exempt_lamports.saturating_sub(multisig.to_account_info().lamports());
+
         if top_up_lamports > 0 {
             system_program::transfer(
                 CpiContext::new(
@@ -159,9 +160,9 @@ impl Multisig {
         Ok(())
     }
 
-    /// Captures the fact that the multisig config has changed in the multisig state
-    /// and emits a `ConfigUpdatedEvent`.
-    pub fn config_updated(&mut self) {
+    /// Makes the transactions created up until this moment stale.
+    /// Should be called whenever any multisig parameter related to the voting consensus is changed.
+    pub fn invalidate_prior_transactions(&mut self) {
         self.stale_transaction_index = self.transaction_index;
     }
 
@@ -214,17 +215,10 @@ impl Multisig {
     }
 }
 
-#[derive(AnchorDeserialize, AnchorSerialize, Eq, PartialEq, Clone)]
+#[derive(AnchorDeserialize, AnchorSerialize, InitSpace, Eq, PartialEq, Clone)]
 pub struct Member {
     pub key: Pubkey,
     pub permissions: Permissions,
-}
-
-impl Member {
-    pub fn size() -> usize {
-        32 + // key 
-            1 // role
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -235,7 +229,9 @@ pub enum Permission {
 }
 
 /// Bitmask for permissions.
-#[derive(AnchorSerialize, AnchorDeserialize, Eq, PartialEq, Clone, Copy, Default, Debug)]
+#[derive(
+    AnchorSerialize, AnchorDeserialize, InitSpace, Eq, PartialEq, Clone, Copy, Default, Debug,
+)]
 pub struct Permissions {
     pub mask: u8,
 }

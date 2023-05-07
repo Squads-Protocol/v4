@@ -13,7 +13,7 @@ pub struct MultisigCreateArgs {
     pub members: Vec<Member>,
     /// How many seconds must pass between transaction voting settlement and execution.
     pub time_lock: u32,
-    /// Memo isn't used for anything, but is included in `CreatedEvent` that can later be parsed and indexed.
+    /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
@@ -56,12 +56,12 @@ impl MultisigCreate<'_> {
         let multisig = &mut ctx.accounts.multisig;
         multisig.config_authority = args.config_authority.unwrap_or_default();
         multisig.threshold = args.threshold;
-        multisig.members = members;
         multisig.time_lock = args.time_lock;
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;
         multisig.create_key = ctx.accounts.create_key.to_account_info().key();
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
+        multisig.members = members;
 
         multisig.invariant()?;
 

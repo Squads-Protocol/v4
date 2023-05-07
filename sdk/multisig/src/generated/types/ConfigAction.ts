@@ -6,9 +6,10 @@
  */
 
 import * as web3 from '@solana/web3.js'
-import * as beetSolana from '@metaplex-foundation/beet-solana'
 import * as beet from '@metaplex-foundation/beet'
+import * as beetSolana from '@metaplex-foundation/beet-solana'
 import { Member, memberBeet } from './Member'
+import { Period, periodBeet } from './Period'
 /**
  * This type is used to derive the {@link ConfigAction} type as well as the de/serializer.
  * However don't refer to it in your code but use the {@link ConfigAction} type instead.
@@ -23,6 +24,15 @@ export type ConfigActionRecord = {
   RemoveMember: { oldMember: web3.PublicKey }
   ChangeThreshold: { newThreshold: number }
   SetTimeLock: { newTimeLock: number }
+  AddSpendingLimit: {
+    createKey: web3.PublicKey
+    vaultIndex: number
+    mint: web3.PublicKey
+    amount: beet.bignum
+    period: Period
+    members: web3.PublicKey[]
+    destinations: web3.PublicKey[]
+  }
 }
 
 /**
@@ -51,6 +61,10 @@ export const isConfigActionChangeThreshold = (
 export const isConfigActionSetTimeLock = (
   x: ConfigAction
 ): x is ConfigAction & { __kind: 'SetTimeLock' } => x.__kind === 'SetTimeLock'
+export const isConfigActionAddSpendingLimit = (
+  x: ConfigAction
+): x is ConfigAction & { __kind: 'AddSpendingLimit' } =>
+  x.__kind === 'AddSpendingLimit'
 
 /**
  * @category userTypes
@@ -86,6 +100,22 @@ export const configActionBeet = beet.dataEnum<ConfigActionRecord>([
     new beet.BeetArgsStruct<ConfigActionRecord['SetTimeLock']>(
       [['newTimeLock', beet.u32]],
       'ConfigActionRecord["SetTimeLock"]'
+    ),
+  ],
+
+  [
+    'AddSpendingLimit',
+    new beet.FixableBeetArgsStruct<ConfigActionRecord['AddSpendingLimit']>(
+      [
+        ['createKey', beetSolana.publicKey],
+        ['vaultIndex', beet.u8],
+        ['mint', beetSolana.publicKey],
+        ['amount', beet.u64],
+        ['period', periodBeet],
+        ['members', beet.array(beetSolana.publicKey)],
+        ['destinations', beet.array(beetSolana.publicKey)],
+      ],
+      'ConfigActionRecord["AddSpendingLimit"]'
     ),
   ],
 ]) as beet.FixableBeet<ConfigAction, ConfigAction>

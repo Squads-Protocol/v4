@@ -22,7 +22,7 @@ pub struct ConfigTransactionCreate<'info> {
     #[account(
         init,
         payer = creator,
-        space = ConfigTransaction::size(args.actions.len()),
+        space = ConfigTransaction::size(&args.actions),
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),

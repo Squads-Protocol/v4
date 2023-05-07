@@ -6,20 +6,22 @@
  */
 
 import * as beet from '@metaplex-foundation/beet'
-export type MultisigAddVaultArgs = {
-  vaultIndex: number
-  memo: beet.COption<string>
+/**
+ * @category enums
+ * @category generated
+ */
+export enum Period {
+  OneTime,
+  Day,
+  Week,
+  Month,
 }
 
 /**
  * @category userTypes
  * @category generated
  */
-export const multisigAddVaultArgsBeet =
-  new beet.FixableBeetArgsStruct<MultisigAddVaultArgs>(
-    [
-      ['vaultIndex', beet.u8],
-      ['memo', beet.coption(beet.utf8String)],
-    ],
-    'MultisigAddVaultArgs'
-  )
+export const periodBeet = beet.fixedScalarEnum(Period) as beet.FixedSizeBeet<
+  Period,
+  Period
+>
