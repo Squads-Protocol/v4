@@ -121,6 +121,9 @@ impl VaultTransactionCreate<'_> {
 
         multisig.invariant()?;
 
+        // Logs for indexing.
+        msg!("transaction index: {}", transaction_index);
+
         Ok(())
     }
 }

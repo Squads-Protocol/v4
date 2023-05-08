@@ -92,6 +92,9 @@ impl BatchCreate<'_> {
 
         multisig.invariant()?;
 
+        // Logs for indexing.
+        msg!("batch index: {}", index);
+
         Ok(())
     }
 }

@@ -135,6 +135,10 @@ impl BatchAddTransaction<'_> {
         // Increment the batch size.
         batch.size = batch.size.checked_add(1).expect("overflow");
 
+        // Logs for indexing.
+        msg!("batch index: {}", batch.index);
+        msg!("batch size: {}", batch.size);
+
         Ok(())
     }
 }
