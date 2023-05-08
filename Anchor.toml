@@ -15,9 +15,9 @@ wallet = "~/.config/solana/id.json"
 [test.validator]
 url = "https://api.devnet.solana.com"
 
-# Token2022
-[[test.validator.clone]]
-address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+## Token2022
+#[[test.validator.clone]]
+#address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
 
 
 [scripts]
