@@ -2,3 +2,4 @@
 import "./suites/multisig-sdk";
 import "./suites/examples/batch-sol-transfer";
 import "./suites/examples/create-mint";
+import "./suites/examples/immediate-execution";

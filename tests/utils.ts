@@ -96,6 +96,58 @@ export async function createAutonomousMultisig({
   return [multisigPda, multisigBump] as const;
 }
 
+export async function createControlledMultisig({
+  connection,
+  createKey = Keypair.generate(),
+  configAuthority,
+  members,
+  threshold,
+  timeLock,
+}: {
+  createKey?: Keypair;
+  configAuthority: PublicKey;
+  members: TestMembers;
+  threshold: number;
+  timeLock: number;
+  connection: Connection;
+}) {
+  const creator = await generateFundedKeypair(connection);
+
+  const [multisigPda, multisigBump] = multisig.getMultisigPda({
+    createKey: createKey.publicKey,
+  });
+
+  const signature = await multisig.rpc.multisigCreate({
+    connection,
+    creator,
+    multisigPda,
+    configAuthority,
+    timeLock,
+    threshold,
+    members: [
+      { key: members.almighty.publicKey, permissions: Permissions.all() },
+      {
+        key: members.proposer.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Initiate]),
+      },
+      {
+        key: members.voter.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Vote]),
+      },
+      {
+        key: members.executor.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Execute]),
+      },
+    ],
+    createKey: createKey,
+    sendOptions: { skipPreflight: true },
+  });
+
+  await connection.confirmTransaction(signature);
+
+  return [multisigPda, multisigBump] as const;
+}
+
 export function createLocalhostConnection() {
   return new Connection("http://127.0.0.1:8899", "confirmed");
 }

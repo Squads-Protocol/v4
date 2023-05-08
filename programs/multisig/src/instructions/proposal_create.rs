@@ -53,6 +53,12 @@ impl ProposalCreate<'_> {
             MultisigError::InvalidTransactionIndex
         );
 
+        // We can't create a proposal for a stale transaction.
+        require!(
+            args.transaction_index > multisig.stale_transaction_index,
+            MultisigError::StaleProposal
+        );
+
         // Anyone can create a Proposal account. It's similar to ATA in this regard.
         // We don't require `Permission::Initiate` here because it's already implicitly checked
         // by the fact that a proposal can only be initialized if the corresponding transaction exists,
