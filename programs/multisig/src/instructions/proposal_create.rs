@@ -15,7 +15,6 @@ pub struct ProposalCreateArgs {
 #[instruction(args: ProposalCreateArgs)]
 pub struct ProposalCreate<'info> {
     #[account(
-        mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]

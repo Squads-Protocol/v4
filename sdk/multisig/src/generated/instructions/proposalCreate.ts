@@ -39,7 +39,7 @@ export const proposalCreateStruct = new beet.BeetArgsStruct<
 /**
  * Accounts required by the _proposalCreate_ instruction
  *
- * @property [_writable_] multisig
+ * @property [] multisig
  * @property [_writable_] proposal
  * @property [_writable_, **signer**] rentPayer
  * @category Instructions
@@ -80,7 +80,7 @@ export function createProposalCreateInstruction(
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: true,
+      isWritable: false,
       isSigner: false,
     },
     {
