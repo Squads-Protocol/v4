@@ -817,13 +817,29 @@ describe("Multisig SDK", () => {
           timeLock: 0,
         })
       )[0];
+
+      // Create a config transaction.
+      const newMember = {
+        key: Keypair.generate().publicKey,
+        permissions: Permissions.all(),
+      } as const;
+
+      let signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda,
+        transactionIndex: 1n,
+        creator: members.proposer.publicKey,
+        actions: [{ __kind: "AddMember", newMember }],
+      });
+      await connection.confirmTransaction(signature);
     });
 
     it("error: invalid transaction index", async () => {
       const rentPayer = await generateFundedKeypair(connection);
 
       // Attempt to create a proposal for a transaction that doesn't exist.
-      const transactionIndex = 1n;
+      const transactionIndex = 2n;
       await assert.rejects(
         () =>
           multisig.rpc.proposalCreate({
@@ -840,7 +856,7 @@ describe("Multisig SDK", () => {
     it("anyone can create proposals for transactions", async () => {
       const nonMember = await generateFundedKeypair(connection);
 
-      const transactionIndex = 1n;
+      const transactionIndex = 2n;
 
       // Create a config transaction.
       let signature = await multisig.rpc.configTransactionCreate({
@@ -888,6 +904,54 @@ describe("Multisig SDK", () => {
       assert.deepEqual(proposalAccount.approved, []);
       assert.deepEqual(proposalAccount.rejected, []);
       assert.deepEqual(proposalAccount.cancelled, []);
+    });
+
+    it("error: cannot create proposal for stale transaction", async () => {
+      // Approve the second config transaction.
+      let signature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex: 2n,
+        member: members.voter,
+      });
+      await connection.confirmTransaction(signature);
+
+      signature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex: 2n,
+        member: members.almighty,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Execute the second config transaction.
+      signature = await multisig.rpc.configTransactionExecute({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex: 2n,
+        member: members.almighty,
+        rentPayer: members.almighty,
+      });
+      await connection.confirmTransaction(signature);
+
+      const feePayer = await generateFundedKeypair(connection);
+
+      // At this point the first transaction should become stale.
+      // Attempt to create a proposal for it should fail.
+      await assert.rejects(
+        () =>
+          multisig.rpc.proposalCreate({
+            connection,
+            feePayer,
+            multisigPda,
+            transactionIndex: 1n,
+            rentPayer: feePayer,
+          }),
+        /Proposal is stale/
+      );
     });
   });
 
