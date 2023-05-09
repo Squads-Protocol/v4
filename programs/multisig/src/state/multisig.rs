@@ -56,6 +56,20 @@ impl Multisig {
             .count()
     }
 
+    pub fn num_proposers(members: &[Member]) -> usize {
+        members
+            .iter()
+            .filter(|m| m.permissions.has(Permission::Initiate))
+            .count()
+    }
+
+    pub fn num_executors(members: &[Member]) -> usize {
+        members
+            .iter()
+            .filter(|m| m.permissions.has(Permission::Execute))
+            .count()
+    }
+
     /// Check if the multisig account space needs to be reallocated to accommodate `members_length`.
     /// Returns `true` if the account was reallocated.
     pub fn realloc_if_needed<'a>(
@@ -116,7 +130,15 @@ impl Multisig {
         let has_duplicates = members.windows(2).any(|win| win[0].key == win[1].key);
         require!(!has_duplicates, MultisigError::DuplicateMember);
 
-        // There must be at least one member with Vote permissions.
+        // There must be at least one member with Initiate permission.
+        let num_proposers = Self::num_proposers(members);
+        require!(num_proposers > 0, MultisigError::NoProposers);
+
+        // There must be at least one member with Execute permission.
+        let num_executors = Self::num_executors(members);
+        require!(num_executors > 0, MultisigError::NoExecutors);
+
+        // There must be at least one member with Vote permission.
         let num_voters: u16 = Self::num_voters(members)
             .try_into()
             .expect("didn't expect more that `u16::MAX` members");

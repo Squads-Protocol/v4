@@ -38,6 +38,10 @@ pub enum MultisigError {
     RemoveLastMember,
     #[msg("Members don't include any voters")]
     NoVoters,
+    #[msg("Members don't include any proposers")]
+    NoProposers,
+    #[msg("Members don't include any executors")]
+    NoExecutors,
     #[msg("`stale_transaction_index` must be <= `transaction_index`")]
     InvalidStaleTransactionIndex,
     #[msg("Instruction not supported for controlled multisig")]

@@ -1823,31 +1823,41 @@
     },
     {
       "code": 6018,
+      "name": "NoProposers",
+      "msg": "Members don't include any proposers"
+    },
+    {
+      "code": 6019,
+      "name": "NoExecutors",
+      "msg": "Members don't include any executors"
+    },
+    {
+      "code": 6020,
       "name": "InvalidStaleTransactionIndex",
       "msg": "`stale_transaction_index` must be <= `transaction_index`"
     },
     {
-      "code": 6019,
+      "code": 6021,
       "name": "NotSupportedForControlled",
       "msg": "Instruction not supported for controlled multisig"
     },
     {
-      "code": 6020,
+      "code": 6022,
       "name": "TimeLockNotReleased",
       "msg": "Proposal time lock has not been released"
     },
     {
-      "code": 6021,
+      "code": 6023,
       "name": "NoActions",
       "msg": "Config transaction must have at least one action"
     },
     {
-      "code": 6022,
+      "code": 6024,
       "name": "MissingAccount",
       "msg": "Missing account"
     },
     {
-      "code": 6023,
+      "code": 6025,
       "name": "InvalidVaultIndex",
       "msg": "Invalid `vault_index`"
     }

@@ -123,7 +123,7 @@ describe("Multisig SDK", () => {
             members: [],
             sendOptions: { skipPreflight: true },
           }),
-        /Members don't include any voters/
+        /Members don't include any proposers/
       );
     });
 

@@ -410,13 +410,53 @@ createErrorFromCodeLookup.set(0x1781, () => new NoVotersError())
 createErrorFromNameLookup.set('NoVoters', () => new NoVotersError())
 
 /**
+ * NoProposers: 'Members don't include any proposers'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NoProposersError extends Error {
+  readonly code: number = 0x1782
+  readonly name: string = 'NoProposers'
+  constructor() {
+    super("Members don't include any proposers")
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NoProposersError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1782, () => new NoProposersError())
+createErrorFromNameLookup.set('NoProposers', () => new NoProposersError())
+
+/**
+ * NoExecutors: 'Members don't include any executors'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NoExecutorsError extends Error {
+  readonly code: number = 0x1783
+  readonly name: string = 'NoExecutors'
+  constructor() {
+    super("Members don't include any executors")
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NoExecutorsError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1783, () => new NoExecutorsError())
+createErrorFromNameLookup.set('NoExecutors', () => new NoExecutorsError())
+
+/**
  * InvalidStaleTransactionIndex: '`stale_transaction_index` must be <= `transaction_index`'
  *
  * @category Errors
  * @category generated
  */
 export class InvalidStaleTransactionIndexError extends Error {
-  readonly code: number = 0x1782
+  readonly code: number = 0x1784
   readonly name: string = 'InvalidStaleTransactionIndex'
   constructor() {
     super('`stale_transaction_index` must be <= `transaction_index`')
@@ -427,7 +467,7 @@ export class InvalidStaleTransactionIndexError extends Error {
 }
 
 createErrorFromCodeLookup.set(
-  0x1782,
+  0x1784,
   () => new InvalidStaleTransactionIndexError()
 )
 createErrorFromNameLookup.set(
@@ -442,7 +482,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class NotSupportedForControlledError extends Error {
-  readonly code: number = 0x1783
+  readonly code: number = 0x1785
   readonly name: string = 'NotSupportedForControlled'
   constructor() {
     super('Instruction not supported for controlled multisig')
@@ -453,7 +493,7 @@ export class NotSupportedForControlledError extends Error {
 }
 
 createErrorFromCodeLookup.set(
-  0x1783,
+  0x1785,
   () => new NotSupportedForControlledError()
 )
 createErrorFromNameLookup.set(
@@ -468,7 +508,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class TimeLockNotReleasedError extends Error {
-  readonly code: number = 0x1784
+  readonly code: number = 0x1786
   readonly name: string = 'TimeLockNotReleased'
   constructor() {
     super('Proposal time lock has not been released')
@@ -478,7 +518,7 @@ export class TimeLockNotReleasedError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1784, () => new TimeLockNotReleasedError())
+createErrorFromCodeLookup.set(0x1786, () => new TimeLockNotReleasedError())
 createErrorFromNameLookup.set(
   'TimeLockNotReleased',
   () => new TimeLockNotReleasedError()
@@ -491,7 +531,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class NoActionsError extends Error {
-  readonly code: number = 0x1785
+  readonly code: number = 0x1787
   readonly name: string = 'NoActions'
   constructor() {
     super('Config transaction must have at least one action')
@@ -501,7 +541,7 @@ export class NoActionsError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1785, () => new NoActionsError())
+createErrorFromCodeLookup.set(0x1787, () => new NoActionsError())
 createErrorFromNameLookup.set('NoActions', () => new NoActionsError())
 
 /**
@@ -511,7 +551,7 @@ createErrorFromNameLookup.set('NoActions', () => new NoActionsError())
  * @category generated
  */
 export class MissingAccountError extends Error {
-  readonly code: number = 0x1786
+  readonly code: number = 0x1788
   readonly name: string = 'MissingAccount'
   constructor() {
     super('Missing account')
@@ -521,7 +561,7 @@ export class MissingAccountError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1786, () => new MissingAccountError())
+createErrorFromCodeLookup.set(0x1788, () => new MissingAccountError())
 createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
 
 /**
@@ -531,7 +571,7 @@ createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
  * @category generated
  */
 export class InvalidVaultIndexError extends Error {
-  readonly code: number = 0x1787
+  readonly code: number = 0x1789
   readonly name: string = 'InvalidVaultIndex'
   constructor() {
     super('Invalid `vault_index`')
@@ -541,7 +581,7 @@ export class InvalidVaultIndexError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1787, () => new InvalidVaultIndexError())
+createErrorFromCodeLookup.set(0x1789, () => new InvalidVaultIndexError())
 createErrorFromNameLookup.set(
   'InvalidVaultIndex',
   () => new InvalidVaultIndexError()
