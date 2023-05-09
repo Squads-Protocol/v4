@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
+use crate::id;
 use crate::state::*;
+use crate::utils::*;
 
 #[derive(Accounts)]
 pub struct ConfigTransactionExecute<'info> {
@@ -56,7 +58,7 @@ pub struct ConfigTransactionExecute<'info> {
     // remaining_accounts
 }
 
-impl ConfigTransactionExecute<'_> {
+impl<'info> ConfigTransactionExecute<'info> {
     fn validate(&self) -> Result<()> {
         let Self {
             multisig,
@@ -94,18 +96,12 @@ impl ConfigTransactionExecute<'_> {
     /// Execute the multisig transaction.
     /// The transaction must be `Approved`.
     #[access_control(ctx.accounts.validate())]
-    pub fn config_transaction_execute(ctx: Context<Self>) -> Result<()> {
+    pub fn config_transaction_execute(ctx: Context<'_, '_, '_, 'info, Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
         let proposal = &mut ctx.accounts.proposal;
 
-        let mut spending_limits: Vec<Account<SpendingLimit>> = vec![];
-        for remaining_account in ctx.remaining_accounts {
-            if let Some(spending_limit) = Account::<SpendingLimit>::try_from(remaining_account).ok()
-            {
-                spending_limits.push(spending_limit)
-            }
-        }
+        let rent = Rent::get()?;
 
         // Check applying the config actions will require reallocation of space for the multisig account.
         let new_members_length =
@@ -169,12 +165,70 @@ impl ConfigTransactionExecute<'_> {
                     members,
                     destinations,
                 } => {
-                    let spending_limit = spending_limits
+                    let (spending_limit_key, spending_limit_bump) = Pubkey::find_program_address(
+                        &[
+                            &SEED_PREFIX,
+                            multisig.key().as_ref(),
+                            &SEED_SPENDING_LIMIT,
+                            create_key.as_ref(),
+                        ],
+                        ctx.program_id,
+                    );
+
+                    // Find the SpendingLimit account in `remaining_accounts`.
+                    let spending_limit_info = ctx
+                        .remaining_accounts
                         .iter()
-                        .find(|l| l.create_key == *create_key)
+                        .find(|acc| acc.key == &spending_limit_key)
                         .ok_or(MultisigError::MissingAccount)?;
 
-                    todo!()
+                    // `rent_payer` and `system_program` must also be present.
+                    let rent_payer = &ctx
+                        .accounts
+                        .rent_payer
+                        .as_ref()
+                        .ok_or(MultisigError::MissingAccount)?;
+                    let system_program = &ctx
+                        .accounts
+                        .system_program
+                        .as_ref()
+                        .ok_or(MultisigError::MissingAccount)?;
+
+                    // Initialize the SpendingLimit account.
+                    create_account(
+                        rent_payer,
+                        spending_limit_info,
+                        system_program,
+                        &id(),
+                        &rent,
+                        SpendingLimit::size(members.len(), destinations.len()),
+                        vec![
+                            SEED_PREFIX.to_vec(),
+                            multisig.key().as_ref().to_vec(),
+                            SEED_SPENDING_LIMIT.to_vec(),
+                            create_key.as_ref().to_vec(),
+                            vec![spending_limit_bump],
+                        ],
+                    )?;
+
+                    // Serialize the SpendingLimit data into the account info.
+                    SpendingLimit {
+                        multisig: multisig.key().to_owned(),
+                        create_key: create_key.to_owned(),
+                        vault_index: *vault_index,
+                        amount: *amount,
+                        mint: *mint,
+                        period: *period,
+                        remaining_amount: *amount,
+                        last_reset: Clock::get()?.unix_timestamp,
+                        bump: spending_limit_bump,
+                        members: members.to_vec(),
+                        destinations: destinations.to_vec(),
+                    }
+                    .try_serialize(&mut &mut spending_limit_info.data.borrow_mut()[..])?;
+
+                    // We don't need to invalidate prior transactions here because adding
+                    // a spending limit doesn't affect the consensus parameters of the multisig.
                 }
             }
         }

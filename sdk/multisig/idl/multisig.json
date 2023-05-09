@@ -2018,11 +2018,6 @@
       "code": 6024,
       "name": "MissingAccount",
       "msg": "Missing account"
-    },
-    {
-      "code": 6025,
-      "name": "InvalidVaultIndex",
-      "msg": "Invalid `vault_index`"
     }
   ],
   "metadata": {

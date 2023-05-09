@@ -565,29 +565,6 @@ createErrorFromCodeLookup.set(0x1788, () => new MissingAccountError())
 createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
 
 /**
- * InvalidVaultIndex: 'Invalid `vault_index`'
- *
- * @category Errors
- * @category generated
- */
-export class InvalidVaultIndexError extends Error {
-  readonly code: number = 0x1789
-  readonly name: string = 'InvalidVaultIndex'
-  constructor() {
-    super('Invalid `vault_index`')
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, InvalidVaultIndexError)
-    }
-  }
-}
-
-createErrorFromCodeLookup.set(0x1789, () => new InvalidVaultIndexError())
-createErrorFromNameLookup.set(
-  'InvalidVaultIndex',
-  () => new InvalidVaultIndexError()
-)
-
-/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

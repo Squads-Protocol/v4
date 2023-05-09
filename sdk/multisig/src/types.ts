@@ -12,6 +12,7 @@ export {
   isProposalStatusExecuted,
   Member,
   ConfigAction,
+  Period,
 } from "./generated";
 
 export const Permission = {

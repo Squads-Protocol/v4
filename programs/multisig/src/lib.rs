@@ -68,7 +68,9 @@ pub mod multisig {
 
     /// Execute a config transaction.
     /// The transaction must be `Approved`.
-    pub fn config_transaction_execute(ctx: Context<ConfigTransactionExecute>) -> Result<()> {
+    pub fn config_transaction_execute<'info>(
+        ctx: Context<'_, '_, '_, 'info, ConfigTransactionExecute<'info>>,
+    ) -> Result<()> {
         ConfigTransactionExecute::config_transaction_execute(ctx)
     }
 

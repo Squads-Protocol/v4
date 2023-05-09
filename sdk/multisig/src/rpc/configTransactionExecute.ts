@@ -16,6 +16,7 @@ export async function configTransactionExecute({
   transactionIndex,
   member,
   rentPayer,
+  spendingLimits,
   signers,
   sendOptions,
 }: {
@@ -25,6 +26,8 @@ export async function configTransactionExecute({
   transactionIndex: bigint;
   member: Signer;
   rentPayer: Signer;
+  /** In case the transaction adds or removes SpendingLimits, pass the array of their Pubkeys here. */
+  spendingLimits?: PublicKey[];
   signers?: Signer[];
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
@@ -37,6 +40,7 @@ export async function configTransactionExecute({
     transactionIndex,
     member: member.publicKey,
     rentPayer: rentPayer.publicKey,
+    spendingLimits,
   });
 
   tx.sign([feePayer, member, rentPayer, ...(signers ?? [])]);

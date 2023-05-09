@@ -46,7 +46,8 @@ pub struct SpendingLimit {
 impl SpendingLimit {
     pub fn size(members_length: usize, destinations_length: usize) -> usize {
         8  + // anchor discriminator
-        32  + // create_key
+        32 + // multisig
+        32 + // create_key
         1  + // vault_index
         32 + // mint
         8  + // amount
