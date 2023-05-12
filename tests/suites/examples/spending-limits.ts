@@ -2,14 +2,24 @@ import * as multisig from "@sqds/multisig";
 import {
   Keypair,
   LAMPORTS_PER_SOL,
+  PublicKey,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { NATIVE_MINT } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createMint,
+  getAssociatedTokenAddressSync,
+  mintTo,
+  TOKEN_2022_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
+  createAssociatedTokenAccount,
+} from "@solana/spl-token";
 import assert from "assert";
 import {
   createAutonomousMultisig,
   createLocalhostConnection,
+  generateFundedKeypair,
   generateMultisigMembers,
   isCloseToNow,
   TestMembers,
@@ -21,34 +31,118 @@ const { Period } = multisig.types;
 describe("Examples / Spending Limits", () => {
   const connection = createLocalhostConnection();
 
+  let multisigPda: PublicKey;
   let members: TestMembers;
+  let solSpendingLimitParams: multisig.types.ConfigActionRecord["AddSpendingLimit"];
+  let splSpendingLimitParams: multisig.types.ConfigActionRecord["AddSpendingLimit"];
+  let splMint: PublicKey;
   before(async () => {
     members = await generateMultisigMembers(connection);
-  });
 
-  it("create Spending Limit for autonomous multisig", async () => {
-    const [multisigPda] = await createAutonomousMultisig({
-      connection,
-      members,
-      threshold: 1,
-      timeLock: 0,
-    });
+    multisigPda = (
+      await createAutonomousMultisig({
+        connection,
+        members,
+        threshold: 1,
+        timeLock: 0,
+      })
+    )[0];
 
-    const transactionIndex = 1n;
-
-    const spendingLimitParams = {
+    // Set params for creating a Spending Limit for SOL tokens.
+    solSpendingLimitParams = {
       createKey: Keypair.generate().publicKey,
       vaultIndex: 0,
-      mint: NATIVE_MINT,
+      // This means this Spending Limit is for SOL tokens.
+      mint: PublicKey.default,
       amount: 10 * LAMPORTS_PER_SOL,
       period: Period.OneTime,
       members: [members.almighty.publicKey],
-      // Empty `destinations` means all destinations are allowed.
       destinations: [
         Keypair.generate().publicKey,
         Keypair.generate().publicKey,
       ],
     };
+
+    // Airdrop SOL to the vault.
+    const [vaultPda] = multisig.getVaultPda({
+      multisigPda,
+      index: solSpendingLimitParams.vaultIndex,
+    });
+    let signature = await connection.requestAirdrop(
+      vaultPda,
+      100 * LAMPORTS_PER_SOL
+    );
+    await connection.confirmTransaction(signature);
+
+    // Set params for creating a Spending Limit for SPL tokens.
+    const mintAuthority = await generateFundedKeypair(connection);
+    const mintDecimals = 6;
+    splMint = await createMint(
+      connection,
+      mintAuthority,
+      mintAuthority.publicKey,
+      null,
+      mintDecimals,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+
+    splSpendingLimitParams = {
+      createKey: Keypair.generate().publicKey,
+      vaultIndex: 0,
+      mint: splMint,
+      amount: 10 * 10 ** mintDecimals,
+      period: Period.OneTime,
+      members: [members.almighty.publicKey],
+      destinations: [
+        Keypair.generate().publicKey,
+        Keypair.generate().publicKey,
+      ],
+    };
+
+    // Initialize vault token account and mint tokens to it.
+    const vaultTokenAccount = getAssociatedTokenAddressSync(
+      splMint,
+      vaultPda,
+      true,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    const message = new TransactionMessage({
+      payerKey: mintAuthority.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [
+        createAssociatedTokenAccountInstruction(
+          mintAuthority.publicKey,
+          vaultTokenAccount,
+          vaultPda,
+          splMint,
+          TOKEN_2022_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        ),
+      ],
+    }).compileToV0Message();
+    const tx = new VersionedTransaction(message);
+    tx.sign([mintAuthority]);
+    signature = await connection.sendTransaction(tx);
+    await connection.confirmTransaction(signature);
+
+    await mintTo(
+      connection,
+      mintAuthority,
+      splMint,
+      vaultTokenAccount,
+      mintAuthority.publicKey,
+      100 * 10 ** mintDecimals,
+      undefined,
+      undefined,
+      TOKEN_2022_PROGRAM_ID
+    );
+  });
+
+  it("create SOL and SPL Spending Limits for autonomous multisig", async () => {
+    const transactionIndex = 1n;
 
     // Create the Config Transaction, Proposal for it, and approve the Proposal.
     const message = new TransactionMessage({
@@ -62,7 +156,11 @@ describe("Examples / Spending Limits", () => {
           actions: [
             {
               __kind: "AddSpendingLimit",
-              ...spendingLimitParams,
+              ...solSpendingLimitParams,
+            },
+            {
+              __kind: "AddSpendingLimit",
+              ...splSpendingLimitParams,
             },
           ],
         }),
@@ -92,10 +190,17 @@ describe("Examples / Spending Limits", () => {
       });
     await connection.confirmTransaction(signature);
 
-    const [spendingLimitPda, spendingLimitBump] = multisig.getSpendingLimitPda({
-      multisigPda,
-      createKey: spendingLimitParams.createKey,
-    });
+    const [solSpendingLimitPda, solSpendingLimitBump] =
+      multisig.getSpendingLimitPda({
+        multisigPda,
+        createKey: solSpendingLimitParams.createKey,
+      });
+
+    const [splSpendingLimitPda, splSpendingLimitBump] =
+      multisig.getSpendingLimitPda({
+        multisigPda,
+        createKey: splSpendingLimitParams.createKey,
+      });
 
     // Execute the Config Transaction which will create the Spending Limit.
     signature = await multisig.rpc
@@ -106,7 +211,7 @@ describe("Examples / Spending Limits", () => {
         transactionIndex,
         member: members.executor,
         rentPayer: members.executor,
-        spendingLimits: [spendingLimitPda],
+        spendingLimits: [solSpendingLimitPda, splSpendingLimitPda],
       })
       .catch((err) => {
         console.log(err.logs);
@@ -115,47 +220,183 @@ describe("Examples / Spending Limits", () => {
     await connection.confirmTransaction(signature);
 
     // Fetch the Spending Limit account and verify its fields.
-    const spendingLimitAccount = await SpendingLimit.fromAccountAddress(
+    const solSpendingLimitAccount = await SpendingLimit.fromAccountAddress(
       connection,
-      spendingLimitPda
+      solSpendingLimitPda
     );
 
     assert.strictEqual(
-      spendingLimitAccount.multisig.toBase58(),
+      solSpendingLimitAccount.multisig.toBase58(),
       multisigPda.toBase58()
     );
     assert.strictEqual(
-      spendingLimitAccount.createKey.toBase58(),
-      spendingLimitParams.createKey.toBase58()
+      solSpendingLimitAccount.createKey.toBase58(),
+      solSpendingLimitParams.createKey.toBase58()
     );
     assert.strictEqual(
-      spendingLimitAccount.vaultIndex,
-      spendingLimitParams.vaultIndex
+      solSpendingLimitAccount.vaultIndex,
+      solSpendingLimitParams.vaultIndex
     );
     assert.strictEqual(
-      spendingLimitAccount.mint.toBase58(),
-      spendingLimitParams.mint.toBase58()
+      solSpendingLimitAccount.mint.toBase58(),
+      solSpendingLimitParams.mint.toBase58()
     );
     assert.strictEqual(
-      spendingLimitAccount.amount.toString(),
-      spendingLimitParams.amount.toString()
+      solSpendingLimitAccount.amount.toString(),
+      solSpendingLimitParams.amount.toString()
     );
-    assert.strictEqual(spendingLimitAccount.period, spendingLimitParams.period);
     assert.strictEqual(
-      spendingLimitAccount.remainingAmount.toString(),
-      spendingLimitParams.amount.toString()
+      solSpendingLimitAccount.period,
+      solSpendingLimitParams.period
+    );
+    assert.strictEqual(
+      solSpendingLimitAccount.remainingAmount.toString(),
+      solSpendingLimitParams.amount.toString()
     );
     assert.ok(
-      isCloseToNow(multisig.utils.toBigInt(spendingLimitAccount.lastReset))
+      isCloseToNow(multisig.utils.toBigInt(solSpendingLimitAccount.lastReset))
     );
-    assert.strictEqual(spendingLimitAccount.bump, spendingLimitBump);
+    assert.strictEqual(solSpendingLimitAccount.bump, solSpendingLimitBump);
     assert.deepEqual(
-      spendingLimitAccount.members.map((k) => k.toBase58()),
-      spendingLimitParams.members.map((k) => k.toBase58())
+      solSpendingLimitAccount.members.map((k) => k.toBase58()),
+      solSpendingLimitParams.members.map((k) => k.toBase58())
     );
     assert.deepEqual(
-      spendingLimitAccount.destinations.map((k) => k.toBase58()),
-      spendingLimitParams.destinations.map((k) => k.toBase58())
+      solSpendingLimitAccount.destinations.map((k) => k.toBase58()),
+      solSpendingLimitParams.destinations.map((k) => k.toBase58())
+    );
+
+    // TODO: Same checks should be done for SPL Spending Limit.
+  });
+
+  it("use SOL Spending Limit", async () => {
+    const [solSpendingLimitPda] = multisig.getSpendingLimitPda({
+      multisigPda,
+      createKey: solSpendingLimitParams.createKey,
+    });
+
+    const signature = await multisig.rpc
+      .spendingLimitUse({
+        connection,
+        feePayer: members.almighty,
+        // A member that can use the Spending Limit.
+        member: members.almighty,
+        multisigPda,
+        spendingLimit: solSpendingLimitPda,
+        // We don't need to specify the mint, because this Spending Limit is for SOL.
+        mint: undefined,
+        vaultIndex: solSpendingLimitParams.vaultIndex,
+        // Use the entire amount.
+        amount: solSpendingLimitParams.amount as number,
+        // SOL has 9 decimals.
+        decimals: 9,
+        // Transfer tokens to one of the allowed destinations.
+        destination: solSpendingLimitParams.destinations[0],
+        // You can optionally add a memo.
+        memo: "Using my allowance!",
+      })
+      .catch((err) => {
+        console.log(err.logs);
+        throw err;
+      });
+    await connection.confirmTransaction(signature);
+
+    // Fetch the Spending Limit account.
+    const solSpendingLimitAccount = await SpendingLimit.fromAccountAddress(
+      connection,
+      solSpendingLimitPda
+    );
+
+    // We used the entire amount, so the remaining amount should be 0.
+    assert.strictEqual(solSpendingLimitAccount.remainingAmount.toString(), "0");
+
+    // Try exceeding the Spending Limit.
+    await assert.rejects(
+      () =>
+        multisig.rpc.spendingLimitUse({
+          connection,
+          feePayer: members.almighty,
+          member: members.almighty,
+          multisigPda,
+          spendingLimit: solSpendingLimitPda,
+          mint: undefined,
+          vaultIndex: solSpendingLimitParams.vaultIndex,
+          amount: 1,
+          decimals: 9,
+          destination: solSpendingLimitParams.destinations[0],
+        }),
+      /Spending limit exceeded/
+    );
+  });
+
+  it("use SPL Spending Limit", async () => {
+    // First of all, make sure the destination token account is initialized.
+    const destination = splSpendingLimitParams.destinations[0];
+    await createAssociatedTokenAccount(
+      connection,
+      members.almighty,
+      splMint,
+      destination,
+      undefined,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    const [splSpendingLimitPda] = multisig.getSpendingLimitPda({
+      multisigPda,
+      createKey: splSpendingLimitParams.createKey,
+    });
+
+    let signature = await multisig.rpc
+      .spendingLimitUse({
+        connection,
+        feePayer: members.almighty,
+        // A member that can use the Spending Limit.
+        member: members.almighty,
+        multisigPda,
+        spendingLimit: splSpendingLimitPda,
+        mint: splMint,
+        vaultIndex: splSpendingLimitParams.vaultIndex,
+        // Use the entire amount.
+        amount: splSpendingLimitParams.amount as number,
+        // Our SPL mint has 6 decimals.
+        decimals: 6,
+        // Transfer tokens to one of the allowed destinations.
+        destination,
+        // You can optionally add a memo.
+        memo: "Using my allowance!",
+      })
+      .catch((err) => {
+        console.log(err.logs);
+        throw err;
+      });
+    await connection.confirmTransaction(signature);
+
+    // Fetch the Spending Limit account.
+    const splSpendingLimitAccount = await SpendingLimit.fromAccountAddress(
+      connection,
+      splSpendingLimitPda
+    );
+
+    // We used the entire amount, so the remaining amount should be 0.
+    assert.strictEqual(splSpendingLimitAccount.remainingAmount.toString(), "0");
+
+    // Try exceeding the Spending Limit.
+    await assert.rejects(
+      () =>
+        multisig.rpc.spendingLimitUse({
+          connection,
+          feePayer: members.almighty,
+          member: members.almighty,
+          multisigPda,
+          spendingLimit: splSpendingLimitPda,
+          mint: splMint,
+          vaultIndex: splSpendingLimitParams.vaultIndex,
+          amount: 1,
+          decimals: 6,
+          destination,
+        }),
+      /Spending limit exceeded/
     );
   });
 });

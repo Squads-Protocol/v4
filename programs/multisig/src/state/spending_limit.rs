@@ -12,6 +12,8 @@ pub struct SpendingLimit {
     pub vault_index: u8,
 
     /// The token mint the spending limit is for.
+    /// Pubkey::default() means SOL.
+    /// use NATIVE_MINT for Wrapped SOL.
     pub mint: Pubkey,
 
     /// The amount of tokens that can be spent in a period.
@@ -73,4 +75,15 @@ pub enum Period {
     Week,
     /// The spending limit is reset every month (30 days).
     Month,
+}
+
+impl Period {
+    pub fn to_seconds(&self) -> Option<i64> {
+        match self {
+            Period::OneTime => None,
+            Period::Day => Some(24 * 60 * 60),
+            Period::Week => Some(7 * 24 * 60 * 60),
+            Period::Month => Some(30 * 24 * 60 * 60),
+        }
+    }
 }

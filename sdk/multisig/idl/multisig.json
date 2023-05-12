@@ -722,6 +722,104 @@
           }
         }
       ]
+    },
+    {
+      "name": "spendingLimitUse",
+      "docs": [
+        "Use a spending limit to transfer tokens from a multisig vault to a destination account."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The multisig account the `spending_limit` is for."
+          ]
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "spendingLimit",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The SpendingLimit account to use."
+          ]
+        },
+        {
+          "name": "vault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Multisig vault account to transfer tokens from."
+          ]
+        },
+        {
+          "name": "destination",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "Destination account to transfer tokens to."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "In case `spending_limit.mint` is SOL."
+          ]
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "The mint of the tokens to transfer in case `spending_limit.mint` is an SPL token."
+          ]
+        },
+        {
+          "name": "vaultTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "Multisig vault token account to transfer tokens from in case `spending_limit.mint` is an SPL token."
+          ]
+        },
+        {
+          "name": "destinationTokenAccount",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "Destination token account in case `spending_limit.mint` is an SPL token."
+          ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "In case `spending_limit.mint` is an SPL token."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "SpendingLimitUseArgs"
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1071,7 +1169,9 @@
           {
             "name": "mint",
             "docs": [
-              "The token mint the spending limit is for."
+              "The token mint the spending limit is for.",
+              "Pubkey::default() means SOL.",
+              "use NATIVE_MINT for Wrapped SOL."
             ],
             "type": "publicKey"
           },
@@ -1469,6 +1569,37 @@
         "fields": [
           {
             "name": "memo",
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SpendingLimitUseArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of tokens to transfer."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "decimals",
+            "docs": [
+              "Decimals of the token mint. Used for double-checking against incorrect order of magnitude of `amount`."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo used for indexing."
+            ],
             "type": {
               "option": "string"
             }
@@ -2018,6 +2149,26 @@
       "code": 6024,
       "name": "MissingAccount",
       "msg": "Missing account"
+    },
+    {
+      "code": 6025,
+      "name": "InvalidMint",
+      "msg": "Invalid mint"
+    },
+    {
+      "code": 6026,
+      "name": "InvalidDestination",
+      "msg": "Invalid destination"
+    },
+    {
+      "code": 6027,
+      "name": "SpendingLimitExceeded",
+      "msg": "Spending limit exceeded"
+    },
+    {
+      "code": 6028,
+      "name": "DecimalsMismatch",
+      "msg": "Decimals don't match the mint"
     }
   ],
   "metadata": {

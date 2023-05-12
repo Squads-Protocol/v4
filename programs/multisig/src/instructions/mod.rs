@@ -8,6 +8,7 @@ pub use multisig_create::*;
 pub use proposal_activate::*;
 pub use proposal_create::*;
 pub use proposal_vote::*;
+pub use spending_limit_use::*;
 pub use vault_transaction_create::*;
 pub use vault_transaction_execute::*;
 
@@ -21,5 +22,6 @@ mod multisig_create;
 mod proposal_activate;
 mod proposal_create;
 mod proposal_vote;
+mod spending_limit_use;
 mod vault_transaction_create;
 mod vault_transaction_execute;
