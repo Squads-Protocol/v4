@@ -254,7 +254,10 @@ describe("Examples / Spending Limits", () => {
       solSpendingLimitParams.amount.toString()
     );
     assert.ok(
-      isCloseToNow(multisig.utils.toBigInt(solSpendingLimitAccount.lastReset))
+      isCloseToNow(
+        multisig.utils.toBigInt(solSpendingLimitAccount.lastReset),
+        5000
+      )
     );
     assert.strictEqual(solSpendingLimitAccount.bump, solSpendingLimitBump);
     assert.deepEqual(

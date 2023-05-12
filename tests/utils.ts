@@ -177,9 +177,12 @@ export function createTestTransferInstruction(
 }
 
 /** Returns true if the given unix epoch is within a couple of seconds of now. */
-export function isCloseToNow(unixEpoch: number | bigint) {
+export function isCloseToNow(
+  unixEpoch: number | bigint,
+  timeWindow: number = 2000
+) {
   const timestamp = Number(unixEpoch) * 1000;
-  return Math.abs(timestamp - Date.now()) < 2000;
+  return Math.abs(timestamp - Date.now()) < timeWindow;
 }
 
 /** Returns an array of numbers from min to max (inclusive) with the given step. */
