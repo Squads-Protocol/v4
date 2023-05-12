@@ -10,6 +10,7 @@ const SEED_TRANSACTION = toUtfBytes("transaction");
 const SEED_PROPOSAL = toUtfBytes("proposal");
 const SEED_BATCH_TRANSACTION = toUtfBytes("batch_transaction");
 const SEED_EPHEMERAL_SIGNER = toUtfBytes("ephemeral_signer");
+const SEED_SPENDING_LIMIT = toUtfBytes("spending_limit");
 
 export function getMultisigPda({
   createKey,
@@ -119,6 +120,26 @@ export function getBatchTransactionPda({
       toU64Bytes(batchIndex),
       SEED_BATCH_TRANSACTION,
       toU32Bytes(transactionIndex),
+    ],
+    programId
+  );
+}
+
+export function getSpendingLimitPda({
+  multisigPda,
+  createKey,
+  programId = PROGRAM_ID,
+}: {
+  multisigPda: PublicKey;
+  createKey: PublicKey;
+  programId?: PublicKey;
+}): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [
+      SEED_PREFIX,
+      multisigPda.toBytes(),
+      SEED_SPENDING_LIMIT,
+      createKey.toBytes(),
     ],
     programId
   );

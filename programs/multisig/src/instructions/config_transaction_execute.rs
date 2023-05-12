@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
+use crate::id;
 use crate::state::*;
+use crate::utils::*;
 
 #[derive(Accounts)]
 pub struct ConfigTransactionExecute<'info> {
@@ -44,16 +46,19 @@ pub struct ConfigTransactionExecute<'info> {
     pub transaction: Account<'info, ConfigTransaction>,
 
     /// The account that will be charged in case the multisig account needs to reallocate space,
-    /// for example when adding a new member.
+    /// for example when adding a new member or a spending limit.
     /// This is usually the same as `member`, but can be a different account if needed.
     #[account(mut)]
-    pub rent_payer: Signer<'info>,
+    pub rent_payer: Option<Signer<'info>>,
 
     /// We might need it in case reallocation is needed.
-    pub system_program: Program<'info, System>,
+    pub system_program: Option<Program<'info, System>>,
+    // In case the transaction contains Add(Remove)SpendingLimit actions,
+    // `remaining_accounts` must contain the SpendingLimit accounts to be initialized/closed.
+    // remaining_accounts
 }
 
-impl ConfigTransactionExecute<'_> {
+impl<'info> ConfigTransactionExecute<'info> {
     fn validate(&self) -> Result<()> {
         let Self {
             multisig,
@@ -91,24 +96,37 @@ impl ConfigTransactionExecute<'_> {
     /// Execute the multisig transaction.
     /// The transaction must be `Approved`.
     #[access_control(ctx.accounts.validate())]
-    pub fn config_transaction_execute(ctx: Context<Self>) -> Result<()> {
+    pub fn config_transaction_execute(ctx: Context<'_, '_, '_, 'info, Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
         let proposal = &mut ctx.accounts.proposal;
-        let rent_payer = &ctx.accounts.rent_payer;
-        let system_program = &ctx.accounts.system_program;
+
+        let rent = Rent::get()?;
 
         // Check applying the config actions will require reallocation of space for the multisig account.
         let new_members_length =
             members_length_after_actions(multisig.members.len(), &transaction.actions);
-        let reallocated = Multisig::realloc_if_needed(
-            multisig.to_account_info(),
-            new_members_length,
-            rent_payer.to_account_info(),
-            system_program.to_account_info(),
-        )?;
-        if reallocated {
-            multisig.reload()?;
+        if new_members_length > multisig.members.len() {
+            let rent_payer = &ctx
+                .accounts
+                .rent_payer
+                .as_ref()
+                .ok_or(MultisigError::MissingAccount)?;
+            let system_program = &ctx
+                .accounts
+                .system_program
+                .as_ref()
+                .ok_or(MultisigError::MissingAccount)?;
+
+            let reallocated = Multisig::realloc_if_needed(
+                multisig.to_account_info(),
+                new_members_length,
+                rent_payer.to_account_info(),
+                system_program.to_account_info(),
+            )?;
+            if reallocated {
+                multisig.reload()?;
+            }
         }
 
         // Execute the actions one by one.
@@ -117,25 +135,100 @@ impl ConfigTransactionExecute<'_> {
                 ConfigAction::AddMember { new_member } => {
                     multisig.add_member(new_member.to_owned());
 
-                    multisig.config_updated();
+                    multisig.invalidate_prior_transactions();
                 }
 
                 ConfigAction::RemoveMember { old_member } => {
                     multisig.remove_member(old_member.to_owned())?;
 
-                    multisig.config_updated();
+                    multisig.invalidate_prior_transactions();
                 }
 
                 ConfigAction::ChangeThreshold { new_threshold } => {
                     multisig.threshold = *new_threshold;
 
-                    multisig.config_updated();
+                    multisig.invalidate_prior_transactions();
                 }
 
                 ConfigAction::SetTimeLock { new_time_lock } => {
                     multisig.time_lock = *new_time_lock;
 
-                    multisig.config_updated();
+                    multisig.invalidate_prior_transactions();
+                }
+
+                ConfigAction::AddSpendingLimit {
+                    create_key,
+                    vault_index,
+                    mint,
+                    amount,
+                    period,
+                    members,
+                    destinations,
+                } => {
+                    let (spending_limit_key, spending_limit_bump) = Pubkey::find_program_address(
+                        &[
+                            &SEED_PREFIX,
+                            multisig.key().as_ref(),
+                            &SEED_SPENDING_LIMIT,
+                            create_key.as_ref(),
+                        ],
+                        ctx.program_id,
+                    );
+
+                    // Find the SpendingLimit account in `remaining_accounts`.
+                    let spending_limit_info = ctx
+                        .remaining_accounts
+                        .iter()
+                        .find(|acc| acc.key == &spending_limit_key)
+                        .ok_or(MultisigError::MissingAccount)?;
+
+                    // `rent_payer` and `system_program` must also be present.
+                    let rent_payer = &ctx
+                        .accounts
+                        .rent_payer
+                        .as_ref()
+                        .ok_or(MultisigError::MissingAccount)?;
+                    let system_program = &ctx
+                        .accounts
+                        .system_program
+                        .as_ref()
+                        .ok_or(MultisigError::MissingAccount)?;
+
+                    // Initialize the SpendingLimit account.
+                    create_account(
+                        rent_payer,
+                        spending_limit_info,
+                        system_program,
+                        &id(),
+                        &rent,
+                        SpendingLimit::size(members.len(), destinations.len()),
+                        vec![
+                            SEED_PREFIX.to_vec(),
+                            multisig.key().as_ref().to_vec(),
+                            SEED_SPENDING_LIMIT.to_vec(),
+                            create_key.as_ref().to_vec(),
+                            vec![spending_limit_bump],
+                        ],
+                    )?;
+
+                    // Serialize the SpendingLimit data into the account info.
+                    SpendingLimit {
+                        multisig: multisig.key().to_owned(),
+                        create_key: create_key.to_owned(),
+                        vault_index: *vault_index,
+                        amount: *amount,
+                        mint: *mint,
+                        period: *period,
+                        remaining_amount: *amount,
+                        last_reset: Clock::get()?.unix_timestamp,
+                        bump: spending_limit_bump,
+                        members: members.to_vec(),
+                        destinations: destinations.to_vec(),
+                    }
+                    .try_serialize(&mut &mut spending_limit_info.data.borrow_mut()[..])?;
+
+                    // We don't need to invalidate prior transactions here because adding
+                    // a spending limit doesn't affect the consensus parameters of the multisig.
                 }
             }
         }
@@ -146,7 +239,7 @@ impl ConfigTransactionExecute<'_> {
                 .members
                 .len()
                 .try_into()
-                .expect("didn't expect more that `u16::MAX` members");
+                .expect("didn't expect more than `u16::MAX` members");
         };
 
         // Make sure the multisig state is valid after applying the actions.
@@ -167,6 +260,7 @@ fn members_length_after_actions(members_length: usize, actions: &[ConfigAction])
         ConfigAction::RemoveMember { .. } => acc.checked_sub(1).expect("overflow"),
         ConfigAction::ChangeThreshold { .. } => acc,
         ConfigAction::SetTimeLock { .. } => acc,
+        ConfigAction::AddSpendingLimit { .. } => acc,
     });
 
     let abs_members_delta =

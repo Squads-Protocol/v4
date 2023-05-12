@@ -12,4 +12,5 @@ export * from "./proposalApprove.js";
 export * from "./proposalCancel.js";
 export * from "./proposalCreate.js";
 export * from "./proposalReject.js";
+export * from "./spendingLimitUse.js";
 export * from "./vaultTransactionExecute.js";

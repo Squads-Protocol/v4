@@ -10,7 +10,7 @@
         "deploy": "anchor deploy --provider.cluster mainnet-beta --provider.wallet .keys/upgrade-authority.json --program-name multisig"
     },
     "devDependencies": {
-        "@solana/spl-token": "0.3.6",
+        "@solana/spl-token": "*",
         "@types/bn.js": "5.1.0",
         "@types/mocha": "10.0.1",
         "@types/node-fetch": "2.6.2",
@@ -22,6 +22,7 @@
     },
     "resolutions": {
         "@solana/web3.js": "1.70.3",
+        "@solana/spl-token": "0.3.6",
         "typescript": "4.9.4"
     }
 }

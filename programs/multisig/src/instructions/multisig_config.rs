@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
 
 use crate::errors::*;
 use crate::state::*;
@@ -6,45 +7,35 @@ use crate::state::*;
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigAddMemberArgs {
     pub new_member: Member,
-    /// Memo isn't used for anything, but is included in `AddMemberEvent` that can later be parsed and indexed.
+    /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigRemoveMemberArgs {
     pub old_member: Pubkey,
-    /// Memo isn't used for anything, but is included in `RemoveMemberEvent` that can later be parsed and indexed.
+    /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigChangeThresholdArgs {
     new_threshold: u16,
-    /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
+    /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigSetTimeLockArgs {
     time_lock: u32,
-    /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
+    /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigSetConfigAuthorityArgs {
     config_authority: Pubkey,
-    /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
-    pub memo: Option<String>,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct MultisigAddVaultArgs {
-    /// The next vault index to set as the latest used.
-    /// Must be the current `vault_index + 1`.
-    /// We pass it explicitly to make this instruction idempotent.
-    pub vault_index: u8,
-    /// Memo isn't used for anything, but is included in `ChangeThreshold` that can later be parsed and indexed.
+    /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
@@ -60,8 +51,8 @@ pub struct MultisigConfig<'info> {
     /// Multisig `config_authority` that must authorize the configuration change.
     pub config_authority: Signer<'info>,
 
-    /// The account that will be charged in case the multisig account needs to reallocate space,
-    /// for example when adding a new member.
+    /// The account that will be charged or credited in case the multisig account needs to reallocate space,
+    /// for example when adding a new member or a spending limit.
     /// This is usually the same as `config_authority`, but can be a different account if needed.
     #[account(mut)]
     pub rent_payer: Option<Signer<'info>>,
@@ -117,7 +108,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        multisig.config_updated();
+        multisig.invalidate_prior_transactions();
 
         Ok(())
     }
@@ -148,7 +139,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        multisig.config_updated();
+        multisig.invalidate_prior_transactions();
 
         Ok(())
     }
@@ -168,7 +159,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        multisig.config_updated();
+        multisig.invalidate_prior_transactions();
 
         Ok(())
     }
@@ -185,7 +176,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        multisig.config_updated();
+        multisig.invalidate_prior_transactions();
 
         Ok(())
     }
@@ -205,8 +196,19 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        multisig.config_updated();
+        multisig.invalidate_prior_transactions();
 
         Ok(())
     }
+
+    // /// Create a new spending limit for a vault.
+    // /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    // ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    // #[access_control(ctx.accounts.validate(&args))]
+    // pub fn multisig_add_spending_limit(
+    //     ctx: Context<Self>,
+    //     args: MultisigAddSpendingLimitArgs,
+    // ) -> Result<()> {
+    //     todo!()
+    // }
 }

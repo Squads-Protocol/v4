@@ -13,6 +13,7 @@ import {
   createTestTransferInstruction,
   generateFundedKeypair,
   generateMultisigMembers,
+  isCloseToNow,
   TestMembers,
 } from "../utils";
 
@@ -1819,10 +1820,4 @@ describe("Multisig SDK", () => {
 
 function comparePubkeys(a: PublicKey, b: PublicKey) {
   return a.toBuffer().compare(b.toBuffer());
-}
-
-/** Returns true if the given unix epoch is within a couple of seconds of now. */
-function isCloseToNow(unixEpoch: number | bigint) {
-  const timestamp = Number(unixEpoch) * 1000;
-  return Math.abs(timestamp - Date.now()) < 2000;
 }

@@ -1,4 +1,5 @@
 #![allow(clippy::result_large_err)]
+#![deny(arithmetic_overflow)]
 #![deny(unused_must_use)]
 // #![deny(clippy::arithmetic_side_effects)]
 // #![deny(clippy::integer_arithmetic)]
@@ -68,7 +69,9 @@ pub mod multisig {
 
     /// Execute a config transaction.
     /// The transaction must be `Approved`.
-    pub fn config_transaction_execute(ctx: Context<ConfigTransactionExecute>) -> Result<()> {
+    pub fn config_transaction_execute<'info>(
+        ctx: Context<'_, '_, '_, 'info, ConfigTransactionExecute<'info>>,
+    ) -> Result<()> {
         ConfigTransactionExecute::config_transaction_execute(ctx)
     }
 
@@ -130,5 +133,13 @@ pub mod multisig {
     /// The proposal must be `Approved`.
     pub fn proposal_cancel(ctx: Context<ProposalVote>, args: ProposalVoteArgs) -> Result<()> {
         ProposalVote::proposal_cancel(ctx, args)
+    }
+
+    /// Use a spending limit to transfer tokens from a multisig vault to a destination account.
+    pub fn spending_limit_use(
+        ctx: Context<SpendingLimitUse>,
+        args: SpendingLimitUseArgs,
+    ) -> Result<()> {
+        SpendingLimitUse::spending_limit_use(ctx, args)
     }
 }

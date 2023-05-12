@@ -52,6 +52,12 @@ pub enum MultisigError {
     NoActions,
     #[msg("Missing account")]
     MissingAccount,
-    #[msg("Invalid `vault_index`")]
-    InvalidVaultIndex,
+    #[msg("Invalid mint")]
+    InvalidMint,
+    #[msg("Invalid destination")]
+    InvalidDestination,
+    #[msg("Spending limit exceeded")]
+    SpendingLimitExceeded,
+    #[msg("Decimals don't match the mint")]
+    DecimalsMismatch,
 }

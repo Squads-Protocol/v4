@@ -37,7 +37,7 @@ pub struct ProposalCreate<'info> {
 
     #[account(mut)]
     pub rent_payer: Signer<'info>,
-
+    
     pub system_program: Program<'info, System>,
 }
 

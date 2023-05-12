@@ -565,26 +565,92 @@ createErrorFromCodeLookup.set(0x1788, () => new MissingAccountError())
 createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
 
 /**
- * InvalidVaultIndex: 'Invalid `vault_index`'
+ * InvalidMint: 'Invalid mint'
  *
  * @category Errors
  * @category generated
  */
-export class InvalidVaultIndexError extends Error {
+export class InvalidMintError extends Error {
   readonly code: number = 0x1789
-  readonly name: string = 'InvalidVaultIndex'
+  readonly name: string = 'InvalidMint'
   constructor() {
-    super('Invalid `vault_index`')
+    super('Invalid mint')
     if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, InvalidVaultIndexError)
+      Error.captureStackTrace(this, InvalidMintError)
     }
   }
 }
 
-createErrorFromCodeLookup.set(0x1789, () => new InvalidVaultIndexError())
+createErrorFromCodeLookup.set(0x1789, () => new InvalidMintError())
+createErrorFromNameLookup.set('InvalidMint', () => new InvalidMintError())
+
+/**
+ * InvalidDestination: 'Invalid destination'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidDestinationError extends Error {
+  readonly code: number = 0x178a
+  readonly name: string = 'InvalidDestination'
+  constructor() {
+    super('Invalid destination')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidDestinationError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178a, () => new InvalidDestinationError())
 createErrorFromNameLookup.set(
-  'InvalidVaultIndex',
-  () => new InvalidVaultIndexError()
+  'InvalidDestination',
+  () => new InvalidDestinationError()
+)
+
+/**
+ * SpendingLimitExceeded: 'Spending limit exceeded'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class SpendingLimitExceededError extends Error {
+  readonly code: number = 0x178b
+  readonly name: string = 'SpendingLimitExceeded'
+  constructor() {
+    super('Spending limit exceeded')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, SpendingLimitExceededError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178b, () => new SpendingLimitExceededError())
+createErrorFromNameLookup.set(
+  'SpendingLimitExceeded',
+  () => new SpendingLimitExceededError()
+)
+
+/**
+ * DecimalsMismatch: 'Decimals don't match the mint'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class DecimalsMismatchError extends Error {
+  readonly code: number = 0x178c
+  readonly name: string = 'DecimalsMismatch'
+  constructor() {
+    super("Decimals don't match the mint")
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, DecimalsMismatchError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178c, () => new DecimalsMismatchError())
+createErrorFromNameLookup.set(
+  'DecimalsMismatch',
+  () => new DecimalsMismatchError()
 )
 
 /**

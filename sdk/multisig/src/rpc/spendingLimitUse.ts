@@ -8,42 +8,51 @@ import {
 import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
 
-/** Execute a config transaction. */
-export async function configTransactionExecute({
+export async function spendingLimitUse({
   connection,
   feePayer,
-  multisigPda,
-  transactionIndex,
   member,
-  rentPayer,
-  spendingLimits,
-  signers,
+  multisigPda,
+  spendingLimit,
+  mint,
+  vaultIndex,
+  amount,
+  decimals,
+  destination,
+  memo,
   sendOptions,
 }: {
   connection: Connection;
   feePayer: Signer;
-  multisigPda: PublicKey;
-  transactionIndex: bigint;
   member: Signer;
-  rentPayer: Signer;
-  /** In case the transaction adds or removes SpendingLimits, pass the array of their Pubkeys here. */
-  spendingLimits?: PublicKey[];
-  signers?: Signer[];
+  multisigPda: PublicKey;
+  spendingLimit: PublicKey;
+  /** Provide if `spendingLimit` is for an SPL token, omit if it's for SOL. */
+  mint?: PublicKey;
+  vaultIndex: number;
+  amount: number;
+  decimals: number;
+  destination: PublicKey;
+  memo?: string;
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.configTransactionExecute({
+  const tx = transactions.spendingLimitUse({
     blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
-    transactionIndex,
     member: member.publicKey,
-    rentPayer: rentPayer.publicKey,
-    spendingLimits,
+    spendingLimit,
+    mint,
+    vaultIndex,
+    amount,
+    decimals,
+    destination,
+    memo,
   });
 
-  tx.sign([feePayer, member, rentPayer, ...(signers ?? [])]);
+  tx.sign([feePayer, member]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);
