@@ -45,8 +45,8 @@ pub struct ConfigTransactionExecute<'info> {
     )]
     pub transaction: Account<'info, ConfigTransaction>,
 
-    /// The account that will be charged in case the multisig account needs to reallocate space,
-    /// for example when adding a new member or a spending limit.
+    /// The account that will be charged/credited in case the config transaction causes space reallocation,
+    /// for example when adding a new member, adding or removing a spending limit.
     /// This is usually the same as `member`, but can be a different account if needed.
     #[account(mut)]
     pub rent_payer: Option<Signer<'info>>,
@@ -226,6 +226,27 @@ impl<'info> ConfigTransactionExecute<'info> {
                         destinations: destinations.to_vec(),
                     }
                     .try_serialize(&mut &mut spending_limit_info.data.borrow_mut()[..])?;
+                }
+
+                ConfigAction::RemoveSpendingLimit {
+                    spending_limit: spending_limit_key,
+                } => {
+                    // Find the SpendingLimit account in `remaining_accounts`.
+                    let spending_limit_info = ctx
+                        .remaining_accounts
+                        .iter()
+                        .find(|acc| acc.key == spending_limit_key)
+                        .ok_or(MultisigError::MissingAccount)?;
+
+                    // `rent_payer` must also be present.
+                    let rent_payer = &ctx
+                        .accounts
+                        .rent_payer
+                        .as_ref()
+                        .ok_or(MultisigError::MissingAccount)?;
+
+                    let spending_limit = Account::<SpendingLimit>::try_from(spending_limit_info)?;
+                    spending_limit.close(rent_payer.to_account_info())?;
 
                     // We don't need to invalidate prior transactions here because adding
                     // a spending limit doesn't affect the consensus parameters of the multisig.
@@ -261,6 +282,7 @@ fn members_length_after_actions(members_length: usize, actions: &[ConfigAction])
         ConfigAction::ChangeThreshold { .. } => acc,
         ConfigAction::SetTimeLock { .. } => acc,
         ConfigAction::AddSpendingLimit { .. } => acc,
+        ConfigAction::RemoveSpendingLimit { .. } => acc,
     });
 
     let abs_members_delta =

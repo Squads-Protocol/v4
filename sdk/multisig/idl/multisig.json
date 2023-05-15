@@ -322,8 +322,8 @@
           "isSigner": true,
           "isOptional": true,
           "docs": [
-            "The account that will be charged in case the multisig account needs to reallocate space,",
-            "for example when adding a new member or a spending limit.",
+            "The account that will be charged/credited in case the config transaction causes space reallocation,",
+            "for example when adding a new member, adding or removing a spending limit.",
             "This is usually the same as `member`, but can be a different account if needed."
           ]
         },
@@ -1928,6 +1928,15 @@
                 "type": {
                   "vec": "publicKey"
                 }
+              }
+            ]
+          },
+          {
+            "name": "RemoveSpendingLimit",
+            "fields": [
+              {
+                "name": "spending_limit",
+                "type": "publicKey"
               }
             ]
           }

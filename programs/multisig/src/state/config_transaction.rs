@@ -71,4 +71,6 @@ pub enum ConfigAction {
         /// If empty, funds can be sent to any address.
         destinations: Vec<Pubkey>,
     },
+    /// Remove a spending limit from the multisig.
+    RemoveSpendingLimit { spending_limit: Pubkey },
 }

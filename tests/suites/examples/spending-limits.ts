@@ -402,4 +402,90 @@ describe("Examples / Spending Limits", () => {
       /Spending limit exceeded/
     );
   });
+
+  it("remove Spending Limits for autonomous multisig", async () => {
+    const [solSpendingLimitPda] = multisig.getSpendingLimitPda({
+      multisigPda,
+      createKey: solSpendingLimitParams.createKey,
+    });
+    const [splSpendingLimitPda] = multisig.getSpendingLimitPda({
+      multisigPda,
+      createKey: splSpendingLimitParams.createKey,
+    });
+
+    const transactionIndex = 2n;
+
+    // Create the Config Transaction, Proposal for it, and approve the Proposal.
+    const message = new TransactionMessage({
+      payerKey: members.almighty.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [
+        multisig.instructions.configTransactionCreate({
+          multisigPda,
+          transactionIndex,
+          creator: members.almighty.publicKey,
+          actions: [
+            {
+              __kind: "RemoveSpendingLimit",
+              spendingLimit: solSpendingLimitPda,
+            },
+            {
+              __kind: "RemoveSpendingLimit",
+              spendingLimit: splSpendingLimitPda,
+            },
+          ],
+        }),
+        multisig.instructions.proposalCreate({
+          multisigPda,
+          transactionIndex,
+          rentPayer: members.almighty.publicKey,
+        }),
+        multisig.instructions.proposalApprove({
+          multisigPda,
+          transactionIndex,
+          member: members.almighty.publicKey,
+        }),
+      ],
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(message);
+    tx.sign([members.almighty]);
+
+    let signature = await connection
+      .sendTransaction(tx, {
+        skipPreflight: true,
+      })
+      .catch((err) => {
+        console.log(err.logs);
+        throw err;
+      });
+    await connection.confirmTransaction(signature);
+
+    // Execute the Config Transaction which will remove the Spending Limits.
+    signature = await multisig.rpc
+      .configTransactionExecute({
+        connection,
+        feePayer: members.executor,
+        multisigPda,
+        transactionIndex,
+        member: members.executor,
+        rentPayer: members.executor,
+        spendingLimits: [solSpendingLimitPda, splSpendingLimitPda],
+      })
+      .catch((err) => {
+        console.log(err.logs);
+        throw err;
+      });
+    await connection.confirmTransaction(signature);
+
+    // The Spending Limits should be gone.
+    assert.strictEqual(
+      await connection.getAccountInfo(solSpendingLimitPda),
+      null
+    );
+    assert.strictEqual(
+      await connection.getAccountInfo(splSpendingLimitPda),
+      null
+    );
+  });
 });
