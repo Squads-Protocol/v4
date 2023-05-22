@@ -4,9 +4,7 @@ import {
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { getTransactionPda, getVaultPda } from "../pda";
-import { createVaultTransactionCreateInstruction } from "../generated";
-import { transactionMessageToMultisigTransactionMessageBytes } from "../utils";
+import * as instructions from "../instructions/index";
 
 /**
  * Returns unsigned `VersionedTransaction` that needs to be
@@ -38,42 +36,20 @@ export function vaultTransactionCreate({
   addressLookupTableAccounts?: AddressLookupTableAccount[];
   memo?: string;
 }): VersionedTransaction {
-  const [vaultPda] = getVaultPda({
-    multisigPda,
-    index: vaultIndex,
-  });
-
-  const [transactionPda] = getTransactionPda({
-    multisigPda,
-    index: transactionIndex,
-  });
-
-  const transactionMessageBytes =
-    transactionMessageToMultisigTransactionMessageBytes({
-      message: transactionMessage,
-      addressLookupTableAccounts,
-      vaultPda,
-    });
-
   const message = new TransactionMessage({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      createVaultTransactionCreateInstruction(
-        {
-          multisig: multisigPda,
-          transaction: transactionPda,
-          creator,
-        },
-        {
-          args: {
-            vaultIndex,
-            ephemeralSigners,
-            transactionMessage: transactionMessageBytes,
-            memo: memo ?? null,
-          },
-        }
-      ),
+      instructions.vaultTransactionCreate({
+        multisigPda,
+        transactionIndex,
+        creator,
+        vaultIndex,
+        ephemeralSigners,
+        transactionMessage,
+        addressLookupTableAccounts,
+        memo,
+      }),
     ],
   }).compileToV0Message();
 
