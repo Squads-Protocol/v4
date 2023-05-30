@@ -246,6 +246,14 @@ impl<'info> ConfigTransactionExecute<'info> {
                         .ok_or(MultisigError::MissingAccount)?;
 
                     let spending_limit = Account::<SpendingLimit>::try_from(spending_limit_info)?;
+
+                    // SpendingLimit must belong to the `multisig`.
+                    require_keys_eq!(
+                        spending_limit.multisig,
+                        multisig.key(),
+                        MultisigError::InvalidAccount
+                    );
+
                     spending_limit.close(rent_payer.to_account_info())?;
 
                     // We don't need to invalidate prior transactions here because adding
