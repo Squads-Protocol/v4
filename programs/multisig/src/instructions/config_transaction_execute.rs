@@ -87,6 +87,11 @@ impl<'info> ConfigTransactionExecute<'info> {
             }
             _ => return err!(MultisigError::InvalidProposalStatus),
         }
+        // Stale config transaction proposals CANNOT be executed even if approved.
+        require!(
+            proposal.transaction_index > multisig.stale_transaction_index,
+            MultisigError::StaleProposal
+        );
 
         // `transaction` is validated by its seeds.
 

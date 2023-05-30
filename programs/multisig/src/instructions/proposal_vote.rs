@@ -61,18 +61,20 @@ impl ProposalVote<'_> {
                     matches!(proposal.status, ProposalStatus::Active { .. }),
                     MultisigError::InvalidProposalStatus
                 );
+                // CANNOT approve or reject a stale proposal
+                require!(
+                    proposal.transaction_index > multisig.stale_transaction_index,
+                    MultisigError::StaleProposal
+                );
             }
             Vote::Cancel => {
                 require!(
                     matches!(proposal.status, ProposalStatus::Approved { .. }),
                     MultisigError::InvalidProposalStatus
                 );
+                // CAN cancel a stale proposal.
             }
         }
-        require!(
-            proposal.transaction_index > multisig.stale_transaction_index,
-            MultisigError::StaleProposal
-        );
 
         Ok(())
     }

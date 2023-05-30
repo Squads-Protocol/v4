@@ -92,6 +92,8 @@ impl BatchExecuteTransaction<'_> {
             }
             _ => return err!(MultisigError::InvalidProposalStatus),
         };
+        // Stale batch transaction proposals CAN be executed if they were approved
+        // before becoming stale, hence no check for staleness here.
 
         // `batch` is validated by its seeds.
 

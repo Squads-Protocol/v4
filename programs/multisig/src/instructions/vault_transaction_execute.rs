@@ -76,6 +76,8 @@ impl VaultTransactionExecute<'_> {
             }
             _ => return err!(MultisigError::InvalidProposalStatus),
         }
+        // Stale vault transaction proposals CAN be executed if they were approved
+        // before becoming stale, hence no check for staleness here.
 
         // `transaction` is validated by its seeds.
 
