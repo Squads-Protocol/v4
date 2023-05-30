@@ -169,10 +169,9 @@ impl Multisig {
     /// Returns `Some(index)` if `member_pubkey` is a member, with `index` into the `members` vec.
     /// `None` otherwise.
     pub fn is_member(&self, member_pubkey: Pubkey) -> Option<usize> {
-        match self.members.binary_search_by_key(&member_pubkey, |m| m.key) {
-            Ok(index) => Some(index),
-            _ => None,
-        }
+        self.members
+            .binary_search_by_key(&member_pubkey, |m| m.key)
+            .ok()
     }
 
     pub fn member_has_permission(&self, member_pubkey: Pubkey, permission: Permission) -> bool {
