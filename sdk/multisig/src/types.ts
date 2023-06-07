@@ -12,6 +12,12 @@ export {
   isProposalStatusExecuted,
   Member,
   ConfigAction,
+  isConfigActionAddMember,
+  isConfigActionRemoveMember,
+  isConfigActionChangeThreshold,
+  isConfigActionAddSpendingLimit,
+  isConfigActionRemoveSpendingLimit,
+  isConfigActionSetTimeLock,
   ConfigActionRecord,
   Period,
 } from "./generated";
