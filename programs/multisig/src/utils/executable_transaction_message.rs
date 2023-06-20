@@ -15,8 +15,12 @@ use crate::state::*;
 pub struct ExecutableTransactionMessage<'a, 'info> {
     /// Message which loaded a collection of lookup table addresses.
     message: &'a VaultTransactionMessage,
-    /// Cache that maps `AccountInfo`s mentioned in the message to the indices they are referred by in the message.
-    account_infos_by_message_index: HashMap<usize, &'a AccountInfo<'info>>,
+    /// Resolved `account_keys` of the message.
+    static_accounts: Vec<&'a AccountInfo<'info>>,
+    /// Concatenated vector of resolved `writable_indexes` from all address lookups.
+    loaded_writable_accounts: Vec<&'a AccountInfo<'info>>,
+    /// Concatenated vector of resolved `readonly_indexes` from all address lookups.
+    loaded_readonly_accounts: Vec<&'a AccountInfo<'info>>,
 }
 
 impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
@@ -66,7 +70,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             MultisigError::InvalidNumberOfAccounts
         );
 
-        let mut account_infos_by_message_index = HashMap::new();
+        let mut static_accounts = Vec::new();
 
         // CHECK: `message.account_keys` should come first in `account_infos` and have modifiers expected by the message.
         for (i, account_key) in message.account_keys.iter().enumerate() {
@@ -89,8 +93,11 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             if message.is_static_writable_index(i) {
                 require!(account_info.is_writable, MultisigError::InvalidAccount);
             }
-            account_infos_by_message_index.insert(i, account_info);
+            static_accounts.push(account_info);
         }
+
+        let mut writable_accounts = Vec::new();
+        let mut readonly_accounts = Vec::new();
 
         // CHECK: `message_account_infos` loaded with lookup tables should come after `message.account_keys`,
         //        in the same order and with the same modifiers as listed in lookups.
@@ -129,7 +136,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::InvalidAccount
                 );
 
-                account_infos_by_message_index.insert(index, loaded_account_info);
+                writable_accounts.push(*loaded_account_info);
             }
             message_indexes_cursor += lookup.writable_indexes.len();
 
@@ -151,14 +158,16 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::InvalidAccount
                 );
 
-                account_infos_by_message_index.insert(index, loaded_account_info);
+                readonly_accounts.push(*loaded_account_info);
             }
             message_indexes_cursor += lookup.readonly_indexes.len();
         }
 
         Ok(Self {
             message,
-            account_infos_by_message_index,
+            static_accounts,
+            loaded_writable_accounts: writable_accounts,
+            loaded_readonly_accounts: readonly_accounts,
         })
     }
 
@@ -203,6 +212,28 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         Ok(())
     }
 
+    /// Account indices are resolved in the following order:
+    /// 1. Static accounts.
+    /// 2. All loaded writable accounts.
+    /// 3. All loaded readonly accounts.
+    fn get_account_by_index(&self, index: usize) -> Result<&'a AccountInfo<'info>> {
+        if index < self.static_accounts.len() {
+            return Ok(&self.static_accounts[index]);
+        }
+
+        let index = index - self.static_accounts.len();
+        if index < self.loaded_writable_accounts.len() {
+            return Ok(&self.loaded_writable_accounts[index]);
+        }
+
+        let index = index - self.loaded_writable_accounts.len();
+        if index < self.loaded_readonly_accounts.len() {
+            return Ok(&self.loaded_readonly_accounts[index]);
+        }
+
+        Err(MultisigError::InvalidTransactionMessage.into())
+    }
+
     pub fn to_instructions_and_accounts(&self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {
         let mut executable_instructions = vec![];
 
@@ -211,9 +242,8 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 .account_indexes
                 .iter()
                 .map(|account_index| {
-                    let account_info = *self
-                        .account_infos_by_message_index
-                        .get(&usize::from(*account_index))
+                    let account_info = self
+                        .get_account_by_index(usize::from(*account_index))
                         .unwrap();
 
                     // `is_signer` cannot just be taken from the account info, because for `authority`
@@ -231,9 +261,8 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 .collect();
 
             // Program ID should always be in the static accounts list.
-            let ix_program_account_info = *self
-                .account_infos_by_message_index
-                .get(&usize::from(ms_compiled_instruction.program_id_index))
+            let ix_program_account_info = self
+                .get_account_by_index(usize::from(ms_compiled_instruction.program_id_index))
                 .unwrap();
 
             let ix = Instruction {
