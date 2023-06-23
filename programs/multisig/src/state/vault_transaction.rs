@@ -130,8 +130,18 @@ impl TryFrom<TransactionMessage> for VaultTransactionMessage {
     fn try_from(message: TransactionMessage) -> Result<Self> {
         let account_keys: Vec<Pubkey> = message.account_keys.into();
         let instructions: Vec<CompiledInstruction> = message.instructions.into();
+        let instructions: Vec<MultisigCompiledInstruction> = instructions
+            .into_iter()
+            .map(MultisigCompiledInstruction::from)
+            .collect();
         let address_table_lookups: Vec<MessageAddressTableLookup> =
             message.address_table_lookups.into();
+
+        let num_all_account_keys = account_keys.len()
+            + address_table_lookups
+                .iter()
+                .map(|lookup| lookup.writable_indexes.len() + lookup.readonly_indexes.len())
+                .sum::<usize>();
 
         require!(
             usize::from(message.num_signers) <= account_keys.len(),
@@ -149,15 +159,27 @@ impl TryFrom<TransactionMessage> for VaultTransactionMessage {
             MultisigError::InvalidTransactionMessage
         );
 
+        // Validate that all program ID indices and account indices are within the bounds of the account keys.
+        for instruction in &instructions {
+            require!(
+                usize::from(instruction.program_id_index) < num_all_account_keys,
+                MultisigError::InvalidTransactionMessage
+            );
+
+            for account_index in &instruction.account_indexes {
+                require!(
+                    usize::from(*account_index) < num_all_account_keys,
+                    MultisigError::InvalidTransactionMessage
+                );
+            }
+        }
+
         Ok(Self {
             num_signers: message.num_signers,
             num_writable_signers: message.num_writable_signers,
             num_writable_non_signers: message.num_writable_non_signers,
             account_keys,
-            instructions: instructions
-                .into_iter()
-                .map(MultisigCompiledInstruction::from)
-                .collect(),
+            instructions,
             address_table_lookups: address_table_lookups
                 .into_iter()
                 .map(MultisigMessageAddressTableLookup::from)

@@ -8,6 +8,12 @@ use anchor_lang::prelude::*;
 #[derive(Clone, Debug, Default)]
 pub struct SmallVec<L, T>(Vec<T>, PhantomData<L>);
 
+impl<L, T> SmallVec<L, T> {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
 impl<L, T> From<SmallVec<L, T>> for Vec<T> {
     fn from(val: SmallVec<L, T>) -> Self {
         val.0
