@@ -128,6 +128,9 @@ impl VaultTransactionExecute<'_> {
             &ephemeral_signer_keys,
         )?;
 
+        // Set the proposal state to Executing to prevent reentrancy attacks (e.g. cancelling proposal) in the middle of execution.
+        proposal.status = ProposalStatus::Executing;
+
         // Execute the transaction message instructions one-by-one.
         executable_message.execute_message(
             &vault_seeds

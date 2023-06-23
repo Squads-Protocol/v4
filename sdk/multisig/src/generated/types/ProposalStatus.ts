@@ -20,6 +20,7 @@ export type ProposalStatusRecord = {
   Active: { timestamp: beet.bignum }
   Rejected: { timestamp: beet.bignum }
   Approved: { timestamp: beet.bignum }
+  Executing: void /* scalar variant */
   Executed: { timestamp: beet.bignum }
   Cancelled: { timestamp: beet.bignum }
 }
@@ -49,6 +50,9 @@ export const isProposalStatusRejected = (
 export const isProposalStatusApproved = (
   x: ProposalStatus
 ): x is ProposalStatus & { __kind: 'Approved' } => x.__kind === 'Approved'
+export const isProposalStatusExecuting = (
+  x: ProposalStatus
+): x is ProposalStatus & { __kind: 'Executing' } => x.__kind === 'Executing'
 export const isProposalStatusExecuted = (
   x: ProposalStatus
 ): x is ProposalStatus & { __kind: 'Executed' } => x.__kind === 'Executed'
@@ -92,6 +96,7 @@ export const proposalStatusBeet = beet.dataEnum<ProposalStatusRecord>([
       'ProposalStatusRecord["Approved"]'
     ),
   ],
+  ['Executing', beet.unit],
 
   [
     'Executed',

@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use std::borrow::Borrow;
 
 use crate::errors::*;
 use crate::state::*;
@@ -146,6 +147,10 @@ impl BatchExecuteTransaction<'_> {
             &ephemeral_signer_keys,
         )?;
 
+        let current_status = proposal.status.clone();
+        // Set the proposal state to Executing to prevent reentrancy attacks (e.g. cancelling proposal) in the middle of execution.
+        proposal.status = ProposalStatus::Executing;
+
         // Execute the transaction message instructions one-by-one.
         executable_message.execute_message(
             &vault_seeds
@@ -154,6 +159,9 @@ impl BatchExecuteTransaction<'_> {
                 .collect::<Vec<Vec<u8>>>(),
             &ephemeral_signer_seeds,
         )?;
+
+        // Restore the proposal status after execution.
+        proposal.status = current_status;
 
         // Increment the executed transaction index.
         batch.executed_transaction_index = batch
