@@ -140,16 +140,17 @@ impl Multisig {
         require!(num_executors > 0, MultisigError::NoExecutors);
 
         // There must be at least one member with Vote permission.
-        let num_voters: u16 = Self::num_voters(members)
-            .try_into()
-            .expect("didn't expect more that `u16::MAX` members");
+        let num_voters = Self::num_voters(members);
         require!(num_voters > 0, MultisigError::NoVoters);
 
         // Threshold must be greater than 0.
         require!(*threshold > 0, MultisigError::InvalidThreshold);
 
         // Threshold must not exceed the number of voters.
-        require!(*threshold <= num_voters, MultisigError::InvalidThreshold);
+        require!(
+            usize::from(*threshold) <= num_voters,
+            MultisigError::InvalidThreshold
+        );
 
         // `state.stale_transaction_index` must be less than or equal to `state.transaction_index`.
         require!(
