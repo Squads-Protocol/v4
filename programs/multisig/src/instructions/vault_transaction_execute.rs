@@ -130,6 +130,8 @@ impl VaultTransactionExecute<'_> {
 
         // Set the proposal state to Executing to prevent reentrancy attacks (e.g. cancelling proposal) in the middle of execution.
         proposal.status = ProposalStatus::Executing;
+        let proposal_account_info = proposal.to_account_info();
+        proposal.try_serialize(&mut &mut proposal_account_info.data.borrow_mut()[..])?;
 
         // Execute the transaction message instructions one-by-one.
         executable_message.execute_message(
