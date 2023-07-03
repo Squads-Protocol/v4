@@ -19,6 +19,7 @@ export async function spendingLimitUse({
   amount,
   decimals,
   destination,
+  tokenProgram,
   memo,
   sendOptions,
 }: {
@@ -33,6 +34,7 @@ export async function spendingLimitUse({
   amount: number;
   decimals: number;
   destination: PublicKey;
+  tokenProgram?: PublicKey;
   memo?: string;
   sendOptions?: SendOptions;
 }): Promise<TransactionSignature> {
@@ -49,6 +51,7 @@ export async function spendingLimitUse({
     amount,
     decimals,
     destination,
+    tokenProgram,
     memo,
   });
 

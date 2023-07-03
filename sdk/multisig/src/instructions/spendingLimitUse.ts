@@ -5,7 +5,7 @@ import {
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
-  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { createSpendingLimitUseInstruction } from "../generated";
@@ -20,6 +20,7 @@ export function spendingLimitUse({
   amount,
   decimals,
   destination,
+  tokenProgram = TOKEN_PROGRAM_ID,
   memo,
 }: {
   multisigPda: PublicKey;
@@ -31,6 +32,7 @@ export function spendingLimitUse({
   amount: number;
   decimals: number;
   destination: PublicKey;
+  tokenProgram?: PublicKey;
   memo?: string;
 }): TransactionInstruction {
   const [vaultPda] = getVaultPda({ multisigPda, index: vaultIndex });
@@ -41,7 +43,7 @@ export function spendingLimitUse({
       mint,
       vaultPda,
       true,
-      TOKEN_2022_PROGRAM_ID,
+      tokenProgram,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
@@ -51,11 +53,9 @@ export function spendingLimitUse({
       mint,
       destination,
       true,
-      TOKEN_2022_PROGRAM_ID,
+      tokenProgram,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
-
-  const tokenProgram = mint ? TOKEN_2022_PROGRAM_ID : undefined;
 
   return createSpendingLimitUseInstruction(
     {
@@ -68,7 +68,7 @@ export function spendingLimitUse({
       mint,
       vaultTokenAccount,
       destinationTokenAccount,
-      tokenProgram,
+      tokenProgram: mint ? tokenProgram : undefined,
     },
     { args: { amount, decimals, memo: memo ?? null } }
   );

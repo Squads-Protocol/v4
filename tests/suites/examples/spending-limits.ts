@@ -11,7 +11,7 @@ import {
   createMint,
   getAssociatedTokenAddressSync,
   mintTo,
-  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   createAssociatedTokenAccount,
 } from "@solana/spl-token";
@@ -85,7 +85,7 @@ describe("Examples / Spending Limits", () => {
       mintDecimals,
       undefined,
       undefined,
-      TOKEN_2022_PROGRAM_ID
+      TOKEN_PROGRAM_ID
     );
 
     splSpendingLimitParams = {
@@ -106,7 +106,7 @@ describe("Examples / Spending Limits", () => {
       splMint,
       vaultPda,
       true,
-      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
     const message = new TransactionMessage({
@@ -118,7 +118,7 @@ describe("Examples / Spending Limits", () => {
           vaultTokenAccount,
           vaultPda,
           splMint,
-          TOKEN_2022_PROGRAM_ID,
+          TOKEN_PROGRAM_ID,
           ASSOCIATED_TOKEN_PROGRAM_ID
         ),
       ],
@@ -137,7 +137,7 @@ describe("Examples / Spending Limits", () => {
       100 * 10 ** mintDecimals,
       undefined,
       undefined,
-      TOKEN_2022_PROGRAM_ID
+      TOKEN_PROGRAM_ID
     );
   });
 
@@ -341,7 +341,7 @@ describe("Examples / Spending Limits", () => {
       splMint,
       destination,
       undefined,
-      TOKEN_2022_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
       ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
@@ -366,6 +366,7 @@ describe("Examples / Spending Limits", () => {
         decimals: 6,
         // Transfer tokens to one of the allowed destinations.
         destination,
+        tokenProgram: TOKEN_PROGRAM_ID,
         // You can optionally add a memo.
         memo: "Using my allowance!",
       })
@@ -398,6 +399,7 @@ describe("Examples / Spending Limits", () => {
           amount: 1,
           decimals: 6,
           destination,
+          tokenProgram: TOKEN_PROGRAM_ID,
         }),
       /Spending limit exceeded/
     );

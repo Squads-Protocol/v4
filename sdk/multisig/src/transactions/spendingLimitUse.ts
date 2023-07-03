@@ -20,6 +20,7 @@ export function spendingLimitUse({
   amount,
   decimals,
   destination,
+  tokenProgram,
   memo,
 }: {
   blockhash: string;
@@ -33,6 +34,7 @@ export function spendingLimitUse({
   amount: number;
   decimals: number;
   destination: PublicKey;
+  tokenProgram?: PublicKey;
   memo?: string;
 }): VersionedTransaction {
   const message = new TransactionMessage({
@@ -48,6 +50,7 @@ export function spendingLimitUse({
         amount,
         decimals,
         destination,
+        tokenProgram,
         memo,
       }),
     ],
