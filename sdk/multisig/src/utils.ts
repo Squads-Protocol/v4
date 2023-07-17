@@ -12,6 +12,7 @@ import {
 import { transactionMessageBeet } from "./types";
 import { getEphemeralSignerPda } from "./pda";
 import invariant from "invariant";
+import { compileToWrappedMessageV0 } from "./utils/compileToWrappedMessageV0";
 
 export function toUtfBytes(str: string): Uint8Array {
   return new TextEncoder().encode(str);
@@ -104,9 +105,17 @@ export function transactionMessageToMultisigTransactionMessageBytes({
   //   });
   // });
 
-  const compiledMessage = message.compileToV0Message(
-    addressLookupTableAccounts
-  );
+  // Use custom implementation of `message.compileToV0Message` that allows instruction programIds
+  // to also be loaded from `addressLookupTableAccounts`.
+  const compiledMessage = compileToWrappedMessageV0({
+    payerKey: message.payerKey,
+    recentBlockhash: message.recentBlockhash,
+    instructions: message.instructions,
+    addressLookupTableAccounts,
+  });
+  // const compiledMessage = message.compileToV0Message(
+  //   addressLookupTableAccounts
+  // );
 
   // We use custom serialization for `transaction_message` that ensures as small byte size as possible.
   const [transactionMessageBytes] = transactionMessageBeet.serialize({

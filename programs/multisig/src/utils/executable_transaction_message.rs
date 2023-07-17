@@ -260,7 +260,6 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 })
                 .collect();
 
-            // Program ID should always be in the static accounts list.
             let ix_program_account_info = self
                 .get_account_by_index(usize::from(ms_compiled_instruction.program_id_index))
                 .unwrap();
