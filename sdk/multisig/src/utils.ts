@@ -50,7 +50,9 @@ export function getAvailableMemoSize(
     MAX_TX_SIZE_BYTES -
     txSize -
     STRING_LEN_SIZE -
-    1 /*TODO: Figure out where this extra byte is coming from*/
+    // Sometimes long memo can trigger switching from 1 to 2 bytes length encoding in Compact-u16,
+    // so we reserve 1 extra byte to make sure.
+    1
   );
 }
 
