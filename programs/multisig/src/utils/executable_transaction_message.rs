@@ -234,6 +234,18 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         Err(MultisigError::InvalidTransactionMessage.into())
     }
 
+    /// Whether the account at the `index` is requested as writable.
+    fn is_writable_index(&self, index: usize) -> bool {
+        if self.message.is_static_writable_index(index) {
+            return true;
+        }
+
+        // "Skip" the static account indexes.
+        let index = index - self.static_accounts.len();
+
+        index < self.loaded_writable_accounts.len()
+    }
+
     pub fn to_instructions_and_accounts(&self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {
         let mut executable_instructions = vec![];
 
@@ -242,15 +254,14 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                 .account_indexes
                 .iter()
                 .map(|account_index| {
-                    let account_info = self
-                        .get_account_by_index(usize::from(*account_index))
-                        .unwrap();
+                    let account_index = usize::from(*account_index);
+                    let account_info = self.get_account_by_index(account_index).unwrap();
 
                     // `is_signer` cannot just be taken from the account info, because for `authority`
                     // it's always false in the passed account infos, but might be true in the actual instructions.
-                    let is_signer = self.message.is_signer_index(usize::from(*account_index));
+                    let is_signer = self.message.is_signer_index(account_index);
 
-                    let account_meta = if account_info.is_writable {
+                    let account_meta = if self.is_writable_index(account_index) {
                         AccountMeta::new(*account_info.key, is_signer)
                     } else {
                         AccountMeta::new_readonly(*account_info.key, is_signer)
