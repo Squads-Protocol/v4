@@ -128,6 +128,39 @@ describe("Multisig SDK", () => {
       );
     });
 
+    it("error: member has unknown permission", async () => {
+      const creator = await generateFundedKeypair(connection);
+      const member = Keypair.generate();
+
+      const createKey = Keypair.generate();
+      const [multisigPda] = multisig.getMultisigPda({
+        createKey: createKey.publicKey,
+      });
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.multisigCreate({
+            connection,
+            createKey,
+            creator,
+            multisigPda,
+            configAuthority: null,
+            timeLock: 0,
+            threshold: 1,
+            members: [
+              {
+                key: member.publicKey,
+                permissions: {
+                  mask: 1 | 2 | 4 | 8,
+                },
+              },
+            ],
+            sendOptions: { skipPreflight: true },
+          }),
+        /Member has unknown permission/
+      );
+    });
+
     // We cannot really test it because we can't pass u16::MAX members to the instruction.
     it("error: too many members");
 

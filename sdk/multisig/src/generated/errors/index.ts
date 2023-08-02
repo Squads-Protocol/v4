@@ -654,6 +654,29 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * UnknownPermission: 'Member has unknown permission'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class UnknownPermissionError extends Error {
+  readonly code: number = 0x178d
+  readonly name: string = 'UnknownPermission'
+  constructor() {
+    super('Member has unknown permission')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, UnknownPermissionError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178d, () => new UnknownPermissionError())
+createErrorFromNameLookup.set(
+  'UnknownPermission',
+  () => new UnknownPermissionError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

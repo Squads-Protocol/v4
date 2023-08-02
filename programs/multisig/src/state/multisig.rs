@@ -136,6 +136,12 @@ impl Multisig {
         let has_duplicates = members.windows(2).any(|win| win[0].key == win[1].key);
         require!(!has_duplicates, MultisigError::DuplicateMember);
 
+        // Members must not have unknown permissions.
+        require!(
+            members.iter().all(|m| m.permissions.mask < 8), // 8 = Initiate | Vote | Execute
+            MultisigError::UnknownPermission
+        );
+
         // There must be at least one member with Initiate permission.
         let num_proposers = Self::num_proposers(members);
         require!(num_proposers > 0, MultisigError::NoProposers);

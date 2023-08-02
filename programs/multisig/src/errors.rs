@@ -60,4 +60,6 @@ pub enum MultisigError {
     SpendingLimitExceeded,
     #[msg("Decimals don't match the mint")]
     DecimalsMismatch,
+    #[msg("Member has unknown permission")]
+    UnknownPermission,
 }

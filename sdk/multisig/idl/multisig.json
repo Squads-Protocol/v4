@@ -2181,6 +2181,11 @@
       "code": 6028,
       "name": "DecimalsMismatch",
       "msg": "Decimals don't match the mint"
+    },
+    {
+      "code": 6029,
+      "name": "UnknownPermission",
+      "msg": "Member has unknown permission"
     }
   ],
   "metadata": {
