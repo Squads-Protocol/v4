@@ -111,7 +111,7 @@ describe("Examples / Create Mint", () => {
       feePayer: members.voter,
       multisigPda,
       transactionIndex,
-      rentPayer: members.voter,
+      creator: members.voter,
     });
     await connection.confirmTransaction(signature);
 

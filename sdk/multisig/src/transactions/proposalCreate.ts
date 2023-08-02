@@ -15,14 +15,14 @@ export function proposalCreate({
   feePayer,
   multisigPda,
   transactionIndex,
-  rentPayer,
+  creator,
   isDraft,
 }: {
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
   transactionIndex: bigint;
-  rentPayer: PublicKey;
+  creator: PublicKey;
   isDraft?: boolean;
 }): VersionedTransaction {
   const message = new TransactionMessage({
@@ -31,7 +31,7 @@ export function proposalCreate({
     instructions: [
       instructions.proposalCreate({
         multisigPda,
-        rentPayer,
+        creator,
         transactionIndex,
         isDraft,
       }),

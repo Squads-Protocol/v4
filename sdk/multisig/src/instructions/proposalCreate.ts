@@ -4,12 +4,12 @@ import { getProposalPda } from "../pda";
 
 export function proposalCreate({
   multisigPda,
-  rentPayer,
+  creator,
   transactionIndex,
   isDraft = false,
 }: {
   multisigPda: PublicKey;
-  rentPayer: PublicKey;
+  creator: PublicKey;
   transactionIndex: bigint;
   isDraft?: boolean;
 }) {
@@ -23,7 +23,7 @@ export function proposalCreate({
   }
 
   return createProposalCreateInstruction(
-    { rentPayer, multisig: multisigPda, proposal: proposalPda },
+    { creator, multisig: multisigPda, proposal: proposalPda },
     { args: { transactionIndex: Number(transactionIndex), draft: isDraft } }
   );
 }

@@ -569,7 +569,7 @@
           "isSigner": false
         },
         {
-          "name": "rentPayer",
+          "name": "creator",
           "isMut": true,
           "isSigner": true
         },

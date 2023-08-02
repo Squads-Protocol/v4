@@ -11,7 +11,7 @@ import { translateAndThrowAnchorError } from "../errors";
 export async function proposalCreate({
   connection,
   feePayer,
-  rentPayer,
+  creator,
   multisigPda,
   transactionIndex,
   isDraft,
@@ -19,7 +19,7 @@ export async function proposalCreate({
 }: {
   connection: Connection;
   feePayer: Signer;
-  rentPayer: Signer;
+  creator: Signer;
   multisigPda: PublicKey;
   transactionIndex: bigint;
   isDraft?: boolean;
@@ -32,11 +32,11 @@ export async function proposalCreate({
     feePayer: feePayer.publicKey,
     multisigPda,
     transactionIndex,
-    rentPayer: rentPayer.publicKey,
+    creator: creator.publicKey,
     isDraft,
   });
 
-  tx.sign([feePayer, rentPayer]);
+  tx.sign([feePayer, creator]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

@@ -22,7 +22,7 @@ pub struct ProposalCreate<'info> {
 
     #[account(
         init,
-        payer = rent_payer,
+        payer = creator,
         space = Proposal::size(multisig.members.len()),
         seeds = [
             SEED_PREFIX,
@@ -36,14 +36,17 @@ pub struct ProposalCreate<'info> {
     pub proposal: Account<'info, Proposal>,
 
     #[account(mut)]
-    pub rent_payer: Signer<'info>,
-    
+    pub creator: Signer<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
 impl ProposalCreate<'_> {
     fn validate(&self, args: &ProposalCreateArgs) -> Result<()> {
-        let Self { multisig, .. } = self;
+        let Self {
+            multisig, creator, ..
+        } = self;
+        let creator_key = creator.key();
 
         // args
         // We can only create a proposal for an existing transaction.
@@ -58,10 +61,22 @@ impl ProposalCreate<'_> {
             MultisigError::StaleProposal
         );
 
-        // Anyone can create a Proposal account. It's similar to ATA in this regard.
-        // We don't require `Permission::Initiate` here because it's already implicitly checked
-        // by the fact that a proposal can only be initialized if the corresponding transaction exists,
-        // so the transaction initializer "approves" the creation of the proposal implicitly when it creates the transaction.
+        // creator
+        // Has to be a member.
+        require!(
+            self.multisig.is_member(self.creator.key()).is_some(),
+            MultisigError::NotAMember
+        );
+
+        // Must have at least one of the following permissions: Initiate or Vote.
+        require!(
+            self.multisig
+                .member_has_permission(creator_key, Permission::Initiate)
+                || self
+                    .multisig
+                    .member_has_permission(creator_key, Permission::Vote),
+            MultisigError::Unauthorized
+        );
 
         Ok(())
     }

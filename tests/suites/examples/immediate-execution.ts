@@ -43,7 +43,7 @@ describe("Examples / Immediate Execution", () => {
     const createProposalIx = multisig.instructions.proposalCreate({
       multisigPda,
       transactionIndex,
-      rentPayer: members.almighty.publicKey,
+      creator: members.almighty.publicKey,
     });
 
     const approveProposalIx = multisig.instructions.proposalApprove({

@@ -837,24 +837,22 @@ describe("Multisig SDK", () => {
     });
 
     it("error: invalid transaction index", async () => {
-      const rentPayer = await generateFundedKeypair(connection);
-
       // Attempt to create a proposal for a transaction that doesn't exist.
       const transactionIndex = 2n;
       await assert.rejects(
         () =>
           multisig.rpc.proposalCreate({
             connection,
-            feePayer: rentPayer,
+            feePayer: members.almighty,
             multisigPda,
             transactionIndex,
-            rentPayer,
+            creator: members.almighty,
           }),
         /Invalid transaction index/
       );
     });
 
-    it("anyone can create proposals for transactions", async () => {
+    it("error: non-members can't create a proposal", async () => {
       const nonMember = await generateFundedKeypair(connection);
 
       const transactionIndex = 2n;
@@ -870,13 +868,47 @@ describe("Multisig SDK", () => {
       });
       await connection.confirmTransaction(signature);
 
+      await assert.rejects(
+        () =>
+          multisig.rpc.proposalCreate({
+            connection,
+            feePayer: nonMember,
+            multisigPda,
+            transactionIndex,
+            creator: nonMember,
+          }),
+        /Provided pubkey is not a member of multisig/
+      );
+    });
+
+    it("error: members without Initiate or Vote permissions can't create a proposal", async () => {
+      const transactionIndex = 2n;
+
+      await assert.rejects(
+        () =>
+          multisig.rpc.proposalCreate({
+            connection,
+            feePayer: members.executor,
+            multisigPda,
+            transactionIndex,
+            creator: members.executor,
+          }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+
+    it("member with Initiate or Vote permissions can create proposal", async () => {
+      const nonMember = await generateFundedKeypair(connection);
+
+      const transactionIndex = 2n;
+
       // Create a proposal for the config transaction.
-      signature = await multisig.rpc.proposalCreate({
+      let signature = await multisig.rpc.proposalCreate({
         connection,
-        feePayer: nonMember,
+        feePayer: members.voter,
         multisigPda,
         transactionIndex,
-        rentPayer: nonMember,
+        creator: members.voter,
       });
       await connection.confirmTransaction(signature);
 
@@ -949,7 +981,7 @@ describe("Multisig SDK", () => {
             feePayer,
             multisigPda,
             transactionIndex: 1n,
-            rentPayer: feePayer,
+            creator: members.almighty,
           }),
         /Proposal is stale/
       );
@@ -993,7 +1025,7 @@ describe("Multisig SDK", () => {
         feePayer,
         multisigPda,
         transactionIndex,
-        rentPayer: feePayer,
+        creator: members.proposer,
       });
       await connection.confirmTransaction(signature);
     });
@@ -1173,7 +1205,7 @@ describe("Multisig SDK", () => {
         feePayer,
         multisigPda,
         transactionIndex: 1n,
-        rentPayer: feePayer,
+        creator: members.proposer,
       });
       await connection.confirmTransaction(signature);
 
@@ -1183,7 +1215,7 @@ describe("Multisig SDK", () => {
         feePayer,
         multisigPda,
         transactionIndex: 2n,
-        rentPayer: feePayer,
+        creator: members.proposer,
       });
       await connection.confirmTransaction(signature);
 
@@ -1382,7 +1414,7 @@ describe("Multisig SDK", () => {
         feePayer,
         multisigPda,
         transactionIndex: 1n,
-        rentPayer: feePayer,
+        creator: members.proposer,
       });
       await connection.confirmTransaction(signature);
 
@@ -1532,7 +1564,7 @@ describe("Multisig SDK", () => {
         feePayer: members.proposer,
         multisigPda,
         transactionIndex,
-        rentPayer: members.proposer,
+        creator: members.proposer,
       });
       await connection.confirmTransaction(signature);
 
@@ -1651,7 +1683,7 @@ describe("Multisig SDK", () => {
         feePayer: members.proposer,
         multisigPda,
         transactionIndex: approvedTransactionIndex,
-        rentPayer: members.proposer,
+        creator: members.proposer,
       });
       await connection.confirmTransaction(signature);
 
@@ -1692,7 +1724,7 @@ describe("Multisig SDK", () => {
         feePayer: members.proposer,
         multisigPda,
         transactionIndex: rejectedTransactionIndex,
-        rentPayer: members.proposer,
+        creator: members.proposer,
       });
       await connection.confirmTransaction(signature);
 

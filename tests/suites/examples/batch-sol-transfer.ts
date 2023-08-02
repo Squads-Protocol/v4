@@ -165,7 +165,7 @@ describe("Examples / Batch SOL Transfer", () => {
       feePayer: members.proposer,
       multisigPda,
       transactionIndex: batchIndex,
-      rentPayer: members.proposer,
+      creator: members.proposer,
       isDraft: true,
     });
     await connection.confirmTransaction(signature);

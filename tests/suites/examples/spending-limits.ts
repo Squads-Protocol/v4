@@ -167,7 +167,7 @@ describe("Examples / Spending Limits", () => {
         multisig.instructions.proposalCreate({
           multisigPda,
           transactionIndex,
-          rentPayer: members.almighty.publicKey,
+          creator: members.almighty.publicKey,
         }),
         multisig.instructions.proposalApprove({
           multisigPda,
@@ -440,7 +440,7 @@ describe("Examples / Spending Limits", () => {
         multisig.instructions.proposalCreate({
           multisigPda,
           transactionIndex,
-          rentPayer: members.almighty.publicKey,
+          creator: members.almighty.publicKey,
         }),
         multisig.instructions.proposalApprove({
           multisigPda,
