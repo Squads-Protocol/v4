@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+use crate::errors::*;
+
 #[account]
 pub struct SpendingLimit {
     /// The multisig this belongs to.
@@ -61,6 +63,16 @@ impl SpendingLimit {
         members_length * 32 + // members
         4  + // destinations vector length
         destinations_length * 32 // destinations
+    }
+
+    pub fn invariant(&self) -> Result<()> {
+        require!(!self.members.is_empty(), MultisigError::EmptyMembers);
+
+        // There must be no duplicate members, we make sure members are sorted when creating a SpendingLimit.
+        let has_duplicates = self.members.windows(2).any(|win| win[0] == win[1]);
+        require!(!has_duplicates, MultisigError::DuplicateMember);
+
+        Ok(())
     }
 }
 

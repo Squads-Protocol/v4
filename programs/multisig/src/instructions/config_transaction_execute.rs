@@ -216,8 +216,12 @@ impl<'info> ConfigTransactionExecute<'info> {
                         ],
                     )?;
 
+                    let mut members = members.to_vec();
+                    // Make sure members are sorted.
+                    members.sort();
+
                     // Serialize the SpendingLimit data into the account info.
-                    SpendingLimit {
+                    let spending_limit = SpendingLimit {
                         multisig: multisig.key().to_owned(),
                         create_key: create_key.to_owned(),
                         vault_index: *vault_index,
@@ -227,10 +231,14 @@ impl<'info> ConfigTransactionExecute<'info> {
                         remaining_amount: *amount,
                         last_reset: Clock::get()?.unix_timestamp,
                         bump: spending_limit_bump,
-                        members: members.to_vec(),
+                        members,
                         destinations: destinations.to_vec(),
-                    }
-                    .try_serialize(&mut &mut spending_limit_info.data.borrow_mut()[..])?;
+                    };
+
+                    spending_limit.invariant()?;
+
+                    spending_limit
+                        .try_serialize(&mut &mut spending_limit_info.data.borrow_mut()[..])?;
                 }
 
                 ConfigAction::RemoveSpendingLimit {
