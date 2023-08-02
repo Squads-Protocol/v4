@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
@@ -79,14 +81,17 @@ impl Multisig {
         system_program: AccountInfo<'a>,
     ) -> Result<bool> {
         let current_account_size = multisig.data.borrow().len();
+        let account_size_to_fit_members = Multisig::size(members_length);
 
         // Check if we need to reallocate space.
-        if current_account_size >= Multisig::size(members_length) {
+        if current_account_size >= account_size_to_fit_members {
             return Ok(false);
         }
 
-        // We need to allocate more space. To avoid doing this operation too often, we increment it by 10 members.
-        let new_size = current_account_size + (10 * Member::INIT_SPACE);
+        let new_size = max(
+            current_account_size + (10 * Member::INIT_SPACE), // We need to allocate more space. To avoid doing this operation too often, we increment it by 10 members.
+            account_size_to_fit_members,
+        );
         // Reallocate more space.
         AccountInfo::realloc(&multisig, new_size, false)?;
 
