@@ -1,10 +1,9 @@
 import {
   AddressLookupTableAccount,
-  Connection,
   PublicKey,
   TransactionMessage,
 } from "@solana/web3.js";
-import { Batch, createBatchAddTransactionInstruction } from "../generated";
+import { createBatchAddTransactionInstruction } from "../generated";
 import {
   getBatchTransactionPda,
   getProposalPda,
@@ -14,7 +13,7 @@ import {
 import { transactionMessageToMultisigTransactionMessageBytes } from "../utils";
 
 export async function batchAddTransaction({
-  connection,
+  vaultIndex,
   multisigPda,
   member,
   batchIndex,
@@ -23,7 +22,7 @@ export async function batchAddTransaction({
   transactionMessage,
   addressLookupTableAccounts,
 }: {
-  connection: Connection;
+  vaultIndex: number;
   multisigPda: PublicKey;
   member: PublicKey;
   batchIndex: bigint;
@@ -48,10 +47,9 @@ export async function batchAddTransaction({
     batchIndex,
     transactionIndex,
   });
-  const batchAccount = await Batch.fromAccountAddress(connection, batchPda);
   const [vaultPda] = getVaultPda({
     multisigPda,
-    index: batchAccount.vaultIndex,
+    index: vaultIndex,
   });
 
   const transactionMessageBytes =
