@@ -12,7 +12,7 @@ import {
 } from "../pda";
 import { transactionMessageToMultisigTransactionMessageBytes } from "../utils";
 
-export async function batchAddTransaction({
+export function batchAddTransaction({
   vaultIndex,
   multisigPda,
   member,

@@ -43,7 +43,7 @@ export async function batchAddTransaction({
     payerKey: feePayer,
     recentBlockhash: blockhash,
     instructions: [
-      await instructions.batchAddTransaction({
+      instructions.batchAddTransaction({
         vaultIndex,
         multisigPda,
         member,
