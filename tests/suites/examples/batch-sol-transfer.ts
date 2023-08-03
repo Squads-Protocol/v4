@@ -180,6 +180,7 @@ describe("Examples / Batch SOL Transfer", () => {
         feePayer: members.proposer,
         multisigPda,
         member: members.proposer,
+        vaultIndex: 0,
         batchIndex,
         // Batch transaction indices start at 1.
         transactionIndex: index + 1,

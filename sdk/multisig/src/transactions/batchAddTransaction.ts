@@ -16,6 +16,7 @@ export async function batchAddTransaction({
   feePayer,
   multisigPda,
   member,
+  vaultIndex,
   batchIndex,
   transactionIndex,
   ephemeralSigners,
@@ -26,6 +27,7 @@ export async function batchAddTransaction({
   feePayer: PublicKey;
   multisigPda: PublicKey;
   member: PublicKey;
+  vaultIndex: number;
   batchIndex: bigint;
   transactionIndex: number;
   /** Number of additional signing PDAs required by the transaction. */
@@ -42,7 +44,7 @@ export async function batchAddTransaction({
     recentBlockhash: blockhash,
     instructions: [
       await instructions.batchAddTransaction({
-        connection,
+        vaultIndex,
         multisigPda,
         member,
         batchIndex,
