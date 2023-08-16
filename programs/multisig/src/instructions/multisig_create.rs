@@ -29,9 +29,9 @@ pub struct MultisigCreate<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    /// An ephemeral signer that is used as a seed for the Multisig PDA.
-    /// Must be a signer to prevent the Multisig account from re-initialization by someone else but the original creator.
-    pub create_key: Signer<'info>,
+    /// A random public key that is used as a seed for the Multisig PDA.
+    /// CHECK: This can be any random public key.
+    pub create_key: AccountInfo<'info>,
 
     /// The creator of the multisig.
     #[account(mut)]

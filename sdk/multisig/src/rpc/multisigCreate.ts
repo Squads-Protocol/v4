@@ -23,7 +23,7 @@ export async function multisigCreate({
   sendOptions,
 }: {
   connection: Connection;
-  createKey: Signer;
+  createKey: PublicKey;
   creator: Signer;
   multisigPda: PublicKey;
   configAuthority: PublicKey | null;
@@ -37,7 +37,7 @@ export async function multisigCreate({
 
   const tx = transactions.multisigCreate({
     blockhash,
-    createKey: createKey.publicKey,
+    createKey: createKey,
     creator: creator.publicKey,
     multisigPda,
     configAuthority,
@@ -47,7 +47,7 @@ export async function multisigCreate({
     memo,
   });
 
-  tx.sign([creator, createKey]);
+  tx.sign([creator]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);
