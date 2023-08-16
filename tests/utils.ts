@@ -48,12 +48,12 @@ export async function generateMultisigMembers(
 
 export async function createAutonomousMultisig({
   connection,
-  createKey = Keypair.generate(),
+  createKey = Keypair.generate().publicKey,
   members,
   threshold,
   timeLock,
 }: {
-  createKey?: Keypair;
+  createKey?: PublicKey;
   members: TestMembers;
   threshold: number;
   timeLock: number;
@@ -62,7 +62,7 @@ export async function createAutonomousMultisig({
   const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
-    createKey: createKey.publicKey,
+    createKey,
   });
 
   const signature = await multisig.rpc.multisigCreate({
@@ -87,7 +87,7 @@ export async function createAutonomousMultisig({
         permissions: Permissions.fromPermissions([Permission.Execute]),
       },
     ],
-    createKey: createKey,
+    createKey,
     sendOptions: { skipPreflight: true },
   });
 
@@ -98,13 +98,13 @@ export async function createAutonomousMultisig({
 
 export async function createControlledMultisig({
   connection,
-  createKey = Keypair.generate(),
+  createKey = Keypair.generate().publicKey,
   configAuthority,
   members,
   threshold,
   timeLock,
 }: {
-  createKey?: Keypair;
+  createKey?: PublicKey;
   configAuthority: PublicKey;
   members: TestMembers;
   threshold: number;
@@ -114,7 +114,7 @@ export async function createControlledMultisig({
   const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
-    createKey: createKey.publicKey,
+    createKey,
   });
 
   const signature = await multisig.rpc.multisigCreate({
@@ -139,7 +139,7 @@ export async function createControlledMultisig({
         permissions: Permissions.fromPermissions([Permission.Execute]),
       },
     ],
-    createKey: createKey,
+    createKey,
     sendOptions: { skipPreflight: true },
   });
 

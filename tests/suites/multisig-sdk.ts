@@ -35,9 +35,9 @@ describe("Multisig SDK", () => {
     it("error: duplicate member", async () => {
       const creator = await generateFundedKeypair(connection);
 
-      const createKey = Keypair.generate();
+      const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
-        createKey: createKey.publicKey,
+        createKey,
       });
 
       await assert.rejects(
@@ -66,49 +66,12 @@ describe("Multisig SDK", () => {
       );
     });
 
-    it("error: missing signature from `createKey`", async () => {
-      const creator = await generateFundedKeypair(connection);
-
-      const createKey = Keypair.generate();
-      const [multisigPda] = multisig.getMultisigPda({
-        createKey: createKey.publicKey,
-      });
-
-      const tx = multisig.transactions.multisigCreate({
-        blockhash: (await connection.getLatestBlockhash()).blockhash,
-        createKey: createKey.publicKey,
-        creator: creator.publicKey,
-        multisigPda,
-        configAuthority: null,
-        timeLock: 0,
-        threshold: 1,
-        members: [
-          {
-            key: members.almighty.publicKey,
-            permissions: Permissions.all(),
-          },
-          {
-            key: members.almighty.publicKey,
-            permissions: Permissions.all(),
-          },
-        ],
-      });
-
-      // Missing signature from `createKey`.
-      tx.sign([creator]);
-
-      await assert.rejects(
-        () => connection.sendTransaction(tx, { skipPreflight: true }),
-        /Transaction signature verification failure/
-      );
-    });
-
     it("error: empty members", async () => {
       const creator = await generateFundedKeypair(connection);
 
-      const createKey = Keypair.generate();
+      const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
-        createKey: createKey.publicKey,
+        createKey,
       });
 
       await assert.rejects(
@@ -132,9 +95,9 @@ describe("Multisig SDK", () => {
       const creator = await generateFundedKeypair(connection);
       const member = Keypair.generate();
 
-      const createKey = Keypair.generate();
+      const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
-        createKey: createKey.publicKey,
+        createKey,
       });
 
       await assert.rejects(
@@ -167,9 +130,9 @@ describe("Multisig SDK", () => {
     it("error: invalid threshold (< 1)", async () => {
       const creator = await generateFundedKeypair(connection);
 
-      const createKey = Keypair.generate();
+      const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
-        createKey: createKey.publicKey,
+        createKey,
       });
 
       await assert.rejects(
@@ -195,9 +158,9 @@ describe("Multisig SDK", () => {
     it("error: invalid threshold (> members with permission to Vote)", async () => {
       const creator = await generateFundedKeypair(connection);
 
-      const createKey = Keypair.generate();
+      const createKey = Keypair.generate().publicKey;
       const [multisigPda] = multisig.getMultisigPda({
-        createKey: createKey.publicKey,
+        createKey: createKey,
       });
 
       await assert.rejects(
@@ -239,7 +202,7 @@ describe("Multisig SDK", () => {
     });
 
     it("create a new autonomous multisig", async () => {
-      const createKey = Keypair.generate();
+      const createKey = Keypair.generate().publicKey;
 
       const [multisigPda, multisigBump] = await createAutonomousMultisig({
         connection,
@@ -292,13 +255,13 @@ describe("Multisig SDK", () => {
       assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "0");
       assert.strictEqual(
         multisigAccount.createKey.toBase58(),
-        createKey.publicKey.toBase58()
+        createKey.toBase58()
       );
       assert.strictEqual(multisigAccount.bump, multisigBump);
     });
 
     it("create a new controlled multisig", async () => {
-      const createKey = Keypair.generate();
+      const createKey = Keypair.generate().publicKey;
       const configAuthority = await generateFundedKeypair(connection);
 
       const [multisigPda] = await createControlledMultisig({
@@ -344,7 +307,7 @@ describe("Multisig SDK", () => {
       multisigPda = (
         await createControlledMultisig({
           connection,
-          createKey: Keypair.generate(),
+          createKey: Keypair.generate().publicKey,
           configAuthority: configAuthority.publicKey,
           members,
           threshold: 2,
@@ -669,7 +632,7 @@ describe("Multisig SDK", () => {
     let multisigPda: PublicKey;
 
     before(async () => {
-      const msCreateKey = Keypair.generate();
+      const msCreateKey = Keypair.generate().publicKey;
 
       // Create new autonomous multisig.
       multisigPda = (
@@ -839,7 +802,7 @@ describe("Multisig SDK", () => {
     let multisigPda: PublicKey;
 
     before(async () => {
-      const msCreateKey = Keypair.generate();
+      const msCreateKey = Keypair.generate().publicKey;
 
       // Create new autonomous multisig.
       multisigPda = (
@@ -1026,7 +989,7 @@ describe("Multisig SDK", () => {
 
     before(async () => {
       const feePayer = await generateFundedKeypair(connection);
-      const msCreateKey = Keypair.generate();
+      const msCreateKey = Keypair.generate().publicKey;
 
       // Create new autonomous multisig.
       multisigPda = (
@@ -1197,7 +1160,7 @@ describe("Multisig SDK", () => {
 
     before(async () => {
       const feePayer = await generateFundedKeypair(connection);
-      const msCreateKey = Keypair.generate();
+      const msCreateKey = Keypair.generate().publicKey;
 
       // Create new autonomous multisig.
       multisigPda = (
@@ -1417,7 +1380,7 @@ describe("Multisig SDK", () => {
 
     before(async () => {
       const feePayer = await generateFundedKeypair(connection);
-      const msCreateKey = Keypair.generate();
+      const msCreateKey = Keypair.generate().publicKey;
 
       // Create new autonomous multisig.
       multisigPda = (
@@ -1830,9 +1793,9 @@ describe("Multisig SDK", () => {
     describe("getAvailableMemoSize", () => {
       it("provides estimates for available size to use for memo", async () => {
         const multisigCreator = await generateFundedKeypair(connection);
-        const createKey = Keypair.generate();
+        const createKey = Keypair.generate().publicKey;
         const [multisigPda] = multisig.getMultisigPda({
-          createKey: createKey.publicKey,
+          createKey,
         });
         const [configAuthority] = multisig.getVaultPda({
           multisigPda,
@@ -1843,7 +1806,7 @@ describe("Multisig SDK", () => {
           typeof multisig.transactions.multisigCreate
         >[0] = {
           blockhash: (await connection.getLatestBlockhash()).blockhash,
-          createKey: createKey.publicKey,
+          createKey,
           creator: multisigCreator.publicKey,
           multisigPda,
           configAuthority,
@@ -1873,7 +1836,7 @@ describe("Multisig SDK", () => {
         // The transaction with memo should have the maximum allowed size.
         assert.strictEqual(createMultisigTxWithMemo.serialize().length, 1232);
         // The transaction should work.
-        createMultisigTxWithMemo.sign([multisigCreator, createKey]);
+        createMultisigTxWithMemo.sign([multisigCreator]);
         const signature = await connection.sendTransaction(
           createMultisigTxWithMemo
         );
