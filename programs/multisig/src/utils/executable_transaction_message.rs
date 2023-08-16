@@ -240,6 +240,11 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             return true;
         }
 
+        if index < self.static_accounts.len() {
+            // Index is within static accounts but is not writable.
+            return false;
+        }
+
         // "Skip" the static account indexes.
         let index = index - self.static_accounts.len();
 
