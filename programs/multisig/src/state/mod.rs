@@ -1,6 +1,6 @@
+pub use self::multisig::*;
 pub use batch::*;
 pub use config_transaction::*;
-pub use multisig::*;
 pub use proposal::*;
 pub use seeds::*;
 pub use spending_limit::*;

@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::marker::PhantomData;
 
 use anchor_lang::prelude::*;
@@ -17,6 +18,38 @@ impl<L, T> SmallVec<L, T> {
 impl<L, T> From<SmallVec<L, T>> for Vec<T> {
     fn from(val: SmallVec<L, T>) -> Self {
         val.0
+    }
+}
+
+impl<L, T> From<Vec<T>> for SmallVec<L, T> {
+    fn from(val: Vec<T>) -> Self {
+        Self(val, PhantomData)
+    }
+}
+
+impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u8, T> {
+    fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        // Write the length of the vector as u8.
+        writer.write_all(
+            &(u8::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?)
+                .to_le_bytes(),
+        )?;
+
+        // Write the vector elements.
+        serialize_slice(&self.0, writer)
+    }
+}
+
+impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u16, T> {
+    fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        // Write the length of the vector as u16.
+        writer.write_all(
+            &(u16::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?)
+                .to_le_bytes(),
+        )?;
+
+        // Write the vector elements.
+        serialize_slice(&self.0, writer)
     }
 }
 
@@ -56,78 +89,194 @@ mod hint {
     }
 }
 
+/// Helper method that is used to serialize a slice of data (without the length marker).
+/// Copied from borsh::ser::serialize_slice.
+#[inline]
+fn serialize_slice<T: AnchorSerialize, W: Write>(
+    data: &[T],
+    writer: &mut W,
+) -> std::io::Result<()> {
+    if let Some(u8_slice) = T::u8_slice(data) {
+        writer.write_all(u8_slice)?;
+    } else {
+        for item in data {
+            item.serialize(writer)?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
-    #[test]
-    fn test_length_u8_type_u8() {
-        let mut input = &[
-            0x02, // len (2)
-            0x05, // vec[0]
-            0x09, // vec[1]
-        ][..];
+    mod deserialize {
+        use super::*;
 
-        let small_vec: SmallVec<u8, u8> = SmallVec::deserialize(&mut input).unwrap();
+        #[test]
+        fn test_length_u8_type_u8() {
+            let mut input = &[
+                0x02, // len (2)
+                0x05, // vec[0]
+                0x09, // vec[1]
+            ][..];
 
-        assert_eq!(small_vec.0, vec![5, 9]);
+            let small_vec: SmallVec<u8, u8> = SmallVec::deserialize(&mut input).unwrap();
+
+            assert_eq!(small_vec.0, vec![5, 9]);
+        }
+
+        #[test]
+        fn test_length_u8_type_u32() {
+            let mut input = &[
+                0x02, // len (2)
+                0x05, 0x00, 0x00, 0x00, // vec[0]
+                0x09, 0x00, 0x00, 0x00, // vec[1]
+            ][..];
+
+            let small_vec: SmallVec<u8, u32> = SmallVec::deserialize(&mut input).unwrap();
+
+            assert_eq!(small_vec.0, vec![5, 9]);
+        }
+
+        #[test]
+        fn test_length_u8_type_pubkey() {
+            let pubkey1 = Pubkey::new_unique();
+            let pubkey2 = Pubkey::new_unique();
+            let mut input = &[
+                &[0x02], // len (2)
+                &pubkey1.try_to_vec().unwrap()[..],
+                &pubkey2.try_to_vec().unwrap()[..],
+            ]
+            .concat()[..];
+
+            let small_vec: SmallVec<u8, Pubkey> = SmallVec::deserialize(&mut input).unwrap();
+
+            assert_eq!(small_vec.0, vec![pubkey1, pubkey2]);
+        }
+
+        #[test]
+        fn test_length_u16_type_u8() {
+            let mut input = &[
+                0x02, 0x00, // len (2)
+                0x05, // vec[0]
+                0x09, // vec[1]
+            ][..];
+
+            let small_vec: SmallVec<u16, u8> = SmallVec::deserialize(&mut input).unwrap();
+
+            assert_eq!(small_vec.0, vec![5, 9]);
+        }
+
+        #[test]
+        fn test_length_u16_type_pubkey() {
+            let pubkey1 = Pubkey::new_unique();
+            let pubkey2 = Pubkey::new_unique();
+            let mut input = &[
+                &[0x02, 0x00], // len (2)
+                &pubkey1.try_to_vec().unwrap()[..],
+                &pubkey2.try_to_vec().unwrap()[..],
+            ]
+            .concat()[..];
+
+            let small_vec: SmallVec<u16, Pubkey> = SmallVec::deserialize(&mut input).unwrap();
+
+            assert_eq!(small_vec.0, vec![pubkey1, pubkey2]);
+        }
     }
 
-    #[test]
-    fn test_length_u8_type_u32() {
-        let mut input = &[
-            0x02, // len (2)
-            0x05, 0x00, 0x00, 0x00, // vec[0]
-            0x09, 0x00, 0x00, 0x00, // vec[1]
-        ][..];
+    mod serialize {
+        use super::*;
 
-        let small_vec: SmallVec<u8, u32> = SmallVec::deserialize(&mut input).unwrap();
+        #[test]
+        fn test_length_u8_type_u8() {
+            let small_vec = SmallVec::<u8, u8>::from(vec![3, 5]);
 
-        assert_eq!(small_vec.0, vec![5, 9]);
-    }
+            let mut output = vec![];
+            small_vec.serialize(&mut output).unwrap();
 
-    #[test]
-    fn test_length_u8_type_pubkey() {
-        let pubkey1 = Pubkey::new_unique();
-        let pubkey2 = Pubkey::new_unique();
-        let mut input = &[
-            &[0x02], // len (2)
-            &pubkey1.try_to_vec().unwrap()[..],
-            &pubkey2.try_to_vec().unwrap()[..],
-        ]
-        .concat()[..];
+            assert_eq!(
+                output,
+                vec![
+                    0x02, // len (2)
+                    0x03, // vec[0]
+                    0x05, // vec[1]
+                ]
+            );
+        }
 
-        let small_vec: SmallVec<u8, Pubkey> = SmallVec::deserialize(&mut input).unwrap();
+        #[test]
+        fn test_length_u8_type_u32() {
+            let small_vec = SmallVec::<u8, u32>::from(vec![3, 5]);
 
-        assert_eq!(small_vec.0, vec![pubkey1, pubkey2]);
-    }
+            let mut output = vec![];
+            small_vec.serialize(&mut output).unwrap();
 
-    #[test]
-    fn test_length_u16_type_u8() {
-        let mut input = &[
-            0x02, 0x00, // len (2)
-            0x05, // vec[0]
-            0x09, // vec[1]
-        ][..];
+            assert_eq!(
+                output,
+                vec![
+                    0x02, // len (2)
+                    0x03, 0x00, 0x00, 0x00, // vec[0]
+                    0x05, 0x00, 0x00, 0x00, // vec[1]
+                ]
+            );
+        }
 
-        let small_vec: SmallVec<u16, u8> = SmallVec::deserialize(&mut input).unwrap();
+        #[test]
+        fn test_length_u8_type_pubkey() {
+            let pubkey1 = Pubkey::new_unique();
+            let pubkey2 = Pubkey::new_unique();
+            let small_vec = SmallVec::<u8, Pubkey>::from(vec![pubkey1, pubkey2]);
 
-        assert_eq!(small_vec.0, vec![5, 9]);
-    }
+            let mut output = vec![];
+            small_vec.serialize(&mut output).unwrap();
 
-    #[test]
-    fn test_length_u16_type_pubkey() {
-        let pubkey1 = Pubkey::new_unique();
-        let pubkey2 = Pubkey::new_unique();
-        let mut input = &[
-            &[0x02, 0x00], // len (2)
-            &pubkey1.try_to_vec().unwrap()[..],
-            &pubkey2.try_to_vec().unwrap()[..],
-        ]
-        .concat()[..];
+            assert_eq!(
+                output,
+                [
+                    &[0x02], // len (2)
+                    &pubkey1.to_bytes()[..],
+                    &pubkey2.to_bytes()[..],
+                ]
+                .concat()[..]
+            );
+        }
 
-        let small_vec: SmallVec<u16, Pubkey> = SmallVec::deserialize(&mut input).unwrap();
+        #[test]
+        fn test_length_u16_type_u8() {
+            let small_vec = SmallVec::<u16, u8>::from(vec![3, 5]);
 
-        assert_eq!(small_vec.0, vec![pubkey1, pubkey2]);
+            let mut output = vec![];
+            small_vec.serialize(&mut output).unwrap();
+
+            assert_eq!(
+                output,
+                vec![
+                    0x02, 0x00, // len (2)
+                    0x03, // vec[0]
+                    0x05, // vec[1]
+                ]
+            );
+        }
+
+        #[test]
+        fn test_length_u16_type_pubkey() {
+            let pubkey1 = Pubkey::new_unique();
+            let pubkey2 = Pubkey::new_unique();
+            let small_vec = SmallVec::<u16, Pubkey>::from(vec![pubkey1, pubkey2]);
+
+            let mut output = vec![];
+            small_vec.serialize(&mut output).unwrap();
+
+            assert_eq!(
+                output,
+                [
+                    &[0x02, 0x00], // len (2)
+                    &pubkey1.to_bytes()[..],
+                    &pubkey2.to_bytes()[..],
+                ]
+                .concat()[..]
+            );
+        }
     }
 }

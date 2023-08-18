@@ -10,6 +10,7 @@ use anchor_lang::prelude::*;
 
 pub use instructions::*;
 pub use state::*;
+pub use utils::SmallVec;
 
 pub mod errors;
 pub mod instructions;
