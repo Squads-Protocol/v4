@@ -6,6 +6,15 @@ const idlDir = path.join(__dirname, "idl");
 const sdkDir = path.join(__dirname, "src", "generated");
 const binaryInstallDir = path.join(__dirname, "..", "..", ".crates");
 
+const ignoredTypes = new Set([
+  // Exclude `Permission` enum from the IDL because it is not correctly represented there.
+  "Permission",
+  // Exclude the types that use `SmallVec` because anchor doesn't have it in the IDL.
+  "TransactionMessage",
+  "CompiledInstruction",
+  "MessageAddressTableLookup",
+]);
+
 module.exports = {
   idlGenerator: "anchor",
   programName: "multisig",
@@ -17,8 +26,9 @@ module.exports = {
   idlHook: (idl) => {
     return {
       ...idl,
-      // Exclude `Permission` enum from the IDL because it is not correctly represented there.
-      types: idl.types.filter((type) => type.name !== "Permission"),
+      types: idl.types.filter((type) => {
+        return !ignoredTypes.has(type.name);
+      }),
     };
   },
 };
