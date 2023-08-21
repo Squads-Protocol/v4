@@ -4,11 +4,9 @@ use std::convert::From;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::solana_program::program::invoke_signed;
-use anchor_lang::Discriminator;
 use solana_address_lookup_table_program::state::AddressLookupTable;
 
 use crate::errors::*;
-use crate::id;
 use crate::state::*;
 
 /// Sanitized and validated combination of a `MsTransactionMessage` and `AccountInfo`s it references.
@@ -171,21 +169,23 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         })
     }
 
+    /// Executes all instructions in the message via CPI calls.
+    /// # Arguments
+    /// * `vault_seeds` - Seeds for the vault PDA.
+    /// * `ephemeral_signer_seeds` - Seeds for the ephemeral signer PDAs.
+    /// * `protected_accounts` - Accounts that must not be passed as writable to the CPI calls to prevent potential reentrancy attacks.
     pub fn execute_message(
         &self,
         vault_seeds: &[Vec<u8>],
         ephemeral_signer_seeds: &[Vec<Vec<u8>>],
+        protected_accounts: &[Pubkey],
     ) -> Result<()> {
         for (ix, account_infos) in self.to_instructions_and_accounts().iter() {
-            // Make sure we don't allow reentrancy of transaction_execute.
-            if ix.program_id == id() {
+            // Make sure we don't pass protected accounts as writable to CPI calls.
+            for account_meta in ix.accounts.iter().filter(|m| m.is_writable) {
                 require!(
-                    ix.data[..8] != crate::instruction::VaultTransactionExecute::DISCRIMINATOR,
-                    MultisigError::ExecuteReentrancy
-                );
-                require!(
-                    ix.data[..8] != crate::instruction::BatchExecuteTransaction::DISCRIMINATOR,
-                    MultisigError::ExecuteReentrancy
+                    !protected_accounts.contains(&account_meta.pubkey),
+                    MultisigError::ProtectedAccount
                 );
             }
 

@@ -28,7 +28,6 @@ pub struct VaultTransactionExecute<'info> {
 
     /// The transaction to execute.
     #[account(
-        mut,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
@@ -39,7 +38,6 @@ pub struct VaultTransactionExecute<'info> {
     )]
     pub transaction: Account<'info, VaultTransaction>,
 
-    #[account(mut)]
     pub member: Signer<'info>,
     // `remaining_accounts` must include the following accounts in the exact order:
     // 1. AddressLookupTable accounts in the order they appear in `message.address_table_lookups`.
@@ -128,10 +126,7 @@ impl VaultTransactionExecute<'_> {
             &ephemeral_signer_keys,
         )?;
 
-        // Set the proposal state to Executing to prevent reentrancy attacks (e.g. cancelling proposal) in the middle of execution.
-        proposal.status = ProposalStatus::Executing;
-        let proposal_account_info = proposal.to_account_info();
-        proposal.try_serialize(&mut &mut proposal_account_info.data.borrow_mut()[..])?;
+        let protected_accounts = &[proposal.key()];
 
         // Execute the transaction message instructions one-by-one.
         executable_message.execute_message(
@@ -140,6 +135,7 @@ impl VaultTransactionExecute<'_> {
                 .map(|seed| seed.to_vec())
                 .collect::<Vec<Vec<u8>>>(),
             &ephemeral_signer_seeds,
+            protected_accounts,
         )?;
 
         // Mark the proposal as executed.

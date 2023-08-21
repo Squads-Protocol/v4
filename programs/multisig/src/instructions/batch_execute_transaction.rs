@@ -104,7 +104,7 @@ impl BatchExecuteTransaction<'_> {
 
     /// Execute a transaction from the batch.
     #[access_control(ctx.accounts.validate())]
-    pub fn batch_execute_transaction(ctx: Context<BatchExecuteTransaction>) -> Result<()> {
+    pub fn batch_execute_transaction(ctx: Context<Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let batch = &mut ctx.accounts.batch;
@@ -146,11 +146,7 @@ impl BatchExecuteTransaction<'_> {
             &ephemeral_signer_keys,
         )?;
 
-        let current_status = proposal.status.clone();
-        // Set the proposal state to Executing to prevent reentrancy attacks (e.g. cancelling proposal) in the middle of execution.
-        proposal.status = ProposalStatus::Executing;
-        let proposal_account_info = proposal.to_account_info();
-        proposal.try_serialize(&mut &mut proposal_account_info.data.borrow_mut()[..])?;
+        let protected_accounts = &[proposal.key(), batch_key];
 
         // Execute the transaction message instructions one-by-one.
         executable_message.execute_message(
@@ -159,10 +155,8 @@ impl BatchExecuteTransaction<'_> {
                 .map(|seed| seed.to_vec())
                 .collect::<Vec<Vec<u8>>>(),
             &ephemeral_signer_seeds,
+            protected_accounts,
         )?;
-
-        // Restore the proposal status after execution.
-        proposal.status = current_status;
 
         // Increment the executed transaction index.
         batch.executed_transaction_index = batch

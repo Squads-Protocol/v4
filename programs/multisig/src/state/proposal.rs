@@ -137,6 +137,9 @@ pub enum ProposalStatus {
     /// Proposal has been approved and is pending execution.
     Approved { timestamp: i64 },
     /// Proposal is being executed. This is a transient state that always transitions to `Executed` in the span of a single transaction.
+    #[deprecated(
+        note = "This status used to be used to prevent reentrancy attacks. It is no longer needed."
+    )]
     Executing,
     /// Proposal has been executed.
     Executed { timestamp: i64 },

@@ -396,7 +396,7 @@
         },
         {
           "name": "transaction",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false,
           "docs": [
             "The transaction to execute."
@@ -404,7 +404,7 @@
         },
         {
           "name": "member",
-          "isMut": true,
+          "isMut": false,
           "isSigner": true
         }
       ],
@@ -2113,78 +2113,78 @@
     },
     {
       "code": 6015,
-      "name": "ExecuteReentrancy",
-      "msg": "`transaction_execute` reentrancy is forbidden"
-    },
-    {
-      "code": 6016,
       "name": "RemoveLastMember",
       "msg": "Cannot remove last member"
     },
     {
-      "code": 6017,
+      "code": 6016,
       "name": "NoVoters",
       "msg": "Members don't include any voters"
     },
     {
-      "code": 6018,
+      "code": 6017,
       "name": "NoProposers",
       "msg": "Members don't include any proposers"
     },
     {
-      "code": 6019,
+      "code": 6018,
       "name": "NoExecutors",
       "msg": "Members don't include any executors"
     },
     {
-      "code": 6020,
+      "code": 6019,
       "name": "InvalidStaleTransactionIndex",
       "msg": "`stale_transaction_index` must be <= `transaction_index`"
     },
     {
-      "code": 6021,
+      "code": 6020,
       "name": "NotSupportedForControlled",
       "msg": "Instruction not supported for controlled multisig"
     },
     {
-      "code": 6022,
+      "code": 6021,
       "name": "TimeLockNotReleased",
       "msg": "Proposal time lock has not been released"
     },
     {
-      "code": 6023,
+      "code": 6022,
       "name": "NoActions",
       "msg": "Config transaction must have at least one action"
     },
     {
-      "code": 6024,
+      "code": 6023,
       "name": "MissingAccount",
       "msg": "Missing account"
     },
     {
-      "code": 6025,
+      "code": 6024,
       "name": "InvalidMint",
       "msg": "Invalid mint"
     },
     {
-      "code": 6026,
+      "code": 6025,
       "name": "InvalidDestination",
       "msg": "Invalid destination"
     },
     {
-      "code": 6027,
+      "code": 6026,
       "name": "SpendingLimitExceeded",
       "msg": "Spending limit exceeded"
     },
     {
-      "code": 6028,
+      "code": 6027,
       "name": "DecimalsMismatch",
       "msg": "Decimals don't match the mint"
     },
     {
-      "code": 6029,
+      "code": 6028,
       "name": "UnknownPermission",
       "msg": "Member has unknown permission"
+    },
+    {
+      "code": 6029,
+      "name": "ProtectedAccount",
+      "msg": "Account is protected, it cannot be passed into a CPI as writable"
     }
   ],
   "metadata": {
