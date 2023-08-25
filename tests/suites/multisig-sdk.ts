@@ -376,7 +376,7 @@ describe("Multisig SDK", () => {
       );
     });
 
-    it("add a new member to a controlled multisig", async () => {
+    it("add a new member to the controlled multisig", async () => {
       // feePayer can be anyone.
       const feePayer = await generateFundedKeypair(connection);
 
@@ -475,13 +475,27 @@ describe("Multisig SDK", () => {
   describe("multisig_set_time_lock", () => {
     it("error: invalid authority");
 
-    it("set `time_lock` on a controlled multisig");
+    it("set `time_lock` for the controlled multisig");
   });
 
   describe("multisig_set_config_authority", () => {
     it("error: invalid authority");
 
-    it("set `config_authority` on a controlled multisig");
+    it("set `config_authority` for the controlled multisig");
+  });
+
+  describe("multisig_add_spending_limit", () => {
+    it("error: invalid authority");
+
+    it("create a new Spending Limit for the controlled multisig");
+  });
+
+  describe("multisig_remove_spending_limit", () => {
+    it("error: invalid authority");
+
+    it("error: Spending Limit doesn't belong to the multisig");
+
+    it("remove the Spending Limit from the controlled multisig");
   });
 
   describe("config_transaction_create", () => {
