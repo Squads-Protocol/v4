@@ -344,36 +344,13 @@ createErrorFromCodeLookup.set(0x177e, () => new InvalidAccountError())
 createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
 
 /**
- * ExecuteReentrancy: '`transaction_execute` reentrancy is forbidden'
- *
- * @category Errors
- * @category generated
- */
-export class ExecuteReentrancyError extends Error {
-  readonly code: number = 0x177f
-  readonly name: string = 'ExecuteReentrancy'
-  constructor() {
-    super('`transaction_execute` reentrancy is forbidden')
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, ExecuteReentrancyError)
-    }
-  }
-}
-
-createErrorFromCodeLookup.set(0x177f, () => new ExecuteReentrancyError())
-createErrorFromNameLookup.set(
-  'ExecuteReentrancy',
-  () => new ExecuteReentrancyError()
-)
-
-/**
  * RemoveLastMember: 'Cannot remove last member'
  *
  * @category Errors
  * @category generated
  */
 export class RemoveLastMemberError extends Error {
-  readonly code: number = 0x1780
+  readonly code: number = 0x177f
   readonly name: string = 'RemoveLastMember'
   constructor() {
     super('Cannot remove last member')
@@ -383,7 +360,7 @@ export class RemoveLastMemberError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1780, () => new RemoveLastMemberError())
+createErrorFromCodeLookup.set(0x177f, () => new RemoveLastMemberError())
 createErrorFromNameLookup.set(
   'RemoveLastMember',
   () => new RemoveLastMemberError()
@@ -396,7 +373,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class NoVotersError extends Error {
-  readonly code: number = 0x1781
+  readonly code: number = 0x1780
   readonly name: string = 'NoVoters'
   constructor() {
     super("Members don't include any voters")
@@ -406,7 +383,7 @@ export class NoVotersError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1781, () => new NoVotersError())
+createErrorFromCodeLookup.set(0x1780, () => new NoVotersError())
 createErrorFromNameLookup.set('NoVoters', () => new NoVotersError())
 
 /**
@@ -416,7 +393,7 @@ createErrorFromNameLookup.set('NoVoters', () => new NoVotersError())
  * @category generated
  */
 export class NoProposersError extends Error {
-  readonly code: number = 0x1782
+  readonly code: number = 0x1781
   readonly name: string = 'NoProposers'
   constructor() {
     super("Members don't include any proposers")
@@ -426,7 +403,7 @@ export class NoProposersError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1782, () => new NoProposersError())
+createErrorFromCodeLookup.set(0x1781, () => new NoProposersError())
 createErrorFromNameLookup.set('NoProposers', () => new NoProposersError())
 
 /**
@@ -436,7 +413,7 @@ createErrorFromNameLookup.set('NoProposers', () => new NoProposersError())
  * @category generated
  */
 export class NoExecutorsError extends Error {
-  readonly code: number = 0x1783
+  readonly code: number = 0x1782
   readonly name: string = 'NoExecutors'
   constructor() {
     super("Members don't include any executors")
@@ -446,7 +423,7 @@ export class NoExecutorsError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1783, () => new NoExecutorsError())
+createErrorFromCodeLookup.set(0x1782, () => new NoExecutorsError())
 createErrorFromNameLookup.set('NoExecutors', () => new NoExecutorsError())
 
 /**
@@ -456,7 +433,7 @@ createErrorFromNameLookup.set('NoExecutors', () => new NoExecutorsError())
  * @category generated
  */
 export class InvalidStaleTransactionIndexError extends Error {
-  readonly code: number = 0x1784
+  readonly code: number = 0x1783
   readonly name: string = 'InvalidStaleTransactionIndex'
   constructor() {
     super('`stale_transaction_index` must be <= `transaction_index`')
@@ -467,7 +444,7 @@ export class InvalidStaleTransactionIndexError extends Error {
 }
 
 createErrorFromCodeLookup.set(
-  0x1784,
+  0x1783,
   () => new InvalidStaleTransactionIndexError()
 )
 createErrorFromNameLookup.set(
@@ -482,7 +459,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class NotSupportedForControlledError extends Error {
-  readonly code: number = 0x1785
+  readonly code: number = 0x1784
   readonly name: string = 'NotSupportedForControlled'
   constructor() {
     super('Instruction not supported for controlled multisig')
@@ -493,7 +470,7 @@ export class NotSupportedForControlledError extends Error {
 }
 
 createErrorFromCodeLookup.set(
-  0x1785,
+  0x1784,
   () => new NotSupportedForControlledError()
 )
 createErrorFromNameLookup.set(
@@ -508,7 +485,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class TimeLockNotReleasedError extends Error {
-  readonly code: number = 0x1786
+  readonly code: number = 0x1785
   readonly name: string = 'TimeLockNotReleased'
   constructor() {
     super('Proposal time lock has not been released')
@@ -518,7 +495,7 @@ export class TimeLockNotReleasedError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1786, () => new TimeLockNotReleasedError())
+createErrorFromCodeLookup.set(0x1785, () => new TimeLockNotReleasedError())
 createErrorFromNameLookup.set(
   'TimeLockNotReleased',
   () => new TimeLockNotReleasedError()
@@ -531,7 +508,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class NoActionsError extends Error {
-  readonly code: number = 0x1787
+  readonly code: number = 0x1786
   readonly name: string = 'NoActions'
   constructor() {
     super('Config transaction must have at least one action')
@@ -541,7 +518,7 @@ export class NoActionsError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1787, () => new NoActionsError())
+createErrorFromCodeLookup.set(0x1786, () => new NoActionsError())
 createErrorFromNameLookup.set('NoActions', () => new NoActionsError())
 
 /**
@@ -551,7 +528,7 @@ createErrorFromNameLookup.set('NoActions', () => new NoActionsError())
  * @category generated
  */
 export class MissingAccountError extends Error {
-  readonly code: number = 0x1788
+  readonly code: number = 0x1787
   readonly name: string = 'MissingAccount'
   constructor() {
     super('Missing account')
@@ -561,7 +538,7 @@ export class MissingAccountError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1788, () => new MissingAccountError())
+createErrorFromCodeLookup.set(0x1787, () => new MissingAccountError())
 createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
 
 /**
@@ -571,7 +548,7 @@ createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
  * @category generated
  */
 export class InvalidMintError extends Error {
-  readonly code: number = 0x1789
+  readonly code: number = 0x1788
   readonly name: string = 'InvalidMint'
   constructor() {
     super('Invalid mint')
@@ -581,7 +558,7 @@ export class InvalidMintError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1789, () => new InvalidMintError())
+createErrorFromCodeLookup.set(0x1788, () => new InvalidMintError())
 createErrorFromNameLookup.set('InvalidMint', () => new InvalidMintError())
 
 /**
@@ -591,7 +568,7 @@ createErrorFromNameLookup.set('InvalidMint', () => new InvalidMintError())
  * @category generated
  */
 export class InvalidDestinationError extends Error {
-  readonly code: number = 0x178a
+  readonly code: number = 0x1789
   readonly name: string = 'InvalidDestination'
   constructor() {
     super('Invalid destination')
@@ -601,7 +578,7 @@ export class InvalidDestinationError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x178a, () => new InvalidDestinationError())
+createErrorFromCodeLookup.set(0x1789, () => new InvalidDestinationError())
 createErrorFromNameLookup.set(
   'InvalidDestination',
   () => new InvalidDestinationError()
@@ -614,7 +591,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class SpendingLimitExceededError extends Error {
-  readonly code: number = 0x178b
+  readonly code: number = 0x178a
   readonly name: string = 'SpendingLimitExceeded'
   constructor() {
     super('Spending limit exceeded')
@@ -624,7 +601,7 @@ export class SpendingLimitExceededError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x178b, () => new SpendingLimitExceededError())
+createErrorFromCodeLookup.set(0x178a, () => new SpendingLimitExceededError())
 createErrorFromNameLookup.set(
   'SpendingLimitExceeded',
   () => new SpendingLimitExceededError()
@@ -637,7 +614,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class DecimalsMismatchError extends Error {
-  readonly code: number = 0x178c
+  readonly code: number = 0x178b
   readonly name: string = 'DecimalsMismatch'
   constructor() {
     super("Decimals don't match the mint")
@@ -647,7 +624,7 @@ export class DecimalsMismatchError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x178c, () => new DecimalsMismatchError())
+createErrorFromCodeLookup.set(0x178b, () => new DecimalsMismatchError())
 createErrorFromNameLookup.set(
   'DecimalsMismatch',
   () => new DecimalsMismatchError()
@@ -660,7 +637,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class UnknownPermissionError extends Error {
-  readonly code: number = 0x178d
+  readonly code: number = 0x178c
   readonly name: string = 'UnknownPermission'
   constructor() {
     super('Member has unknown permission')
@@ -670,10 +647,33 @@ export class UnknownPermissionError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x178d, () => new UnknownPermissionError())
+createErrorFromCodeLookup.set(0x178c, () => new UnknownPermissionError())
 createErrorFromNameLookup.set(
   'UnknownPermission',
   () => new UnknownPermissionError()
+)
+
+/**
+ * ProtectedAccount: 'Account is protected, it cannot be passed into a CPI as writable'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class ProtectedAccountError extends Error {
+  readonly code: number = 0x178d
+  readonly name: string = 'ProtectedAccount'
+  constructor() {
+    super('Account is protected, it cannot be passed into a CPI as writable')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, ProtectedAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178d, () => new ProtectedAccountError())
+createErrorFromNameLookup.set(
+  'ProtectedAccount',
+  () => new ProtectedAccountError()
 )
 
 /**

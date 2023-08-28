@@ -24,8 +24,8 @@ export const vaultTransactionExecuteStruct = new beet.BeetArgsStruct<{
  *
  * @property [] multisig
  * @property [_writable_] proposal
- * @property [_writable_] transaction
- * @property [_writable_, **signer**] member
+ * @property [] transaction
+ * @property [**signer**] member
  * @category Instructions
  * @category VaultTransactionExecute
  * @category generated
@@ -70,12 +70,12 @@ export function createVaultTransactionExecuteInstruction(
     },
     {
       pubkey: accounts.transaction,
-      isWritable: true,
+      isWritable: false,
       isSigner: false,
     },
     {
       pubkey: accounts.member,
-      isWritable: true,
+      isWritable: false,
       isSigner: true,
     },
   ]

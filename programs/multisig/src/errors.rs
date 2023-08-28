@@ -32,8 +32,6 @@ pub enum MultisigError {
     InvalidNumberOfAccounts,
     #[msg("Invalid account provided")]
     InvalidAccount,
-    #[msg("`transaction_execute` reentrancy is forbidden")]
-    ExecuteReentrancy,
     #[msg("Cannot remove last member")]
     RemoveLastMember,
     #[msg("Members don't include any voters")]
@@ -62,4 +60,6 @@ pub enum MultisigError {
     DecimalsMismatch,
     #[msg("Member has unknown permission")]
     UnknownPermission,
+    #[msg("Account is protected, it cannot be passed into a CPI as writable")]
+    ProtectedAccount,
 }
