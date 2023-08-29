@@ -47,7 +47,7 @@
     {
       "name": "multisigAddMember",
       "docs": [
-        "Add a new member to the multisig."
+        "Add a new member to the controlled multisig."
       ],
       "accounts": [
         {
@@ -96,7 +96,7 @@
     {
       "name": "multisigRemoveMember",
       "docs": [
-        "Remove a member/key from the multisig."
+        "Remove a member/key from the controlled multisig."
       ],
       "accounts": [
         {
@@ -145,7 +145,7 @@
     {
       "name": "multisigSetTimeLock",
       "docs": [
-        "Set the `time_lock` config parameter for the multisig."
+        "Set the `time_lock` config parameter for the controlled multisig."
       ],
       "accounts": [
         {
@@ -236,6 +236,95 @@
           "name": "args",
           "type": {
             "defined": "MultisigSetConfigAuthorityArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisigAddSpendingLimit",
+      "docs": [
+        "Create a new spending limit for the controlled multisig."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "spendingLimit",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigAddSpendingLimitArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisigRemoveSpendingLimit",
+      "docs": [
+        "Remove the spending limit from the controlled multisig."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "spendingLimit",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigRemoveSpendingLimitArgs"
           }
         }
       ]
@@ -1381,6 +1470,84 @@
       }
     },
     {
+      "name": "MultisigAddSpendingLimitArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "createKey",
+            "docs": [
+              "Key that is used to seed the SpendingLimit PDA."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "The index of the vault that the spending limit is for."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "The token mint the spending limit is for."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "The amount of tokens that can be spent in a period.",
+              "This amount is in decimals of the mint,",
+              "so 1 SOL would be `1_000_000_000` and 1 USDC would be `1_000_000`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "docs": [
+              "The reset period of the spending limit.",
+              "When it passes, the remaining amount is reset, unless it's `Period::OneTime`."
+            ],
+            "type": {
+              "defined": "Period"
+            }
+          },
+          {
+            "name": "members",
+            "docs": [
+              "Members of the multisig that can use the spending limit.",
+              "In case a member is removed from the multisig, the spending limit will remain existent",
+              "(until explicitly deleted), but the removed member will not be able to use it anymore."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "destinations",
+            "docs": [
+              "The destination addresses the spending limit is allowed to sent funds to.",
+              "If empty, funds can be sent to any address."
+            ],
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MultisigAddMemberArgs",
       "type": {
         "kind": "struct",
@@ -1527,6 +1694,23 @@
             ],
             "type": "u32"
           },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigRemoveSpendingLimitArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
             "name": "memo",
             "docs": [

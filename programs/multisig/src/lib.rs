@@ -28,7 +28,7 @@ pub mod multisig {
         MultisigCreate::multisig_create(ctx, args)
     }
 
-    /// Add a new member to the multisig.
+    /// Add a new member to the controlled multisig.
     pub fn multisig_add_member(
         ctx: Context<MultisigConfig>,
         args: MultisigAddMemberArgs,
@@ -36,7 +36,7 @@ pub mod multisig {
         MultisigConfig::multisig_add_member(ctx, args)
     }
 
-    /// Remove a member/key from the multisig.
+    /// Remove a member/key from the controlled multisig.
     pub fn multisig_remove_member(
         ctx: Context<MultisigConfig>,
         args: MultisigRemoveMemberArgs,
@@ -44,7 +44,7 @@ pub mod multisig {
         MultisigConfig::multisig_remove_member(ctx, args)
     }
 
-    /// Set the `time_lock` config parameter for the multisig.
+    /// Set the `time_lock` config parameter for the controlled multisig.
     pub fn multisig_set_time_lock(
         ctx: Context<MultisigConfig>,
         args: MultisigSetTimeLockArgs,
@@ -58,6 +58,22 @@ pub mod multisig {
         args: MultisigSetConfigAuthorityArgs,
     ) -> Result<()> {
         MultisigConfig::multisig_set_config_authority(ctx, args)
+    }
+
+    /// Create a new spending limit for the controlled multisig.
+    pub fn multisig_add_spending_limit(
+        ctx: Context<MultisigAddSpendingLimit>,
+        args: MultisigAddSpendingLimitArgs,
+    ) -> Result<()> {
+        MultisigAddSpendingLimit::multisig_add_spending_limit(ctx, args)
+    }
+
+    /// Remove the spending limit from the controlled multisig.
+    pub fn multisig_remove_spending_limit(
+        ctx: Context<MultisigRemoveSpendingLimit>,
+        args: MultisigRemoveSpendingLimitArgs,
+    ) -> Result<()> {
+        MultisigRemoveSpendingLimit::multisig_remove_spending_limit(ctx, args)
     }
 
     /// Create a new config transaction.
