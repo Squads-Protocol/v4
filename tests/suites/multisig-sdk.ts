@@ -596,7 +596,7 @@ describe("Multisig SDK", () => {
         members: [members.almighty.publicKey],
         vaultIndex: 1,
         signers: [feePayer, members.almighty],
-        sendOptions: { skipPreflight: true, preflightCommitment: "confirmed" },
+        sendOptions: { skipPreflight: true },
       });
     });
 
@@ -612,7 +612,6 @@ describe("Multisig SDK", () => {
           signers: [feePayer, members.voter],
           sendOptions: {
             skipPreflight: true,
-            preflightCommitment: "confirmed",
           },
         }),
         /Attempted to perform an unauthorized action/
