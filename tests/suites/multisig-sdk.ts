@@ -485,9 +485,73 @@ describe("Multisig SDK", () => {
   });
 
   describe("multisig_add_spending_limit", () => {
-    it("error: invalid authority");
+    let autonomousMultisigPda: PublicKey;
+    let feePayer: Keypair;
+    let spendingLimitPda: PublicKey;
+    let spendingLimitCreateKey: PublicKey;
 
-    it("create a new Spending Limit for the controlled multisig");
+    before(async () => {
+      // Create new autonomous multisig.
+      autonomousMultisigPda = (
+        await createControlledMultisig({
+          connection,
+          configAuthority: members.almighty.publicKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+
+      feePayer = await generateFundedKeypair(connection);
+
+      spendingLimitCreateKey = Keypair.generate().publicKey;
+
+      spendingLimitPda = multisig.getSpendingLimitPda({
+        multisigPda: autonomousMultisigPda,
+        createKey: spendingLimitCreateKey,
+      })[0];
+    });
+
+    it("error: invalid authority", async () => {
+      await assert.rejects(
+        multisig.rpc.multisigAddSpendingLimit({
+          connection,
+          feePayer: feePayer,
+          multisigPda: autonomousMultisigPda,
+          spendingLimit: spendingLimitPda,
+          createKey: spendingLimitCreateKey,
+          rentPayer: feePayer,
+          amount: BigInt(1000000000),
+          configAuthority: members.voter.publicKey,
+          period: multisig.generated.Period.Day,
+          mint: Keypair.generate().publicKey,
+          destinations: [Keypair.generate().publicKey],
+          members: [members.almighty.publicKey],
+          vaultIndex: 1,
+          signers: [feePayer, members.voter],
+        }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+
+    it("create a new Spending Limit for the controlled multisig", async () => {
+      await multisig.rpc.multisigAddSpendingLimit({
+        connection,
+        feePayer: feePayer,
+        multisigPda: autonomousMultisigPda,
+        spendingLimit: spendingLimitPda,
+        createKey: spendingLimitCreateKey,
+        rentPayer: feePayer,
+        amount: BigInt(1000000000),
+        configAuthority: members.almighty.publicKey,
+        period: multisig.generated.Period.Day,
+        mint: Keypair.generate().publicKey,
+        destinations: [Keypair.generate().publicKey],
+        members: [members.almighty.publicKey],
+        vaultIndex: 1,
+        signers: [feePayer, members.almighty],
+      });
+    });
   });
 
   describe("multisig_remove_spending_limit", () => {
