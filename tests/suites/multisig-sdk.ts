@@ -485,14 +485,13 @@ describe("Multisig SDK", () => {
   });
 
   describe("multisig_add_spending_limit", () => {
-    let autonomousMultisigPda: PublicKey;
+    let controlledMultisigPda: PublicKey;
     let feePayer: Keypair;
     let spendingLimitPda: PublicKey;
     let spendingLimitCreateKey: PublicKey;
 
     before(async () => {
-      // Create new autonomous multisig.
-      autonomousMultisigPda = (
+      controlledMultisigPda = (
         await createControlledMultisig({
           connection,
           configAuthority: members.almighty.publicKey,
@@ -507,7 +506,7 @@ describe("Multisig SDK", () => {
       spendingLimitCreateKey = Keypair.generate().publicKey;
 
       spendingLimitPda = multisig.getSpendingLimitPda({
-        multisigPda: autonomousMultisigPda,
+        multisigPda: controlledMultisigPda,
         createKey: spendingLimitCreateKey,
       })[0];
     });
@@ -518,7 +517,7 @@ describe("Multisig SDK", () => {
           multisig.rpc.multisigAddSpendingLimit({
             connection,
             feePayer: feePayer,
-            multisigPda: autonomousMultisigPda,
+            multisigPda: controlledMultisigPda,
             spendingLimit: spendingLimitPda,
             createKey: spendingLimitCreateKey,
             rentPayer: feePayer,
@@ -540,7 +539,7 @@ describe("Multisig SDK", () => {
       const signature = await multisig.rpc.multisigAddSpendingLimit({
         connection,
         feePayer: feePayer,
-        multisigPda: autonomousMultisigPda,
+        multisigPda: controlledMultisigPda,
         spendingLimit: spendingLimitPda,
         createKey: spendingLimitCreateKey,
         rentPayer: feePayer,
@@ -560,14 +559,13 @@ describe("Multisig SDK", () => {
   });
 
   describe("multisig_remove_spending_limit", () => {
-    let autonomousMultisigPda: PublicKey;
+    let controlledMultisigPda: PublicKey;
     let feePayer: Keypair;
     let spendingLimitPda: PublicKey;
     let spendingLimitCreateKey: PublicKey;
 
     before(async () => {
-      // Create new autonomous multisig.
-      autonomousMultisigPda = (
+      controlledMultisigPda = (
         await createControlledMultisig({
           connection,
           configAuthority: members.almighty.publicKey,
@@ -582,14 +580,14 @@ describe("Multisig SDK", () => {
       spendingLimitCreateKey = Keypair.generate().publicKey;
 
       spendingLimitPda = multisig.getSpendingLimitPda({
-        multisigPda: autonomousMultisigPda,
+        multisigPda: controlledMultisigPda,
         createKey: spendingLimitCreateKey,
       })[0];
 
       const signature = await multisig.rpc.multisigAddSpendingLimit({
         connection,
         feePayer: feePayer,
-        multisigPda: autonomousMultisigPda,
+        multisigPda: controlledMultisigPda,
         spendingLimit: spendingLimitPda,
         createKey: spendingLimitCreateKey,
         rentPayer: feePayer,
@@ -612,7 +610,7 @@ describe("Multisig SDK", () => {
         () =>
           multisig.rpc.multisigRemoveSpendingLimit({
             connection,
-            multisigPda: autonomousMultisigPda,
+            multisigPda: controlledMultisigPda,
             spendingLimit: spendingLimitPda,
             configAuthority: members.voter.publicKey,
             feePayer: feePayer,
@@ -625,12 +623,11 @@ describe("Multisig SDK", () => {
         /Attempted to perform an unauthorized action/
       );
     });
-    it("error: Spending Limit doesn't belong to the multisig");
 
     it("remove the Spending Limit from the controlled multisig", async () => {
       const signature = await multisig.rpc.multisigRemoveSpendingLimit({
         connection,
-        multisigPda: autonomousMultisigPda,
+        multisigPda: controlledMultisigPda,
         spendingLimit: spendingLimitPda,
         configAuthority: members.almighty.publicKey,
         feePayer: feePayer,
