@@ -623,6 +623,58 @@ describe("Multisig SDK", () => {
         /Attempted to perform an unauthorized action/
       );
     });
+    it("error: Spending Limit doesn't belong to the multisig", async () => {
+      const wrongControlledMultisigPda = (
+        await createControlledMultisig({
+          connection,
+          configAuthority: members.almighty.publicKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+      const wrongCreateKey = Keypair.generate().publicKey;
+      const wrongSpendingLimitPda = multisig.getSpendingLimitPda({
+        multisigPda: wrongControlledMultisigPda,
+        createKey: wrongCreateKey,
+      })[0];
+      const addSpendingLimitSignature =
+        await multisig.rpc.multisigAddSpendingLimit({
+          connection,
+          feePayer: feePayer,
+          multisigPda: wrongControlledMultisigPda,
+          spendingLimit: wrongSpendingLimitPda,
+          createKey: wrongCreateKey,
+          rentPayer: feePayer,
+          amount: BigInt(1000000000),
+          configAuthority: members.almighty.publicKey,
+          period: multisig.generated.Period.Day,
+          mint: Keypair.generate().publicKey,
+          destinations: [Keypair.generate().publicKey],
+          members: [members.almighty.publicKey],
+          vaultIndex: 1,
+          signers: [feePayer, members.almighty],
+          sendOptions: { skipPreflight: true },
+        });
+
+      await connection.confirmTransaction(addSpendingLimitSignature);
+      await assert.rejects(
+        () =>
+          multisig.rpc.multisigRemoveSpendingLimit({
+            connection,
+            multisigPda: controlledMultisigPda,
+            spendingLimit: wrongSpendingLimitPda,
+            configAuthority: members.almighty.publicKey,
+            feePayer: feePayer,
+            rentCollector: members.almighty.publicKey,
+            signers: [feePayer, members.almighty],
+            sendOptions: {
+              skipPreflight: true,
+            },
+          }),
+        /Invalid account provided/
+      );
+    });
 
     it("remove the Spending Limit from the controlled multisig", async () => {
       const signature = await multisig.rpc.multisigRemoveSpendingLimit({
