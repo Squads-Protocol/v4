@@ -485,14 +485,13 @@ describe("Multisig SDK", () => {
   });
 
   describe("multisig_add_spending_limit", () => {
-    let autonomousMultisigPda: PublicKey;
+    let controlledMultisigPda: PublicKey;
     let feePayer: Keypair;
     let spendingLimitPda: PublicKey;
     let spendingLimitCreateKey: PublicKey;
 
     before(async () => {
-      // Create new autonomous multisig.
-      autonomousMultisigPda = (
+      controlledMultisigPda = (
         await createControlledMultisig({
           connection,
           configAuthority: members.almighty.publicKey,
@@ -507,38 +506,40 @@ describe("Multisig SDK", () => {
       spendingLimitCreateKey = Keypair.generate().publicKey;
 
       spendingLimitPda = multisig.getSpendingLimitPda({
-        multisigPda: autonomousMultisigPda,
+        multisigPda: controlledMultisigPda,
         createKey: spendingLimitCreateKey,
       })[0];
     });
 
     it("error: invalid authority", async () => {
       await assert.rejects(
-        multisig.rpc.multisigAddSpendingLimit({
-          connection,
-          feePayer: feePayer,
-          multisigPda: autonomousMultisigPda,
-          spendingLimit: spendingLimitPda,
-          createKey: spendingLimitCreateKey,
-          rentPayer: feePayer,
-          amount: BigInt(1000000000),
-          configAuthority: members.voter.publicKey,
-          period: multisig.generated.Period.Day,
-          mint: Keypair.generate().publicKey,
-          destinations: [Keypair.generate().publicKey],
-          members: [members.almighty.publicKey],
-          vaultIndex: 1,
-          signers: [feePayer, members.voter],
-        }),
+        () =>
+          multisig.rpc.multisigAddSpendingLimit({
+            connection,
+            feePayer: feePayer,
+            multisigPda: controlledMultisigPda,
+            spendingLimit: spendingLimitPda,
+            createKey: spendingLimitCreateKey,
+            rentPayer: feePayer,
+            amount: BigInt(1000000000),
+            configAuthority: members.voter.publicKey,
+            period: multisig.generated.Period.Day,
+            mint: Keypair.generate().publicKey,
+            destinations: [Keypair.generate().publicKey],
+            members: [members.almighty.publicKey],
+            vaultIndex: 1,
+            signers: [feePayer, members.voter],
+            sendOptions: { skipPreflight: true },
+          }),
         /Attempted to perform an unauthorized action/
       );
     });
 
     it("create a new Spending Limit for the controlled multisig", async () => {
-      await multisig.rpc.multisigAddSpendingLimit({
+      const signature = await multisig.rpc.multisigAddSpendingLimit({
         connection,
         feePayer: feePayer,
-        multisigPda: autonomousMultisigPda,
+        multisigPda: controlledMultisigPda,
         spendingLimit: spendingLimitPda,
         createKey: spendingLimitCreateKey,
         rentPayer: feePayer,
@@ -550,16 +551,144 @@ describe("Multisig SDK", () => {
         members: [members.almighty.publicKey],
         vaultIndex: 1,
         signers: [feePayer, members.almighty],
+        sendOptions: { skipPreflight: true },
       });
+
+      await connection.confirmTransaction(signature);
     });
   });
 
   describe("multisig_remove_spending_limit", () => {
-    it("error: invalid authority");
+    let controlledMultisigPda: PublicKey;
+    let feePayer: Keypair;
+    let spendingLimitPda: PublicKey;
+    let spendingLimitCreateKey: PublicKey;
 
-    it("error: Spending Limit doesn't belong to the multisig");
+    before(async () => {
+      controlledMultisigPda = (
+        await createControlledMultisig({
+          connection,
+          configAuthority: members.almighty.publicKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
 
-    it("remove the Spending Limit from the controlled multisig");
+      feePayer = await generateFundedKeypair(connection);
+
+      spendingLimitCreateKey = Keypair.generate().publicKey;
+
+      spendingLimitPda = multisig.getSpendingLimitPda({
+        multisigPda: controlledMultisigPda,
+        createKey: spendingLimitCreateKey,
+      })[0];
+
+      const signature = await multisig.rpc.multisigAddSpendingLimit({
+        connection,
+        feePayer: feePayer,
+        multisigPda: controlledMultisigPda,
+        spendingLimit: spendingLimitPda,
+        createKey: spendingLimitCreateKey,
+        rentPayer: feePayer,
+        amount: BigInt(1000000000),
+        configAuthority: members.almighty.publicKey,
+        period: multisig.generated.Period.Day,
+        mint: Keypair.generate().publicKey,
+        destinations: [Keypair.generate().publicKey],
+        members: [members.almighty.publicKey],
+        vaultIndex: 1,
+        signers: [feePayer, members.almighty],
+        sendOptions: { skipPreflight: true },
+      });
+
+      await connection.confirmTransaction(signature);
+    });
+
+    it("error: invalid authority", async () => {
+      await assert.rejects(
+        () =>
+          multisig.rpc.multisigRemoveSpendingLimit({
+            connection,
+            multisigPda: controlledMultisigPda,
+            spendingLimit: spendingLimitPda,
+            configAuthority: members.voter.publicKey,
+            feePayer: feePayer,
+            rentCollector: members.voter.publicKey,
+            signers: [feePayer, members.voter],
+            sendOptions: {
+              skipPreflight: true,
+            },
+          }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+    it("error: Spending Limit doesn't belong to the multisig", async () => {
+      const wrongControlledMultisigPda = (
+        await createControlledMultisig({
+          connection,
+          configAuthority: members.almighty.publicKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+      const wrongCreateKey = Keypair.generate().publicKey;
+      const wrongSpendingLimitPda = multisig.getSpendingLimitPda({
+        multisigPda: wrongControlledMultisigPda,
+        createKey: wrongCreateKey,
+      })[0];
+      const addSpendingLimitSignature =
+        await multisig.rpc.multisigAddSpendingLimit({
+          connection,
+          feePayer: feePayer,
+          multisigPda: wrongControlledMultisigPda,
+          spendingLimit: wrongSpendingLimitPda,
+          createKey: wrongCreateKey,
+          rentPayer: feePayer,
+          amount: BigInt(1000000000),
+          configAuthority: members.almighty.publicKey,
+          period: multisig.generated.Period.Day,
+          mint: Keypair.generate().publicKey,
+          destinations: [Keypair.generate().publicKey],
+          members: [members.almighty.publicKey],
+          vaultIndex: 1,
+          signers: [feePayer, members.almighty],
+          sendOptions: { skipPreflight: true },
+        });
+
+      await connection.confirmTransaction(addSpendingLimitSignature);
+      await assert.rejects(
+        () =>
+          multisig.rpc.multisigRemoveSpendingLimit({
+            connection,
+            multisigPda: controlledMultisigPda,
+            spendingLimit: wrongSpendingLimitPda,
+            configAuthority: members.almighty.publicKey,
+            feePayer: feePayer,
+            rentCollector: members.almighty.publicKey,
+            signers: [feePayer, members.almighty],
+            sendOptions: {
+              skipPreflight: true,
+            },
+          }),
+        /Invalid account provided/
+      );
+    });
+
+    it("remove the Spending Limit from the controlled multisig", async () => {
+      const signature = await multisig.rpc.multisigRemoveSpendingLimit({
+        connection,
+        multisigPda: controlledMultisigPda,
+        spendingLimit: spendingLimitPda,
+        configAuthority: members.almighty.publicKey,
+        feePayer: feePayer,
+        rentCollector: members.almighty.publicKey,
+        sendOptions: { skipPreflight: true },
+        signers: [feePayer, members.almighty],
+      });
+      await connection.confirmTransaction(signature);
+    });
   });
 
   describe("config_transaction_create", () => {
