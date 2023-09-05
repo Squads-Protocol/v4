@@ -40,20 +40,22 @@ export const batchAddTransactionStruct = new beet.FixableBeetArgsStruct<
  * Accounts required by the _batchAddTransaction_ instruction
  *
  * @property [] multisig
- * @property [_writable_, **signer**] member
  * @property [] proposal
  * @property [_writable_] batch
  * @property [_writable_] transaction
+ * @property [**signer**] member
+ * @property [_writable_, **signer**] rentPayer
  * @category Instructions
  * @category BatchAddTransaction
  * @category generated
  */
 export type BatchAddTransactionInstructionAccounts = {
   multisig: web3.PublicKey
-  member: web3.PublicKey
   proposal: web3.PublicKey
   batch: web3.PublicKey
   transaction: web3.PublicKey
+  member: web3.PublicKey
+  rentPayer: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -88,11 +90,6 @@ export function createBatchAddTransactionInstruction(
       isSigner: false,
     },
     {
-      pubkey: accounts.member,
-      isWritable: true,
-      isSigner: true,
-    },
-    {
       pubkey: accounts.proposal,
       isWritable: false,
       isSigner: false,
@@ -106,6 +103,16 @@ export function createBatchAddTransactionInstruction(
       pubkey: accounts.transaction,
       isWritable: true,
       isSigner: false,
+    },
+    {
+      pubkey: accounts.member,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.rentPayer,
+      isWritable: true,
+      isSigner: true,
     },
     {
       pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,

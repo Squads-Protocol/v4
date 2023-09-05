@@ -16,6 +16,7 @@ export async function batchAddTransaction({
   feePayer,
   multisigPda,
   member,
+  rentPayer,
   vaultIndex,
   batchIndex,
   transactionIndex,
@@ -26,7 +27,10 @@ export async function batchAddTransaction({
   connection: Connection;
   feePayer: PublicKey;
   multisigPda: PublicKey;
+  /** Member of the multisig that is creating the transaction. */
   member: PublicKey;
+  /** Payer for the transaction account rent. If not provided, `member` is used. */
+  rentPayer?: PublicKey;
   vaultIndex: number;
   batchIndex: bigint;
   transactionIndex: number;
@@ -47,6 +51,7 @@ export async function batchAddTransaction({
         vaultIndex,
         multisigPda,
         member,
+        rentPayer,
         batchIndex,
         transactionIndex,
         ephemeralSigners,

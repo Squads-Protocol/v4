@@ -347,8 +347,19 @@
         },
         {
           "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that is creating the transaction."
+          ]
+        },
+        {
+          "name": "rentPayer",
           "isMut": true,
-          "isSigner": true
+          "isSigner": true,
+          "docs": [
+            "The payer for the transaction account rent."
+          ]
         },
         {
           "name": "systemProgram",
@@ -445,8 +456,19 @@
         },
         {
           "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that is creating the transaction."
+          ]
+        },
+        {
+          "name": "rentPayer",
           "isMut": true,
-          "isSigner": true
+          "isSigner": true,
+          "docs": [
+            "The payer for the transaction account rent."
+          ]
         },
         {
           "name": "systemProgram",
@@ -511,14 +533,25 @@
           "isSigner": false
         },
         {
-          "name": "creator",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
           "name": "batch",
           "isMut": true,
           "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that is creating the batch."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The payer for the batch account rent."
+          ]
         },
         {
           "name": "systemProgram",
@@ -550,14 +583,6 @@
           ]
         },
         {
-          "name": "member",
-          "isMut": true,
-          "isSigner": true,
-          "docs": [
-            "Member of the multisig."
-          ]
-        },
-        {
           "name": "proposal",
           "isMut": false,
           "isSigner": false,
@@ -576,6 +601,22 @@
           "isSigner": false,
           "docs": [
             "`VaultBatchTransaction` account to initialize and add to the `batch`."
+          ]
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Member of the multisig."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The payer for the batch transaction account rent."
           ]
         },
         {
@@ -658,8 +699,19 @@
         },
         {
           "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that is creating the proposal."
+          ]
+        },
+        {
+          "name": "rentPayer",
           "isMut": true,
-          "isSigner": true
+          "isSigner": true,
+          "docs": [
+            "The payer for the proposal account rent."
+          ]
         },
         {
           "name": "systemProgram",

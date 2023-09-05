@@ -21,7 +21,7 @@ pub struct ConfigTransactionCreate<'info> {
 
     #[account(
         init,
-        payer = creator,
+        payer = rent_payer,
         space = ConfigTransaction::size(&args.actions),
         seeds = [
             SEED_PREFIX,
@@ -33,8 +33,12 @@ pub struct ConfigTransactionCreate<'info> {
     )]
     pub transaction: Account<'info, ConfigTransaction>,
 
-    #[account(mut)]
+    /// The member of the multisig that is creating the transaction.
     pub creator: Signer<'info>,
+
+    /// The payer for the transaction account rent.
+    #[account(mut)]
+    pub rent_payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }

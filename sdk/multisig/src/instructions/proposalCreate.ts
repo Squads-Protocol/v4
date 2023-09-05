@@ -5,11 +5,15 @@ import { getProposalPda } from "../pda";
 export function proposalCreate({
   multisigPda,
   creator,
+  rentPayer,
   transactionIndex,
   isDraft = false,
 }: {
   multisigPda: PublicKey;
+  /** Member of the multisig that is creating the proposal. */
   creator: PublicKey;
+  /** Payer for the proposal account rent. If not provided, `creator` is used. */
+  rentPayer?: PublicKey;
   transactionIndex: bigint;
   isDraft?: boolean;
 }) {
@@ -23,7 +27,12 @@ export function proposalCreate({
   }
 
   return createProposalCreateInstruction(
-    { creator, multisig: multisigPda, proposal: proposalPda },
+    {
+      creator,
+      rentPayer: rentPayer ?? creator,
+      multisig: multisigPda,
+      proposal: proposalPda,
+    },
     { args: { transactionIndex: Number(transactionIndex), draft: isDraft } }
   );
 }

@@ -8,7 +8,7 @@ import * as instructions from "../instructions/index";
 
 /**
  * Returns unsigned `VersionedTransaction` that needs to be
- * signed by `creator` and `feePayer` before sending it.
+ * signed by `creator`, `rentPayer` and `feePayer` before sending it.
  */
 export function vaultTransactionCreate({
   blockhash,
@@ -16,6 +16,7 @@ export function vaultTransactionCreate({
   multisigPda,
   transactionIndex,
   creator,
+  rentPayer,
   vaultIndex,
   ephemeralSigners,
   transactionMessage,
@@ -26,7 +27,10 @@ export function vaultTransactionCreate({
   feePayer: PublicKey;
   multisigPda: PublicKey;
   transactionIndex: bigint;
+  /** Member of the multisig that is creating the transaction. */
   creator: PublicKey;
+  /** Payer for the transaction account rent. If not provided, `creator` is used. */
+  rentPayer?: PublicKey;
   vaultIndex: number;
   /** Number of additional signing PDAs required by the transaction. */
   ephemeralSigners: number;
@@ -44,6 +48,7 @@ export function vaultTransactionCreate({
         multisigPda,
         transactionIndex,
         creator,
+        rentPayer,
         vaultIndex,
         ephemeralSigners,
         transactionMessage,

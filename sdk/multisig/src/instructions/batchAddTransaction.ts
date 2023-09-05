@@ -16,6 +16,7 @@ export function batchAddTransaction({
   vaultIndex,
   multisigPda,
   member,
+  rentPayer,
   batchIndex,
   transactionIndex,
   ephemeralSigners,
@@ -24,7 +25,10 @@ export function batchAddTransaction({
 }: {
   vaultIndex: number;
   multisigPda: PublicKey;
+  /** Member of the multisig that is adding the transaction. */
   member: PublicKey;
+  /** Payer for the transaction account rent. If not provided, `member` is used. */
+  rentPayer?: PublicKey;
   batchIndex: bigint;
   transactionIndex: number;
   /** Number of additional signing PDAs required by the transaction. */
@@ -64,6 +68,7 @@ export function batchAddTransaction({
       multisig: multisigPda,
       member,
       proposal: proposalPda,
+      rentPayer: rentPayer ?? member,
       batch: batchPda,
       transaction: batchTransactionPda,
     },
