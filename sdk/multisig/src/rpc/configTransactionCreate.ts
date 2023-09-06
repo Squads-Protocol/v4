@@ -16,6 +16,7 @@ export async function configTransactionCreate({
   multisigPda,
   transactionIndex,
   creator,
+  rentPayer,
   actions,
   memo,
   signers,
@@ -25,7 +26,10 @@ export async function configTransactionCreate({
   feePayer: Signer;
   multisigPda: PublicKey;
   transactionIndex: bigint;
+  /** Member of the multisig that is creating the transaction. */
   creator: PublicKey;
+  /** Payer for the transaction account rent. If not provided, `creator` is used. */
+  rentPayer?: PublicKey;
   actions: ConfigAction[];
   memo?: string;
   signers?: Signer[];
@@ -39,6 +43,7 @@ export async function configTransactionCreate({
     multisigPda,
     transactionIndex,
     creator,
+    rentPayer,
     actions,
     memo,
   });

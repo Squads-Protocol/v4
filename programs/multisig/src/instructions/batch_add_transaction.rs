@@ -21,10 +21,6 @@ pub struct BatchAddTransaction<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    /// Member of the multisig.
-    #[account(mut)]
-    pub member: Signer<'info>,
-
     /// The proposal account associated with the batch.
     #[account(
         seeds = [
@@ -53,7 +49,7 @@ pub struct BatchAddTransaction<'info> {
     /// `VaultBatchTransaction` account to initialize and add to the `batch`.
     #[account(
         init,
-        payer = member,
+        payer = rent_payer,
         space = VaultBatchTransaction::size(args.ephemeral_signers, &args.transaction_message)?,
         seeds = [
             SEED_PREFIX,
@@ -66,6 +62,13 @@ pub struct BatchAddTransaction<'info> {
         bump
     )]
     pub transaction: Account<'info, VaultBatchTransaction>,
+
+    /// Member of the multisig.
+    pub member: Signer<'info>,
+
+    /// The payer for the batch transaction account rent.
+    #[account(mut)]
+    pub rent_payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }

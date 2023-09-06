@@ -41,7 +41,8 @@ export const vaultTransactionCreateStruct = new beet.FixableBeetArgsStruct<
  *
  * @property [_writable_] multisig
  * @property [_writable_] transaction
- * @property [_writable_, **signer**] creator
+ * @property [**signer**] creator
+ * @property [_writable_, **signer**] rentPayer
  * @category Instructions
  * @category VaultTransactionCreate
  * @category generated
@@ -50,6 +51,7 @@ export type VaultTransactionCreateInstructionAccounts = {
   multisig: web3.PublicKey
   transaction: web3.PublicKey
   creator: web3.PublicKey
+  rentPayer: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -90,6 +92,11 @@ export function createVaultTransactionCreateInstruction(
     },
     {
       pubkey: accounts.creator,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.rentPayer,
       isWritable: true,
       isSigner: true,
     },

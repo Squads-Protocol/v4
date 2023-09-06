@@ -14,6 +14,7 @@ export function configTransactionCreate({
   blockhash,
   feePayer,
   creator,
+  rentPayer,
   multisigPda,
   transactionIndex,
   actions,
@@ -21,7 +22,10 @@ export function configTransactionCreate({
 }: {
   blockhash: string;
   feePayer: PublicKey;
+  /** Member of the multisig that is creating the transaction. */
   creator: PublicKey;
+  /** Payer for the transaction account rent. If not provided, `creator` is used. */
+  rentPayer?: PublicKey;
   multisigPda: PublicKey;
   transactionIndex: bigint;
   actions: ConfigAction[];
@@ -33,6 +37,7 @@ export function configTransactionCreate({
     instructions: [
       instructions.configTransactionCreate({
         creator,
+        rentPayer,
         multisigPda,
         transactionIndex,
         actions,

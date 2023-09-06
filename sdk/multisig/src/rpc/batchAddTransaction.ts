@@ -16,6 +16,7 @@ export async function batchAddTransaction({
   feePayer,
   multisigPda,
   member,
+  rentPayer,
   vaultIndex,
   batchIndex,
   transactionIndex,
@@ -28,7 +29,10 @@ export async function batchAddTransaction({
   connection: Connection;
   feePayer: Signer;
   multisigPda: PublicKey;
+  /** Member of the multisig that is adding the transaction. */
   member: Signer;
+  /** Payer for the transaction account rent. If not provided, `member` is used. */
+  rentPayer?: Signer;
   vaultIndex: number;
   batchIndex: bigint;
   transactionIndex: number;
@@ -46,6 +50,7 @@ export async function batchAddTransaction({
     feePayer: feePayer.publicKey,
     multisigPda,
     member: member.publicKey,
+    rentPayer: rentPayer?.publicKey ?? member.publicKey,
     vaultIndex,
     batchIndex,
     transactionIndex,
@@ -54,7 +59,14 @@ export async function batchAddTransaction({
     addressLookupTableAccounts,
   });
 
-  tx.sign([feePayer, member, ...(signers ?? [])]);
+  const allSigners = [feePayer, member];
+  if (signers) {
+    allSigners.push(...signers);
+  }
+  if (rentPayer) {
+    allSigners.push(rentPayer);
+  }
+  tx.sign(allSigners);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

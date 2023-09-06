@@ -22,7 +22,7 @@ pub struct ProposalCreate<'info> {
 
     #[account(
         init,
-        payer = creator,
+        payer = rent_payer,
         space = Proposal::size(multisig.members.len()),
         seeds = [
             SEED_PREFIX,
@@ -35,8 +35,12 @@ pub struct ProposalCreate<'info> {
     )]
     pub proposal: Account<'info, Proposal>,
 
-    #[account(mut)]
+    /// The member of the multisig that is creating the proposal.
     pub creator: Signer<'info>,
+
+    /// The payer for the proposal account rent.
+    #[account(mut)]
+    pub rent_payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }

@@ -24,9 +24,9 @@ pub struct VaultTransactionCreate<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account(
+    #[account( 
         init,
-        payer = creator,
+        payer = rent_payer,
         space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message)?,
         seeds = [
             SEED_PREFIX,
@@ -38,8 +38,12 @@ pub struct VaultTransactionCreate<'info> {
     )]
     pub transaction: Account<'info, VaultTransaction>,
 
-    #[account(mut)]
+    /// The member of the multisig that is creating the transaction.
     pub creator: Signer<'info>,
+
+    /// The payer for the transaction account rent.
+    #[account(mut)]
+    pub rent_payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }

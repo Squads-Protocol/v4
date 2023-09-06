@@ -11,6 +11,7 @@ export function vaultTransactionCreate({
   multisigPda,
   transactionIndex,
   creator,
+  rentPayer,
   vaultIndex,
   ephemeralSigners,
   transactionMessage,
@@ -20,6 +21,7 @@ export function vaultTransactionCreate({
   multisigPda: PublicKey;
   transactionIndex: bigint;
   creator: PublicKey;
+  rentPayer?: PublicKey;
   vaultIndex: number;
   /** Number of additional signing PDAs required by the transaction. */
   ephemeralSigners: number;
@@ -51,6 +53,7 @@ export function vaultTransactionCreate({
       multisig: multisigPda,
       transaction: transactionPda,
       creator,
+      rentPayer: rentPayer ?? creator,
     },
     {
       args: {

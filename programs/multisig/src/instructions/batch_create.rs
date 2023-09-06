@@ -19,12 +19,9 @@ pub struct BatchCreate<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account(mut)]
-    pub creator: Signer<'info>,
-
     #[account(
         init,
-        payer = creator,
+        payer = rent_payer,
         space = 8 + Batch::INIT_SPACE,
         seeds = [
             SEED_PREFIX,
@@ -35,6 +32,13 @@ pub struct BatchCreate<'info> {
         bump
     )]
     pub batch: Account<'info, Batch>,
+
+    /// The member of the multisig that is creating the batch.
+    pub creator: Signer<'info>,
+
+    /// The payer for the batch account rent.
+    #[account(mut)]
+    pub rent_payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }

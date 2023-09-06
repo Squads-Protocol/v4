@@ -15,6 +15,7 @@ export function batchCreate({
   multisigPda,
   batchIndex,
   creator,
+  rentPayer,
   vaultIndex,
   memo,
 }: {
@@ -22,7 +23,10 @@ export function batchCreate({
   feePayer: PublicKey;
   multisigPda: PublicKey;
   batchIndex: bigint;
+  /** Member of the multisig that is creating the batch. */
   creator: PublicKey;
+  /** Payer for the batch account rent. If not provided, `creator` is used. */
+  rentPayer?: PublicKey;
   vaultIndex: number;
   memo?: string;
 }): VersionedTransaction {
@@ -33,6 +37,7 @@ export function batchCreate({
       instructions.batchCreate({
         multisigPda,
         creator,
+        rentPayer: rentPayer ?? creator,
         batchIndex,
         vaultIndex,
         memo,

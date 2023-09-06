@@ -37,16 +37,18 @@ export const batchCreateStruct = new beet.FixableBeetArgsStruct<
  * Accounts required by the _batchCreate_ instruction
  *
  * @property [_writable_] multisig
- * @property [_writable_, **signer**] creator
  * @property [_writable_] batch
+ * @property [**signer**] creator
+ * @property [_writable_, **signer**] rentPayer
  * @category Instructions
  * @category BatchCreate
  * @category generated
  */
 export type BatchCreateInstructionAccounts = {
   multisig: web3.PublicKey
-  creator: web3.PublicKey
   batch: web3.PublicKey
+  creator: web3.PublicKey
+  rentPayer: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -81,14 +83,19 @@ export function createBatchCreateInstruction(
       isSigner: false,
     },
     {
-      pubkey: accounts.creator,
-      isWritable: true,
-      isSigner: true,
-    },
-    {
       pubkey: accounts.batch,
       isWritable: true,
       isSigner: false,
+    },
+    {
+      pubkey: accounts.creator,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.rentPayer,
+      isWritable: true,
+      isSigner: true,
     },
     {
       pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
