@@ -1,0 +1,21 @@
+[package]
+name = "squads-v3-sdk"
+version = "0.1.2"
+description = "An SDK for building automated programs on Solana"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+homepage = "https://squads.so"
+authors = ["Valentin Madrid <valentin@incility.com>"]
+repository = "https://github.com/Squads-Protocol/squads-mpl"
+documentation = "https://docs.squads.so"
+readme = "./README.md"
+keywords = ["solana", "multisig", "anchor", "squads", "cpi"]
+
+[lib]
+name = "squads_v3_sdk"
+
+[dependencies]
+multisig = { path = "../programs/multisig", features =["cpi"], version = "1.3.1"  } 
+
+[features]
+default = []
