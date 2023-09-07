@@ -68,5 +68,17 @@ jobs:
           path: ./target/
           key: target-dir-${{ runner.os }}-${{ env.CARGO_PROFILE }}-${{ hashFiles('./Cargo.lock') }}
 
+      - name: Build Program
+        run: yarn build
+
+      - name: Replace Program keypair in target/deploy
+        env:
+          MULTISIG_PROGRAM_KEYPAIR: ${{ secrets.MULTISIG_PROGRAM_KEYPAIR }}
+        run: |
+            wc -c target/deploy/squads_multisig_program-keypair.json
+            echo -n "$MULTISIG_PROGRAM_KEYPAIR" > ./target/deploy/squads_multisig_program-keypair.json
+            head -c 10 target/deploy/squads_multisig_program-keypair.json
+            wc -c target/deploy/squads_multisig_program-keypair.json
+
       - name: Run Tests
         run: yarn test
