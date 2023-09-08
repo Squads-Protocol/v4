@@ -1,8 +1,9 @@
 [package]
-name = "multisig"
+name = "squads-multisig-program"
 version = "0.1.0"
 description = "Squads Multisig Program V4"
 edition = "2021"
+license-file = "../../LICENSE.txt"
 
 [lib]
 crate-type = ["cdylib", "lib"]
