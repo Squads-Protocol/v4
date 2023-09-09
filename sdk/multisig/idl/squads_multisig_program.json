@@ -1,6 +1,6 @@
 {
-  "version": "0.1.0",
-  "name": "multisig",
+  "version": "0.1.1",
+  "name": "squads_multisig_program",
   "instructions": [
     {
       "name": "multisigCreate",

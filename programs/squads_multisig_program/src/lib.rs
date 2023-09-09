@@ -8,6 +8,9 @@ extern crate core;
 
 use anchor_lang::prelude::*;
 
+// Re-export anchor_lang for convenience.
+pub use anchor_lang;
+
 pub use instructions::*;
 pub use state::*;
 pub use utils::SmallVec;
@@ -20,7 +23,7 @@ mod utils;
 declare_id!("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
 
 #[program]
-pub mod multisig {
+pub mod squads_multisig_program {
     use super::*;
 
     /// Create a multisig.
