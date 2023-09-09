@@ -1338,15 +1338,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "multisig"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "solana-address-lookup-table-program",
-]
-
-[[package]]
 name = "num-derive"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2267,6 +2258,22 @@ dependencies = [
  "spl-memo",
  "spl-token",
  "thiserror",
+]
+
+[[package]]
+name = "squads-multisig"
+version = "0.0.3"
+dependencies = [
+ "squads-multisig-program",
+]
+
+[[package]]
+name = "squads-multisig-program"
+version = "0.1.1"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "solana-address-lookup-table-program",
 ]
 
 [[package]]

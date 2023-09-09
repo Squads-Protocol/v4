@@ -19,6 +19,10 @@ on:
         required: true
         type: string
 
+    secrets:
+      MULTISIG_PROGRAM_KEYPAIR:
+        required: true
+
 env:
   CACHE: inputs.cache
   SOLANA_CLI_VERSION: ${{ inputs.solana_cli_version }}
@@ -67,6 +71,13 @@ jobs:
         with:
           path: ./target/
           key: target-dir-${{ runner.os }}-${{ env.CARGO_PROFILE }}-${{ hashFiles('./Cargo.lock') }}
+
+      - name: Build Program
+        run: yarn build
+
+      - name: Replace Program keypair in target/deploy
+        run: |
+            echo -n "${{ secrets.MULTISIG_PROGRAM_KEYPAIR }}" > ./target/deploy/squads_multisig_program-keypair.json
 
       - name: Run Tests
         run: yarn test
