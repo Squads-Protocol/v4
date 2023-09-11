@@ -1,11 +1,11 @@
-pub mod pda;
-
 // Re-export dependencies for convenience
 pub use solana_client;
 
 pub use squads_multisig_program;
 pub use squads_multisig_program::anchor_lang;
 pub use squads_multisig_program::anchor_lang::solana_program;
+
+pub mod pda;
 
 pub mod error {
     use thiserror::Error;
