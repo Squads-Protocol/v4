@@ -1,3 +1,5 @@
+pub mod pda;
+
 // Re-export dependencies for convenience
 pub use solana_client;
 

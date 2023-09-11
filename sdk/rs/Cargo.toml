@@ -1,6 +1,6 @@
 [package]
 name = "squads-multisig"
-version = "0.0.4"
+version = "0.0.5"
 description = "An SDK for building automated programs on Solana"
 edition = "2021"
 license = "AGPL-3.0-or-later"
