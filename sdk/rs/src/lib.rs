@@ -70,7 +70,7 @@ pub mod client {
     use squads_multisig_program::Multisig;
 
     use crate::anchor_lang::prelude::Pubkey;
-    use crate::anchor_lang::AnchorDeserialize;
+    use crate::anchor_lang::AccountDeserialize;
     use crate::anchor_lang::{
         solana_program::instruction::Instruction, InstructionData, ToAccountMetas,
     };
@@ -84,7 +84,7 @@ pub mod client {
     ) -> ClientResult<Multisig> {
         let multisig_account = rpc_client.get_account(multisig_key).await?;
 
-        let multisig = Multisig::try_from_slice(&multisig_account.data)
+        let multisig = Multisig::try_deserialize(&mut multisig_account.data.as_slice())
             .map_err(|_| ClientError::DeserializationError)?;
 
         Ok(multisig)
