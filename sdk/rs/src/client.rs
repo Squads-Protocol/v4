@@ -3,12 +3,18 @@ use solana_client::nonblocking::rpc_client::RpcClient;
 pub use squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
 pub use squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 pub use squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
+pub use squads_multisig_program::accounts::SpendingLimitUse as SpendingLimitUseAccounts;
+pub use squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
 pub use squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
 pub use squads_multisig_program::instruction::ProposalApprove as ProposalApproveData;
 pub use squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
+pub use squads_multisig_program::instruction::SpendingLimitUse as SpendingLimitUseData;
+pub use squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
 pub use squads_multisig_program::instructions::ConfigTransactionCreateArgs;
 pub use squads_multisig_program::instructions::ProposalCreateArgs;
 pub use squads_multisig_program::instructions::ProposalVoteArgs;
+pub use squads_multisig_program::instructions::SpendingLimitUseArgs;
+pub use squads_multisig_program::instructions::VaultTransactionCreateArgs;
 use squads_multisig_program::Multisig;
 
 use crate::anchor_lang::prelude::Pubkey;
@@ -146,6 +152,107 @@ pub fn proposal_approve(
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
         data: data.data(),
+        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+    }
+}
+
+/// Use a Spending Limit to transfer tokens from a multisig vault to a destination account.
+/// Example:
+/// ```
+/// use squads_multisig::solana_program::pubkey::Pubkey;
+/// use squads_multisig::solana_program::system_program;
+/// use squads_multisig::solana_program::native_token::LAMPORTS_PER_SOL;
+/// use squads_multisig::client::{
+///     SpendingLimitUseAccounts,
+///     SpendingLimitUseData,
+///     SpendingLimitUseArgs,
+///     spending_limit_use,
+/// };
+///
+/// let ix = spending_limit_use(
+///     SpendingLimitUseAccounts {
+///         multisig: Pubkey::new_unique(),
+///         member: Pubkey::new_unique(),
+///         spending_limit: Pubkey::new_unique(),
+///         vault: Pubkey::new_unique(),
+///         destination: Pubkey::new_unique(),
+///         system_program: Some(system_program::id()),
+///         mint: None,
+///         vault_token_account: None,
+///         destination_token_account: None,
+///         token_program: None,
+///     },
+///     SpendingLimitUseData {
+///         args: SpendingLimitUseArgs {
+///             amount: 1 * LAMPORTS_PER_SOL,
+///             decimals: 9,
+///             memo: None
+///         }
+///     },
+///     None,
+/// );
+/// ```
+///
+pub fn spending_limit_use(
+    accounts: SpendingLimitUseAccounts,
+    data: SpendingLimitUseData,
+    program_id: Option<Pubkey>,
+) -> Instruction {
+    Instruction {
+        accounts: accounts.to_account_metas(Some(false)),
+        data: data.data(),
+        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+    }
+}
+
+/// Creates a new vault transaction.
+/// Example:
+/// ```
+/// use squads_multisig::anchor_lang::AnchorSerialize;
+/// use squads_multisig::solana_program::pubkey::Pubkey;
+/// use squads_multisig::solana_program::system_program;
+/// use squads_multisig::client::{
+///     VaultTransactionCreateAccounts,
+///     VaultTransactionCreateData,
+///     VaultTransactionCreateArgs,
+///     vault_transaction_create,
+/// };
+/// use squads_multisig_program::TransactionMessage;
+///
+/// let message = TransactionMessage {
+///     num_signers: 1,
+///     num_writable_signers: 1,
+///     num_writable_non_signers: 2,
+///     account_keys: vec![].into(),
+///     instructions: vec![].into(),
+///     address_table_lookups: vec![].into(),
+/// }.try_to_vec().unwrap();
+///
+/// let ix = vault_transaction_create(
+///     VaultTransactionCreateAccounts {
+///         multisig: Pubkey::new_unique(),
+///         transaction: Pubkey::new_unique(),
+///         creator: Pubkey::new_unique(),
+///         rent_payer: Pubkey::new_unique(),
+///         system_program: system_program::id(),
+///     },
+///     VaultTransactionCreateArgs {
+///         vault_index: 0,
+///         ephemeral_signers: 0,
+///         transaction_message: message,
+///         memo: None,
+///     },
+///     None
+/// );
+/// ```
+pub fn vault_transaction_create(
+    accounts: VaultTransactionCreateAccounts,
+    args: VaultTransactionCreateArgs,
+    program_id: Option<Pubkey>,
+) -> Instruction {
+    Instruction {
+        accounts: accounts.to_account_metas(Some(false)),
+        data: VaultTransactionCreateData { args }.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
 }

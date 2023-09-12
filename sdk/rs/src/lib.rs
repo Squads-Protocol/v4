@@ -24,11 +24,13 @@ pub mod error {
 pub type ClientResult<T> = Result<T, error::ClientError>;
 
 pub mod state {
+    pub use squads_multisig_program::instructions::TransactionMessage;
     pub use squads_multisig_program::state::{
         Batch, ConfigAction, ConfigTransaction, Member, Multisig, MultisigCompiledInstruction,
         MultisigMessageAddressTableLookup, Period, Permission, Permissions, Proposal,
-        ProposalStatus,
+        ProposalStatus, VaultTransactionMessage,
     };
+    pub use squads_multisig_program::SmallVec;
 }
 
 pub mod cpi {
