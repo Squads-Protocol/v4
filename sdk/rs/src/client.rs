@@ -43,7 +43,6 @@ pub async fn get_multisig(rpc_client: &RpcClient, multisig_key: &Pubkey) -> Clie
 /// use squads_multisig::state::ConfigAction;
 /// use squads_multisig::client::{
 ///     ConfigTransactionCreateAccounts,
-///     ConfigTransactionCreateData,
 ///     ConfigTransactionCreateArgs,
 ///     config_transaction_create
 /// };
@@ -56,11 +55,9 @@ pub async fn get_multisig(rpc_client: &RpcClient, multisig_key: &Pubkey) -> Clie
 ///         transaction: Pubkey::new_unique(),
 ///         system_program: system_program::id(),
 ///     },
-///     ConfigTransactionCreateData {
-///         args: ConfigTransactionCreateArgs {
-///             actions: vec![ConfigAction::ChangeThreshold { new_threshold: 2 }],
-///             memo: None,
-///         },
+///     ConfigTransactionCreateArgs {
+///         actions: vec![ConfigAction::ChangeThreshold { new_threshold: 2 }],
+///         memo: None,
 ///     },
 ///     Some(squads_multisig_program::ID)
 /// );
@@ -68,12 +65,12 @@ pub async fn get_multisig(rpc_client: &RpcClient, multisig_key: &Pubkey) -> Clie
 ///
 pub fn config_transaction_create(
     accounts: ConfigTransactionCreateAccounts,
-    data: ConfigTransactionCreateData,
+    args: ConfigTransactionCreateArgs,
     program_id: Option<Pubkey>,
 ) -> Instruction {
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
-        data: data.data(),
+        data: ConfigTransactionCreateData { args }.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
 }
@@ -86,7 +83,6 @@ pub fn config_transaction_create(
 /// use squads_multisig::state::ConfigAction;
 /// use squads_multisig::client::{
 ///     ProposalCreateAccounts,
-///     ProposalCreateData,
 ///     ProposalCreateArgs,
 ///     proposal_create
 /// };
@@ -99,11 +95,9 @@ pub fn config_transaction_create(
 ///         rent_payer: Pubkey::new_unique(),
 ///         system_program: system_program::id(),
 ///     },
-///     ProposalCreateData {
-///         args: ProposalCreateArgs {
-///             transaction_index: 0,
+///     ProposalCreateArgs {
+///         transaction_index: 0,
 ///             draft: false,
-///         },
 ///     },
 ///     Some(squads_multisig_program::ID)
 /// );
@@ -111,12 +105,12 @@ pub fn config_transaction_create(
 ///
 pub fn proposal_create(
     accounts: ProposalCreateAccounts,
-    data: ProposalCreateData,
+    args: ProposalCreateArgs,
     program_id: Option<Pubkey>,
 ) -> Instruction {
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
-        data: data.data(),
+        data: ProposalCreateData { args }.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
 }
@@ -127,7 +121,6 @@ pub fn proposal_create(
 /// use squads_multisig::solana_program::pubkey::Pubkey;
 /// use squads_multisig::client::{
 ///     ProposalVoteAccounts,
-///     ProposalApproveData,
 ///     ProposalVoteArgs,
 ///     proposal_approve,
 /// };
@@ -138,20 +131,18 @@ pub fn proposal_create(
 ///         proposal: Pubkey::new_unique(),
 ///         member: Pubkey::new_unique(),
 ///     },
-///     ProposalApproveData {
-///         args: ProposalVoteArgs { memo: None }
-///     },
+///     ProposalVoteArgs { memo: None },
 ///     Some(squads_multisig_program::ID)
 /// );
 /// ```
 pub fn proposal_approve(
     accounts: ProposalVoteAccounts,
-    data: ProposalApproveData,
+    args: ProposalVoteArgs,
     program_id: Option<Pubkey>,
 ) -> Instruction {
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
-        data: data.data(),
+        data: ProposalApproveData { args }.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
 }
@@ -164,7 +155,6 @@ pub fn proposal_approve(
 /// use squads_multisig::solana_program::native_token::LAMPORTS_PER_SOL;
 /// use squads_multisig::client::{
 ///     SpendingLimitUseAccounts,
-///     SpendingLimitUseData,
 ///     SpendingLimitUseArgs,
 ///     spending_limit_use,
 /// };
@@ -182,12 +172,10 @@ pub fn proposal_approve(
 ///         destination_token_account: None,
 ///         token_program: None,
 ///     },
-///     SpendingLimitUseData {
-///         args: SpendingLimitUseArgs {
-///             amount: 1 * LAMPORTS_PER_SOL,
-///             decimals: 9,
-///             memo: None
-///         }
+///     SpendingLimitUseArgs {
+///         amount: 1 * LAMPORTS_PER_SOL,
+///         decimals: 9,
+///         memo: None
 ///     },
 ///     None,
 /// );
@@ -195,12 +183,12 @@ pub fn proposal_approve(
 ///
 pub fn spending_limit_use(
     accounts: SpendingLimitUseAccounts,
-    data: SpendingLimitUseData,
+    args: SpendingLimitUseArgs,
     program_id: Option<Pubkey>,
 ) -> Instruction {
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
-        data: data.data(),
+        data: SpendingLimitUseData { args }.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
 }
@@ -213,7 +201,6 @@ pub fn spending_limit_use(
 /// use squads_multisig::solana_program::system_program;
 /// use squads_multisig::client::{
 ///     VaultTransactionCreateAccounts,
-///     VaultTransactionCreateData,
 ///     VaultTransactionCreateArgs,
 ///     vault_transaction_create,
 /// };
