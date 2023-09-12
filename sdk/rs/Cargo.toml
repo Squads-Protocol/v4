@@ -1,6 +1,6 @@
 [package]
 name = "squads-multisig"
-version = "0.0.8"
+version = "0.0.9"
 description = "An SDK for building automated programs on Solana"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -14,7 +14,7 @@ keywords = ["solana", "multisig", "anchor", "squads", "cpi"]
 name = "squads_multisig"
 
 [dependencies]
-squads-multisig-program = { path = "../../programs/squads_multisig_program", features =["cpi", "no-entrypoint"], version = "0.1.1" }
+squads-multisig-program = { path = "../../programs/squads_multisig_program", features =["cpi", "no-entrypoint"], version = "0.1.2" }
 solana-client = "1.14.16"
 thiserror = "1.0.48"
 
