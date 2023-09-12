@@ -5,6 +5,7 @@ pub use squads_multisig_program;
 pub use squads_multisig_program::anchor_lang;
 pub use squads_multisig_program::anchor_lang::solana_program;
 
+pub mod client;
 pub mod pda;
 
 pub mod error {
@@ -58,79 +59,5 @@ pub mod cpi {
                 memo,
             },
         )
-    }
-}
-
-pub mod client {
-    use solana_client::nonblocking::rpc_client::RpcClient;
-
-    pub use squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
-    pub use squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
-    pub use squads_multisig_program::instructions::ConfigTransactionCreateArgs;
-    use squads_multisig_program::Multisig;
-
-    use crate::anchor_lang::prelude::Pubkey;
-    use crate::anchor_lang::AccountDeserialize;
-    use crate::anchor_lang::{
-        solana_program::instruction::Instruction, InstructionData, ToAccountMetas,
-    };
-    use crate::error::ClientError;
-    use crate::ClientResult;
-
-    /// Gets a `Multisig` account from the chain.
-    pub async fn get_multisig(
-        rpc_client: &RpcClient,
-        multisig_key: &Pubkey,
-    ) -> ClientResult<Multisig> {
-        let multisig_account = rpc_client.get_account(multisig_key).await?;
-
-        let multisig = Multisig::try_deserialize(&mut multisig_account.data.as_slice())
-            .map_err(|_| ClientError::DeserializationError)?;
-
-        Ok(multisig)
-    }
-
-    /// Creates a new multisig config transaction.
-    /// Example:
-    /// ```
-    /// use squads_multisig::solana_program::pubkey::Pubkey;
-    /// use squads_multisig::state::ConfigAction;
-    /// use squads_multisig::client::{
-    ///     ConfigTransactionCreateAccounts,
-    ///     ConfigTransactionCreateData,
-    ///     ConfigTransactionCreateArgs,
-    ///     create_config_transaction
-    /// };
-    ///
-    /// let data = ConfigTransactionCreateData {
-    ///     args: ConfigTransactionCreateArgs {
-    ///         actions: vec![ConfigAction::ChangeThreshold {
-    ///         new_threshold: 2,
-    ///     }],
-    ///     memo: None,
-    ///  },
-    /// };
-    ///
-    /// let accounts = ConfigTransactionCreateAccounts {
-    ///     multisig: Pubkey::new_unique(),
-    ///     creator: Pubkey::new_unique(),
-    ///     rent_payer: Pubkey::new_unique(),
-    ///     system_program: Pubkey::new_unique(),
-    ///     transaction: Pubkey::new_unique(),
-    /// };
-    ///
-    /// let ix = create_config_transaction(accounts, data, Some(squads_multisig_program::ID));
-    /// ```
-    ///
-    pub fn create_config_transaction(
-        accounts: ConfigTransactionCreateAccounts,
-        data: ConfigTransactionCreateData,
-        program_id: Option<Pubkey>,
-    ) -> Instruction {
-        Instruction {
-            accounts: accounts.to_account_metas(Some(false)),
-            data: data.data(),
-            program_id: program_id.unwrap_or(squads_multisig_program::ID),
-        }
     }
 }
