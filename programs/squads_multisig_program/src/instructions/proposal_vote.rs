@@ -31,8 +31,6 @@ pub struct ProposalVote<'info> {
         bump = proposal.bump,
     )]
     pub proposal: Account<'info, Proposal>,
-
-    pub system_program: Program<'info, System>,
 }
 
 impl ProposalVote<'_> {

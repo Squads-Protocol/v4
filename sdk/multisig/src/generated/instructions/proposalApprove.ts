@@ -50,7 +50,6 @@ export type ProposalApproveInstructionAccounts = {
   multisig: web3.PublicKey
   member: web3.PublicKey
   proposal: web3.PublicKey
-  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
@@ -91,11 +90,6 @@ export function createProposalApproveInstruction(
     {
       pubkey: accounts.proposal,
       isWritable: true,
-      isSigner: false,
-    },
-    {
-      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
-      isWritable: false,
       isSigner: false,
     },
   ]
