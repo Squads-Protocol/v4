@@ -3532,7 +3532,7 @@ dependencies = [
 
 [[package]]
 name = "squads-multisig"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "solana-client",
  "squads-multisig-program",
@@ -3541,7 +3541,7 @@ dependencies = [
 
 [[package]]
 name = "squads-multisig-program"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
