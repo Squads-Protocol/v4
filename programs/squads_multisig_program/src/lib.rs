@@ -55,6 +55,14 @@ pub mod squads_multisig_program {
         MultisigConfig::multisig_set_time_lock(ctx, args)
     }
 
+    /// Set the `threshold` config parameter for the controlled multisig.
+    pub fn multisig_change_threshold(
+        ctx: Context<MultisigConfig>,
+        args: MultisigChangeThresholdArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_change_threshold(ctx, args)
+    }
+
     /// Set the multisig `config_authority`.
     pub fn multisig_set_config_authority(
         ctx: Context<MultisigConfig>,

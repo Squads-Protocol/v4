@@ -193,6 +193,55 @@
       ]
     },
     {
+      "name": "multisigChangeThreshold",
+      "docs": [
+        "Set the `threshold` config parameter for the controlled multisig."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "isOptional": true,
+          "docs": [
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigChangeThresholdArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "multisigSetConfigAuthority",
       "docs": [
         "Set the multisig `config_authority`."
