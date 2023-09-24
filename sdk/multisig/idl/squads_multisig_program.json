@@ -1,5 +1,5 @@
 {
-  "version": "0.1.2",
+  "version": "0.2.0",
   "name": "squads_multisig_program",
   "instructions": [
     {
@@ -16,9 +16,10 @@
         {
           "name": "createKey",
           "isMut": false,
-          "isSigner": false,
+          "isSigner": true,
           "docs": [
-            "A random public key that is used as a seed for the Multisig PDA."
+            "An ephemeral signer that is used as a seed for the Multisig PDA.",
+            "Must be a signer to prevent front-running attack by someone else but the original creator."
           ]
         },
         {
@@ -187,6 +188,55 @@
           "name": "args",
           "type": {
             "defined": "MultisigSetTimeLockArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisigChangeThreshold",
+      "docs": [
+        "Set the `threshold` config parameter for the controlled multisig."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "isOptional": true,
+          "docs": [
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigChangeThresholdArgs"
           }
         }
       ]
@@ -2406,6 +2456,11 @@
       "code": 6029,
       "name": "ProtectedAccount",
       "msg": "Account is protected, it cannot be passed into a CPI as writable"
+    },
+    {
+      "code": 6030,
+      "name": "TimeLockExceedsMaxAllowed",
+      "msg": "Time lock exceeds the maximum allowed (90 days)"
     }
   ],
   "metadata": {

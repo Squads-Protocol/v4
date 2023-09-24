@@ -1,6 +1,6 @@
 [package]
 name = "squads-multisig-program"
-version = "0.1.2"
+version = "0.2.0"
 description = "Squads Multisig Program V4"
 edition = "2021"
 license-file = "../../LICENSE"
@@ -20,3 +20,4 @@ default = []
 anchor-lang = { version = "=0.27.0", features = ["allow-missing-optionals"] }
 anchor-spl = { version="=0.27.0", features=["token"] }
 solana-address-lookup-table-program = "=1.14.16"
+solana-security-txt = "1.1.1"

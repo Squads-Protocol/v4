@@ -5,6 +5,8 @@ use anchor_lang::system_program;
 
 use crate::errors::*;
 
+pub const MAX_TIME_LOCK: u32 = 3 * 30 * 24 * 60 * 60; // 3 months
+
 #[account]
 pub struct Multisig {
     /// Key that is used to seed the multisig PDA.
@@ -167,6 +169,12 @@ impl Multisig {
         require!(
             stale_transaction_index <= transaction_index,
             MultisigError::InvalidStaleTransactionIndex
+        );
+
+        // Time Lock must not exceed the maximum allowed to prevent bricking the multisig.
+        require!(
+            self.time_lock <= MAX_TIME_LOCK,
+            MultisigError::TimeLockExceedsMaxAllowed
         );
 
         Ok(())
