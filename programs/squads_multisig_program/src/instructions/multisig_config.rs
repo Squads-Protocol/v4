@@ -105,9 +105,9 @@ impl MultisigConfig<'_> {
 
         multisig.add_member(new_member);
 
-        multisig.invariant()?;
-
         multisig.invalidate_prior_transactions();
+
+        multisig.invariant()?;
 
         Ok(())
     }
@@ -136,9 +136,9 @@ impl MultisigConfig<'_> {
                 .expect("didn't expect more that `u16::MAX` members");
         };
 
-        multisig.invariant()?;
-
         multisig.invalidate_prior_transactions();
+
+        multisig.invariant()?;
 
         Ok(())
     }
@@ -156,9 +156,9 @@ impl MultisigConfig<'_> {
 
         multisig.threshold = new_threshold;
 
-        multisig.invariant()?;
-
         multisig.invalidate_prior_transactions();
+
+        multisig.invariant()?;
 
         Ok(())
     }
@@ -173,9 +173,9 @@ impl MultisigConfig<'_> {
 
         multisig.time_lock = args.time_lock;
 
-        multisig.invariant()?;
-
         multisig.invalidate_prior_transactions();
+
+        multisig.invariant()?;
 
         Ok(())
     }
@@ -193,9 +193,9 @@ impl MultisigConfig<'_> {
 
         multisig.config_authority = args.config_authority;
 
-        multisig.invariant()?;
-
         multisig.invalidate_prior_transactions();
+
+        multisig.invariant()?;
 
         Ok(())
     }
