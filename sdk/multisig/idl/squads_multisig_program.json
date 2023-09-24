@@ -16,9 +16,10 @@
         {
           "name": "createKey",
           "isMut": false,
-          "isSigner": false,
+          "isSigner": true,
           "docs": [
-            "A random public key that is used as a seed for the Multisig PDA."
+            "An ephemeral signer that is used as a seed for the Multisig PDA.",
+            "Must be a signer to prevent front-running attack by someone else but the original creator."
           ]
         },
         {
