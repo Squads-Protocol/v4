@@ -62,4 +62,6 @@ pub enum MultisigError {
     UnknownPermission,
     #[msg("Account is protected, it cannot be passed into a CPI as writable")]
     ProtectedAccount,
+    #[msg("Time lock exceeds the maximum allowed (90 days)")]
+    TimeLockExceedsMaxAllowed,
 }

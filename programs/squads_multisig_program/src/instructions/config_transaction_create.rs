@@ -44,7 +44,7 @@ pub struct ConfigTransactionCreate<'info> {
 }
 
 impl ConfigTransactionCreate<'_> {
-    fn validate(&self) -> Result<()> {
+    fn validate(&self, args: &ConfigTransactionCreateArgs) -> Result<()> {
         // multisig
         require_keys_eq!(
             self.multisig.config_authority,
@@ -63,17 +63,30 @@ impl ConfigTransactionCreate<'_> {
             MultisigError::Unauthorized
         );
 
+        // args
+
+        // Config transaction must have at least one action
+        require!(!args.actions.is_empty(), MultisigError::NoActions);
+
+        // time_lock must not exceed the maximum allowed.
+        for action in &args.actions {
+            if let ConfigAction::SetTimeLock { new_time_lock, .. } = action {
+                require!(
+                    *new_time_lock <= MAX_TIME_LOCK,
+                    MultisigError::TimeLockExceedsMaxAllowed
+                );
+            }
+        }
+
         Ok(())
     }
 
     /// Create a new config transaction.
-    #[access_control(ctx.accounts.validate())]
+    #[access_control(ctx.accounts.validate(&args))]
     pub fn config_transaction_create(
         ctx: Context<Self>,
         args: ConfigTransactionCreateArgs,
     ) -> Result<()> {
-        require!(!args.actions.is_empty(), MultisigError::NoActions);
-
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &mut ctx.accounts.transaction;
         let creator = &mut ctx.accounts.creator;
