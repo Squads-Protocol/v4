@@ -79,6 +79,7 @@ impl BatchAddTransaction<'_> {
             multisig,
             member,
             proposal,
+            batch,
             ..
         } = self;
 
@@ -91,6 +92,8 @@ impl BatchAddTransaction<'_> {
             multisig.member_has_permission(member.key(), Permission::Initiate),
             MultisigError::Unauthorized
         );
+        // Only batch creator can add transactions to it.
+        require!(member.key() == batch.creator, MultisigError::Unauthorized);
 
         // `proposal`
         require!(
