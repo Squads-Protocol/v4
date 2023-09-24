@@ -677,6 +677,32 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * TimeLockExceedsMaxAllowed: 'Time lock exceeds the maximum allowed (90 days)'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TimeLockExceedsMaxAllowedError extends Error {
+  readonly code: number = 0x178e
+  readonly name: string = 'TimeLockExceedsMaxAllowed'
+  constructor() {
+    super('Time lock exceeds the maximum allowed (90 days)')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TimeLockExceedsMaxAllowedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x178e,
+  () => new TimeLockExceedsMaxAllowedError()
+)
+createErrorFromNameLookup.set(
+  'TimeLockExceedsMaxAllowed',
+  () => new TimeLockExceedsMaxAllowedError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated
