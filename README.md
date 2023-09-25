@@ -1,14 +1,78 @@
-# Squads Multisig Program V4
+# Squads V4 program
 
-## Build Verification
+The Squads V4 program is the latest release of the Squads multisig protocol. This program was designed to be used as a solution for on-chain treasury and smart contract management on Solana, as well as for a variety of Fintech applications that require strong security fundamentals.
 
-You can use [Solana Verify CLI](https://github.com/Ellipsis-Labs/solana-verifiable-build) to verify that the program deployed at `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf` matches the code in this repository. After installing the CLI, run:
+## Content
+
+This repository contains:
+
+ - The Squads Protocol V4 Solana program.
+ - The `@sqds/multisig` Typescript SDK to interact with the Squads V4 program.
+ - The `squads-multisig` crate to interact with the Squads V4 program in Solana programs as well as Rust client applications.
+
+## Smart contract Adresses
+
+The Squads Protocol V4 program is deployed to:
+
+ - Solana Mainnet-beta: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
+ - Solana Devnet: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
+
+Both deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
+
+### Compiling and testing
+
+You can compile the code with Anchor.
+```
+anchor build
+```
+If you do not have the Solana Anchor framework CLI installed, you can do so by following [this guide](https://www.anchor-lang.com/docs/installation).
+
+To deploy the program on a local validator instance for testing or development purposes, you can create a local instance by running this command from the [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools).
+```
+solana-test-validator
+```
+To run the tests, first install the node modules for the repository.
+```
+yarn
+```
+or 
+```
+npm install
+```
+And run these tests with this command:
+```
+yarn test
+```
+
+### Verifying the code
+First, compile the programs code from the `Squads-Protocol/v4` Github repository to get its bytecode.
+```
+git clone https://github.com/Squads-Protocol/v4.git
+```
 
 ```
-solana-verify verify-from-repo --current-dir -um --library-name multisig --program-id SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf https://github.com/Squads-Protocol/v4
+anchor build
 ```
+Now, install the [Ellipsis Labs verifiable build](https://crates.io/crates/solana-verify) crate.
+```
+cargo install solana-verify
+```
+Get the executable hash of the bytecode from the  Squads program that was compiled.
+```
+solana-verify get-executable-hash target/deploy/multisig.so
+```
+Get the hash from the bytecode of the on-chain Squads program you want to verify.
+```
+solana-verify get-program-hash -u <cluster url> SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf
+```
+If the hash outputs of those two commands match, the code in the repository matches the on-chain programs code.
 
-This may take a while as it builds the program inside Docker, then verifies that the build hash matches the deployed program hash. The verification process is much faster on a non-ARM machine.
+
+## Usage
+Instructions on how to interact with the Squads V4 program can be found in [the Squads developer portal](https://developers.squads.so).
+
+## Security
+The Squads protocol has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
 
 
 ## License
