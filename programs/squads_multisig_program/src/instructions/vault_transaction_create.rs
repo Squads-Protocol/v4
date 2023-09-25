@@ -92,7 +92,6 @@ impl VaultTransactionCreate<'_> {
         let (_, vault_bump) = Pubkey::find_program_address(vault_seeds, ctx.program_id);
 
         let ephemeral_signer_bumps: Vec<u8> = (0..args.ephemeral_signers)
-            .into_iter()
             .map(|ephemeral_signer_index| {
                 let ephemeral_signer_seeds = &[
                     SEED_PREFIX,

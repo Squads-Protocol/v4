@@ -77,7 +77,7 @@ jobs:
 
       - name: Replace Program keypair in target/deploy
         run: |
-            echo -n "${{ secrets.MULTISIG_PROGRAM_KEYPAIR }}" > ./target/deploy/squads_multisig_program-keypair.json
+          echo -n "${{ secrets.MULTISIG_PROGRAM_KEYPAIR }}" > ./target/deploy/squads_multisig_program-keypair.json
 
       - name: Run Tests
         run: yarn test

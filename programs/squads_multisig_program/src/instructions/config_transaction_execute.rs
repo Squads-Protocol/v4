@@ -172,9 +172,9 @@ impl<'info> ConfigTransactionExecute<'info> {
                 } => {
                     let (spending_limit_key, spending_limit_bump) = Pubkey::find_program_address(
                         &[
-                            &SEED_PREFIX,
+                            SEED_PREFIX,
                             multisig.key().as_ref(),
-                            &SEED_SPENDING_LIMIT,
+                            SEED_SPENDING_LIMIT,
                             create_key.as_ref(),
                         ],
                         ctx.program_id,
