@@ -59,7 +59,7 @@ impl MultisigCreate<'_> {
         multisig.time_lock = args.time_lock;
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;
-        multisig.create_key = ctx.accounts.create_key.to_account_info().key();
+        multisig.create_key = ctx.accounts.create_key.key();
         multisig.bump = *ctx.bumps.get("multisig").unwrap();
         multisig.members = members;
 
