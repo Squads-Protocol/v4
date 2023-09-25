@@ -15,4 +15,4 @@ runs:
       with:
         profile: minimal
         toolchain: stable
-        components: clippy-preview
+        components: rustfmt, clippy
