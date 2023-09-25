@@ -14,4 +14,4 @@ runs:
       name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
-        components: clippy
+        components: clippy-preview
