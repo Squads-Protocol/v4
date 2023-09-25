@@ -10,7 +10,8 @@ runs:
         path: ~/.rustup
         key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain') }}
 
-    - name: Install Rust toolchain
+    - if: ${{ steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
+      name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
