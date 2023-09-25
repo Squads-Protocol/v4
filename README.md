@@ -74,12 +74,6 @@ Instructions on how to interact with the Squads V4 program can be found in [the 
 ## Security
 The Squads protocol has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
 
-Here is a list of the reports:
-
-TO DO!!
- - Trail of Bits:
- - Neodyme
- - XYZ
 
 ## License
 
