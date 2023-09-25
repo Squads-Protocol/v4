@@ -196,9 +196,9 @@ impl SpendingLimitUse<'_> {
                         to: destination.clone(),
                     },
                     &[&[
-                        &SEED_PREFIX,
+                        SEED_PREFIX,
                         multisig_key.as_ref(),
-                        &SEED_VAULT,
+                        SEED_VAULT,
                         &spending_limit.vault_index.to_le_bytes(),
                         &[vault_bump],
                     ]],
@@ -248,9 +248,9 @@ impl SpendingLimitUse<'_> {
                         authority: vault.clone(),
                     },
                     &[&[
-                        &SEED_PREFIX,
+                        SEED_PREFIX,
                         multisig_key.as_ref(),
-                        &SEED_VAULT,
+                        SEED_VAULT,
                         &spending_limit.vault_index.to_le_bytes(),
                         &[vault_bump],
                     ]],

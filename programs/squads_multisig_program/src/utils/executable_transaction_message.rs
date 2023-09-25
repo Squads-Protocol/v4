@@ -218,17 +218,17 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     /// 3. All loaded readonly accounts.
     fn get_account_by_index(&self, index: usize) -> Result<&'a AccountInfo<'info>> {
         if index < self.static_accounts.len() {
-            return Ok(&self.static_accounts[index]);
+            return Ok(self.static_accounts[index]);
         }
 
         let index = index - self.static_accounts.len();
         if index < self.loaded_writable_accounts.len() {
-            return Ok(&self.loaded_writable_accounts[index]);
+            return Ok(self.loaded_writable_accounts[index]);
         }
 
         let index = index - self.loaded_writable_accounts.len();
         if index < self.loaded_readonly_accounts.len() {
-            return Ok(&self.loaded_readonly_accounts[index]);
+            return Ok(self.loaded_readonly_accounts[index]);
         }
 
         Err(MultisigError::InvalidTransactionMessage.into())

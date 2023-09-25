@@ -118,7 +118,6 @@ impl BatchAddTransaction<'_> {
             TransactionMessage::deserialize(&mut args.transaction_message.as_slice())?;
 
         let ephemeral_signer_bumps: Vec<u8> = (0..args.ephemeral_signers)
-            .into_iter()
             .map(|ephemeral_signer_index| {
                 let ephemeral_signer_seeds = &[
                     SEED_PREFIX,
