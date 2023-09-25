@@ -19,11 +19,37 @@ The Squads Protocol V4 program is deployed to:
 
 Both deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
 
+### Compiling and testing
+
+You can compile the code with Anchor.
+```
+anchor build
+```
+If you do not have the Solana Anchor framework CLI installed, you can do so by following [this guide](https://www.anchor-lang.com/docs/installation).
+
+To deploy the program on a local validator instance for testing or development purposes, you can create a local instance by running this command from the [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools).
+```
+solana-test-validator
+```
+To run the tests, first install the node modules for the repository.
+```
+yarn
+```
+or 
+```
+npm install
+```
+And run these tests with this command:
+```
+yarn test
+```
+
 ### Verifying the code
 First, compile the programs code from the `Squads-Protocol/v4` Github repository to get its bytecode.
 ```
 git clone https://github.com/Squads-Protocol/v4.git
 ```
+
 ```
 anchor build
 ```
@@ -41,6 +67,7 @@ solana-verify get-program-hash -u <cluster url> SQDS4ep65T869zMMBKyuUq6aD6EgTu8p
 ```
 If the hash outputs of those two commands match, the code in the repository matches the on-chain programs code.
 
+
 ## Usage
 Instructions on how to interact with the Squads V4 program can be found in [the Squads developer portal](https://developers.squads.so).
 
@@ -49,7 +76,8 @@ The Squads protocol has undergone various independent audits by leading cybersec
 
 Here is a list of the reports:
 
- - Trails of Bits:
+TO DO!!
+ - Trail of Bits:
  - Neodyme
  - XYZ
 
