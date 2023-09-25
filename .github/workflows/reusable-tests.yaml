@@ -72,8 +72,8 @@ jobs:
           path: ./target/
           key: target-dir-${{ runner.os }}-${{ env.CARGO_PROFILE }}-${{ hashFiles('./Cargo.lock') }}
 
-      - name: Run Cargo Check
-        run: cargo check
+      - name: Run Cargo Clippy
+        run: cargo clippy
 
       - name: Build Program
         run: yarn build
