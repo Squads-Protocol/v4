@@ -725,6 +725,22 @@ describe("Multisig SDK", () => {
         /Attempted to perform an unauthorized action/;
     });
 
+    it("error: change threshold to higher amount than members", async () => {
+      const nonMember = await generateFundedKeypair(connection);
+      await assert.rejects(
+        () =>
+          multisig.rpc.configTransactionCreate({
+            connection,
+            feePayer: nonMember,
+            multisigPda: multisigPda,
+            transactionIndex: 1n,
+            creator: nonMember.publicKey,
+            actions: [{ __kind: "ChangeThreshold", newThreshold: 10 }],
+          }),
+        /Error not known yet/
+      );
+    });
+
     it("change `threshold` for the controlled multisig", async () => {
       const signature = await multisig.rpc.configTransactionCreate({
         connection,
