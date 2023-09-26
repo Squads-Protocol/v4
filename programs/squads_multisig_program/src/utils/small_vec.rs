@@ -33,11 +33,9 @@ impl<L, T> From<Vec<T>> for SmallVec<L, T> {
 
 impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u8, T> {
     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        let len = u8::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?;
         // Write the length of the vector as u8.
-        writer.write_all(
-            &(u8::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?)
-                .to_le_bytes(),
-        )?;
+        writer.write_all(&len.to_le_bytes())?;
 
         // Write the vector elements.
         serialize_slice(&self.0, writer)
@@ -46,11 +44,9 @@ impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u8, T> {
 
 impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u16, T> {
     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        let len = u16::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?;
         // Write the length of the vector as u16.
-        writer.write_all(
-            &(u16::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?)
-                .to_le_bytes(),
-        )?;
+        writer.write_all(&len.to_le_bytes())?;
 
         // Write the vector elements.
         serialize_slice(&self.0, writer)

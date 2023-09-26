@@ -256,6 +256,7 @@ pub struct Permissions {
 }
 
 impl Permissions {
+    /// Currently unused.
     pub fn from_vec(permissions: &[Permission]) -> Self {
         let mut mask = 0;
         for permission in permissions {
