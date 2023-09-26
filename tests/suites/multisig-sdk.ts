@@ -622,7 +622,7 @@ describe("Multisig SDK", () => {
     it("error: invalid authority", async () => {
       const feePayer = await generateFundedKeypair(connection);
       await assert.rejects(
-        multisig.instructions.remov({
+        multisig.rpc.multisigSetTimeLock({
           connection,
           feePayer,
           multisigPda: multisigPda,
@@ -782,6 +782,82 @@ describe("Multisig SDK", () => {
         actions: [
           { __kind: "RemoveMember", oldMember: members.voter.publicKey },
         ],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_config_transaction_add_member", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    const newMember = Keypair.generate();
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createAutonomousMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: newMember.publicKey,
+          signers: [feePayer, members.proposer, newMember],
+          actions: [
+            {
+              __kind: "AddMember",
+              newMember: {
+                key: newMember.publicKey,
+                permissions: Permissions.all(),
+              },
+            },
+          ],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("add member to the autonomous multisig", async () => {
+      const signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 1n,
+        creator: members.proposer.publicKey,
+        actions: [
+          {
+            __kind: "AddMember",
+            newMember: {
+              key: newMember.publicKey,
+              permissions: Permissions.all(),
+            },
+          },
+        ],
+      });
+      await connection.confirmTransaction(signature);
+    });
+
+    it("execute the add member transaction", async () => {
+      const fundedKeypair = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.configTransactionExecute({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 1n,
+        member: members.executor,
+        rentPayer: fundedKeypair,
       });
       await connection.confirmTransaction(signature);
     });
