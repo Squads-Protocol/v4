@@ -517,10 +517,9 @@ describe("Multisig SDK", () => {
 
       // Create new controlled multisig.
       multisigPda = (
-        await createControlledMultisig({
+        await createAutonomousMultisig({
           connection,
           createKey: Keypair.generate(),
-          configAuthority: configAuthority.publicKey,
           members,
           threshold: 1,
           timeLock: 0,
@@ -572,20 +571,6 @@ describe("Multisig SDK", () => {
           timeLock: 0,
         })
       )[0];
-    });
-
-    it("error: invalid authority", async () => {
-      await assert.rejects(
-        createControlledMultisig({
-          configAuthority: Keypair.generate().publicKey,
-          members,
-          connection,
-          threshold: 2,
-          timeLock: 0,
-          createKey: Keypair.generate(),
-        })
-      ),
-        /Attempted to perform an unauthorized action/;
     });
 
     it("set `config_authority` for the controlled multisig", async () => {
