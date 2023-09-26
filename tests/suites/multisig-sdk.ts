@@ -554,6 +554,51 @@ describe("Multisig SDK", () => {
     });
   });
 
+  describe("multisig_set_config_authority", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          timeLock: 0,
+          configAuthority: configAuthority.publicKey,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.multisigSetConfigAuthority({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          configAuthority: members.voter.publicKey,
+          newConfigAuthority: members.voter.publicKey,
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("set `config authority for the controlled multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.multisigSetConfigAuthority({
+        connection,
+        feePayer,
+        multisigPda: multisigPda,
+        configAuthority: configAuthority.publicKey,
+        newConfigAuthority: members.voter.publicKey,
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
   describe("multisig_change_threshold", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
