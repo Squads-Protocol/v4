@@ -509,7 +509,7 @@ describe("Multisig SDK", () => {
     });
   });
 
-  describe("multisig_set_time_lock", () => {
+  describe("multisig_config_transaction_set_time_lock", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
     before(async () => {
@@ -541,7 +541,7 @@ describe("Multisig SDK", () => {
         /Attempted to perform an unauthorized action/;
     });
 
-    it("set `time_lock` for the controlled multisig", async () => {
+    it("set `time_lock` for the autonomous multisig", async () => {
       const signature = await multisig.rpc.configTransactionCreate({
         connection,
         feePayer: members.proposer,
@@ -549,6 +549,100 @@ describe("Multisig SDK", () => {
         transactionIndex: 1n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_set_time_lock", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.multisigSetTimeLock({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 300,
+          signers: [feePayer, configAuthority],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("set `time_lock` for the controlled multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.multisigSetTimeLock({
+        connection,
+        feePayer,
+        multisigPda: multisigPda,
+        configAuthority: configAuthority.publicKey,
+        timeLock: 300,
+        signers: [feePayer, configAuthority],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_remove_member", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.instructions.remov({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 300,
+          signers: [feePayer, configAuthority],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("set `time_lock` for the controlled multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.multisigSetTimeLock({
+        connection,
+        feePayer,
+        multisigPda: multisigPda,
+        configAuthority: configAuthority.publicKey,
+        timeLock: 300,
+        signers: [feePayer, configAuthority],
       });
       await connection.confirmTransaction(signature);
     });
