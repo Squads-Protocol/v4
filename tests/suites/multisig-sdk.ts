@@ -599,7 +599,7 @@ describe("Multisig SDK", () => {
     });
   });
 
-  describe("multisig_remove_member", () => {
+  describe("multisig_config_transaction_remove_member", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
     before(async () => {
