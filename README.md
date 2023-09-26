@@ -19,7 +19,18 @@ The Squads Protocol V4 program is deployed to:
 
 Both deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
 
-### Compiling and testing
+## Responsibility
+
+By interacting with this program, users acknowledge and accept full personal responsibility for any consequences, regardless of their nature. This includes both potential risks inherent to the smart contract, also referred to as program, as well as any losses resulting from user errors or misjudgment.
+
+By using a multisig, it is important to acknowledge certain concepts. Here are some that could be misunderstood by users:
+ - Loss of Private Keys: If a participant loses their private key, the multisig may not be able to execute transactions if a threshold number of signatures is required.
+ - Single Point of Failure with Keys: If all keys are stored in the same location or device, a single breach can compromise the multisig.
+ - Forgetting the Threshold: Misremembering the number of signatures required can result in a deadlock, where funds cannot be accessed.
+ - No Succession Planning: If keyholders become unavailable (e.g., due to accident, death), without a plan for transition, funds may be locked forever.
+ - Transfer of funds to wrong address: Funds should always be sent to the multisig vault account, and not the multisig account address. Due to the design of the Squads Protocol program, funds deposited to the multisig account may not be recoverable.
+
+## Compiling and testing
 
 You can compile the code with Anchor.
 ```
@@ -73,7 +84,6 @@ Instructions on how to interact with the Squads V4 program can be found in [the 
 
 ## Security
 The Squads protocol has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
-
 
 ## License
 
