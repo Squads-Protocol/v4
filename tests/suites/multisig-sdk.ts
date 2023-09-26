@@ -599,6 +599,55 @@ describe("Multisig SDK", () => {
     });
   });
 
+  describe("multisig_remove_member", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createAutonomousMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: members.proposer.publicKey,
+          actions: [
+            { __kind: "RemoveMember", oldMember: members.voter.publicKey },
+          ],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("remove the member for the controlled multisig", async () => {
+      const signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 1n,
+        creator: members.proposer.publicKey,
+        actions: [
+          { __kind: "RemoveMember", oldMember: members.voter.publicKey },
+        ],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
   describe("multisig_set_config_authority", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
