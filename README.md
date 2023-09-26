@@ -19,6 +19,10 @@ The Squads Protocol V4 program is deployed to:
 
 Both deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
 
+## Responsibility
+
+By interacting with this program, users acknowledge and accept full personal responsibility for any consequences, regardless of their nature. This includes both potential risks inherent to the smart contract, also referred to as program, as well as any losses resulting from user errors or misjudgment.
+
 ### Compiling and testing
 
 You can compile the code with Anchor.
