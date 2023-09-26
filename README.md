@@ -23,7 +23,7 @@ Both deployments can be verified using the [Ellipsis Labs verifiable build](http
 
 By interacting with this program, users acknowledge and accept full personal responsibility for any consequences, regardless of their nature. This includes both potential risks inherent to the smart contract, also referred to as program, as well as any losses resulting from user errors or misjudgment.
 
-### Compiling and testing
+## Compiling and testing
 
 You can compile the code with Anchor.
 ```
