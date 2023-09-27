@@ -710,7 +710,7 @@ describe("Multisig SDK", () => {
           connection,
           createKey: Keypair.generate(),
           members,
-          threshold: 2,
+          threshold: 1,
           timeLock: 0,
         })
       )[0];
@@ -743,6 +743,25 @@ describe("Multisig SDK", () => {
           signers: [members.proposer, feePayer],
         });
       await connection.confirmTransaction(configTransactionCreateSignature);
+
+      const createProposalSignature = await multisig.rpc.proposalCreate({
+        connection,
+        creator: members.proposer,
+        multisigPda,
+        feePayer,
+        transactionIndex: 1n,
+        isDraft: false,
+      });
+      await connection.confirmTransaction(createProposalSignature);
+
+      const approveSignature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex: 1n,
+        member: members.voter,
+      });
+      await connection.confirmTransaction(approveSignature);
 
       const configTransactionExecuteSignature =
         await multisig.rpc.configTransactionExecute({
