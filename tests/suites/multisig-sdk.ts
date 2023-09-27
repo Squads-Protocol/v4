@@ -557,8 +557,10 @@ describe("Multisig SDK", () => {
   describe("multisig_set_time_lock", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
+    let wrongConfigAuthority: Keypair;
     before(async () => {
       configAuthority = await generateFundedKeypair(connection);
+      wrongConfigAuthority = await generateFundedKeypair(connection);
 
       // Create new controlled multisig.
       multisigPda = (
@@ -579,9 +581,9 @@ describe("Multisig SDK", () => {
           connection,
           feePayer,
           multisigPda: multisigPda,
-          configAuthority: configAuthority.publicKey,
+          configAuthority: wrongConfigAuthority.publicKey,
           timeLock: 300,
-          signers: [feePayer, configAuthority],
+          signers: [feePayer, wrongConfigAuthority],
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -604,8 +606,10 @@ describe("Multisig SDK", () => {
   describe("multisig_remove_member", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
+    let wrongConfigAuthority: Keypair;
     before(async () => {
       configAuthority = await generateFundedKeypair(connection);
+      wrongConfigAuthority = await generateFundedKeypair(connection);
 
       // Create new controlled multisig.
       multisigPda = (
@@ -626,9 +630,9 @@ describe("Multisig SDK", () => {
           connection,
           feePayer,
           multisigPda: multisigPda,
-          configAuthority: configAuthority.publicKey,
+          configAuthority: wrongConfigAuthority.publicKey,
           timeLock: 300,
-          signers: [feePayer, configAuthority],
+          signers: [feePayer, wrongConfigAuthority],
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -688,6 +692,7 @@ describe("Multisig SDK", () => {
         multisigPda: multisigPda,
         configAuthority: configAuthority.publicKey,
         newConfigAuthority: members.voter.publicKey,
+        signers: [feePayer, configAuthority],
       });
       await connection.confirmTransaction(signature);
     });
@@ -726,16 +731,17 @@ describe("Multisig SDK", () => {
     });
 
     it("error: change threshold to higher amount than members", async () => {
-      const nonMember = await generateFundedKeypair(connection);
+      const feePayer = await generateFundedKeypair(connection);
       await assert.rejects(
         () =>
           multisig.rpc.configTransactionCreate({
             connection,
-            feePayer: nonMember,
+            feePayer,
             multisigPda: multisigPda,
             transactionIndex: 1n,
-            creator: nonMember.publicKey,
+            creator: members.proposer.publicKey,
             actions: [{ __kind: "ChangeThreshold", newThreshold: 10 }],
+            signers: [members.proposer, feePayer],
           }),
         /Error not known yet/
       );
