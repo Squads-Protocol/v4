@@ -509,16 +509,504 @@ describe("Multisig SDK", () => {
     });
   });
 
-  describe("multisig_set_time_lock", () => {
-    it("error: invalid authority");
+  describe("multisig_batch_transactions", () => {
+    const newMember = {
+      key: Keypair.generate().publicKey,
+      permissions: Permissions.all(),
+    } as const;
+    const newMember2 = {
+      key: Keypair.generate().publicKey,
+      permissions: Permissions.all(),
+    } as const;
 
-    it("set `time_lock` for the controlled multisig");
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          configAuthority: configAuthority.publicKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+    });
+
+    it("create a batch transaction", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+
+      const createBatchSignature = await multisig.rpc.batchCreate({
+        connection,
+        batchIndex: 1n,
+        creator: members.proposer,
+        feePayer,
+        multisigPda,
+        vaultIndex: 1,
+      });
+      await connection.confirmTransaction(createBatchSignature);
+    });
+  });
+
+  describe("multisig_config_transaction_set_time_lock", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createAutonomousMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: members.proposer.publicKey,
+          actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("set `time_lock` for the autonomous multisig", async () => {
+      const signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 1n,
+        creator: members.proposer.publicKey,
+        actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_set_time_lock", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    let wrongConfigAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+      wrongConfigAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.multisigSetTimeLock({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          configAuthority: wrongConfigAuthority.publicKey,
+          timeLock: 300,
+          signers: [feePayer, wrongConfigAuthority],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("set `time_lock` for the controlled multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.multisigSetTimeLock({
+        connection,
+        feePayer,
+        multisigPda: multisigPda,
+        configAuthority: configAuthority.publicKey,
+        timeLock: 300,
+        signers: [feePayer, configAuthority],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_remove_member", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    let wrongConfigAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+      wrongConfigAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.multisigSetTimeLock({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          configAuthority: wrongConfigAuthority.publicKey,
+          timeLock: 300,
+          signers: [feePayer, wrongConfigAuthority],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("set `time_lock` for the controlled multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.multisigSetTimeLock({
+        connection,
+        feePayer,
+        multisigPda: multisigPda,
+        configAuthority: configAuthority.publicKey,
+        timeLock: 300,
+        signers: [feePayer, configAuthority],
+      });
+      await connection.confirmTransaction(signature);
+    });
   });
 
   describe("multisig_set_config_authority", () => {
-    it("error: invalid authority");
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
 
-    it("set `config_authority` for the controlled multisig");
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          timeLock: 0,
+          configAuthority: configAuthority.publicKey,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.multisigSetConfigAuthority({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          configAuthority: members.voter.publicKey,
+          newConfigAuthority: members.voter.publicKey,
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("set `config authority for the controlled multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.multisigSetConfigAuthority({
+        connection,
+        feePayer,
+        multisigPda: multisigPda,
+        configAuthority: configAuthority.publicKey,
+        newConfigAuthority: members.voter.publicKey,
+        signers: [feePayer, configAuthority],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_change_threshold", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createAutonomousMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: members.proposer.publicKey,
+          actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("error: change threshold to higher amount than members", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const configTransactionCreateSignature =
+        await multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: members.proposer.publicKey,
+          actions: [{ __kind: "ChangeThreshold", newThreshold: 10 }],
+          signers: [members.proposer, feePayer],
+        });
+      await connection.confirmTransaction(configTransactionCreateSignature);
+
+      const createProposalSignature = await multisig.rpc.proposalCreate({
+        connection,
+        creator: members.proposer,
+        multisigPda,
+        feePayer,
+        transactionIndex: 1n,
+        isDraft: false,
+      });
+      await connection.confirmTransaction(createProposalSignature);
+
+      const approveSignature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex: 1n,
+        member: members.voter,
+      });
+      await connection.confirmTransaction(approveSignature);
+
+      await assert.rejects(
+        multisig.rpc.configTransactionExecute({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          member: members.executor,
+          rentPayer: feePayer,
+        }),
+        /Invalid threshold, must be between 1 and number of members with Vote permission/
+      );
+    });
+
+    it("change `threshold` for the controlled multisig", async () => {
+      const signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 2n,
+        creator: members.proposer.publicKey,
+        actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_config_transaction_remove_member", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createAutonomousMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: members.proposer.publicKey,
+          actions: [
+            { __kind: "RemoveMember", oldMember: members.voter.publicKey },
+          ],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("remove the member for the controlled multisig", async () => {
+      const signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 1n,
+        creator: members.proposer.publicKey,
+        actions: [
+          { __kind: "RemoveMember", oldMember: members.voter.publicKey },
+        ],
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_config_transaction_add_member", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    const newMember = Keypair.generate();
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createAutonomousMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          timeLock: 0,
+        })
+      )[0];
+    });
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: newMember.publicKey,
+          signers: [feePayer, members.proposer, newMember],
+          actions: [
+            {
+              __kind: "AddMember",
+              newMember: {
+                key: newMember.publicKey,
+                permissions: Permissions.all(),
+              },
+            },
+          ],
+        })
+      ),
+        /Attempted to perform an unauthorized action/;
+    });
+
+    it("add member to the autonomous multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 1n,
+        creator: members.proposer.publicKey,
+        actions: [
+          {
+            __kind: "AddMember",
+            newMember: {
+              key: newMember.publicKey,
+              permissions: Permissions.all(),
+            },
+          },
+        ],
+      });
+      await connection.confirmTransaction(signature);
+      // create the proposal
+      const createProposalSignature = await multisig.rpc.proposalCreate({
+        connection,
+        creator: members.proposer,
+        multisigPda,
+        feePayer,
+        transactionIndex: 1n,
+        isDraft: false,
+      });
+      await connection.confirmTransaction(createProposalSignature);
+
+      const approveSignature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex: 1n,
+        member: members.voter,
+      });
+      await connection.confirmTransaction(approveSignature);
+    });
+
+    it("execute the add member transaction", async () => {
+      const fundedKeypair = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.configTransactionExecute({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        transactionIndex: 1n,
+        member: members.executor,
+        rentPayer: fundedKeypair,
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_set_config_authority", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          configAuthority: configAuthority.publicKey,
+          members,
+          threshold: 1,
+          timeLock: 0,
+        })
+      )[0];
+    });
+
+    it("set `config_authority` for the controlled multisig", async () => {
+      await createControlledMultisig({
+        configAuthority: members.almighty.publicKey,
+        members,
+        connection,
+        threshold: 2,
+        timeLock: 0,
+        createKey: Keypair.generate(),
+      });
+    });
   });
 
   describe("multisig_add_spending_limit", () => {
