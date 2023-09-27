@@ -563,6 +563,7 @@ describe("Multisig SDK", () => {
           transactionIndex: 1n,
           creator: members.proposer.publicKey,
           actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
+          signers: [members.proposer, feePayer],
         });
       await connection.confirmTransaction(createTransactionSignature);
     });
