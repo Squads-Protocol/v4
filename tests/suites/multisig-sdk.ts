@@ -509,6 +509,65 @@ describe("Multisig SDK", () => {
     });
   });
 
+  describe("multisig_batch_transactions", () => {
+    const newMember = {
+      key: Keypair.generate().publicKey,
+      permissions: Permissions.all(),
+    } as const;
+    const newMember2 = {
+      key: Keypair.generate().publicKey,
+      permissions: Permissions.all(),
+    } as const;
+
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          configAuthority: configAuthority.publicKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+        })
+      )[0];
+    });
+
+    it("create a batch transaction", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+
+      const createBatchSignature = await multisig.rpc.batchCreate({
+        connection,
+        batchIndex: 1n,
+        creator: members.proposer,
+        feePayer,
+        multisigPda,
+        vaultIndex: 1,
+      });
+      await connection.confirmTransaction(createBatchSignature);
+    });
+
+    it("create transaction and add to batch", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+
+      const createTransactionSignature =
+        await multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: members.proposer.publicKey,
+          actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
+        });
+      await connection.confirmTransaction(createTransactionSignature);
+    });
+  });
+
   describe("multisig_config_transaction_set_time_lock", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
