@@ -732,19 +732,28 @@ describe("Multisig SDK", () => {
 
     it("error: change threshold to higher amount than members", async () => {
       const feePayer = await generateFundedKeypair(connection);
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionCreate({
-            connection,
-            feePayer,
-            multisigPda: multisigPda,
-            transactionIndex: 1n,
-            creator: members.proposer.publicKey,
-            actions: [{ __kind: "ChangeThreshold", newThreshold: 10 }],
-            signers: [members.proposer, feePayer],
-          }),
-        /Error not known yet/
-      );
+      const configTransactionCreateSignature =
+        await multisig.rpc.configTransactionCreate({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          creator: members.proposer.publicKey,
+          actions: [{ __kind: "ChangeThreshold", newThreshold: 10 }],
+          signers: [members.proposer, feePayer],
+        });
+      await connection.confirmTransaction(configTransactionCreateSignature);
+
+      const configTransactionExecuteSignature =
+        await multisig.rpc.configTransactionExecute({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          transactionIndex: 1n,
+          member: members.executor,
+          rentPayer: feePayer,
+        });
+      await connection.confirmTransaction(configTransactionExecuteSignature);
     });
 
     it("change `threshold` for the controlled multisig", async () => {
@@ -822,7 +831,7 @@ describe("Multisig SDK", () => {
           connection,
           createKey: Keypair.generate(),
           members,
-          threshold: 2,
+          threshold: 1,
           timeLock: 0,
         })
       )[0];
@@ -852,6 +861,7 @@ describe("Multisig SDK", () => {
     });
 
     it("add member to the autonomous multisig", async () => {
+      const feePayer = await generateFundedKeypair(connection);
       const signature = await multisig.rpc.configTransactionCreate({
         connection,
         feePayer: members.proposer,
@@ -869,6 +879,25 @@ describe("Multisig SDK", () => {
         ],
       });
       await connection.confirmTransaction(signature);
+      // create the proposal
+      const createProposalSignature = await multisig.rpc.proposalCreate({
+        connection,
+        creator: members.proposer,
+        multisigPda,
+        feePayer,
+        transactionIndex: 1n,
+        isDraft: false,
+      });
+      await connection.confirmTransaction(createProposalSignature);
+
+      const approveSignature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.voter,
+        multisigPda,
+        transactionIndex: 1n,
+        member: members.voter,
+      });
+      await connection.confirmTransaction(approveSignature);
     });
 
     it("execute the add member transaction", async () => {
