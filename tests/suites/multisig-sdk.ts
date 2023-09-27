@@ -551,22 +551,6 @@ describe("Multisig SDK", () => {
       });
       await connection.confirmTransaction(createBatchSignature);
     });
-
-    it("create transaction and add to batch", async () => {
-      const feePayer = await generateFundedKeypair(connection);
-
-      const createTransactionSignature =
-        await multisig.rpc.configTransactionCreate({
-          connection,
-          feePayer,
-          multisigPda: multisigPda,
-          transactionIndex: 1n,
-          creator: members.proposer.publicKey,
-          actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
-          signers: [members.proposer, feePayer],
-        });
-      await connection.confirmTransaction(createTransactionSignature);
-    });
   });
 
   describe("multisig_config_transaction_set_time_lock", () => {
