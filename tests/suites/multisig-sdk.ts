@@ -763,16 +763,17 @@ describe("Multisig SDK", () => {
       });
       await connection.confirmTransaction(approveSignature);
 
-      const configTransactionExecuteSignature =
-        await multisig.rpc.configTransactionExecute({
+      await assert.rejects(
+        multisig.rpc.configTransactionExecute({
           connection,
           feePayer,
           multisigPda: multisigPda,
           transactionIndex: 1n,
           member: members.executor,
           rentPayer: feePayer,
-        });
-      await connection.confirmTransaction(configTransactionExecuteSignature);
+        }),
+        /Invalid threshold, must be between 1 and number of members with Vote permission/
+      );
     });
 
     it("change `threshold` for the controlled multisig", async () => {
@@ -780,7 +781,7 @@ describe("Multisig SDK", () => {
         connection,
         feePayer: members.proposer,
         multisigPda: multisigPda,
-        transactionIndex: 1n,
+        transactionIndex: 2n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
       });
