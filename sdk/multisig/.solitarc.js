@@ -1,4 +1,3 @@
-// @ts-check
 const { Keypair } = require("@solana/web3.js");
 const { readFileSync } = require("fs");
 const path = require("path");
@@ -24,10 +23,19 @@ const ignoredTypes = new Set([
 ]);
 
 function loadKeypairFromFile(relativePath) {
-  const absolutePath = path.join(__dirname, relativePath);
-  return Keypair.fromSecretKey(
-    Buffer.from(JSON.parse(readFileSync(absolutePath, "utf-8")))
-  );
+  try {
+    const absolutePath = path.join(__dirname, relativePath);
+    return Keypair.fromSecretKey(
+      Buffer.from(JSON.parse(readFileSync(absolutePath, "utf-8")))
+    );
+  } catch (error) {
+    console.error("Error reading keypair from file:", error);
+    return {
+      publicKey: {
+        toBase58: () => "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
+      },
+    };
+  }
 }
 
 const keypair = loadKeypairFromFile(
