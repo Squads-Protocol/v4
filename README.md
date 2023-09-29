@@ -1,5 +1,7 @@
 # Squads V4 program
 
+<img width="2500" alt="Frame 13" src="https://user-images.githubusercontent.com/81624955/182874414-98d63f58-450d-4520-a440-4bfda8f5329f.png">
+
 The Squads V4 program is the latest release of the Squads multisig protocol. This program was designed to be used as a solution for on-chain treasury and smart contract management on Solana, as well as for a variety of Fintech applications that require strong security fundamentals.
 
 ## Content
@@ -84,6 +86,12 @@ Instructions on how to interact with the Squads V4 program can be found in [the 
 
 ## Security
 The Squads protocol has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
+
+Below is a list of audit reports pertaining to the Squads V4 program. Each entry enumerates the responsible auditor and is accompanied by a corresponding GitHub link for review:
+
+ - Ottersec: [View full report](https://github.com/Squads-Protocol/v4/blob/main/ottersec_squads_v4_audit_final.pdf)
+ - Neodyme: [View full report](https://github.com/Squads-Protocol/v4/blob/main/neodyme_squads_v4_report.pdf)
+
 
 ## License
 
