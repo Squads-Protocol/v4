@@ -87,6 +87,12 @@ Instructions on how to interact with the Squads V4 program can be found in [the 
 ## Security
 The Squads protocol has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
 
+Below is a list of audit reports pertaining to the Squads V4 program. Each entry enumerates the responsible auditor and is accompanied by a corresponding GitHub link for review:
+
+ - Ottersec: [View full report](https://github.com/Squads-Protocol/v4/blob/main/ottersec_squads_v4_audit_final.pdf)
+ - Neodyme: [View full report](https://github.com/Squads-Protocol/v4/blob/main/neodyme_squads_v4_report.pdf)
+
+
 ## License
 
 The primary license for Squads Multisig Program V4 is the Business Source License 1.1 (`BUSL-1.1`), see [LICENSE](./LICENSE). The following exceptions are not licensed under the BULS-1.1, but are licensed separately as follows:
