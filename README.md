@@ -1,20 +1,20 @@
-# Squads V4 program
+# Squads Protocol v4
 
 <img width="2500" alt="Frame 13" src="https://user-images.githubusercontent.com/81624955/182874414-98d63f58-450d-4520-a440-4bfda8f5329f.png">
 
-The Squads V4 program is the latest release of the Squads multisig protocol. This program was designed to be used as a solution for on-chain treasury and smart contract management on Solana, as well as for a variety of Fintech applications that require strong security fundamentals.
+The v4 program is the latest upgrade to Squads Protocol. It expands the capabilities of multisig with several new features, including time locks, spending limits, roles, sub-accounts, multiple-party payments and support for address lookup tables. This program was designed to make it easier for developers to leverage multisig consensus and account abstraction on Solana, facilitating the creation of fintech-like applications and enhancing the secure management of on-chain assets.
 
 ## Content
 
 This repository contains:
 
- - The Squads Protocol V4 Solana program.
- - The `@sqds/multisig` Typescript SDK to interact with the Squads V4 program.
- - The `squads-multisig` crate to interact with the Squads V4 program in Solana programs as well as Rust client applications.
+ - The Squads Protocol v4 program.
+ - The `@sqds/multisig` Typescript SDK to interact with the v4 program.
+ - The `squads-multisig` crate to interact with the v4 program in Solana programs as well as Rust client applications.
 
-## Smart contract Adresses
+## Program (Smart contract) Addresses
 
-The Squads Protocol V4 program is deployed to:
+The Squads Protocol v4 program is deployed to:
 
  - Solana Mainnet-beta: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
  - Solana Devnet: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
@@ -85,17 +85,17 @@ If the hash outputs of those two commands match, the code in the repository matc
 Instructions on how to interact with the Squads V4 program can be found in [the Squads developer portal](https://developers.squads.so).
 
 ## Security
-The Squads protocol has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
+Squads Protocol v4 has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
 
-Below is a list of audit reports pertaining to the Squads V4 program. Each entry enumerates the responsible auditor and is accompanied by a corresponding GitHub link for review:
+Below is a list of audit reports pertaining to the v4 program. Each entry enumerates the responsible auditor and is accompanied by a corresponding GitHub link for review:
 
- - Ottersec: [View full report](https://github.com/Squads-Protocol/v4/blob/main/ottersec_squads_v4_audit_final.pdf)
+ - OtterSec: [View full report](https://github.com/Squads-Protocol/v4/blob/main/ottersec_squads_v4_audit_final.pdf)
  - Neodyme: [View full report](https://github.com/Squads-Protocol/v4/blob/main/neodyme_squads_v4_report.pdf)
 
 
 ## License
 
-The primary license for Squads Multisig Program V4 is the Business Source License 1.1 (`BUSL-1.1`), see [LICENSE](./LICENSE). The following exceptions are not licensed under the BULS-1.1, but are licensed separately as follows:
+The primary license for Squads Protocol v4 is the Business Source License 1.1 (`BUSL-1.1`), see [LICENSE](./LICENSE). The following exceptions are not licensed under the BULS-1.1, but are licensed separately as follows:
 
 - The file <https://github.com/Squads-Protocol/v4/blob/main/programs/multisig/src/utils/system.rs> is derived from code released under the [Apache 2.0 license](https://github.com/coral-xyz/anchor/blob/master/LICENSE) at <https://github.com/coral-xyz/anchor/blob/714d5248636493a3d1db1481f16052836ee59e94/lang/syn/src/codegen/accounts/constraints.rs#L1126-L1179>.
 - The file <https://github.com/Squads-Protocol/v4/blob/main/programs/multisig/src/utils/small_vec.rs> is derived from code released under both the [Apache 2.0 license](https://github.com/near/borsh-rs/blob/master/LICENSE-APACHE) and the [MIT license](https://github.com/near/borsh-rs/blob/master/LICENSE-MIT) at <https://github.com/near/borsh-rs/blob/master/borsh/src/de/hint.rs> and <https://github.com/near/borsh-rs/blob/master/borsh/src/ser/mod.rs>.
