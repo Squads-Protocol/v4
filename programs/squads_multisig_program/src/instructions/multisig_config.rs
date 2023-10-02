@@ -19,21 +19,21 @@ pub struct MultisigRemoveMemberArgs {
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigChangeThresholdArgs {
-    new_threshold: u16,
+    pub new_threshold: u16,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigSetTimeLockArgs {
-    time_lock: u32,
+    pub time_lock: u32,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MultisigSetConfigAuthorityArgs {
-    config_authority: Pubkey,
+    pub config_authority: Pubkey,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
