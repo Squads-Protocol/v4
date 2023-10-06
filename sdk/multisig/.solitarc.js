@@ -1,4 +1,5 @@
-// @ts-check
+const { Keypair } = require("@solana/web3.js");
+const { readFileSync } = require("fs");
 const path = require("path");
 
 const programDir = path.join(
@@ -21,10 +22,32 @@ const ignoredTypes = new Set([
   "MessageAddressTableLookup",
 ]);
 
+function loadKeypairFromFile(relativePath) {
+  try {
+    const absolutePath = path.join(__dirname, relativePath);
+    return Keypair.fromSecretKey(
+      Buffer.from(JSON.parse(readFileSync(absolutePath, "utf-8")))
+    );
+  } catch (error) {
+    console.error("Error reading keypair from file:", error);
+    return {
+      publicKey: {
+        toBase58: () => "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
+      },
+    };
+  }
+}
+
+const keypair = loadKeypairFromFile(
+  "../../target/deploy/multisig-keypair.json"
+);
+
+const pubkey = keypair.publicKey.toBase58();
+
 module.exports = {
   idlGenerator: "anchor",
   programName: "squads_multisig_program",
-  programId: "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
+  programId: pubkey,
   idlDir,
   sdkDir,
   binaryInstallDir,
