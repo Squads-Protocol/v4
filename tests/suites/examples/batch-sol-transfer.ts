@@ -229,6 +229,7 @@ describe("Examples / Batch SOL Transfer", () => {
       const balance = await connection.getBalance(member.publicKey);
       preBalances.push(balance);
     }
+    assert.strictEqual(Object.values(members).length, preBalances.length);
 
     // Execute the transactions from the batch sequentially one-by-one.
     for (const transactionIndex of range(1, testTransactionMessages.length)) {
