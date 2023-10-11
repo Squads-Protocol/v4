@@ -17,6 +17,7 @@ name = "squads_multisig"
 squads-multisig-program = { path = "../../programs/squads_multisig_program", features =["cpi", "no-entrypoint"], version = "0.2.0" }
 solana-client = "1.14.16"
 thiserror = "1.0.48"
+anchor-lang = "0.28.0"
 
 [features]
 default = []
