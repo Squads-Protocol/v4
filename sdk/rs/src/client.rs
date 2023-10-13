@@ -1,12 +1,14 @@
 use solana_client::nonblocking::rpc_client::RpcClient;
 
 pub use squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
+pub use squads_multisig_program::accounts::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
 pub use squads_multisig_program::accounts::MultisigCreate as MultisigCreateAccounts;
 pub use squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 pub use squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
 pub use squads_multisig_program::accounts::SpendingLimitUse as SpendingLimitUseAccounts;
 pub use squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
 pub use squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
+pub use squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
 pub use squads_multisig_program::instruction::MultisigCreate as MultisigCreateData;
 pub use squads_multisig_program::instruction::ProposalApprove as ProposalApproveData;
 pub use squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
@@ -122,6 +124,40 @@ pub fn config_transaction_create(
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
         data: ConfigTransactionCreateData { args }.data(),
+        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+    }
+}
+
+/// Executes a multisig config transaction.
+/// Example:
+/// ```
+/// use squads_multisig::solana_program::pubkey::Pubkey;
+/// use squads_multisig::solana_program::system_program;
+/// use squads_multisig::state::ConfigAction;
+/// use squads_multisig::client::{
+///     ConfigTransactionExecuteAccounts,
+///     config_transaction_execute
+/// };
+///
+/// let ix = config_transaction_execute(
+///     ConfigTransactionExecuteAccounts {
+///         multisig: Pubkey::new_unique(),
+///         member: Pubkey::new_unique(),
+///         proposal: Pubkey::new_unique(),
+///         transaction: Pubkey::new_unique(),
+///         rent_payer: None,
+///         system_program: None,
+///     },
+///     Some(squads_multisig_program::ID)
+/// );
+/// ```
+pub fn config_transaction_execute(
+    accounts: ConfigTransactionExecuteAccounts,
+    program_id: Option<Pubkey>,
+) -> Instruction {
+    Instruction {
+        accounts: accounts.to_account_metas(Some(false)),
+        data: ConfigTransactionExecuteData.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
 }
