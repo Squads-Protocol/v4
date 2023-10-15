@@ -28,6 +28,7 @@ use crate::anchor_lang::{
     solana_program::instruction::Instruction, InstructionData, ToAccountMetas,
 };
 use crate::error::ClientError;
+use crate::solana_program::instruction::AccountMeta;
 use crate::ClientResult;
 
 /// Gets a `Multisig` account from the chain.
@@ -148,15 +149,28 @@ pub fn config_transaction_create(
 ///         rent_payer: None,
 ///         system_program: None,
 ///     },
+///     vec![],
 ///     Some(squads_multisig_program::ID)
 /// );
 /// ```
 pub fn config_transaction_execute(
     accounts: ConfigTransactionExecuteAccounts,
+    spending_limit_accounts: Vec<Pubkey>,
     program_id: Option<Pubkey>,
 ) -> Instruction {
+    let account_metas = [
+        accounts.to_account_metas(Some(false)),
+        // Spending Limit accounts are optional and are passed as remaining_accounts
+        // if the Config Transaction adds or removes some.
+        spending_limit_accounts
+            .into_iter()
+            .map(|key| AccountMeta::new(key, false))
+            .collect(),
+    ]
+    .concat();
+
     Instruction {
-        accounts: accounts.to_account_metas(Some(false)),
+        accounts: account_metas,
         data: ConfigTransactionExecuteData.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
