@@ -3538,7 +3538,7 @@ dependencies = [
 
 [[package]]
 name = "squads-multisig"
-version = "0.0.16"
+version = "0.0.17"
 dependencies = [
  "solana-client",
  "squads-multisig-program",

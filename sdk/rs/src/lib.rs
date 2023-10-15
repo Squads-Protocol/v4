@@ -28,7 +28,7 @@ pub mod state {
     pub use squads_multisig_program::state::{
         Batch, ConfigAction, ConfigTransaction, Member, Multisig, MultisigCompiledInstruction,
         MultisigMessageAddressTableLookup, Period, Permission, Permissions, Proposal,
-        ProposalStatus, VaultTransactionMessage,
+        ProposalStatus, SpendingLimit, VaultTransactionMessage,
     };
     pub use squads_multisig_program::SmallVec;
 }
