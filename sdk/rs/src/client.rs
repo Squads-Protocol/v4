@@ -20,7 +20,6 @@ pub use squads_multisig_program::instructions::ProposalCreateArgs;
 pub use squads_multisig_program::instructions::ProposalVoteArgs;
 pub use squads_multisig_program::instructions::SpendingLimitUseArgs;
 pub use squads_multisig_program::instructions::VaultTransactionCreateArgs;
-use squads_multisig_program::Multisig;
 
 use crate::anchor_lang::prelude::Pubkey;
 use crate::anchor_lang::AccountDeserialize;
@@ -29,6 +28,7 @@ use crate::anchor_lang::{
 };
 use crate::error::ClientError;
 use crate::solana_program::instruction::AccountMeta;
+use crate::state::{Multisig, SpendingLimit};
 use crate::ClientResult;
 
 /// Gets a `Multisig` account from the chain.
@@ -39,6 +39,20 @@ pub async fn get_multisig(rpc_client: &RpcClient, multisig_key: &Pubkey) -> Clie
         .map_err(|_| ClientError::DeserializationError)?;
 
     Ok(multisig)
+}
+
+/// Gets a `SpendingLimit` account from the chain.
+pub async fn get_spending_limit(
+    rpc_client: &RpcClient,
+    spending_limit_key: &Pubkey,
+) -> ClientResult<SpendingLimit> {
+    let spending_limit_account = rpc_client.get_account(spending_limit_key).await?;
+
+    let spending_limit =
+        SpendingLimit::try_deserialize(&mut spending_limit_account.data.as_slice())
+            .map_err(|_| ClientError::DeserializationError)?;
+
+    Ok(spending_limit)
 }
 
 /// Creates a new multisig config transaction.
