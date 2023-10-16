@@ -43,18 +43,20 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         );
         let lookup_tables: HashMap<&Pubkey, &AccountInfo> = address_lookup_table_account_infos
             .iter()
-            .map(|maybe_lookup_table| {
+            .enumerate()
+            .map(|(index, maybe_lookup_table)| {
                 // The lookup table account must be owned by SolanaAddressLookupTableProgram.
                 require!(
                     maybe_lookup_table.owner == &solana_address_lookup_table_program::id(),
                     MultisigError::InvalidAccount
                 );
-                // The lookup table must be mentioned in `message.address_table_lookups`.
+                // The lookup table must be mentioned in `message.address_table_lookups` at the same index.
                 require!(
                     message
                         .address_table_lookups
-                        .iter()
-                        .any(|lookup| &lookup.account_key == maybe_lookup_table.key),
+                        .get(index)
+                        .map(|lookup| &lookup.account_key)
+                        == Some(maybe_lookup_table.key),
                     MultisigError::InvalidAccount
                 );
                 Ok((maybe_lookup_table.key, maybe_lookup_table))
