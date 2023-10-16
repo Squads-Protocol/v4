@@ -82,7 +82,7 @@ If the hash outputs of those two commands match, the code in the repository matc
 
 
 ## Usage
-Instructions on how to interact with the Squads V4 program can be found in [the Squads developer portal](https://developers.squads.so).
+Instructions on how to interact with the Squads V4 program can be found in [the Squads developer portal](https://docs.squads.so/main/v/development/development/overview).
 
 ## Security
 Squads Protocol v4 has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
