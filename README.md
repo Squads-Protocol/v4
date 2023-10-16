@@ -31,6 +31,12 @@ By using a multisig, it is important to acknowledge certain concepts. Here are s
  - Forgetting the Threshold: Misremembering the number of signatures required can result in a deadlock, where funds cannot be accessed.
  - No Succession Planning: If keyholders become unavailable (e.g., due to accident, death), without a plan for transition, funds may be locked forever.
  - Transfer of funds to wrong address: Funds should always be sent to the multisig vault account, and not the multisig account address. Due to the design of the Squads Protocol program, funds deposited to the multisig account may not be recoverable.
+ - If the config_authority of a multisig is compromised, an attacker can change multisig settings, potentially reducing the required threshold for transaction execution or instantly being able to remove and add new members.
+ - If the underlying SVM compatible blockchain undergoes a fork and a user had sent funds to the orphaned chain, the state of the blockchain may not interpret the owner of funds to be original one.
+ - Users might inadvertently set long or permanent time-locks in their multisig, preventing access to their funds for that period of time.
+ - Multisig participants might not have enough of the native token of the underlying SVM blockchain to pay for transaction and state fees.
+   
+   
 
 ## Compiling and testing
 
@@ -82,7 +88,7 @@ If the hash outputs of those two commands match, the code in the repository matc
 
 
 ## Usage
-Instructions on how to interact with the Squads V4 program can be found in [the Squads developer portal](https://developers.squads.so).
+Instructions on how to interact with the Squads V4 program can be found in [the Squads developer portal](https://docs.squads.so/main/v/development/development/overview).
 
 ## Security
 Squads Protocol v4 has undergone various independent audits by leading cybersecurity and blockchain smart contract auditing firms.
