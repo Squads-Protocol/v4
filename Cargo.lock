@@ -1892,6 +1892,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "modules-manager-program"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "squads-multisig",
+ "squads-multisig-program",
+]
+
+[[package]]
 name = "nix"
 version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
