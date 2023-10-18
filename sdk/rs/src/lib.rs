@@ -7,6 +7,7 @@ pub use squads_multisig_program::anchor_lang::solana_program;
 
 pub mod client;
 pub mod pda;
+pub mod vault_transaction_message;
 
 pub mod error {
     use thiserror::Error;
