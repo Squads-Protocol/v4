@@ -7,6 +7,7 @@ pub use squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccou
 pub use squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
 pub use squads_multisig_program::accounts::SpendingLimitUse as SpendingLimitUseAccounts;
 pub use squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
+use squads_multisig_program::anchor_lang::AnchorSerialize;
 pub use squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
 pub use squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
 pub use squads_multisig_program::instruction::MultisigCreate as MultisigCreateData;
@@ -20,6 +21,7 @@ pub use squads_multisig_program::instructions::ProposalCreateArgs;
 pub use squads_multisig_program::instructions::ProposalVoteArgs;
 pub use squads_multisig_program::instructions::SpendingLimitUseArgs;
 pub use squads_multisig_program::instructions::VaultTransactionCreateArgs;
+use squads_multisig_program::TransactionMessage;
 
 use crate::anchor_lang::prelude::Pubkey;
 use crate::anchor_lang::AccountDeserialize;
@@ -27,8 +29,10 @@ use crate::anchor_lang::{
     solana_program::instruction::Instruction, InstructionData, ToAccountMetas,
 };
 use crate::error::ClientError;
+use crate::pda::get_vault_pda;
 use crate::solana_program::instruction::AccountMeta;
 use crate::state::{Multisig, SpendingLimit};
+use crate::vault_transaction_message::VaultTransactionMessageExt;
 use crate::ClientResult;
 
 /// Gets a `Multisig` account from the chain.
@@ -323,38 +327,48 @@ pub fn spending_limit_use(
 /// use squads_multisig::vault_transaction_message::VaultTransactionMessageExt;
 /// use squads_multisig_program::TransactionMessage;
 ///
-/// // Default vault (index 0).
-/// let vault_pda = get_vault_pda(&Pubkey::new_unique(), 0, None).0;
-///
-/// // Create a vault transaction message that includes 1 instruction - SOL transfer from the default vault.
-/// let message = TransactionMessage::try_compile(
-///   &vault_pda,
-///   &[system_instruction::transfer(&vault_pda, &Pubkey::new_unique(), 1_000_000)],
-///   &[]
-/// ).unwrap().try_to_vec().unwrap();
+/// let multisig = Pubkey::new_unique();
+/// let vault_index = 0;
+/// let vault_pda = get_vault_pda(&multisig, vault_index, None).0;
 ///
 /// let ix = vault_transaction_create(
 ///     VaultTransactionCreateAccounts {
-///         multisig: Pubkey::new_unique(),
+///         multisig,
 ///         transaction: Pubkey::new_unique(),
 ///         creator: Pubkey::new_unique(),
 ///         rent_payer: Pubkey::new_unique(),
 ///         system_program: system_program::id(),
 ///     },
-///     VaultTransactionCreateArgs {
-///         vault_index: 0,
-///         ephemeral_signers: 0,
-///         transaction_message: message,
-///         memo: None,
-///     },
-///     None
+///     0,
+///     // Create a vault transaction that includes 1 instruction - SOL transfer from the default vault.
+///     vec![system_instruction::transfer(&vault_pda, &Pubkey::new_unique(), 1_000_000)],
+///     0,
+///     None,
+///     None,
 /// );
 /// ```
 pub fn vault_transaction_create(
     accounts: VaultTransactionCreateAccounts,
-    args: VaultTransactionCreateArgs,
+    vault_index: u8,
+    instructions: Vec<Instruction>,
+    num_ephemeral_signers: u8,
+    memo: Option<String>,
     program_id: Option<Pubkey>,
 ) -> Instruction {
+    let vault_pda = get_vault_pda(&accounts.multisig, vault_index, None).0;
+
+    let message = TransactionMessage::try_compile(&vault_pda, &instructions, &[])
+        .unwrap()
+        .try_to_vec()
+        .unwrap();
+
+    let args = VaultTransactionCreateArgs {
+        vault_index,
+        ephemeral_signers: num_ephemeral_signers,
+        transaction_message: message,
+        memo,
+    };
+
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
         data: VaultTransactionCreateData { args }.data(),
