@@ -313,22 +313,25 @@ pub fn spending_limit_use(
 /// ```
 /// use squads_multisig::anchor_lang::AnchorSerialize;
 /// use squads_multisig::solana_program::pubkey::Pubkey;
-/// use squads_multisig::solana_program::system_program;
+/// use squads_multisig::solana_program::{system_instruction, system_program};
 /// use squads_multisig::client::{
 ///     VaultTransactionCreateAccounts,
 ///     VaultTransactionCreateArgs,
 ///     vault_transaction_create,
 /// };
+/// use squads_multisig::pda::get_vault_pda;
+/// use squads_multisig::vault_transaction_message::VaultTransactionMessageExt;
 /// use squads_multisig_program::TransactionMessage;
 ///
-/// let message = TransactionMessage {
-///     num_signers: 1,
-///     num_writable_signers: 1,
-///     num_writable_non_signers: 2,
-///     account_keys: vec![].into(),
-///     instructions: vec![].into(),
-///     address_table_lookups: vec![].into(),
-/// }.try_to_vec().unwrap();
+/// // Default vault (index 0).
+/// let vault_pda = get_vault_pda(&Pubkey::new_unique(), 0, None).0;
+///
+/// // Create a vault transaction message that includes 1 instruction - SOL transfer from the default vault.
+/// let message = TransactionMessage::try_compile(
+///   &vault_pda,
+///   &[system_instruction::transfer(&vault_pda, &Pubkey::new_unique(), 1_000_000)],
+///   &[]
+/// ).unwrap().try_to_vec().unwrap();
 ///
 /// let ix = vault_transaction_create(
 ///     VaultTransactionCreateAccounts {
