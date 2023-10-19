@@ -18,8 +18,10 @@ pub mod error {
         Client(#[from] solana_client::client_error::ClientError),
         #[error("Failed to deserialize account data")]
         DeserializationError,
-        #[error("Failed to load account")]
-        AccountNotFound,
+        #[error("Invalid AddressLookupTableAccount")]
+        InvalidAddressLookupTableAccount,
+        #[error("Invalid TransactionMessage")]
+        InvalidTransactionMessage,
     }
 }
 
