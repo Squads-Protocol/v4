@@ -401,7 +401,6 @@ pub fn vault_transaction_create(
 ///         member: Pubkey::new_unique(),
 ///         proposal: Pubkey::new_unique(),
 ///     },
-///     0,
 ///     None,
 /// );
 ///
@@ -410,15 +409,14 @@ pub fn vault_transaction_create(
 pub async fn vault_transaction_execute(
     rpc_client: &RpcClient,
     accounts: VaultTransactionExecuteAccounts,
-    vault_index: u8,
     program_id: Option<Pubkey>,
 ) -> ClientResult<(Instruction, Vec<AddressLookupTableAccount>)> {
-    let vault_pda = get_vault_pda(&accounts.multisig, vault_index, None).0;
-
     let transaction_account_data = rpc_client.get_account_data(&accounts.transaction).await?;
     let transaction_account =
         VaultTransaction::try_deserialize(&mut transaction_account_data.as_slice())
             .map_err(|_| ClientError::DeserializationError)?;
+
+    let vault_pda = get_vault_pda(&accounts.multisig, transaction_account.vault_index, None).0;
 
     let accounts_for_execute = AccountsForExecute::load(
         rpc_client,
