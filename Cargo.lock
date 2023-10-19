@@ -3538,7 +3538,7 @@ dependencies = [
 
 [[package]]
 name = "squads-multisig"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "futures",
  "solana-address-lookup-table-program",
