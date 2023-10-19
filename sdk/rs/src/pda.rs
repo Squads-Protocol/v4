@@ -1,5 +1,6 @@
 use squads_multisig_program::{
-    SEED_MULTISIG, SEED_PREFIX, SEED_PROPOSAL, SEED_SPENDING_LIMIT, SEED_TRANSACTION, SEED_VAULT,
+    SEED_EPHEMERAL_SIGNER, SEED_MULTISIG, SEED_PREFIX, SEED_PROPOSAL, SEED_SPENDING_LIMIT,
+    SEED_TRANSACTION, SEED_VAULT,
 };
 
 use crate::solana_program::pubkey::Pubkey;
@@ -71,6 +72,22 @@ pub fn get_spending_limit_pda(
             multisig_pda.to_bytes().as_ref(),
             SEED_SPENDING_LIMIT,
             create_key.to_bytes().as_ref(),
+        ],
+        program_id.unwrap_or(&squads_multisig_program::ID),
+    )
+}
+
+pub fn get_ephemeral_signer_pda(
+    transaction_pda: &Pubkey,
+    ephemeral_signer_index: u8,
+    program_id: Option<&Pubkey>,
+) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[
+            SEED_PREFIX,
+            &transaction_pda.to_bytes(),
+            SEED_EPHEMERAL_SIGNER,
+            &ephemeral_signer_index.to_le_bytes(),
         ],
         program_id.unwrap_or(&squads_multisig_program::ID),
     )

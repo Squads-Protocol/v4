@@ -7,6 +7,7 @@ pub use squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccou
 pub use squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
 pub use squads_multisig_program::accounts::SpendingLimitUse as SpendingLimitUseAccounts;
 pub use squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
+pub use squads_multisig_program::accounts::VaultTransactionExecute as VaultTransactionExecuteAccounts;
 use squads_multisig_program::anchor_lang::AnchorSerialize;
 pub use squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
 pub use squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
@@ -15,13 +16,14 @@ pub use squads_multisig_program::instruction::ProposalApprove as ProposalApprove
 pub use squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
 pub use squads_multisig_program::instruction::SpendingLimitUse as SpendingLimitUseData;
 pub use squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
+pub use squads_multisig_program::instruction::VaultTransactionExecute as VaultTransactionExecuteData;
 pub use squads_multisig_program::instructions::ConfigTransactionCreateArgs;
 pub use squads_multisig_program::instructions::MultisigCreateArgs;
 pub use squads_multisig_program::instructions::ProposalCreateArgs;
 pub use squads_multisig_program::instructions::ProposalVoteArgs;
 pub use squads_multisig_program::instructions::SpendingLimitUseArgs;
 pub use squads_multisig_program::instructions::VaultTransactionCreateArgs;
-use squads_multisig_program::TransactionMessage;
+use squads_multisig_program::{TransactionMessage, VaultTransaction};
 
 use crate::anchor_lang::prelude::Pubkey;
 use crate::anchor_lang::AccountDeserialize;
@@ -30,9 +32,11 @@ use crate::anchor_lang::{
 };
 use crate::error::ClientError;
 use crate::pda::get_vault_pda;
+use crate::solana_program::address_lookup_table_account::AddressLookupTableAccount;
 use crate::solana_program::instruction::AccountMeta;
 use crate::state::{Multisig, SpendingLimit};
-use crate::vault_transaction_message::VaultTransactionMessageExt;
+
+use crate::vault_transaction::{AccountsForExecute, Error, VaultTransactionMessageExt};
 use crate::ClientResult;
 
 /// Gets a `Multisig` account from the chain.
@@ -324,7 +328,6 @@ pub fn spending_limit_use(
 ///     vault_transaction_create,
 /// };
 /// use squads_multisig::pda::get_vault_pda;
-/// use squads_multisig::vault_transaction_message::VaultTransactionMessageExt;
 /// use squads_multisig_program::TransactionMessage;
 ///
 /// let multisig = Pubkey::new_unique();
@@ -374,4 +377,72 @@ pub fn vault_transaction_create(
         data: VaultTransactionCreateData { args }.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
+}
+
+/// Executes a vault transaction.
+/// Example:
+/// ```
+/// use solana_client::nonblocking::rpc_client::RpcClient;
+/// use squads_multisig::anchor_lang::AnchorSerialize;
+/// use squads_multisig::solana_program::pubkey::Pubkey;
+/// use squads_multisig::solana_program::{system_instruction, system_program};
+/// use squads_multisig::client::{
+///     VaultTransactionExecuteAccounts,
+///     vault_transaction_execute
+/// };
+///
+/// let rpc_client = RpcClient::new("https://api.devnet.solana.com".to_string());
+///
+/// let future = vault_transaction_execute(
+///     &rpc_client,
+///     VaultTransactionExecuteAccounts {
+///         multisig: Pubkey::new_unique(),
+///         transaction: Pubkey::new_unique(),
+///         member: Pubkey::new_unique(),
+///         proposal: Pubkey::new_unique(),
+///     },
+///     0,
+///     None,
+/// );
+///
+/// // TODO: await the `future`.
+/// ```
+pub async fn vault_transaction_execute(
+    rpc_client: &RpcClient,
+    accounts: VaultTransactionExecuteAccounts,
+    vault_index: u8,
+    program_id: Option<Pubkey>,
+) -> ClientResult<(Instruction, Vec<AddressLookupTableAccount>)> {
+    let vault_pda = get_vault_pda(&accounts.multisig, vault_index, None).0;
+
+    let transaction_account_data = rpc_client.get_account_data(&accounts.transaction).await?;
+    let transaction_account =
+        VaultTransaction::try_deserialize(&mut transaction_account_data.as_slice())
+            .map_err(|_| ClientError::DeserializationError)?;
+
+    let accounts_for_execute = AccountsForExecute::load(
+        rpc_client,
+        &vault_pda,
+        &accounts.transaction,
+        &transaction_account.message,
+        &transaction_account.ephemeral_signer_bumps,
+        &program_id.unwrap_or(squads_multisig_program::ID),
+    )
+    .await
+    .map_err(|err| match err {
+        Error::FailedToLoadAccount => ClientError::AccountNotFound,
+    })?;
+
+    let mut accounts = accounts.to_account_metas(Some(false));
+    // Append the accounts required for executing the inner instructions.
+    accounts.extend(accounts_for_execute.account_metas.into_iter());
+
+    Ok((
+        Instruction {
+            accounts,
+            data: VaultTransactionExecuteData {}.data(),
+            program_id: program_id.unwrap_or(squads_multisig_program::ID),
+        },
+        accounts_for_execute.lookup_table_accounts,
+    ))
 }
