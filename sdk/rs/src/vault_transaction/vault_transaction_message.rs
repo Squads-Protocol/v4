@@ -1,12 +1,10 @@
 use squads_multisig_program::{CompiledInstruction, MessageAddressTableLookup, TransactionMessage};
 
+use super::compiled_keys::CompiledKeys;
 use crate::solana_program::address_lookup_table_account::AddressLookupTableAccount;
 use crate::solana_program::instruction::Instruction;
 use crate::solana_program::message::{AccountKeys, CompileError};
 use crate::solana_program::pubkey::Pubkey;
-use crate::vault_transaction_message::compiled_keys::CompiledKeys;
-
-mod compiled_keys;
 
 pub trait VaultTransactionMessageExt {
     /// This implementation is mostly a copy-paste from `solana_program::message::v0::Message::try_compile()`,

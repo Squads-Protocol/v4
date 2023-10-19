@@ -7,7 +7,7 @@ pub use squads_multisig_program::anchor_lang::solana_program;
 
 pub mod client;
 pub mod pda;
-pub mod vault_transaction_message;
+pub mod vault_transaction;
 
 pub mod error {
     use thiserror::Error;
@@ -16,9 +16,10 @@ pub mod error {
     pub enum ClientError {
         #[error(transparent)]
         Client(#[from] solana_client::client_error::ClientError),
-
         #[error("Failed to deserialize account data")]
         DeserializationError,
+        #[error("Failed to load account")]
+        AccountNotFound,
     }
 }
 
