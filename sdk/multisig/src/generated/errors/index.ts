@@ -703,6 +703,29 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * IllegalAccountOwner: 'Account is not owned by Multisig program'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class IllegalAccountOwnerError extends Error {
+  readonly code: number = 0x178f
+  readonly name: string = 'IllegalAccountOwner'
+  constructor() {
+    super('Account is not owned by Multisig program')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, IllegalAccountOwnerError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178f, () => new IllegalAccountOwnerError())
+createErrorFromNameLookup.set(
+  'IllegalAccountOwner',
+  () => new IllegalAccountOwnerError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

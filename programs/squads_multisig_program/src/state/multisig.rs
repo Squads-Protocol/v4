@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
 use crate::errors::*;
+use crate::id;
 
 pub const MAX_TIME_LOCK: u32 = 3 * 30 * 24 * 60 * 60; // 3 months
 
@@ -82,6 +83,14 @@ impl Multisig {
         rent_payer: AccountInfo<'a>,
         system_program: AccountInfo<'a>,
     ) -> Result<bool> {
+        // Sanity checks
+        require_keys_eq!(
+            *system_program.key,
+            system_program::ID,
+            MultisigError::InvalidAccount
+        );
+        require_keys_eq!(*multisig.owner, id(), MultisigError::IllegalAccountOwner);
+
         let current_account_size = multisig.data.borrow().len();
         let account_size_to_fit_members = Multisig::size(members_length);
 

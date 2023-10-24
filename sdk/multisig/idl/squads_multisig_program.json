@@ -2461,6 +2461,11 @@
       "code": 6030,
       "name": "TimeLockExceedsMaxAllowed",
       "msg": "Time lock exceeds the maximum allowed (90 days)"
+    },
+    {
+      "code": 6031,
+      "name": "IllegalAccountOwner",
+      "msg": "Account is not owned by Multisig program"
     }
   ],
   "metadata": {
