@@ -71,7 +71,15 @@ impl MultisigAddSpendingLimit<'_> {
             MultisigError::Unauthorized
         );
 
-        // `spending_limit` is checked via its seeds.
+        // `spending_limit` is partially checked via its seeds.
+
+        // SpendingLimit members must all be members of the multisig.
+        for sl_member in self.spending_limit.members.iter() {
+            require!(
+                self.multisig.is_member(*sl_member).is_some(),
+                MultisigError::NotAMember
+            );
+        }
 
         Ok(())
     }
