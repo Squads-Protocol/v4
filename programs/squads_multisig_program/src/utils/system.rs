@@ -1,4 +1,6 @@
+use crate::errors::MultisigError;
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 
 /// Creates `new_account` via a CPI into SystemProgram.
 /// Adapted from Anchor: https://github.com/coral-xyz/anchor/blob/714d5248636493a3d1db1481f16052836ee59e94/lang/syn/src/codegen/accounts/constraints.rs#L1126-L1179
@@ -11,6 +13,13 @@ pub fn create_account<'a, 'info>(
     space: usize,
     seeds: Vec<Vec<u8>>,
 ) -> Result<()> {
+    // Sanity checks
+    require_keys_eq!(
+        *system_program.key,
+        system_program::ID,
+        MultisigError::InvalidAccount
+    );
+
     let current_lamports = **new_account.try_borrow_lamports()?;
 
     if current_lamports == 0 {
