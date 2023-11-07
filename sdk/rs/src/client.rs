@@ -351,7 +351,7 @@ pub fn spending_limit_use(
 ///     },
 ///     vault_index,
 ///     0,
-///     message,
+///     &message,
 ///     None,
 ///     None,
 /// );
@@ -360,7 +360,7 @@ pub fn vault_transaction_create(
     accounts: VaultTransactionCreateAccounts,
     vault_index: u8,
     num_ephemeral_signers: u8,
-    message: TransactionMessage,
+    message: &TransactionMessage,
     memo: Option<String>,
     program_id: Option<Pubkey>,
 ) -> Instruction {
@@ -413,7 +413,7 @@ pub fn vault_transaction_create(
 ///     0,
 ///     0,
 ///     &message,
-///     vec![],
+///     &[],
 ///     None,
 /// );
 ///
@@ -423,7 +423,7 @@ pub fn vault_transaction_execute(
     vault_index: u8,
     num_ephemeral_signers: u8,
     message: &TransactionMessage,
-    address_lookup_table_accounts: Vec<AddressLookupTableAccount>,
+    address_lookup_table_accounts: &[AddressLookupTableAccount],
     program_id: Option<Pubkey>,
 ) -> ClientResult<Instruction> {
     let vault_pda = get_vault_pda(&accounts.multisig, vault_index, None).0;
