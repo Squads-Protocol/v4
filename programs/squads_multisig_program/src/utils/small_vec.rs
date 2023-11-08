@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{Read, Write};
 use std::marker::PhantomData;
 
 use anchor_lang::prelude::*;
@@ -13,7 +13,7 @@ impl<L, T> SmallVec<L, T> {
     pub fn len(&self) -> usize {
         self.0.len()
     }
-    
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -61,17 +61,17 @@ where
     /// This implementation almost exactly matches standard implementation of
     /// `Vec<T>::deserialize` except that it uses `L` instead of `u32` for the length,
     /// and doesn't include `unsafe` code.
-    fn deserialize(input: &mut &[u8]) -> std::io::Result<Self> {
-        let len: u32 = L::deserialize(input)?.into();
+    fn deserialize_reader<R: Read>(reader: &mut R) -> std::io::Result<Self> {
+        let len: u32 = L::deserialize_reader(reader)?.into();
 
         let vec = if len == 0 {
             Vec::new()
-        } else if let Some(vec_bytes) = T::vec_from_bytes(len, input)? {
+        } else if let Some(vec_bytes) = T::vec_from_reader(len, reader)? {
             vec_bytes
         } else {
             let mut result = Vec::with_capacity(hint::cautious::<T>(len));
             for _ in 0..len {
-                result.push(T::deserialize(input)?);
+                result.push(T::deserialize_reader(reader)?);
             }
             result
         };

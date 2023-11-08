@@ -113,7 +113,7 @@ impl VaultTransactionCreate<'_> {
         transaction.multisig = multisig_key;
         transaction.creator = creator.key();
         transaction.index = transaction_index;
-        transaction.bump = *ctx.bumps.get("transaction").unwrap();
+        transaction.bump = ctx.bumps.transaction;
         transaction.vault_index = args.vault_index;
         transaction.vault_bump = vault_bump;
         transaction.ephemeral_signer_bumps = ephemeral_signer_bumps;

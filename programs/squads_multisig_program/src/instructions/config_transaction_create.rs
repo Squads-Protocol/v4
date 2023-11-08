@@ -100,7 +100,7 @@ impl ConfigTransactionCreate<'_> {
         transaction.multisig = multisig_key;
         transaction.creator = creator.key();
         transaction.index = transaction_index;
-        transaction.bump = *ctx.bumps.get("transaction").unwrap();
+        transaction.bump = ctx.bumps.transaction;
         transaction.actions = args.actions;
 
         // Updated last transaction index in the multisig account.

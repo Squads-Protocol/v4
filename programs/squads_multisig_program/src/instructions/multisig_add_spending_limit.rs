@@ -102,7 +102,7 @@ impl MultisigAddSpendingLimit<'_> {
         spending_limit.period = args.period;
         spending_limit.remaining_amount = args.amount;
         spending_limit.last_reset = Clock::get()?.unix_timestamp;
-        spending_limit.bump = *ctx.bumps.get("spending_limit").unwrap();
+        spending_limit.bump = ctx.bumps.spending_limit;
         spending_limit.members = args.members;
         spending_limit.destinations = args.destinations;
 

@@ -133,7 +133,7 @@ impl BatchAddTransaction<'_> {
             })
             .collect();
 
-        transaction.bump = *ctx.bumps.get("transaction").unwrap();
+        transaction.bump = ctx.bumps.transaction;
         transaction.ephemeral_signer_bumps = ephemeral_signer_bumps;
         transaction.message = transaction_message.try_into()?;
 

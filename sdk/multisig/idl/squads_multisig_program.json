@@ -2101,7 +2101,7 @@
             "name": "AddMember",
             "fields": [
               {
-                "name": "new_member",
+                "name": "newMember",
                 "type": {
                   "defined": "Member"
                 }
@@ -2112,7 +2112,7 @@
             "name": "RemoveMember",
             "fields": [
               {
-                "name": "old_member",
+                "name": "oldMember",
                 "type": "publicKey"
               }
             ]
@@ -2121,7 +2121,7 @@
             "name": "ChangeThreshold",
             "fields": [
               {
-                "name": "new_threshold",
+                "name": "newThreshold",
                 "type": "u16"
               }
             ]
@@ -2130,7 +2130,7 @@
             "name": "SetTimeLock",
             "fields": [
               {
-                "name": "new_time_lock",
+                "name": "newTimeLock",
                 "type": "u32"
               }
             ]
@@ -2139,14 +2139,14 @@
             "name": "AddSpendingLimit",
             "fields": [
               {
-                "name": "create_key",
+                "name": "createKey",
                 "docs": [
                   "Key that is used to seed the SpendingLimit PDA."
                 ],
                 "type": "publicKey"
               },
               {
-                "name": "vault_index",
+                "name": "vaultIndex",
                 "docs": [
                   "The index of the vault that the spending limit is for."
                 ],
@@ -2205,7 +2205,7 @@
             "name": "RemoveSpendingLimit",
             "fields": [
               {
-                "name": "spending_limit",
+                "name": "spendingLimit",
                 "type": "publicKey"
               }
             ]
@@ -2471,7 +2471,7 @@
   "metadata": {
     "address": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
     "origin": "anchor",
-    "binaryVersion": "0.27.0",
-    "libVersion": "=0.27.0"
+    "binaryVersion": "0.29.0",
+    "libVersion": "=0.29.0"
   }
 }

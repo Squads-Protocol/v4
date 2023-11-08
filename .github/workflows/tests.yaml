@@ -13,9 +13,7 @@ jobs:
     uses: ./.github/workflows/reusable-tests.yaml
     with:
       cache: true
-      solana_cli_version: 1.14.16
-      anchor_version: 0.27.0
+      solana_cli_version: 1.17.0
+      anchor_version: 0.29.0
       node_version: 18
       cargo_profile: debug
-    secrets:
-      MULTISIG_PROGRAM_KEYPAIR: ${{ secrets.MULTISIG_PROGRAM_KEYPAIR }}

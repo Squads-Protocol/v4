@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::convert::From;
 
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::address_lookup_table;
+use anchor_lang::solana_program::address_lookup_table::state::AddressLookupTable;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::solana_program::program::invoke_signed;
-use solana_address_lookup_table_program::state::AddressLookupTable;
 
 use crate::errors::*;
 use crate::state::*;
@@ -47,7 +48,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             .map(|(index, maybe_lookup_table)| {
                 // The lookup table account must be owned by SolanaAddressLookupTableProgram.
                 require!(
-                    maybe_lookup_table.owner == &solana_address_lookup_table_program::id(),
+                    maybe_lookup_table.owner == &address_lookup_table::program::ID,
                     MultisigError::InvalidAccount
                 );
                 // The lookup table must be mentioned in `message.address_table_lookups` at the same index.

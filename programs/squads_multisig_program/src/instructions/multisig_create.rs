@@ -60,7 +60,7 @@ impl MultisigCreate<'_> {
         multisig.transaction_index = 0;
         multisig.stale_transaction_index = 0;
         multisig.create_key = ctx.accounts.create_key.key();
-        multisig.bump = *ctx.bumps.get("multisig").unwrap();
+        multisig.bump = ctx.bumps.multisig;
         multisig.members = members;
 
         multisig.invariant()?;
