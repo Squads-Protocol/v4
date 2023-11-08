@@ -17,5 +17,3 @@ jobs:
       anchor_version: 0.29.0
       node_version: 18
       cargo_profile: debug
-    secrets:
-      MULTISIG_PROGRAM_KEYPAIR: ${{ secrets.MULTISIG_PROGRAM_KEYPAIR }}
