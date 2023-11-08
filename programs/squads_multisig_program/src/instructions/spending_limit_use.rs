@@ -149,7 +149,7 @@ impl SpendingLimitUse<'_> {
         let destination = &mut ctx.accounts.destination;
 
         let multisig_key = ctx.accounts.multisig.key();
-        let vault_bump = *ctx.bumps.get("vault").unwrap();
+        let vault_bump = ctx.bumps.vault;
         let now = Clock::get()?.unix_timestamp;
 
         // Reset `spending_limit.remaining_amount` if the `spending_limit.period` has passed.

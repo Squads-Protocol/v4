@@ -1,6 +1,6 @@
 {
   "name": "@sqds/multisig",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "description": "SDK for Squads Multisig Program v4",
   "main": "lib/index.js",
   "license": "MIT",
@@ -23,7 +23,7 @@
     "invariant": "2.2.4"
   },
   "devDependencies": {
-    "@metaplex-foundation/solita": "0.19.4",
+    "@metaplex-foundation/solita": "0.20.0",
     "@types/invariant": "2.2.35",
     "@types/node": "18.11.17",
     "typescript": "*"

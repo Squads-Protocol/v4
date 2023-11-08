@@ -112,7 +112,7 @@ pub mod squads_multisig_program {
     /// Execute a config transaction.
     /// The transaction must be `Approved`.
     pub fn config_transaction_execute<'info>(
-        ctx: Context<'_, '_, '_, 'info, ConfigTransactionExecute<'info>>,
+        ctx: Context<'_, '_, 'info, 'info, ConfigTransactionExecute<'info>>,
     ) -> Result<()> {
         ConfigTransactionExecute::config_transaction_execute(ctx)
     }

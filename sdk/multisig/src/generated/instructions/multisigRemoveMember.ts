@@ -61,10 +61,8 @@ export const multisigRemoveMemberInstructionDiscriminator = [
 /**
  * Creates a _MultisigRemoveMember_ instruction.
  *
- * Optional accounts that are not provided will be omitted from the accounts
- * array passed with the instruction.
- * An optional account that is set cannot follow an optional account that is unset.
- * Otherwise an Error is raised.
+ * Optional accounts that are not provided default to the program ID since
+ * this was indicated in the IDL from which this instruction was generated.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
@@ -93,27 +91,17 @@ export function createMultisigRemoveMemberInstruction(
       isWritable: false,
       isSigner: true,
     },
-  ]
-
-  if (accounts.rentPayer != null) {
-    keys.push({
-      pubkey: accounts.rentPayer,
-      isWritable: true,
-      isSigner: true,
-    })
-  }
-  if (accounts.systemProgram != null) {
-    if (accounts.rentPayer == null) {
-      throw new Error(
-        "When providing 'systemProgram' then 'accounts.rentPayer' need(s) to be provided as well."
-      )
-    }
-    keys.push({
-      pubkey: accounts.systemProgram,
+    {
+      pubkey: accounts.rentPayer ?? programId,
+      isWritable: accounts.rentPayer != null,
+      isSigner: accounts.rentPayer != null,
+    },
+    {
+      pubkey: accounts.systemProgram ?? programId,
       isWritable: false,
       isSigner: false,
-    })
-  }
+    },
+  ]
 
   if (accounts.anchorRemainingAccounts != null) {
     for (const acc of accounts.anchorRemainingAccounts) {

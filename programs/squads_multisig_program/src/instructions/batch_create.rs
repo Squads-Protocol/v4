@@ -85,7 +85,7 @@ impl BatchCreate<'_> {
         batch.multisig = multisig_key;
         batch.creator = creator.key();
         batch.index = index;
-        batch.bump = *ctx.bumps.get("batch").unwrap();
+        batch.bump = ctx.bumps.batch;
         batch.vault_index = args.vault_index;
         batch.vault_bump = vault_bump;
         batch.size = 0;

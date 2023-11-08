@@ -73,10 +73,8 @@ export const spendingLimitUseInstructionDiscriminator = [
 /**
  * Creates a _SpendingLimitUse_ instruction.
  *
- * Optional accounts that are not provided will be omitted from the accounts
- * array passed with the instruction.
- * An optional account that is set cannot follow an optional account that is unset.
- * Otherwise an Error is raised.
+ * Optional accounts that are not provided default to the program ID since
+ * this was indicated in the IDL from which this instruction was generated.
  *
  * @param accounts that will be accessed while the instruction is processed
  * @param args to provide as instruction data to the program
@@ -120,72 +118,32 @@ export function createSpendingLimitUseInstruction(
       isWritable: true,
       isSigner: false,
     },
+    {
+      pubkey: accounts.systemProgram ?? programId,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.mint ?? programId,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.vaultTokenAccount ?? programId,
+      isWritable: accounts.vaultTokenAccount != null,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.destinationTokenAccount ?? programId,
+      isWritable: accounts.destinationTokenAccount != null,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.tokenProgram ?? programId,
+      isWritable: false,
+      isSigner: false,
+    },
   ]
-
-  if (accounts.systemProgram != null) {
-    keys.push({
-      pubkey: accounts.systemProgram,
-      isWritable: false,
-      isSigner: false,
-    })
-  }
-  if (accounts.mint != null) {
-    if (accounts.systemProgram == null) {
-      throw new Error(
-        "When providing 'mint' then 'accounts.systemProgram' need(s) to be provided as well."
-      )
-    }
-    keys.push({
-      pubkey: accounts.mint,
-      isWritable: false,
-      isSigner: false,
-    })
-  }
-  if (accounts.vaultTokenAccount != null) {
-    if (accounts.systemProgram == null || accounts.mint == null) {
-      throw new Error(
-        "When providing 'vaultTokenAccount' then 'accounts.systemProgram', 'accounts.mint' need(s) to be provided as well."
-      )
-    }
-    keys.push({
-      pubkey: accounts.vaultTokenAccount,
-      isWritable: true,
-      isSigner: false,
-    })
-  }
-  if (accounts.destinationTokenAccount != null) {
-    if (
-      accounts.systemProgram == null ||
-      accounts.mint == null ||
-      accounts.vaultTokenAccount == null
-    ) {
-      throw new Error(
-        "When providing 'destinationTokenAccount' then 'accounts.systemProgram', 'accounts.mint', 'accounts.vaultTokenAccount' need(s) to be provided as well."
-      )
-    }
-    keys.push({
-      pubkey: accounts.destinationTokenAccount,
-      isWritable: true,
-      isSigner: false,
-    })
-  }
-  if (accounts.tokenProgram != null) {
-    if (
-      accounts.systemProgram == null ||
-      accounts.mint == null ||
-      accounts.vaultTokenAccount == null ||
-      accounts.destinationTokenAccount == null
-    ) {
-      throw new Error(
-        "When providing 'tokenProgram' then 'accounts.systemProgram', 'accounts.mint', 'accounts.vaultTokenAccount', 'accounts.destinationTokenAccount' need(s) to be provided as well."
-      )
-    }
-    keys.push({
-      pubkey: accounts.tokenProgram,
-      isWritable: false,
-      isSigner: false,
-    })
-  }
 
   if (accounts.anchorRemainingAccounts != null) {
     for (const acc of accounts.anchorRemainingAccounts) {

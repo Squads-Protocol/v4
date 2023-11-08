@@ -2,13 +2,9 @@ const { Keypair } = require("@solana/web3.js");
 const { readFileSync } = require("fs");
 const path = require("path");
 
-const programDir = path.join(
-  __dirname,
-  "..",
-  "..",
-  "programs",
-  "squads_multisig_program"
-);
+const PROGRAM_NAME = "squads_multisig_program";
+
+const programDir = path.join(__dirname, "..", "..", "programs", PROGRAM_NAME);
 const idlDir = path.join(__dirname, "idl");
 const sdkDir = path.join(__dirname, "src", "generated");
 const binaryInstallDir = path.join(__dirname, "..", "..", ".crates");
@@ -39,14 +35,14 @@ function loadKeypairFromFile(relativePath) {
 }
 
 const keypair = loadKeypairFromFile(
-  "../../target/deploy/multisig-keypair.json"
+  `../../target/deploy/${PROGRAM_NAME}-keypair.json`
 );
 
 const pubkey = keypair.publicKey.toBase58();
 
 module.exports = {
   idlGenerator: "anchor",
-  programName: "squads_multisig_program",
+  programName: PROGRAM_NAME,
   programId: pubkey,
   idlDir,
   sdkDir,
