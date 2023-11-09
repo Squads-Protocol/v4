@@ -1,0 +1,49 @@
+# Checks that the balance of the Solana public key
+# associated with the UPGRADE_AUTHORITY_KEYPAIR_STAGING is greater than
+# the estimated balance required to deploy a program.
+name: Check Staging Deployer Balance
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'programs/squads_multisig_program/**'
+
+jobs:
+  check-balance:
+    if: contains(github.event.pull_request.labels.*.name, 'deploy-staging')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Solana
+        uses: ./.github/actions/setup-solana/
+
+      - name: Check Solana Balance
+        env:
+          UPGRADE_AUTHORITY_KEYPAIR: ${{ secrets.UPGRADE_AUTHORITY_KEYPAIR_STAGING }}
+          RPC_URL: ${{ secrets.RPC_URL_MAINNET }}
+        run: |
+          # Write the keypair to a file so it can be used with solana-keygen
+          echo $UPGRADE_AUTHORITY_KEYPAIR > ./upgrade-authority.json && chmod 600 ./upgrade-authority.json
+          
+          # Extract the public key from the keypair file
+          PUBLIC_KEY=$(solana-keygen pubkey ./upgrade-authority.json)
+          
+          # Remove the keypair file
+          rm ./upgrade-authority.json
+          
+          # Fetch the balance of the public key
+          BALANCE=$(solana balance $PUBLIC_KEY --url $RPC_URL | awk '{print $1}')
+          
+          MIN_BALANCE=10
+          
+          # Check if the balance is less than the minimum balance using floating point comparison with `bc`
+          if (( $(echo "$BALANCE < $MIN_BALANCE" | bc -l) )); then
+            echo "Balance of $PUBLIC_KEY is $BALANCE, which is less than the minimum balance of $MIN_BALANCE"
+            exit 1
+          fi
+          
+          echo "Balance of $PUBLIC_KEY is $BALANCE SOL"

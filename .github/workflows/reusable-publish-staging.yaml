@@ -1,0 +1,73 @@
+name: Reusable Publish to Staging
+
+on:
+  workflow_call:
+    inputs:
+      cache:
+        required: true
+        type: boolean
+      solana_cli_version:
+        required: true
+        type: string
+      anchor_version:
+        required: true
+        type: string
+      program:
+        description: "The program to build"
+        required: true
+        type: string
+      program_id:
+        description: "The program address"
+        required: true
+        type: string
+      replace_program_id:
+        description: "Whether to replace current program id with `program_id` in lib.rs, e.g. when deploying to a staging address"
+        type: boolean
+
+    secrets:
+      RPC_URL:
+          required: true
+      UPGRADE_AUTHORITY_KEYPAIR:
+          required: true
+
+env:
+  CACHE: inputs.cache
+  SOLANA_CLI_VERSION: ${{ inputs.solana_cli_version }}
+  NODE_VERSION: ${{ inputs.node_version }}
+  CARGO_PROFILE: ${{ inputs.cargo_profile }}
+  ANCHOR_VERSION: ${{ inputs.anchor_version }}
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust/
+
+      - name: Setup Solana
+        uses: ./.github/actions/setup-solana/
+
+      - name: Setup Anchor
+        uses: ./.github/actions/setup-anchor/
+
+      - name: Build Anchor
+        uses: ./.github/actions/build-anchor/
+        with:
+          program: ${{ inputs.program }}
+          program_id: ${{ inputs.program_id }}
+          replace_program_id: ${{ inputs.replace_program_id }}
+
+      - name: Deploy with Anchor
+        uses: ./.github/actions/deploy-anchor/
+        with:
+          program: ${{ inputs.program }}
+          program_id: ${{ inputs.program_id }}
+          rpc_url: ${{ secrets.RPC_URL }}
+          upgrade_authority_keypair: ${{ secrets.UPGRADE_AUTHORITY_KEYPAIR }}
+
+

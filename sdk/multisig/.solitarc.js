@@ -39,6 +39,7 @@ const keypair = loadKeypairFromFile(
 );
 
 const pubkey = keypair.publicKey.toBase58();
+console.log("Generating SDK for Program ID:", pubkey);
 
 module.exports = {
   idlGenerator: "anchor",
