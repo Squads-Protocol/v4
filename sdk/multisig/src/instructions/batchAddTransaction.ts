@@ -3,7 +3,7 @@ import {
   PublicKey,
   TransactionMessage,
 } from "@solana/web3.js";
-import { createBatchAddTransactionInstruction } from "../generated";
+import { createBatchAddTransactionInstruction, PROGRAM_ID } from "../generated";
 import {
   getBatchTransactionPda,
   getProposalPda,
@@ -22,6 +22,7 @@ export function batchAddTransaction({
   ephemeralSigners,
   transactionMessage,
   addressLookupTableAccounts,
+  programId = PROGRAM_ID,
 }: {
   vaultIndex: number;
   multisigPda: PublicKey;
@@ -37,23 +38,28 @@ export function batchAddTransaction({
   transactionMessage: TransactionMessage;
   /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
   addressLookupTableAccounts?: AddressLookupTableAccount[];
+  programId?: PublicKey;
 }) {
   const [proposalPda] = getProposalPda({
     multisigPda,
     transactionIndex: batchIndex,
+    programId,
   });
   const [batchPda] = getTransactionPda({
     multisigPda,
     index: batchIndex,
+    programId,
   });
   const [batchTransactionPda] = getBatchTransactionPda({
     multisigPda,
     batchIndex,
     transactionIndex,
+    programId,
   });
   const [vaultPda] = getVaultPda({
     multisigPda,
     index: vaultIndex,
+    programId,
   });
 
   const transactionMessageBytes =
@@ -77,6 +83,7 @@ export function batchAddTransaction({
         ephemeralSigners,
         transactionMessage: transactionMessageBytes,
       },
-    }
+    },
+    programId
   );
 }

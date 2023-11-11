@@ -3,6 +3,7 @@ import BN from "bn.js";
 import {
   createMultisigRemoveSpendingLimitInstruction,
   Period,
+  PROGRAM_ID,
 } from "../generated";
 
 export function multisigRemoveSpendingLimit({
@@ -11,12 +12,14 @@ export function multisigRemoveSpendingLimit({
   spendingLimit,
   rentCollector,
   memo,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   spendingLimit: PublicKey;
   configAuthority: PublicKey;
   rentCollector: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }) {
   return createMultisigRemoveSpendingLimitInstruction(
     {
@@ -29,6 +32,7 @@ export function multisigRemoveSpendingLimit({
       args: {
         memo: memo ?? null,
       },
-    }
+    },
+    programId
   );
 }

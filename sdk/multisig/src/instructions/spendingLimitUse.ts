@@ -8,7 +8,7 @@ import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { createSpendingLimitUseInstruction } from "../generated";
+import { createSpendingLimitUseInstruction, PROGRAM_ID } from "../generated";
 import { getVaultPda } from "../pda";
 
 export function spendingLimitUse({
@@ -22,6 +22,7 @@ export function spendingLimitUse({
   destination,
   tokenProgram = TOKEN_PROGRAM_ID,
   memo,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   member: PublicKey;
@@ -34,8 +35,9 @@ export function spendingLimitUse({
   destination: PublicKey;
   tokenProgram?: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }): TransactionInstruction {
-  const [vaultPda] = getVaultPda({ multisigPda, index: vaultIndex });
+  const [vaultPda] = getVaultPda({ multisigPda, index: vaultIndex, programId });
 
   const vaultTokenAccount =
     mint &&
@@ -70,6 +72,7 @@ export function spendingLimitUse({
       destinationTokenAccount,
       tokenProgram: mint ? tokenProgram : undefined,
     },
-    { args: { amount, decimals, memo: memo ?? null } }
+    { args: { amount, decimals, memo: memo ?? null } },
+    programId
   );
 }

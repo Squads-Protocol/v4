@@ -20,6 +20,7 @@ export async function multisigAddMember({
   memo,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -30,6 +31,7 @@ export async function multisigAddMember({
   memo?: string;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -41,6 +43,7 @@ export async function multisigAddMember({
     rentPayer: rentPayer.publicKey,
     newMember,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, rentPayer, ...(signers ?? [])]);

@@ -15,6 +15,7 @@ export async function proposalActivate({
   multisigPda,
   transactionIndex,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -22,6 +23,7 @@ export async function proposalActivate({
   multisigPda: PublicKey;
   transactionIndex: bigint;
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -31,6 +33,7 @@ export async function proposalActivate({
     multisigPda,
     transactionIndex,
     member: member.publicKey,
+    programId,
   });
 
   tx.sign([feePayer, member]);

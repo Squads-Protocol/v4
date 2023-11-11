@@ -150,12 +150,14 @@ export async function accountsForTransactionExecute({
   vaultPda,
   message,
   ephemeralSignerBumps,
+  programId,
 }: {
   connection: Connection;
   message: VaultTransactionMessage;
   ephemeralSignerBumps: number[];
   vaultPda: PublicKey;
   transactionPda: PublicKey;
+  programId?: PublicKey;
 }): Promise<{
   /** Account metas used in the `message`. */
   accountMetas: AccountMeta[];
@@ -167,6 +169,7 @@ export async function accountsForTransactionExecute({
       return getEphemeralSignerPda({
         transactionPda,
         ephemeralSignerIndex: additionalSignerIndex,
+        programId,
       })[0];
     }
   );

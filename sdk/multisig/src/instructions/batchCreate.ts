@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { createBatchCreateInstruction } from "../generated";
+import { createBatchCreateInstruction, PROGRAM_ID } from "../generated";
 import { getTransactionPda } from "../pda";
 
 export function batchCreate({
@@ -9,6 +9,7 @@ export function batchCreate({
   batchIndex,
   vaultIndex,
   memo,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   /** Member of the multisig that is creating the batch. */
@@ -18,10 +19,12 @@ export function batchCreate({
   batchIndex: bigint;
   vaultIndex: number;
   memo?: string;
+  programId?: PublicKey;
 }) {
   const [batchPda] = getTransactionPda({
     multisigPda,
     index: batchIndex,
+    programId,
   });
 
   return createBatchCreateInstruction(
@@ -31,6 +34,7 @@ export function batchCreate({
       rentPayer: rentPayer ?? creator,
       batch: batchPda,
     },
-    { args: { vaultIndex, memo: memo ?? null } }
+    { args: { vaultIndex, memo: memo ?? null } },
+    programId
   );
 }

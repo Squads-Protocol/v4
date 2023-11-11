@@ -16,6 +16,7 @@ export function multisigSetTimeLock({
   configAuthority,
   timeLock,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -23,6 +24,7 @@ export function multisigSetTimeLock({
   configAuthority: PublicKey;
   timeLock: number;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -33,6 +35,7 @@ export function multisigSetTimeLock({
         configAuthority,
         timeLock,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

@@ -18,6 +18,7 @@ export async function batchExecuteTransaction({
   transactionIndex,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -27,6 +28,7 @@ export async function batchExecuteTransaction({
   transactionIndex: number;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -38,6 +40,7 @@ export async function batchExecuteTransaction({
     member: member.publicKey,
     batchIndex,
     transactionIndex,
+    programId,
   });
 
   tx.sign([feePayer, member, ...(signers ?? [])]);

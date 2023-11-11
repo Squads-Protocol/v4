@@ -21,6 +21,7 @@ export async function multisigCreate({
   timeLock,
   memo,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   createKey: Signer;
@@ -32,6 +33,7 @@ export async function multisigCreate({
   timeLock: number;
   memo?: string;
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -45,6 +47,7 @@ export async function multisigCreate({
     members,
     timeLock,
     memo,
+    programId,
   });
 
   tx.sign([creator, createKey]);

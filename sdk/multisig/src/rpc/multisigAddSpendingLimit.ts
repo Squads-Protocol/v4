@@ -29,6 +29,7 @@ export async function multisigAddSpendingLimit({
   memo,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -46,6 +47,7 @@ export async function multisigAddSpendingLimit({
   memo?: string;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -64,6 +66,7 @@ export async function multisigAddSpendingLimit({
     members,
     destinations,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, rentPayer, ...(signers ?? [])]);

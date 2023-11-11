@@ -17,6 +17,7 @@ export function multisigCreate({
   members,
   timeLock,
   memo,
+  programId,
 }: {
   blockhash: string;
   createKey: PublicKey;
@@ -27,6 +28,7 @@ export function multisigCreate({
   members: Member[];
   timeLock: number;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const ix = instructions.multisigCreate({
     creator,
@@ -37,6 +39,7 @@ export function multisigCreate({
     timeLock,
     createKey,
     memo,
+    programId,
   });
 
   const message = new TransactionMessage({

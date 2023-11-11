@@ -34,7 +34,11 @@ security_txt! {
     auditors: "OtterSec, Neodyme"
 }
 
+#[cfg(not(feature = "testing"))]
 declare_id!("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
+
+#[cfg(feature = "testing")]
+declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
 
 #[program]
 pub mod squads_multisig_program {

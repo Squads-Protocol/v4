@@ -20,6 +20,7 @@ export async function vaultTransactionExecute({
   member,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -28,6 +29,7 @@ export async function vaultTransactionExecute({
   member: PublicKey;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -38,6 +40,7 @@ export async function vaultTransactionExecute({
     multisigPda,
     transactionIndex,
     member,
+    programId,
   });
 
   tx.sign([feePayer, ...(signers ?? [])]);

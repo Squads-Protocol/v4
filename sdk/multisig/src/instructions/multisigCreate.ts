@@ -1,5 +1,9 @@
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { createMultisigCreateInstruction, Member } from "../generated";
+import {
+  createMultisigCreateInstruction,
+  Member,
+  PROGRAM_ID,
+} from "../generated";
 
 export function multisigCreate({
   creator,
@@ -10,6 +14,7 @@ export function multisigCreate({
   timeLock,
   createKey,
   memo,
+  programId = PROGRAM_ID,
 }: {
   creator: PublicKey;
   multisigPda: PublicKey;
@@ -19,6 +24,7 @@ export function multisigCreate({
   timeLock: number;
   createKey: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }): TransactionInstruction {
   return createMultisigCreateInstruction(
     {
@@ -34,6 +40,7 @@ export function multisigCreate({
         timeLock,
         memo: memo ?? null,
       },
-    }
+    },
+    programId
   );
 }

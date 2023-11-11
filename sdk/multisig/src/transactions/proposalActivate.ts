@@ -15,12 +15,14 @@ export function proposalActivate({
   multisigPda,
   transactionIndex,
   member,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
   transactionIndex: bigint;
   member: PublicKey;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -30,6 +32,7 @@ export function proposalActivate({
         member,
         multisigPda,
         transactionIndex,
+        programId,
       }),
     ],
   }).compileToV0Message();

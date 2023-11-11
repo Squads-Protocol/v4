@@ -6,11 +6,13 @@ export function multisigSetTimeLock({
   configAuthority,
   timeLock,
   memo,
+  programId,
 }: {
   multisigPda: PublicKey;
   configAuthority: PublicKey;
   timeLock: number;
   memo?: string;
+  programId?: PublicKey;
 }) {
   return createMultisigSetTimeLockInstruction(
     {
@@ -22,6 +24,7 @@ export function multisigSetTimeLock({
         timeLock,
         memo: memo ?? null,
       },
-    }
+    },
+    programId
   );
 }

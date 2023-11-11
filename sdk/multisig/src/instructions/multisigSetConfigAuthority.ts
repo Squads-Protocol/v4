@@ -6,11 +6,13 @@ export function multisigSetConfigAuthority({
   configAuthority,
   newConfigAuthority,
   memo,
+  programId,
 }: {
   multisigPda: PublicKey;
   configAuthority: PublicKey;
   newConfigAuthority: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }) {
   return createMultisigSetConfigAuthorityInstruction(
     {
@@ -22,6 +24,7 @@ export function multisigSetConfigAuthority({
         configAuthority: newConfigAuthority,
         memo: memo ?? null,
       },
-    }
+    },
+    programId
   );
 }

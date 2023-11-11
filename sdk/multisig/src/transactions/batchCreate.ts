@@ -18,6 +18,7 @@ export function batchCreate({
   rentPayer,
   vaultIndex,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -29,6 +30,7 @@ export function batchCreate({
   rentPayer?: PublicKey;
   vaultIndex: number;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -41,6 +43,7 @@ export function batchCreate({
         batchIndex,
         vaultIndex,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

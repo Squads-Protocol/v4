@@ -17,6 +17,7 @@ export async function proposalCancel({
   transactionIndex,
   memo,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -25,6 +26,7 @@ export async function proposalCancel({
   transactionIndex: bigint;
   memo?: string;
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -35,6 +37,7 @@ export async function proposalCancel({
     transactionIndex,
     member: member.publicKey,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, member]);

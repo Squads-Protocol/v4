@@ -19,6 +19,7 @@ export function multisigAddMember({
   rentPayer,
   newMember,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -27,6 +28,7 @@ export function multisigAddMember({
   rentPayer: PublicKey;
   newMember: Member;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -38,6 +40,7 @@ export function multisigAddMember({
         rentPayer,
         newMember,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

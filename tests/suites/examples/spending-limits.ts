@@ -21,12 +21,15 @@ import {
   createLocalhostConnection,
   generateFundedKeypair,
   generateMultisigMembers,
+  getTestProgramId,
   isCloseToNow,
   TestMembers,
 } from "../../utils";
 
 const { SpendingLimit } = multisig.accounts;
 const { Period } = multisig.types;
+
+const programId = getTestProgramId();
 
 describe("Examples / Spending Limits", () => {
   const connection = createLocalhostConnection();
@@ -45,6 +48,7 @@ describe("Examples / Spending Limits", () => {
         members,
         threshold: 1,
         timeLock: 0,
+        programId,
       })
     )[0];
 
@@ -67,6 +71,7 @@ describe("Examples / Spending Limits", () => {
     const [vaultPda] = multisig.getVaultPda({
       multisigPda,
       index: solSpendingLimitParams.vaultIndex,
+      programId,
     });
     let signature = await connection.requestAirdrop(
       vaultPda,
@@ -163,16 +168,19 @@ describe("Examples / Spending Limits", () => {
               ...splSpendingLimitParams,
             },
           ],
+          programId,
         }),
         multisig.instructions.proposalCreate({
           multisigPda,
           transactionIndex,
           creator: members.almighty.publicKey,
+          programId,
         }),
         multisig.instructions.proposalApprove({
           multisigPda,
           transactionIndex,
           member: members.almighty.publicKey,
+          programId,
         }),
       ],
     }).compileToV0Message();
@@ -194,12 +202,14 @@ describe("Examples / Spending Limits", () => {
       multisig.getSpendingLimitPda({
         multisigPda,
         createKey: solSpendingLimitParams.createKey,
+        programId,
       });
 
     const [splSpendingLimitPda, splSpendingLimitBump] =
       multisig.getSpendingLimitPda({
         multisigPda,
         createKey: splSpendingLimitParams.createKey,
+        programId,
       });
 
     // Execute the Config Transaction which will create the Spending Limit.
@@ -212,6 +222,7 @@ describe("Examples / Spending Limits", () => {
         member: members.executor,
         rentPayer: members.executor,
         spendingLimits: [solSpendingLimitPda, splSpendingLimitPda],
+        programId,
       })
       .catch((err) => {
         console.log(err.logs);
@@ -276,6 +287,7 @@ describe("Examples / Spending Limits", () => {
     const [solSpendingLimitPda] = multisig.getSpendingLimitPda({
       multisigPda,
       createKey: solSpendingLimitParams.createKey,
+      programId,
     });
 
     const signature = await multisig.rpc
@@ -297,6 +309,7 @@ describe("Examples / Spending Limits", () => {
         destination: solSpendingLimitParams.destinations[0],
         // You can optionally add a memo.
         memo: "Using my allowance!",
+        programId,
       })
       .catch((err) => {
         console.log(err.logs);
@@ -327,6 +340,7 @@ describe("Examples / Spending Limits", () => {
           amount: 1,
           decimals: 9,
           destination: solSpendingLimitParams.destinations[0],
+          programId,
         }),
       /Spending limit exceeded/
     );
@@ -348,6 +362,7 @@ describe("Examples / Spending Limits", () => {
     const [splSpendingLimitPda] = multisig.getSpendingLimitPda({
       multisigPda,
       createKey: splSpendingLimitParams.createKey,
+      programId,
     });
 
     let signature = await multisig.rpc
@@ -369,6 +384,7 @@ describe("Examples / Spending Limits", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         // You can optionally add a memo.
         memo: "Using my allowance!",
+        programId,
       })
       .catch((err) => {
         console.log(err.logs);
@@ -400,6 +416,7 @@ describe("Examples / Spending Limits", () => {
           decimals: 6,
           destination,
           tokenProgram: TOKEN_PROGRAM_ID,
+          programId,
         }),
       /Spending limit exceeded/
     );
@@ -409,10 +426,12 @@ describe("Examples / Spending Limits", () => {
     const [solSpendingLimitPda] = multisig.getSpendingLimitPda({
       multisigPda,
       createKey: solSpendingLimitParams.createKey,
+      programId,
     });
     const [splSpendingLimitPda] = multisig.getSpendingLimitPda({
       multisigPda,
       createKey: splSpendingLimitParams.createKey,
+      programId,
     });
 
     const transactionIndex = 2n;
@@ -436,16 +455,19 @@ describe("Examples / Spending Limits", () => {
               spendingLimit: splSpendingLimitPda,
             },
           ],
+          programId,
         }),
         multisig.instructions.proposalCreate({
           multisigPda,
           transactionIndex,
           creator: members.almighty.publicKey,
+          programId,
         }),
         multisig.instructions.proposalApprove({
           multisigPda,
           transactionIndex,
           member: members.almighty.publicKey,
+          programId,
         }),
       ],
     }).compileToV0Message();
@@ -473,6 +495,7 @@ describe("Examples / Spending Limits", () => {
         member: members.executor,
         rentPayer: members.executor,
         spendingLimits: [solSpendingLimitPda, splSpendingLimitPda],
+        programId,
       })
       .catch((err) => {
         console.log(err.logs);

@@ -25,6 +25,7 @@ export async function batchAddTransaction({
   addressLookupTableAccounts,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -44,6 +45,7 @@ export async function batchAddTransaction({
   addressLookupTableAccounts?: AddressLookupTableAccount[];
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const tx = await transactions.batchAddTransaction({
     connection,
@@ -57,6 +59,7 @@ export async function batchAddTransaction({
     ephemeralSigners,
     transactionMessage,
     addressLookupTableAccounts,
+    programId,
   });
 
   const allSigners = [feePayer, member];

@@ -18,6 +18,7 @@ export function proposalCreate({
   creator,
   rentPayer,
   isDraft,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -28,6 +29,7 @@ export function proposalCreate({
   /** Payer for the proposal account rent. If not provided, `creator` is used. */
   rentPayer?: PublicKey;
   isDraft?: boolean;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -39,6 +41,7 @@ export function proposalCreate({
         rentPayer,
         transactionIndex,
         isDraft,
+        programId,
       }),
     ],
   }).compileToV0Message();

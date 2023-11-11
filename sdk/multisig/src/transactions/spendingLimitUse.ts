@@ -22,6 +22,7 @@ export function spendingLimitUse({
   destination,
   tokenProgram,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -36,6 +37,7 @@ export function spendingLimitUse({
   destination: PublicKey;
   tokenProgram?: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -52,6 +54,7 @@ export function spendingLimitUse({
         destination,
         tokenProgram,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

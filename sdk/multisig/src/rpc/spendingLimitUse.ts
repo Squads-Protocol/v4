@@ -22,6 +22,7 @@ export async function spendingLimitUse({
   tokenProgram,
   memo,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -37,6 +38,7 @@ export async function spendingLimitUse({
   tokenProgram?: PublicKey;
   memo?: string;
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -53,6 +55,7 @@ export async function spendingLimitUse({
     destination,
     tokenProgram,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, member]);

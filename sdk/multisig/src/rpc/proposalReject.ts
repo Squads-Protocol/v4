@@ -16,6 +16,7 @@ export async function proposalReject({
   transactionIndex,
   memo,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -24,6 +25,7 @@ export async function proposalReject({
   transactionIndex: bigint;
   memo?: string;
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -34,6 +36,7 @@ export async function proposalReject({
     transactionIndex,
     member: member.publicKey,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, member]);

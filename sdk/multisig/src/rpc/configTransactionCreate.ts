@@ -21,6 +21,7 @@ export async function configTransactionCreate({
   memo,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -34,6 +35,7 @@ export async function configTransactionCreate({
   memo?: string;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -46,6 +48,7 @@ export async function configTransactionCreate({
     rentPayer,
     actions,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, ...(signers ?? [])]);

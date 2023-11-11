@@ -17,6 +17,7 @@ export async function proposalCreate({
   transactionIndex,
   isDraft,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -28,6 +29,7 @@ export async function proposalCreate({
   transactionIndex: bigint;
   isDraft?: boolean;
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -38,6 +40,7 @@ export async function proposalCreate({
     transactionIndex,
     creator: creator.publicKey,
     isDraft,
+    programId,
   });
 
   const allSigners = [feePayer, creator];

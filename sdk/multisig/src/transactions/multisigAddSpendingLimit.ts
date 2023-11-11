@@ -25,6 +25,7 @@ export function multisigAddSpendingLimit({
   members,
   destinations,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -40,6 +41,7 @@ export function multisigAddSpendingLimit({
   members: PublicKey[];
   destinations: PublicKey[];
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -58,6 +60,7 @@ export function multisigAddSpendingLimit({
         members,
         destinations,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();
