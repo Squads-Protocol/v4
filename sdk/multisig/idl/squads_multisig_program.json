@@ -1218,11 +1218,14 @@
             "type": "u64"
           },
           {
-            "name": "reserved",
+            "name": "rentCollector",
             "docs": [
-              "Reserved for future use."
+              "The address where the rent for the accounts related to executed, rejected, or cancelled",
+              "transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off."
             ],
-            "type": "u8"
+            "type": {
+              "option": "publicKey"
+            }
           },
           {
             "name": "bump",
@@ -1777,9 +1780,19 @@
           {
             "name": "timeLock",
             "docs": [
-              "How many seconds must pass between transaction voting settlement and execution."
+              "How many seconds must pass between transaction voting, settlement, and execution."
             ],
             "type": "u32"
+          },
+          {
+            "name": "rentCollector",
+            "docs": [
+              "The address where the rent for the accounts related to executed, rejected, or cancelled",
+              "transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off."
+            ],
+            "type": {
+              "option": "publicKey"
+            }
           },
           {
             "name": "memo",

@@ -126,6 +126,7 @@ impl<'info> ConfigTransactionExecute<'info> {
             let reallocated = Multisig::realloc_if_needed(
                 multisig.to_account_info(),
                 new_members_length,
+                multisig.rent_collector.is_some(),
                 rent_payer.to_account_info(),
                 system_program.to_account_info(),
             )?;

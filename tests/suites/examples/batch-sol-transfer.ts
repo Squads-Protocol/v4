@@ -40,6 +40,7 @@ describe("Examples / Batch SOL Transfer", () => {
       members,
       threshold: 2,
       timeLock: 0,
+      rentCollector: null,
       programId,
     });
 

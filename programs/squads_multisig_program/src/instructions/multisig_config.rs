@@ -95,6 +95,7 @@ impl MultisigConfig<'_> {
         let reallocated = Multisig::realloc_if_needed(
             multisig.to_account_info(),
             multisig.members.len() + 1,
+            multisig.rent_collector.is_some(),
             rent_payer.to_account_info(),
             system_program.to_account_info(),
         )?;

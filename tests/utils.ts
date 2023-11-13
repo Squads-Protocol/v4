@@ -72,12 +72,14 @@ export async function createAutonomousMultisig({
   members,
   threshold,
   timeLock,
+  rentCollector,
   programId,
 }: {
   createKey?: Keypair;
   members: TestMembers;
   threshold: number;
   timeLock: number;
+  rentCollector: PublicKey | null;
   connection: Connection;
   programId: PublicKey;
 }) {
@@ -111,6 +113,7 @@ export async function createAutonomousMultisig({
       },
     ],
     createKey: createKey,
+    rentCollector,
     sendOptions: { skipPreflight: true },
     programId,
   });
@@ -127,6 +130,7 @@ export async function createControlledMultisig({
   members,
   threshold,
   timeLock,
+  rentCollector,
   programId,
 }: {
   createKey?: Keypair;
@@ -134,6 +138,7 @@ export async function createControlledMultisig({
   members: TestMembers;
   threshold: number;
   timeLock: number;
+  rentCollector: PublicKey | null;
   connection: Connection;
   programId: PublicKey;
 }) {
@@ -167,6 +172,7 @@ export async function createControlledMultisig({
       },
     ],
     createKey: createKey,
+    rentCollector,
     sendOptions: { skipPreflight: true },
     programId,
   });

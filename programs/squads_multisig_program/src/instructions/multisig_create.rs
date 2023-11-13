@@ -11,8 +11,11 @@ pub struct MultisigCreateArgs {
     pub threshold: u16,
     /// The members of the multisig.
     pub members: Vec<Member>,
-    /// How many seconds must pass between transaction voting settlement and execution.
+    /// How many seconds must pass between transaction voting, settlement, and execution.
     pub time_lock: u32,
+    /// The address where the rent for the accounts related to executed, rejected, or cancelled
+    /// transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off.
+    pub rent_collector: Option<Pubkey>,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
@@ -23,7 +26,7 @@ pub struct MultisigCreate<'info> {
     #[account(
         init,
         payer = creator,
-        space = Multisig::size(args.members.len()),
+        space = Multisig::size(args.members.len(), args.rent_collector.is_some()),
         seeds = [SEED_PREFIX, SEED_MULTISIG, create_key.key().as_ref()],
         bump
     )]
@@ -62,6 +65,7 @@ impl MultisigCreate<'_> {
         multisig.create_key = ctx.accounts.create_key.key();
         multisig.bump = ctx.bumps.multisig;
         multisig.members = members;
+        multisig.rent_collector = args.rent_collector;
 
         multisig.invariant()?;
 

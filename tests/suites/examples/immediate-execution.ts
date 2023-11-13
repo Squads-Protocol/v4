@@ -32,6 +32,7 @@ describe("Examples / Immediate Execution", () => {
       members,
       threshold: 1,
       timeLock: 0,
+      rentCollector: null,
       programId,
     });
 
