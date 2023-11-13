@@ -1,24 +1,37 @@
+[toolchain]
+
 [features]
 seeds = false
 skip-lint = false
 
+[programs.devnet]
+program_verifier_module = "3z3PNrpRoJrvKH8iTaFstnMAemEmMZht69V2nBSFtGJM"
+
 [programs.localnet]
 multisig = "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf"
+squads-modules-program = "CWkz6sLyq6Kpj2TfNZadKBXREDcf9QTcC4auLYn7vCrZ"
+program-verifier-module = "3z3PNrpRoJrvKH8iTaFstnMAemEmMZht69V2nBSFtGJM"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/id.json"
-
-[test.validator]
-url = "https://api.devnet.solana.com"
-
-# Token2022
-[[test.validator.clone]]
-address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-
+cluster = "Devnet"
+wallet = "/root/.config/solana/id.json"
 
 [scripts]
 test = "npx mocha --node-option require=ts-node/register --extension ts -t 1000000 tests/index.ts"
+
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+upgradeable = false
+
+[test.validator]
+bind_address = "0.0.0.0"
+url = "https://api.devnet.solana.com"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
+
+[[test.validator.clone]]
+address = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"

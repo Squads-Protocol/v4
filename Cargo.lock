@@ -2232,6 +2232,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "program_verifier_module"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "squads-multisig-program",
+]
+
+[[package]]
 name = "qstring"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3534,6 +3542,14 @@ dependencies = [
  "spl-memo",
  "spl-token",
  "thiserror",
+]
+
+[[package]]
+name = "squads-modules-program"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "squads-multisig-program",
 ]
 
 [[package]]
