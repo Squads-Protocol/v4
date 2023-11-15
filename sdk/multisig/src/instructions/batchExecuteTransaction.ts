@@ -7,6 +7,7 @@ import {
 import {
   Batch,
   createBatchExecuteTransactionInstruction,
+  PROGRAM_ID,
   VaultBatchTransaction,
 } from "../generated";
 import {
@@ -23,12 +24,14 @@ export async function batchExecuteTransaction({
   member,
   batchIndex,
   transactionIndex,
+  programId = PROGRAM_ID,
 }: {
   connection: Connection;
   multisigPda: PublicKey;
   member: PublicKey;
   batchIndex: bigint;
   transactionIndex: number;
+  programId?: PublicKey;
 }): Promise<{
   instruction: TransactionInstruction;
   lookupTableAccounts: AddressLookupTableAccount[];
@@ -36,21 +39,25 @@ export async function batchExecuteTransaction({
   const [proposalPda] = getProposalPda({
     multisigPda,
     transactionIndex: batchIndex,
+    programId,
   });
   const [batchPda] = getTransactionPda({
     multisigPda,
     index: batchIndex,
+    programId,
   });
   const [batchTransactionPda] = getBatchTransactionPda({
     multisigPda,
     batchIndex,
     transactionIndex,
+    programId,
   });
 
   const batchAccount = await Batch.fromAccountAddress(connection, batchPda);
   const [vaultPda] = getVaultPda({
     multisigPda,
     index: batchAccount.vaultIndex,
+    programId,
   });
 
   const batchTransactionAccount =
@@ -69,14 +76,17 @@ export async function batchExecuteTransaction({
     });
 
   return {
-    instruction: createBatchExecuteTransactionInstruction({
-      multisig: multisigPda,
-      member,
-      proposal: proposalPda,
-      batch: batchPda,
-      transaction: batchTransactionPda,
-      anchorRemainingAccounts: accountMetas,
-    }),
+    instruction: createBatchExecuteTransactionInstruction(
+      {
+        multisig: multisigPda,
+        member,
+        proposal: proposalPda,
+        batch: batchPda,
+        transaction: batchTransactionPda,
+        anchorRemainingAccounts: accountMetas,
+      },
+      programId
+    ),
     lookupTableAccounts,
   };
 }

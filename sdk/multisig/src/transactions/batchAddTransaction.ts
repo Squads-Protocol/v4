@@ -23,6 +23,7 @@ export async function batchAddTransaction({
   ephemeralSigners,
   transactionMessage,
   addressLookupTableAccounts,
+  programId,
 }: {
   connection: Connection;
   feePayer: PublicKey;
@@ -40,6 +41,7 @@ export async function batchAddTransaction({
   transactionMessage: TransactionMessage;
   /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
   addressLookupTableAccounts?: AddressLookupTableAccount[];
+  programId?: PublicKey;
 }): Promise<VersionedTransaction> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -57,6 +59,7 @@ export async function batchAddTransaction({
         ephemeralSigners,
         transactionMessage,
         addressLookupTableAccounts,
+        programId,
       }),
     ],
   }).compileToV0Message();

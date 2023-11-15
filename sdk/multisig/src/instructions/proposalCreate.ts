@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { createProposalCreateInstruction } from "../generated";
+import { createProposalCreateInstruction, PROGRAM_ID } from "../generated";
 import { getProposalPda } from "../pda";
 
 export function proposalCreate({
@@ -8,6 +8,7 @@ export function proposalCreate({
   rentPayer,
   transactionIndex,
   isDraft = false,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   /** Member of the multisig that is creating the proposal. */
@@ -16,10 +17,12 @@ export function proposalCreate({
   rentPayer?: PublicKey;
   transactionIndex: bigint;
   isDraft?: boolean;
+  programId?: PublicKey;
 }) {
   const [proposalPda] = getProposalPda({
     multisigPda,
     transactionIndex,
+    programId,
   });
 
   if (transactionIndex > Number.MAX_SAFE_INTEGER) {
@@ -33,6 +36,7 @@ export function proposalCreate({
       multisig: multisigPda,
       proposal: proposalPda,
     },
-    { args: { transactionIndex: Number(transactionIndex), draft: isDraft } }
+    { args: { transactionIndex: Number(transactionIndex), draft: isDraft } },
+    programId
   );
 }

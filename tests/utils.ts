@@ -6,8 +6,28 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
+import { readFileSync } from "fs";
+import path from "path";
 
 const { Permission, Permissions } = multisig.types;
+
+export function getTestProgramId() {
+  const programKeypair = Keypair.fromSecretKey(
+    Buffer.from(
+      JSON.parse(
+        readFileSync(
+          path.join(
+            __dirname,
+            "../target/deploy/squads_multisig_program-keypair.json"
+          ),
+          "utf-8"
+        )
+      )
+    )
+  );
+
+  return programKeypair.publicKey;
+}
 
 export type TestMembers = {
   almighty: Keypair;
@@ -52,17 +72,20 @@ export async function createAutonomousMultisig({
   members,
   threshold,
   timeLock,
+  programId,
 }: {
   createKey?: Keypair;
   members: TestMembers;
   threshold: number;
   timeLock: number;
   connection: Connection;
+  programId: PublicKey;
 }) {
   const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
     createKey: createKey.publicKey,
+    programId,
   });
 
   const signature = await multisig.rpc.multisigCreate({
@@ -89,6 +112,7 @@ export async function createAutonomousMultisig({
     ],
     createKey: createKey,
     sendOptions: { skipPreflight: true },
+    programId,
   });
 
   await connection.confirmTransaction(signature);
@@ -103,6 +127,7 @@ export async function createControlledMultisig({
   members,
   threshold,
   timeLock,
+  programId,
 }: {
   createKey?: Keypair;
   configAuthority: PublicKey;
@@ -110,11 +135,13 @@ export async function createControlledMultisig({
   threshold: number;
   timeLock: number;
   connection: Connection;
+  programId: PublicKey;
 }) {
   const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
     createKey: createKey.publicKey,
+    programId,
   });
 
   const signature = await multisig.rpc.multisigCreate({
@@ -141,6 +168,7 @@ export async function createControlledMultisig({
     ],
     createKey: createKey,
     sendOptions: { skipPreflight: true },
+    programId,
   });
 
   await connection.confirmTransaction(signature);

@@ -25,6 +25,7 @@ export async function vaultTransactionCreate({
   memo,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -44,6 +45,7 @@ export async function vaultTransactionCreate({
   memo?: string;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -59,6 +61,7 @@ export async function vaultTransactionCreate({
     transactionMessage,
     addressLookupTableAccounts,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, ...(signers ?? [])]);

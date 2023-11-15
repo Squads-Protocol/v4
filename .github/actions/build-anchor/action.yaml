@@ -1,0 +1,49 @@
+name: "Anchor Build"
+description: "Build a program using Anchor"
+inputs:
+  program:
+    description: "The program to build"
+    required: true
+  program_id:
+    description: "The program address"
+    required: true
+  replace_program_id:
+    description: "Whether to replace current program id with `program_id` in lib.rs, e.g. when deploying to a staging address"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache Anchor build
+      uses: actions/cache@v3
+      id: cache-anchor-build
+      if: env.CACHE != 'true' || steps.cache-anchor-build.outputs.cache-hit != 'true'
+      with:
+        path: |
+          ./target/
+        key: build-${{ runner.os }}-${{env.ANCHOR_VERSION}}-${{ hashFiles(format('./programs/{0}/**', inputs.program)) }}-${{ inputs.program }}-${{ inputs.staging }}
+
+    - name: Replace program ID if needed
+      if: inputs.replace_program_id == 'true'
+      env:
+        PROGRAM_ID: ${{ inputs.program_id }}
+      run: |
+        sed -i "s/declare_id!(\".*\")/declare_id!(\"${PROGRAM_ID}\")/g" ./programs/${{ inputs.program }}/src/lib.rs
+      shell: bash
+
+    - name: Build with Anchor
+      run: ~/.cargo/bin/anchor build -p ${{ inputs.program }}
+      shell: bash
+
+    - name: Store .so files
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{inputs.program}}-so
+        path: |
+          ./target/deploy/${{inputs.program}}.so
+
+    - name: Store IDL files
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{inputs.program}}-idl
+        path: |
+          ./target/idl/${{inputs.program}}.json

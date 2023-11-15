@@ -5,10 +5,13 @@ import {
   createAutonomousMultisig,
   createLocalhostConnection,
   generateMultisigMembers,
+  getTestProgramId,
   TestMembers,
 } from "../../utils";
 
 const { Multisig } = multisig.accounts;
+
+const programId = getTestProgramId();
 
 /**
  * If user can sign a transaction with enough member keys to reach the threshold,
@@ -29,6 +32,7 @@ describe("Examples / Immediate Execution", () => {
       members,
       threshold: 1,
       timeLock: 0,
+      programId,
     });
 
     const transactionIndex = 1n;
@@ -39,17 +43,20 @@ describe("Examples / Immediate Execution", () => {
       creator: members.almighty.publicKey,
       // Change threshold to 2.
       actions: [{ __kind: "ChangeThreshold", newThreshold: 2 }],
+      programId,
     });
     const createProposalIx = multisig.instructions.proposalCreate({
       multisigPda,
       transactionIndex,
       creator: members.almighty.publicKey,
+      programId,
     });
 
     const approveProposalIx = multisig.instructions.proposalApprove({
       multisigPda,
       transactionIndex,
       member: members.almighty.publicKey,
+      programId,
     });
 
     const executeTransactionIx = multisig.instructions.configTransactionExecute(
@@ -58,6 +65,7 @@ describe("Examples / Immediate Execution", () => {
         transactionIndex,
         member: members.almighty.publicKey,
         rentPayer: members.almighty.publicKey,
+        programId,
       }
     );
 

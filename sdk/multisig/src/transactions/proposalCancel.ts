@@ -17,6 +17,7 @@ export function proposalCancel({
   transactionIndex,
   member,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -24,6 +25,7 @@ export function proposalCancel({
   transactionIndex: bigint;
   member: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -34,6 +36,7 @@ export function proposalCancel({
         multisigPda,
         transactionIndex,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

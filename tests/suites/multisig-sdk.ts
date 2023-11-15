@@ -6,6 +6,8 @@ import {
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import * as assert from "assert";
+import * as path from "path";
+import { readFileSync } from "fs";
 import {
   createAutonomousMultisig,
   createControlledMultisig,
@@ -13,6 +15,7 @@ import {
   createTestTransferInstruction,
   generateFundedKeypair,
   generateMultisigMembers,
+  getTestProgramId,
   isCloseToNow,
   TestMembers,
 } from "../utils";
@@ -21,6 +24,8 @@ const { toBigInt } = multisig.utils;
 const { Multisig, VaultTransaction, ConfigTransaction, Proposal, Batch } =
   multisig.accounts;
 const { Permission, Permissions } = multisig.types;
+
+const programId = getTestProgramId();
 
 describe("Multisig SDK", () => {
   const connection = createLocalhostConnection();
@@ -38,6 +43,7 @@ describe("Multisig SDK", () => {
       const createKey = Keypair.generate();
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
+        programId,
       });
 
       await assert.rejects(
@@ -61,6 +67,7 @@ describe("Multisig SDK", () => {
             ],
             createKey,
             sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Found multiple members with the same pubkey/
       );
@@ -72,6 +79,7 @@ describe("Multisig SDK", () => {
       const createKey = Keypair.generate();
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
+        programId,
       });
 
       const tx = multisig.transactions.multisigCreate({
@@ -92,6 +100,7 @@ describe("Multisig SDK", () => {
             permissions: Permissions.all(),
           },
         ],
+        programId,
       });
 
       // Missing signature from `createKey`.
@@ -109,6 +118,7 @@ describe("Multisig SDK", () => {
       const createKey = Keypair.generate();
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
+        programId,
       });
 
       await assert.rejects(
@@ -123,6 +133,7 @@ describe("Multisig SDK", () => {
             threshold: 1,
             members: [],
             sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Members don't include any proposers/
       );
@@ -135,6 +146,7 @@ describe("Multisig SDK", () => {
       const createKey = Keypair.generate();
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
+        programId,
       });
 
       await assert.rejects(
@@ -156,6 +168,7 @@ describe("Multisig SDK", () => {
               },
             ],
             sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Member has unknown permission/
       );
@@ -170,6 +183,7 @@ describe("Multisig SDK", () => {
       const createKey = Keypair.generate();
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
+        programId,
       });
 
       await assert.rejects(
@@ -187,6 +201,7 @@ describe("Multisig SDK", () => {
               permissions: Permissions.all(),
             })),
             sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Invalid threshold, must be between 1 and number of members/
       );
@@ -198,6 +213,7 @@ describe("Multisig SDK", () => {
       const createKey = Keypair.generate();
       const [multisigPda] = multisig.getMultisigPda({
         createKey: createKey.publicKey,
+        programId,
       });
 
       await assert.rejects(
@@ -233,6 +249,7 @@ describe("Multisig SDK", () => {
             // Threshold is 3, but there are only 2 voters.
             threshold: 3,
             sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Invalid threshold, must be between 1 and number of members with Vote permission/
       );
@@ -247,6 +264,7 @@ describe("Multisig SDK", () => {
         members,
         threshold: 2,
         timeLock: 0,
+        programId,
       });
 
       const multisigAccount = await Multisig.fromAccountAddress(
@@ -308,6 +326,7 @@ describe("Multisig SDK", () => {
         members,
         threshold: 2,
         timeLock: 0,
+        programId,
       });
 
       const multisigAccount = await Multisig.fromAccountAddress(
@@ -349,6 +368,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -370,6 +390,7 @@ describe("Multisig SDK", () => {
           },
           signers: [configAuthority],
           sendOptions: { skipPreflight: true },
+          programId,
         }),
         /Found multiple members with the same pubkey/
       );
@@ -390,6 +411,7 @@ describe("Multisig SDK", () => {
             /* missing authority signature */
           ],
           sendOptions: { skipPreflight: true },
+          programId,
         }),
         /Transaction signature verification failure/
       );
@@ -408,6 +430,7 @@ describe("Multisig SDK", () => {
           newMember,
           signers: [fakeAuthority],
           sendOptions: { skipPreflight: true },
+          programId,
         }),
         /Attempted to perform an unauthorized action/
       );
@@ -442,6 +465,7 @@ describe("Multisig SDK", () => {
         memo: "Adding my good friend to the multisig",
         signers: [configAuthority],
         sendOptions: { skipPreflight: true },
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -481,6 +505,7 @@ describe("Multisig SDK", () => {
         newMember: newMember2,
         signers: [configAuthority],
         sendOptions: { skipPreflight: true },
+        programId,
       });
       await connection.confirmTransaction(signature);
       // Re-fetch the multisig account.
@@ -534,6 +559,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -548,6 +574,7 @@ describe("Multisig SDK", () => {
         feePayer,
         multisigPda,
         vaultIndex: 1,
+        programId,
       });
       await connection.confirmTransaction(createBatchSignature);
     });
@@ -567,6 +594,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -580,6 +608,7 @@ describe("Multisig SDK", () => {
           transactionIndex: 1n,
           creator: members.proposer.publicKey,
           actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
+          programId,
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -593,6 +622,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 1n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "SetTimeLock", newTimeLock: 300 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -615,6 +645,7 @@ describe("Multisig SDK", () => {
           threshold: 1,
           configAuthority: configAuthority.publicKey,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -628,6 +659,7 @@ describe("Multisig SDK", () => {
           configAuthority: wrongConfigAuthority.publicKey,
           timeLock: 300,
           signers: [feePayer, wrongConfigAuthority],
+          programId,
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -642,63 +674,20 @@ describe("Multisig SDK", () => {
         configAuthority: configAuthority.publicKey,
         timeLock: 300,
         signers: [feePayer, configAuthority],
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
   });
 
   describe("multisig_remove_member", () => {
-    let multisigPda: PublicKey;
-    let configAuthority: Keypair;
-    let wrongConfigAuthority: Keypair;
-    before(async () => {
-      configAuthority = await generateFundedKeypair(connection);
-      wrongConfigAuthority = await generateFundedKeypair(connection);
-
-      // Create new controlled multisig.
-      multisigPda = (
-        await createControlledMultisig({
-          connection,
-          createKey: Keypair.generate(),
-          members,
-          threshold: 1,
-          configAuthority: configAuthority.publicKey,
-          timeLock: 0,
-        })
-      )[0];
-    });
-    it("error: invalid authority", async () => {
-      const feePayer = await generateFundedKeypair(connection);
-      await assert.rejects(
-        multisig.rpc.multisigSetTimeLock({
-          connection,
-          feePayer,
-          multisigPda: multisigPda,
-          configAuthority: wrongConfigAuthority.publicKey,
-          timeLock: 300,
-          signers: [feePayer, wrongConfigAuthority],
-        })
-      ),
-        /Attempted to perform an unauthorized action/;
-    });
-
-    it("set `time_lock` for the controlled multisig", async () => {
-      const feePayer = await generateFundedKeypair(connection);
-      const signature = await multisig.rpc.multisigSetTimeLock({
-        connection,
-        feePayer,
-        multisigPda: multisigPda,
-        configAuthority: configAuthority.publicKey,
-        timeLock: 300,
-        signers: [feePayer, configAuthority],
-      });
-      await connection.confirmTransaction(signature);
-    });
+    it("error: invalid authority");
   });
 
   describe("multisig_set_config_authority", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
+
     before(async () => {
       configAuthority = await generateFundedKeypair(connection);
 
@@ -711,9 +700,11 @@ describe("Multisig SDK", () => {
           threshold: 1,
           timeLock: 0,
           configAuthority: configAuthority.publicKey,
+          programId,
         })
       )[0];
     });
+
     it("error: invalid authority", async () => {
       const feePayer = await generateFundedKeypair(connection);
       await assert.rejects(
@@ -723,6 +714,7 @@ describe("Multisig SDK", () => {
           multisigPda: multisigPda,
           configAuthority: members.voter.publicKey,
           newConfigAuthority: members.voter.publicKey,
+          programId,
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -737,6 +729,7 @@ describe("Multisig SDK", () => {
         configAuthority: configAuthority.publicKey,
         newConfigAuthority: members.voter.publicKey,
         signers: [feePayer, configAuthority],
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -745,6 +738,7 @@ describe("Multisig SDK", () => {
   describe("multisig_change_threshold", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
+
     before(async () => {
       configAuthority = await generateFundedKeypair(connection);
 
@@ -756,9 +750,11 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
+
     it("error: invalid authority", async () => {
       const feePayer = await generateFundedKeypair(connection);
       await assert.rejects(
@@ -769,6 +765,7 @@ describe("Multisig SDK", () => {
           transactionIndex: 1n,
           creator: members.proposer.publicKey,
           actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+          programId,
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -785,6 +782,7 @@ describe("Multisig SDK", () => {
           creator: members.proposer.publicKey,
           actions: [{ __kind: "ChangeThreshold", newThreshold: 10 }],
           signers: [members.proposer, feePayer],
+          programId,
         });
       await connection.confirmTransaction(configTransactionCreateSignature);
 
@@ -795,6 +793,7 @@ describe("Multisig SDK", () => {
         feePayer,
         transactionIndex: 1n,
         isDraft: false,
+        programId,
       });
       await connection.confirmTransaction(createProposalSignature);
 
@@ -804,6 +803,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(approveSignature);
 
@@ -815,6 +815,7 @@ describe("Multisig SDK", () => {
           transactionIndex: 1n,
           member: members.executor,
           rentPayer: feePayer,
+          programId,
         }),
         /Invalid threshold, must be between 1 and number of members with Vote permission/
       );
@@ -828,6 +829,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 2n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -847,6 +849,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -862,6 +865,7 @@ describe("Multisig SDK", () => {
           actions: [
             { __kind: "RemoveMember", oldMember: members.voter.publicKey },
           ],
+          programId,
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -877,6 +881,7 @@ describe("Multisig SDK", () => {
         actions: [
           { __kind: "RemoveMember", oldMember: members.voter.publicKey },
         ],
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -897,6 +902,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -919,6 +925,7 @@ describe("Multisig SDK", () => {
               },
             },
           ],
+          programId,
         })
       ),
         /Attempted to perform an unauthorized action/;
@@ -941,6 +948,7 @@ describe("Multisig SDK", () => {
             },
           },
         ],
+        programId,
       });
       await connection.confirmTransaction(signature);
       // create the proposal
@@ -951,6 +959,7 @@ describe("Multisig SDK", () => {
         feePayer,
         transactionIndex: 1n,
         isDraft: false,
+        programId,
       });
       await connection.confirmTransaction(createProposalSignature);
 
@@ -960,6 +969,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(approveSignature);
     });
@@ -973,6 +983,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 1n,
         member: members.executor,
         rentPayer: fundedKeypair,
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -993,6 +1004,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -1005,6 +1017,7 @@ describe("Multisig SDK", () => {
         threshold: 2,
         timeLock: 0,
         createKey: Keypair.generate(),
+        programId,
       });
     });
   });
@@ -1023,6 +1036,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -1033,6 +1047,7 @@ describe("Multisig SDK", () => {
       spendingLimitPda = multisig.getSpendingLimitPda({
         multisigPda: controlledMultisigPda,
         createKey: spendingLimitCreateKey,
+        programId,
       })[0];
     });
 
@@ -1055,6 +1070,7 @@ describe("Multisig SDK", () => {
             vaultIndex: 1,
             signers: [feePayer, members.voter],
             sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Attempted to perform an unauthorized action/
       );
@@ -1077,6 +1093,7 @@ describe("Multisig SDK", () => {
         vaultIndex: 1,
         signers: [feePayer, members.almighty],
         sendOptions: { skipPreflight: true },
+        programId,
       });
 
       await connection.confirmTransaction(signature);
@@ -1097,6 +1114,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -1107,6 +1125,7 @@ describe("Multisig SDK", () => {
       spendingLimitPda = multisig.getSpendingLimitPda({
         multisigPda: controlledMultisigPda,
         createKey: spendingLimitCreateKey,
+        programId,
       })[0];
 
       const signature = await multisig.rpc.multisigAddSpendingLimit({
@@ -1125,6 +1144,7 @@ describe("Multisig SDK", () => {
         vaultIndex: 1,
         signers: [feePayer, members.almighty],
         sendOptions: { skipPreflight: true },
+        programId,
       });
 
       await connection.confirmTransaction(signature);
@@ -1141,13 +1161,13 @@ describe("Multisig SDK", () => {
             feePayer: feePayer,
             rentCollector: members.voter.publicKey,
             signers: [feePayer, members.voter],
-            sendOptions: {
-              skipPreflight: true,
-            },
+            sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Attempted to perform an unauthorized action/
       );
     });
+
     it("error: Spending Limit doesn't belong to the multisig", async () => {
       const wrongControlledMultisigPda = (
         await createControlledMultisig({
@@ -1156,13 +1176,17 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
+
       const wrongCreateKey = Keypair.generate().publicKey;
       const wrongSpendingLimitPda = multisig.getSpendingLimitPda({
         multisigPda: wrongControlledMultisigPda,
         createKey: wrongCreateKey,
+        programId,
       })[0];
+
       const addSpendingLimitSignature =
         await multisig.rpc.multisigAddSpendingLimit({
           connection,
@@ -1180,6 +1204,7 @@ describe("Multisig SDK", () => {
           vaultIndex: 1,
           signers: [feePayer, members.almighty],
           sendOptions: { skipPreflight: true },
+          programId,
         });
 
       await connection.confirmTransaction(addSpendingLimitSignature);
@@ -1193,9 +1218,8 @@ describe("Multisig SDK", () => {
             feePayer: feePayer,
             rentCollector: members.almighty.publicKey,
             signers: [feePayer, members.almighty],
-            sendOptions: {
-              skipPreflight: true,
-            },
+            sendOptions: { skipPreflight: true },
+            programId,
           }),
         /Invalid account provided/
       );
@@ -1211,6 +1235,7 @@ describe("Multisig SDK", () => {
         rentCollector: members.almighty.publicKey,
         sendOptions: { skipPreflight: true },
         signers: [feePayer, members.almighty],
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -1228,6 +1253,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -1239,6 +1265,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -1253,6 +1280,7 @@ describe("Multisig SDK", () => {
             transactionIndex: 1n,
             creator: members.proposer.publicKey,
             actions: [{ __kind: "ChangeThreshold", newThreshold: 3 }],
+            programId,
           }),
         /Instruction not supported for controlled multisig/
       );
@@ -1268,6 +1296,7 @@ describe("Multisig SDK", () => {
             transactionIndex: 1n,
             creator: members.proposer.publicKey,
             actions: [],
+            programId,
           }),
         /Config transaction must have at least one action/
       );
@@ -1285,6 +1314,7 @@ describe("Multisig SDK", () => {
             transactionIndex: 1n,
             creator: nonMember.publicKey,
             actions: [{ __kind: "ChangeThreshold", newThreshold: 3 }],
+            programId,
           }),
         /Provided pubkey is not a member of multisig/
       );
@@ -1301,6 +1331,7 @@ describe("Multisig SDK", () => {
             // Voter is not authorized to initialize config transactions.
             creator: members.voter.publicKey,
             actions: [{ __kind: "ChangeThreshold", newThreshold: 3 }],
+            programId,
           }),
         /Attempted to perform an unauthorized action/
       );
@@ -1316,6 +1347,7 @@ describe("Multisig SDK", () => {
         transactionIndex,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1333,6 +1365,7 @@ describe("Multisig SDK", () => {
       const [transactionPda, transactionBump] = multisig.getTransactionPda({
         multisigPda: autonomousMultisigPda,
         index: transactionIndex,
+        programId,
       });
       const configTransactionAccount =
         await ConfigTransaction.fromAccountAddress(connection, transactionPda);
@@ -1374,6 +1407,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
     });
@@ -1385,6 +1419,7 @@ describe("Multisig SDK", () => {
       const [vaultPda] = multisig.getVaultPda({
         multisigPda,
         index: 0,
+        programId,
       });
 
       // Test transfer instruction.
@@ -1410,6 +1445,7 @@ describe("Multisig SDK", () => {
             vaultIndex: 0,
             ephemeralSigners: 0,
             transactionMessage: testTransferMessage,
+            programId,
           }),
         /Provided pubkey is not a member of multisig/
       );
@@ -1420,6 +1456,7 @@ describe("Multisig SDK", () => {
       const [vaultPda] = multisig.getVaultPda({
         multisigPda,
         index: 0,
+        programId,
       });
 
       // Test transfer instruction.
@@ -1445,6 +1482,7 @@ describe("Multisig SDK", () => {
             vaultIndex: 0,
             ephemeralSigners: 0,
             transactionMessage: testTransferMessage,
+            programId,
           }),
         /Attempted to perform an unauthorized action/
       );
@@ -1457,6 +1495,7 @@ describe("Multisig SDK", () => {
       const [vaultPda, vaultBump] = multisig.getVaultPda({
         multisigPda,
         index: 0,
+        programId,
       });
 
       // Test transfer instruction (2x)
@@ -1487,6 +1526,7 @@ describe("Multisig SDK", () => {
         ephemeralSigners: 0,
         transactionMessage: testTransferMessage,
         memo: "Transfer 2 SOL to a test account",
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1502,6 +1542,7 @@ describe("Multisig SDK", () => {
       const [transactionPda, transactionBump] = multisig.getTransactionPda({
         multisigPda,
         index: transactionIndex,
+        programId,
       });
       const transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
@@ -1544,6 +1585,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -1560,6 +1602,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 1n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "AddMember", newMember }],
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -1575,6 +1618,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             creator: members.almighty,
+            programId,
           }),
         /Invalid transaction index/
       );
@@ -1593,6 +1637,7 @@ describe("Multisig SDK", () => {
         transactionIndex,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1604,6 +1649,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             creator: nonMember,
+            programId,
           }),
         /Provided pubkey is not a member of multisig/
       );
@@ -1620,6 +1666,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             creator: members.executor,
+            programId,
           }),
         /Attempted to perform an unauthorized action/
       );
@@ -1637,6 +1684,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         creator: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1644,6 +1692,7 @@ describe("Multisig SDK", () => {
       const [proposalPda, proposalBump] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
+        programId,
       });
       const proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -1675,6 +1724,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 2n,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1684,6 +1734,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 2n,
         member: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1695,6 +1746,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 2n,
         member: members.almighty,
         rentPayer: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1710,6 +1762,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex: 1n,
             creator: members.almighty,
+            programId,
           }),
         /Proposal is stale/
       );
@@ -1731,6 +1784,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -1744,6 +1798,7 @@ describe("Multisig SDK", () => {
         transactionIndex,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1754,6 +1809,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         creator: members.proposer,
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -1772,6 +1828,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             member: nonMember,
+            programId,
           }),
         /Provided pubkey is not a member of multisig/
       );
@@ -1789,6 +1846,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             member: members.executor,
+            programId,
           }),
         /Attempted to perform an unauthorized action/
       );
@@ -1804,6 +1862,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1811,6 +1870,7 @@ describe("Multisig SDK", () => {
       const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
+        programId,
       });
       const proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -1837,6 +1897,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             member: members.voter,
+            programId,
           }),
         /Member already approved the transaction/
       );
@@ -1852,6 +1913,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         member: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1859,6 +1921,7 @@ describe("Multisig SDK", () => {
       const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
+        programId,
       });
       const proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -1902,6 +1965,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -1913,6 +1977,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 1n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1924,6 +1989,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 2n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "SetTimeLock", newTimeLock: 60 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1934,6 +2000,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         creator: members.proposer,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1944,6 +2011,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 2n,
         creator: members.proposer,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -1954,6 +2022,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
       signature = await multisig.rpc.proposalApprove({
@@ -1962,6 +2031,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         member: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -1978,6 +2048,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             member: members.voter,
+            programId,
           }),
         /Invalid proposal status/
       );
@@ -1986,6 +2057,7 @@ describe("Multisig SDK", () => {
         multisig.getProposalPda({
           multisigPda,
           transactionIndex,
+          programId,
         })[0]
       );
       assert.ok(
@@ -2007,6 +2079,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             member: nonMember,
+            programId,
           }),
         /Provided pubkey is not a member of multisig/
       );
@@ -2024,6 +2097,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             member: members.executor,
+            programId,
           }),
         /Attempted to perform an unauthorized action/
       );
@@ -2045,6 +2119,7 @@ describe("Multisig SDK", () => {
         transactionIndex,
         member: members.voter,
         memo: "LGTM",
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2052,6 +2127,7 @@ describe("Multisig SDK", () => {
       const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
+        programId,
       });
       const proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -2086,6 +2162,7 @@ describe("Multisig SDK", () => {
             multisigPda,
             transactionIndex,
             member: members.almighty,
+            programId,
           }),
         /Invalid proposal status/
       );
@@ -2095,6 +2172,7 @@ describe("Multisig SDK", () => {
         multisig.getProposalPda({
           multisigPda,
           transactionIndex,
+          programId,
         })[0]
       );
       assert.ok(
@@ -2122,6 +2200,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -2133,6 +2212,7 @@ describe("Multisig SDK", () => {
         transactionIndex: 1n,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2143,6 +2223,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         creator: members.proposer,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2153,6 +2234,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
       signature = await multisig.rpc.proposalApprove({
@@ -2161,6 +2243,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: 1n,
         member: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2168,6 +2251,7 @@ describe("Multisig SDK", () => {
       const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex: 1n,
+        programId,
       });
       let proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -2188,12 +2272,14 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
       const proposalPda = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
+        programId,
       })[0];
       let proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -2211,6 +2297,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         member: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2236,6 +2323,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -2243,6 +2331,7 @@ describe("Multisig SDK", () => {
       const [vaultPda, vaultBump] = multisig.getVaultPda({
         multisigPda,
         index: 0,
+        programId,
       });
 
       // Airdrop 2 SOL to the Vault, we'll need it for the test transfer instructions.
@@ -2283,6 +2372,7 @@ describe("Multisig SDK", () => {
         ephemeralSigners: 0,
         transactionMessage: testTransferMessage,
         memo: "Transfer 2 SOL to a test account",
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2293,6 +2383,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         creator: members.proposer,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2303,6 +2394,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2313,6 +2405,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex,
         member: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -2324,6 +2417,7 @@ describe("Multisig SDK", () => {
       const [transactionPda] = multisig.getTransactionPda({
         multisigPda,
         index: transactionIndex,
+        programId,
       });
       let transactionAccount = await VaultTransaction.fromAccountAddress(
         connection,
@@ -2333,11 +2427,13 @@ describe("Multisig SDK", () => {
       const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
+        programId,
       });
 
       const [vaultPda] = multisig.getVaultPda({
         multisigPda,
         index: transactionAccount.vaultIndex,
+        programId,
       });
       const preVaultBalance = await connection.getBalance(vaultPda);
       assert.strictEqual(preVaultBalance, 2 * LAMPORTS_PER_SOL);
@@ -2350,6 +2446,7 @@ describe("Multisig SDK", () => {
         transactionIndex,
         member: members.executor.publicKey,
         signers: [members.executor],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2391,6 +2488,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          programId,
         })
       )[0];
 
@@ -2402,6 +2500,7 @@ describe("Multisig SDK", () => {
         transactionIndex: approvedTransactionIndex,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2412,6 +2511,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: approvedTransactionIndex,
         creator: members.proposer,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2422,6 +2522,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: approvedTransactionIndex,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2432,6 +2533,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: approvedTransactionIndex,
         member: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2443,6 +2545,7 @@ describe("Multisig SDK", () => {
         transactionIndex: rejectedTransactionIndex,
         creator: members.proposer.publicKey,
         actions: [{ __kind: "ChangeThreshold", newThreshold: 3 }],
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2453,6 +2556,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: rejectedTransactionIndex,
         creator: members.proposer,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2464,6 +2568,7 @@ describe("Multisig SDK", () => {
         multisigPda,
         transactionIndex: rejectedTransactionIndex,
         member: members.voter,
+        programId,
       });
       await connection.confirmTransaction(signature);
     });
@@ -2479,6 +2584,7 @@ describe("Multisig SDK", () => {
         transactionIndex,
         member: members.almighty,
         rentPayer: members.almighty,
+        programId,
       });
       await connection.confirmTransaction(signature);
 
@@ -2486,6 +2592,7 @@ describe("Multisig SDK", () => {
       const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
+        programId,
       });
       const proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -2515,6 +2622,7 @@ describe("Multisig SDK", () => {
             transactionIndex: rejectedTransactionIndex,
             rentPayer: members.almighty,
             member: members.almighty,
+            programId,
           }),
         /Invalid proposal status/
       );
@@ -2528,10 +2636,12 @@ describe("Multisig SDK", () => {
         const createKey = Keypair.generate();
         const [multisigPda] = multisig.getMultisigPda({
           createKey: createKey.publicKey,
+          programId,
         });
         const [configAuthority] = multisig.getVaultPda({
           multisigPda,
           index: 0,
+          programId,
         });
 
         const multisigCreateArgs: Parameters<
@@ -2550,6 +2660,7 @@ describe("Multisig SDK", () => {
             },
           ],
           threshold: 1,
+          programId,
         };
 
         const createMultisigTxWithoutMemo =

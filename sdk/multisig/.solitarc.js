@@ -18,32 +18,10 @@ const ignoredTypes = new Set([
   "MessageAddressTableLookup",
 ]);
 
-function loadKeypairFromFile(relativePath) {
-  try {
-    const absolutePath = path.join(__dirname, relativePath);
-    return Keypair.fromSecretKey(
-      Buffer.from(JSON.parse(readFileSync(absolutePath, "utf-8")))
-    );
-  } catch (error) {
-    console.error("Error reading keypair from file:", error);
-    return {
-      publicKey: {
-        toBase58: () => "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
-      },
-    };
-  }
-}
-
-const keypair = loadKeypairFromFile(
-  `../../target/deploy/${PROGRAM_NAME}-keypair.json`
-);
-
-const pubkey = keypair.publicKey.toBase58();
-
 module.exports = {
   idlGenerator: "anchor",
   programName: PROGRAM_NAME,
-  programId: pubkey,
+  programId: "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
   idlDir,
   sdkDir,
   binaryInstallDir,

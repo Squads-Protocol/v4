@@ -17,6 +17,7 @@ export function configTransactionExecute({
   rentPayer,
   transactionIndex,
   spendingLimits,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -26,6 +27,7 @@ export function configTransactionExecute({
   rentPayer: PublicKey;
   /** In case the transaction adds or removes SpendingLimits, pass the array of their Pubkeys here. */
   spendingLimits?: PublicKey[];
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -37,6 +39,7 @@ export function configTransactionExecute({
         member,
         rentPayer,
         spendingLimits,
+        programId,
       }),
     ],
   }).compileToV0Message();

@@ -18,6 +18,7 @@ export async function batchExecuteTransaction({
   member,
   batchIndex,
   transactionIndex,
+  programId,
 }: {
   connection: Connection;
   blockhash: string;
@@ -26,6 +27,7 @@ export async function batchExecuteTransaction({
   member: PublicKey;
   batchIndex: bigint;
   transactionIndex: number;
+  programId?: PublicKey;
 }): Promise<VersionedTransaction> {
   const { instruction, lookupTableAccounts } =
     await instructions.batchExecuteTransaction({
@@ -34,6 +36,7 @@ export async function batchExecuteTransaction({
       member,
       batchIndex,
       transactionIndex,
+      programId,
     });
 
   const message = new TransactionMessage({

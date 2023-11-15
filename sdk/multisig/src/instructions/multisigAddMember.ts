@@ -1,5 +1,9 @@
 import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { createMultisigAddMemberInstruction, Member } from "../generated";
+import {
+  createMultisigAddMemberInstruction,
+  Member,
+  PROGRAM_ID,
+} from "../generated";
 
 export function multisigAddMember({
   multisigPda,
@@ -7,12 +11,14 @@ export function multisigAddMember({
   rentPayer,
   newMember,
   memo,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   configAuthority: PublicKey;
   rentPayer: PublicKey;
   newMember: Member;
   memo?: string;
+  programId?: PublicKey;
 }) {
   return createMultisigAddMemberInstruction(
     {
@@ -21,6 +27,7 @@ export function multisigAddMember({
       rentPayer,
       systemProgram: SystemProgram.programId,
     },
-    { args: { newMember, memo: memo ?? null } }
+    { args: { newMember, memo: memo ?? null } },
+    programId
   );
 }

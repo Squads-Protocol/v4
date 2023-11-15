@@ -14,11 +14,14 @@ import {
   createTestTransferInstruction,
   generateFundedKeypair,
   generateMultisigMembers,
+  getTestProgramId,
   range,
   TestMembers,
 } from "../../utils";
 
 const { Multisig, Proposal } = multisig.accounts;
+
+const programId = getTestProgramId();
 
 describe("Examples / Batch SOL Transfer", () => {
   const connection = createLocalhostConnection();
@@ -37,6 +40,7 @@ describe("Examples / Batch SOL Transfer", () => {
       members,
       threshold: 2,
       timeLock: 0,
+      programId,
     });
 
     let multisigAccount = await Multisig.fromAccountAddress(
@@ -51,12 +55,14 @@ describe("Examples / Batch SOL Transfer", () => {
     const [proposalPda] = multisig.getProposalPda({
       multisigPda,
       transactionIndex: batchIndex,
+      programId,
     });
 
     // Default vault, index 0.
     const [vaultPda] = multisig.getVaultPda({
       multisigPda,
       index: 0,
+      programId,
     });
 
     // Prepare transactions for the batch.
@@ -156,6 +162,7 @@ describe("Examples / Batch SOL Transfer", () => {
       batchIndex,
       vaultIndex,
       memo: "Distribute funds to members",
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -167,6 +174,7 @@ describe("Examples / Batch SOL Transfer", () => {
       transactionIndex: batchIndex,
       creator: members.proposer,
       isDraft: true,
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -187,6 +195,7 @@ describe("Examples / Batch SOL Transfer", () => {
         ephemeralSigners: 0,
         transactionMessage: message,
         addressLookupTableAccounts,
+        programId,
       });
       await connection.confirmTransaction(signature);
     }
@@ -198,6 +207,7 @@ describe("Examples / Batch SOL Transfer", () => {
       multisigPda,
       member: members.proposer,
       transactionIndex: batchIndex,
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -209,6 +219,7 @@ describe("Examples / Batch SOL Transfer", () => {
       member: members.voter,
       transactionIndex: batchIndex,
       memo: "LGTM",
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -220,6 +231,7 @@ describe("Examples / Batch SOL Transfer", () => {
       member: members.almighty,
       transactionIndex: batchIndex,
       memo: "LGTM too",
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -240,6 +252,7 @@ describe("Examples / Batch SOL Transfer", () => {
         member: members.executor,
         batchIndex,
         transactionIndex,
+        programId,
       });
       await connection.confirmTransaction(signature);
     }

@@ -16,6 +16,7 @@ export function multisigSetConfigAuthority({
   configAuthority,
   newConfigAuthority,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -23,6 +24,7 @@ export function multisigSetConfigAuthority({
   configAuthority: PublicKey;
   newConfigAuthority: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -33,6 +35,7 @@ export function multisigSetConfigAuthority({
         configAuthority,
         newConfigAuthority,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

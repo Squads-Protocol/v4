@@ -19,6 +19,7 @@ export async function configTransactionExecute({
   spendingLimits,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -30,6 +31,7 @@ export async function configTransactionExecute({
   spendingLimits?: PublicKey[];
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -41,6 +43,7 @@ export async function configTransactionExecute({
     member: member.publicKey,
     rentPayer: rentPayer.publicKey,
     spendingLimits,
+    programId,
   });
 
   tx.sign([feePayer, member, rentPayer, ...(signers ?? [])]);

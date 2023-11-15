@@ -1,0 +1,49 @@
+name: "Deploy Program with Anchor"
+description: "Deploy a program to a cluster using Anchor"
+
+inputs:
+  program:
+    description: "The program to build"
+    required: true
+  program_id:
+    description: "The program address"
+    required: true
+  rpc_url:
+    description: "The RPC url for the cluster to deploy to"
+    required: true
+  upgrade_authority_keypair:
+    description: "The keypair to use as the upgrade authority"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Save Upgrade Authority keypair on disk
+      run: |
+        echo $UPGRADE_AUTHORITY_KEYPAIR > ./upgrade-authority.json && chmod 600 ./upgrade-authority.json
+      shell: bash
+      env:
+        UPGRADE_AUTHORITY_KEYPAIR: ${{ inputs.upgrade_authority_keypair }}
+
+    - name: Deploy .so with Anchor
+      run: |
+        ~/.cargo/bin/anchor upgrade --program-id $PROGRAM_ID --provider.cluster $RPC_URL --provider.wallet ./upgrade-authority.json ./target/deploy/${PROGRAM_NAME}.so
+      shell: bash
+      env:
+        RPC_URL: ${{ inputs.rpc_url }}
+        PROGRAM_NAME: ${{ inputs.program }}
+        PROGRAM_ID: ${{ inputs.program_id }}
+
+    - name: Deploy IDL with Anchor
+      run: |
+          anchor idl upgrade --provider.cluster $RPC_URL --provider.wallet ./upgrade-authority.json --filepath target/idl/${PROGRAM_NAME}.json $PROGRAM_ID
+      shell: bash
+      env:
+          RPC_URL: ${{ inputs.rpc_url }}
+          PROGRAM_NAME: ${{ inputs.program }}
+          PROGRAM_ID: ${{ inputs.program_id }}
+
+    - name: Remove Upgrade Authority keypair from disk
+      run: |
+          rm ./upgrade-authority.json
+      shell: bash

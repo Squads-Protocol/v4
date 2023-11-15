@@ -14,9 +14,11 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
+testing = []
 default = []
 
 [dependencies]
 anchor-lang = { version = "=0.29.0", features = ["allow-missing-optionals"] }
 anchor-spl = { version="=0.29.0", features=["token"] }
 solana-security-txt = "1.1.1"
+#

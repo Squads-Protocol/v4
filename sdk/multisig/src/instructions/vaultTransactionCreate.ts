@@ -1,4 +1,7 @@
-import { createVaultTransactionCreateInstruction } from "../generated";
+import {
+  createVaultTransactionCreateInstruction,
+  PROGRAM_ID,
+} from "../generated";
 import {
   AddressLookupTableAccount,
   PublicKey,
@@ -17,6 +20,7 @@ export function vaultTransactionCreate({
   transactionMessage,
   addressLookupTableAccounts,
   memo,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   transactionIndex: bigint;
@@ -30,15 +34,18 @@ export function vaultTransactionCreate({
   /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
   addressLookupTableAccounts?: AddressLookupTableAccount[];
   memo?: string;
+  programId?: PublicKey;
 }) {
   const [vaultPda] = getVaultPda({
     multisigPda,
     index: vaultIndex,
+    programId,
   });
 
   const [transactionPda] = getTransactionPda({
     multisigPda,
     index: transactionIndex,
+    programId,
   });
 
   const transactionMessageBytes =
@@ -62,6 +69,7 @@ export function vaultTransactionCreate({
         transactionMessage: transactionMessageBytes,
         memo: memo ?? null,
       },
-    }
+    },
+    programId
   );
 }

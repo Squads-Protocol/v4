@@ -1,0 +1,25 @@
+name: Publish to Staging
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+    paths:
+      - 'programs/squads_multisig_program/**'
+
+jobs:
+  publish-staging:
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'deploy-staging')
+    uses: ./.github/workflows/reusable-publish-staging.yaml
+    with:
+      cache: true
+      solana_cli_version: 1.17.0
+      anchor_version: 0.29.0
+      program: "squads_multisig_program"
+      program_id: "STAG3xkFMyVK3sRtQhipsKuLpRGbgospDpVdNyJqDpS"
+      replace_program_id: true
+    secrets:
+      RPC_URL: ${{ secrets.RPC_URL_MAINNET }}
+      UPGRADE_AUTHORITY_KEYPAIR: ${{ secrets.UPGRADE_AUTHORITY_KEYPAIR_STAGING }}

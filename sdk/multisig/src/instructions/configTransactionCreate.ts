@@ -2,6 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 import {
   ConfigAction,
   createConfigTransactionCreateInstruction,
+  PROGRAM_ID,
 } from "../generated";
 import { getTransactionPda } from "../pda";
 
@@ -12,6 +13,7 @@ export function configTransactionCreate({
   rentPayer,
   actions,
   memo,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   /** Member of the multisig that is creating the transaction. */
@@ -21,10 +23,12 @@ export function configTransactionCreate({
   transactionIndex: bigint;
   actions: ConfigAction[];
   memo?: string;
+  programId?: PublicKey;
 }) {
   const [transactionPda] = getTransactionPda({
     multisigPda,
     index: transactionIndex,
+    programId,
   });
 
   return createConfigTransactionCreateInstruction(
@@ -34,6 +38,7 @@ export function configTransactionCreate({
       creator,
       rentPayer: rentPayer ?? creator,
     },
-    { args: { actions, memo: memo ?? null } }
+    { args: { actions, memo: memo ?? null } },
+    programId
   );
 }

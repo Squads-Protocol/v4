@@ -17,6 +17,7 @@ export async function vaultTransactionExecute({
   multisigPda,
   transactionIndex,
   member,
+  programId,
 }: {
   connection: Connection;
   blockhash: string;
@@ -24,6 +25,7 @@ export async function vaultTransactionExecute({
   multisigPda: PublicKey;
   transactionIndex: bigint;
   member: PublicKey;
+  programId?: PublicKey;
 }): Promise<VersionedTransaction> {
   const { instruction, lookupTableAccounts } =
     await instructions.vaultTransactionExecute({
@@ -31,6 +33,7 @@ export async function vaultTransactionExecute({
       multisigPda,
       member,
       transactionIndex,
+      programId,
     });
 
   const message = new TransactionMessage({

@@ -19,6 +19,7 @@ export function configTransactionCreate({
   transactionIndex,
   actions,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -30,6 +31,7 @@ export function configTransactionCreate({
   transactionIndex: bigint;
   actions: ConfigAction[];
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -42,6 +44,7 @@ export function configTransactionCreate({
         transactionIndex,
         actions,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

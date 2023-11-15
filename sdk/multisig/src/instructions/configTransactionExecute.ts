@@ -1,5 +1,8 @@
 import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { createConfigTransactionExecuteInstruction } from "../generated";
+import {
+  createConfigTransactionExecuteInstruction,
+  PROGRAM_ID,
+} from "../generated";
 import { getProposalPda, getTransactionPda } from "../pda";
 
 export function configTransactionExecute({
@@ -8,6 +11,7 @@ export function configTransactionExecute({
   member,
   rentPayer,
   spendingLimits,
+  programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
   transactionIndex: bigint;
@@ -15,27 +19,33 @@ export function configTransactionExecute({
   rentPayer?: PublicKey;
   /** In case the transaction adds or removes SpendingLimits, pass the array of their Pubkeys here. */
   spendingLimits?: PublicKey[];
+  programId?: PublicKey;
 }) {
   const [proposalPda] = getProposalPda({
     multisigPda,
     transactionIndex,
+    programId,
   });
   const [transactionPda] = getTransactionPda({
     multisigPda,
     index: transactionIndex,
+    programId,
   });
 
-  return createConfigTransactionExecuteInstruction({
-    multisig: multisigPda,
-    member,
-    proposal: proposalPda,
-    transaction: transactionPda,
-    rentPayer,
-    systemProgram: SystemProgram.programId,
-    anchorRemainingAccounts: spendingLimits?.map((spendingLimit) => ({
-      pubkey: spendingLimit,
-      isWritable: true,
-      isSigner: false,
-    })),
-  });
+  return createConfigTransactionExecuteInstruction(
+    {
+      multisig: multisigPda,
+      member,
+      proposal: proposalPda,
+      transaction: transactionPda,
+      rentPayer,
+      systemProgram: SystemProgram.programId,
+      anchorRemainingAccounts: spendingLimits?.map((spendingLimit) => ({
+        pubkey: spendingLimit,
+        isWritable: true,
+        isSigner: false,
+      })),
+    },
+    programId
+  );
 }

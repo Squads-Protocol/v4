@@ -22,6 +22,7 @@ export function vaultTransactionCreate({
   transactionMessage,
   addressLookupTableAccounts,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -39,6 +40,7 @@ export function vaultTransactionCreate({
   /** `AddressLookupTableAccount`s referenced in `transaction_message`. */
   addressLookupTableAccounts?: AddressLookupTableAccount[];
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -54,6 +56,7 @@ export function vaultTransactionCreate({
         transactionMessage,
         addressLookupTableAccounts,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

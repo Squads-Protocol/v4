@@ -12,10 +12,13 @@ import {
   createAutonomousMultisig,
   createLocalhostConnection,
   generateMultisigMembers,
+  getTestProgramId,
   TestMembers,
 } from "../../utils";
 
 const { Multisig } = multisig.accounts;
+
+const programId = getTestProgramId();
 
 describe("Examples / Create Mint", () => {
   const connection = createLocalhostConnection();
@@ -31,6 +34,7 @@ describe("Examples / Create Mint", () => {
       members,
       threshold: 2,
       timeLock: 0,
+      programId,
     });
 
     let multisigAccount = await Multisig.fromAccountAddress(
@@ -44,12 +48,14 @@ describe("Examples / Create Mint", () => {
     const [transactionPda] = multisig.getTransactionPda({
       multisigPda,
       index: transactionIndex,
+      programId,
     });
 
     // Default vault, index 0.
     const [vaultPda] = multisig.getVaultPda({
       multisigPda,
       index: 0,
+      programId,
     });
 
     const lamportsForMintRent = await getMinimumBalanceForRentExemptMint(
@@ -68,6 +74,7 @@ describe("Examples / Create Mint", () => {
     const [mintPda, mintBump] = multisig.getEphemeralSignerPda({
       transactionPda,
       ephemeralSignerIndex: 0,
+      programId,
     });
 
     const testTransactionMessage = new TransactionMessage({
@@ -102,6 +109,7 @@ describe("Examples / Create Mint", () => {
       ephemeralSigners: 1,
       transactionMessage: testTransactionMessage,
       memo: "Create new mint",
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -112,6 +120,7 @@ describe("Examples / Create Mint", () => {
       multisigPda,
       transactionIndex,
       creator: members.voter,
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -123,6 +132,7 @@ describe("Examples / Create Mint", () => {
       transactionIndex,
       member: members.voter,
       memo: "LGTM",
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -134,6 +144,7 @@ describe("Examples / Create Mint", () => {
       transactionIndex,
       member: members.almighty,
       memo: "LGTM too",
+      programId,
     });
     await connection.confirmTransaction(signature);
 
@@ -146,6 +157,7 @@ describe("Examples / Create Mint", () => {
       member: members.executor.publicKey,
       signers: [members.executor],
       sendOptions: { skipPreflight: true },
+      programId,
     });
     await connection.confirmTransaction(signature);
 

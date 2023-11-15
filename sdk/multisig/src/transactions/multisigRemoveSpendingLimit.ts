@@ -18,6 +18,7 @@ export function multisigRemoveSpendingLimit({
   spendingLimit,
   rentCollector,
   memo,
+  programId,
 }: {
   blockhash: string;
   feePayer: PublicKey;
@@ -26,6 +27,7 @@ export function multisigRemoveSpendingLimit({
   configAuthority: PublicKey;
   rentCollector: PublicKey;
   memo?: string;
+  programId?: PublicKey;
 }): VersionedTransaction {
   const message = new TransactionMessage({
     payerKey: feePayer,
@@ -37,6 +39,7 @@ export function multisigRemoveSpendingLimit({
         spendingLimit,
         rentCollector,
         memo,
+        programId,
       }),
     ],
   }).compileToV0Message();

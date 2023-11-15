@@ -20,6 +20,7 @@ export async function batchCreate({
   memo,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -33,6 +34,7 @@ export async function batchCreate({
   memo?: string;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -45,6 +47,7 @@ export async function batchCreate({
     rentPayer: rentPayer?.publicKey ?? creator.publicKey,
     vaultIndex,
     memo,
+    programId,
   });
 
   const allSigners = [feePayer, creator];

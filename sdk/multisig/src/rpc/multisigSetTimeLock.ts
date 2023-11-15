@@ -18,6 +18,7 @@ export async function multisigSetTimeLock({
   memo,
   signers,
   sendOptions,
+  programId,
 }: {
   connection: Connection;
   feePayer: Signer;
@@ -27,6 +28,7 @@ export async function multisigSetTimeLock({
   memo?: string;
   signers?: Signer[];
   sendOptions?: SendOptions;
+  programId?: PublicKey;
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
@@ -37,6 +39,7 @@ export async function multisigSetTimeLock({
     configAuthority,
     timeLock,
     memo,
+    programId,
   });
 
   tx.sign([feePayer, ...(signers ?? [])]);
