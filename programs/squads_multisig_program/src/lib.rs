@@ -188,4 +188,10 @@ pub mod squads_multisig_program {
     ) -> Result<()> {
         SpendingLimitUse::spending_limit_use(ctx, args)
     }
+
+    pub fn config_transaction_accounts_close(
+        ctx: Context<ConfigTransactionAccountsClose>,
+    ) -> Result<()> {
+        ConfigTransactionAccountsClose::config_transaction_accounts_close(ctx)
+    }
 }

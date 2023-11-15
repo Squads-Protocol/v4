@@ -1,6 +1,7 @@
 export * from "./batchAddTransaction.js";
 export * from "./batchCreate.js";
 export * from "./batchExecuteTransaction.js";
+export * from "./configTransactionAccountsClose.js";
 export * from "./configTransactionCreate.js";
 export * from "./configTransactionExecute.js";
 export * from "./multisigCreate.js";

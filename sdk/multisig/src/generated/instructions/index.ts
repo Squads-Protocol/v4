@@ -1,6 +1,7 @@
 export * from './batchAddTransaction'
 export * from './batchCreate'
 export * from './batchExecuteTransaction'
+export * from './configTransactionAccountsClose'
 export * from './configTransactionCreate'
 export * from './configTransactionExecute'
 export * from './multisigAddMember'

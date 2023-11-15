@@ -11,6 +11,7 @@ pub use proposal_activate::*;
 pub use proposal_create::*;
 pub use proposal_vote::*;
 pub use spending_limit_use::*;
+pub use transaction_accounts_close::*;
 pub use vault_transaction_create::*;
 pub use vault_transaction_execute::*;
 
@@ -27,5 +28,6 @@ mod proposal_activate;
 mod proposal_create;
 mod proposal_vote;
 mod spending_limit_use;
+mod transaction_accounts_close;
 mod vault_transaction_create;
 mod vault_transaction_execute;

@@ -995,6 +995,43 @@
           }
         }
       ]
+    },
+    {
+      "name": "configTransactionAccountsClose",
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "ConfigTransaction corresponding to the `proposal`."
+          ]
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The rent collector."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -2479,6 +2516,31 @@
       "code": 6031,
       "name": "IllegalAccountOwner",
       "msg": "Account is not owned by Multisig program"
+    },
+    {
+      "code": 6032,
+      "name": "RentReclamationDisabled",
+      "msg": "Rent reclamation is disabled for this multisig"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidRentCollector",
+      "msg": "Invalid rent collector address"
+    },
+    {
+      "code": 6034,
+      "name": "ProposalForAnotherMultisig",
+      "msg": "Proposal is for another multisig"
+    },
+    {
+      "code": 6035,
+      "name": "TransactionForAnotherMultisig",
+      "msg": "Transaction is for another multisig"
+    },
+    {
+      "code": 6036,
+      "name": "TransactionNotMatchingProposal",
+      "msg": "Transaction doesn't match proposal"
     }
   ],
   "metadata": {

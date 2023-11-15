@@ -66,4 +66,14 @@ pub enum MultisigError {
     TimeLockExceedsMaxAllowed,
     #[msg("Account is not owned by Multisig program")]
     IllegalAccountOwner,
+    #[msg("Rent reclamation is disabled for this multisig")]
+    RentReclamationDisabled,
+    #[msg("Invalid rent collector address")]
+    InvalidRentCollector,
+    #[msg("Proposal is for another multisig")]
+    ProposalForAnotherMultisig,
+    #[msg("Transaction is for another multisig")]
+    TransactionForAnotherMultisig,
+    #[msg("Transaction doesn't match proposal")]
+    TransactionNotMatchingProposal,
 }
