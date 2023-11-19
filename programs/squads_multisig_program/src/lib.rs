@@ -194,4 +194,10 @@ pub mod squads_multisig_program {
     ) -> Result<()> {
         ConfigTransactionAccountsClose::config_transaction_accounts_close(ctx)
     }
+
+    pub fn vault_transaction_accounts_close(
+        ctx: Context<VaultTransactionAccountsClose>,
+    ) -> Result<()> {
+        VaultTransactionAccountsClose::vault_transaction_accounts_close(ctx)
+    }
 }
