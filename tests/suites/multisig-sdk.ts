@@ -27,6 +27,8 @@ const { Permission, Permissions } = multisig.types;
 const programId = getTestProgramId();
 
 import "./instructions/configTransactionAccountsClose";
+import "./instructions/vaultBatchTransactionAccountClose";
+import "./instructions/batchAccountsClose";
 import "./instructions/vaultTransactionAccountsClose";
 
 describe("Multisig SDK", () => {

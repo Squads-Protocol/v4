@@ -998,6 +998,12 @@
     },
     {
       "name": "configTransactionAccountsClose",
+      "docs": [
+        "Closes a `ConfigTransaction` and the corresponding `Proposal`.",
+        "`transaction` can be closed if either:",
+        "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+        "- the `proposal` is stale."
+      ],
       "accounts": [
         {
           "name": "multisig",
@@ -1035,6 +1041,12 @@
     },
     {
       "name": "vaultTransactionAccountsClose",
+      "docs": [
+        "Closes a `VaultTransaction` and the corresponding `Proposal`.",
+        "`transaction` can be closed if either:",
+        "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+        "- the `proposal` is stale and not `Approved`."
+      ],
       "accounts": [
         {
           "name": "multisig",
@@ -1052,6 +1064,112 @@
           "isSigner": false,
           "docs": [
             "VaultTransaction corresponding to the `proposal`."
+          ]
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The rent collector."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "vaultBatchTransactionAccountClose",
+      "docs": [
+        "Closes a `VaultBatchTransaction` belonging to the `batch` and `proposal`.",
+        "`transaction` can be closed if either:",
+        "- it's marked as executed within the `batch`;",
+        "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+        "- the `proposal` is stale and not `Approved`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "batch",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "`Batch` corresponding to the `proposal`."
+          ]
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "`VaultBatchTransaction` account to close."
+          ]
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The rent collector."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VaultBatchTransactionAccountCloseArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "batchAccountsClose",
+      "docs": [
+        "Closes Batch and the corresponding Proposal accounts for proposals in terminal states:",
+        "`Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.",
+        "",
+        "WARNING: Make sure to call this instruction only after all `VaultBatchTransaction`s",
+        "are already closed via `vault_batch_transaction_account_close`,",
+        "because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.",
+        "There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts",
+        "first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "batch",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "`Batch` corresponding to the `proposal`."
           ]
         },
         {
@@ -1960,6 +2078,18 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultBatchTransactionAccountCloseArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "transactionIndex",
+            "type": "u32"
           }
         ]
       }

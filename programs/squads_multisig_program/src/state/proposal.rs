@@ -146,12 +146,3 @@ pub enum ProposalStatus {
     /// Proposal has been cancelled.
     Cancelled { timestamp: i64 },
 }
-
-impl ProposalStatus {
-    pub fn is_terminal(&self) -> bool {
-        match self {
-            Self::Rejected { .. } | Self::Executed { .. } | Self::Cancelled { .. } => true,
-            _ => false,
-        }
-    }
-}

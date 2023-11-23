@@ -90,7 +90,6 @@ describe("Instructions / vault_transaction_accounts_close", () => {
       vaultIndex: 0,
       transactionMessage: testTransferMessage,
       ephemeralSigners: 0,
-      addressLookupTableAccounts: [],
       creator: members.proposer.publicKey,
       programId,
     });
@@ -119,7 +118,6 @@ describe("Instructions / vault_transaction_accounts_close", () => {
       vaultIndex: 0,
       transactionMessage: testTransferMessage,
       ephemeralSigners: 0,
-      addressLookupTableAccounts: [],
       creator: members.proposer.publicKey,
       programId,
     });
