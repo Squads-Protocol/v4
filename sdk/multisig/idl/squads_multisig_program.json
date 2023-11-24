@@ -2426,6 +2426,17 @@
                 "type": "publicKey"
               }
             ]
+          },
+          {
+            "name": "SetRentCollector",
+            "fields": [
+              {
+                "name": "newRentCollector",
+                "type": {
+                  "option": "publicKey"
+                }
+              }
+            ]
           }
         ]
       }

@@ -109,9 +109,32 @@ impl<'info> ConfigTransactionExecute<'info> {
         let rent = Rent::get()?;
 
         // Check applying the config actions will require reallocation of space for the multisig account.
+
+        // Handle growing members vector.
         let new_members_length =
             members_length_after_actions(multisig.members.len(), &transaction.actions);
-        if new_members_length > multisig.members.len() {
+        let needs_members_allocation = new_members_length > multisig.members.len();
+
+        // Handle growing rent_collector changing from None -> Some(Pubkey).
+        // The `rent_collector` field after applying the actions will be:
+        // - the `new_rent_collector` of the last `SetRentCollector` action, if any present among the actions.
+        // - the current `rent_collector` if no `SetRentCollector` action is present among the actions.
+        let new_rent_collector = transaction
+            .actions
+            .iter()
+            .rev()
+            .find_map(|action| {
+                if let ConfigAction::SetRentCollector { new_rent_collector } = action {
+                    Some(*new_rent_collector)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(multisig.rent_collector);
+        let needs_rent_collector_allocation =
+            multisig.rent_collector.is_none() && new_rent_collector.is_some();
+
+        if needs_members_allocation || needs_rent_collector_allocation {
             let rent_payer = &ctx
                 .accounts
                 .rent_payer
@@ -126,7 +149,7 @@ impl<'info> ConfigTransactionExecute<'info> {
             let reallocated = Multisig::realloc_if_needed(
                 multisig.to_account_info(),
                 new_members_length,
-                multisig.rent_collector.is_some(),
+                new_rent_collector.is_some(),
                 rent_payer.to_account_info(),
                 system_program.to_account_info(),
             )?;
@@ -281,6 +304,13 @@ impl<'info> ConfigTransactionExecute<'info> {
                     // We don't need to invalidate prior transactions here because adding
                     // a spending limit doesn't affect the consensus parameters of the multisig.
                 }
+
+                ConfigAction::SetRentCollector { new_rent_collector } => {
+                    multisig.rent_collector = *new_rent_collector;
+
+                    // We don't need to invalidate prior transactions here because changing
+                    // `rent_collector` doesn't affect the consensus parameters of the multisig.
+                }
             }
         }
 
@@ -313,6 +343,7 @@ fn members_length_after_actions(members_length: usize, actions: &[ConfigAction])
         ConfigAction::SetTimeLock { .. } => acc,
         ConfigAction::AddSpendingLimit { .. } => acc,
         ConfigAction::RemoveSpendingLimit { .. } => acc,
+        ConfigAction::SetRentCollector { .. } => acc,
     });
 
     let abs_members_delta =

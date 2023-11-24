@@ -3,7 +3,6 @@ import {
   LAMPORTS_PER_SOL,
   PublicKey,
   TransactionMessage,
-  VersionedTransaction,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import * as assert from "assert";
@@ -26,6 +25,7 @@ const { Permission, Permissions } = multisig.types;
 
 const programId = getTestProgramId();
 
+import "./instructions/configTransactionExecute";
 import "./instructions/configTransactionAccountsClose";
 import "./instructions/vaultBatchTransactionAccountClose";
 import "./instructions/batchAccountsClose";
@@ -2531,161 +2531,6 @@ describe("Multisig SDK", () => {
     it("error: transaction is not for multisig");
 
     it("error: execute reentrancy");
-  });
-
-  describe("config_transaction_execute", () => {
-    let multisigPda: PublicKey;
-    const approvedTransactionIndex = 1n;
-    const rejectedTransactionIndex = 2n;
-
-    before(async () => {
-      // Create new autonomous multisig.
-      multisigPda = (
-        await createAutonomousMultisig({
-          connection,
-          members,
-          threshold: 2,
-          timeLock: 0,
-          rentCollector: null,
-          programId,
-        })
-      )[0];
-
-      // Create a config transaction (Approved).
-      let signature = await multisig.rpc.configTransactionCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        creator: members.proposer.publicKey,
-        actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Create a proposal for the transaction (Approved).
-      signature = await multisig.rpc.proposalCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        creator: members.proposer,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Approve the proposal by the first member.
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        member: members.voter,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Approve the proposal by the second member.
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        member: members.almighty,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Create a config transaction (Rejected).
-      signature = await multisig.rpc.configTransactionCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: rejectedTransactionIndex,
-        creator: members.proposer.publicKey,
-        actions: [{ __kind: "ChangeThreshold", newThreshold: 3 }],
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Create a proposal for the transaction (Rejected).
-      signature = await multisig.rpc.proposalCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: rejectedTransactionIndex,
-        creator: members.proposer,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Reject the proposal by a member.
-      // Our threshold is 2 out of 2 voting members, so the cutoff is 1.
-      signature = await multisig.rpc.proposalReject({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex: rejectedTransactionIndex,
-        member: members.voter,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-    });
-
-    it("execute a config transaction", async () => {
-      // Execute the approved config transaction.
-      const transactionIndex = 1n;
-
-      const signature = await multisig.rpc.configTransactionExecute({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex,
-        member: members.almighty,
-        rentPayer: members.almighty,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Verify the proposal account.
-      const [proposalPda] = multisig.getProposalPda({
-        multisigPda,
-        transactionIndex,
-        programId,
-      });
-      const proposalAccount = await Proposal.fromAccountAddress(
-        connection,
-        proposalPda
-      );
-      assert.ok(
-        multisig.types.isProposalStatusExecuted(proposalAccount.status)
-      );
-
-      // Verify the multisig account.
-      const multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-      // The threshold should have been updated.
-      assert.strictEqual(multisigAccount.threshold, 1);
-    });
-
-    it("error: invalid proposal status (Rejected)", async () => {
-      // Attempt to execute a transaction with a rejected proposal.
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionExecute({
-            connection,
-            feePayer: members.almighty,
-            multisigPda,
-            transactionIndex: rejectedTransactionIndex,
-            rentPayer: members.almighty,
-            member: members.almighty,
-            programId,
-          }),
-        /Invalid proposal status/
-      );
-    });
   });
 
   describe("utils", () => {

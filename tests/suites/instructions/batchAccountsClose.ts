@@ -18,7 +18,7 @@ import {
   TestMembers,
 } from "../../utils";
 
-const { Multisig, Proposal } = multisig.accounts;
+const { Multisig } = multisig.accounts;
 
 const programId = getTestProgramId();
 const connection = createLocalhostConnection();
