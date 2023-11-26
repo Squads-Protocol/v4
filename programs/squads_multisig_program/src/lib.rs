@@ -89,6 +89,14 @@ pub mod squads_multisig_program {
         MultisigConfig::multisig_set_config_authority(ctx, args)
     }
 
+    /// Set the multisig `rent_collector`.
+    pub fn multisig_set_rent_collector(
+        ctx: Context<MultisigConfig>,
+        args: MultisigSetRentCollectorArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_set_rent_collector(ctx, args)
+    }
+
     /// Create a new spending limit for the controlled multisig.
     pub fn multisig_add_spending_limit(
         ctx: Context<MultisigAddSpendingLimit>,

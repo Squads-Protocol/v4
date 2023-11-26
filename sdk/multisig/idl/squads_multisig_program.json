@@ -291,6 +291,55 @@
       ]
     },
     {
+      "name": "multisigSetRentCollector",
+      "docs": [
+        "Set the multisig `rent_collector`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "isOptional": true,
+          "docs": [
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigSetRentCollectorArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "multisigAddSpendingLimit",
       "docs": [
         "Create a new spending limit for the controlled multisig."
@@ -1923,6 +1972,29 @@
           {
             "name": "configAuthority",
             "type": "publicKey"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigSetRentCollectorArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rentCollector",
+            "type": {
+              "option": "publicKey"
+            }
           },
           {
             "name": "memo",

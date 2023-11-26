@@ -25,6 +25,7 @@ const { Permission, Permissions } = multisig.types;
 
 const programId = getTestProgramId();
 
+import "./instructions/multisigSetRentCollector";
 import "./instructions/configTransactionExecute";
 import "./instructions/configTransactionAccountsClose";
 import "./instructions/vaultBatchTransactionAccountClose";
