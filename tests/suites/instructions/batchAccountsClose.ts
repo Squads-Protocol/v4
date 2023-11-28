@@ -160,11 +160,37 @@ describe("Instructions / batch_accounts_close", () => {
           connection,
           feePayer: members.almighty,
           multisigPda,
+          member: members.almighty,
           rentCollector: Keypair.generate().publicKey,
           batchIndex,
           programId,
         }),
       /RentReclamationDisabled: Rent reclamation is disabled for this multisig/
+    );
+  });
+
+  it("error: not a member", async () => {
+    const batchIndex = testMultisig.rejectedBatchIndex;
+
+    const fakeMember = Keypair.generate();
+
+    const multisigAccount = await Multisig.fromAccountAddress(
+      connection,
+      multisigPda
+    );
+
+    await assert.rejects(
+      () =>
+        multisig.rpc.batchAccountsClose({
+          connection,
+          feePayer: members.almighty,
+          multisigPda,
+          member: fakeMember,
+          rentCollector: multisigAccount.rentCollector!,
+          batchIndex,
+          programId,
+        }),
+      /Provided pubkey is not a member of multisig/
     );
   });
 
@@ -179,6 +205,7 @@ describe("Instructions / batch_accounts_close", () => {
           connection,
           feePayer: members.almighty,
           multisigPda,
+          member: members.almighty,
           rentCollector: fakeRentCollector,
           batchIndex,
           programId,
@@ -269,6 +296,7 @@ describe("Instructions / batch_accounts_close", () => {
     const ix = multisig.generated.createBatchAccountsCloseInstruction(
       {
         multisig: multisigPda,
+        member: members.almighty.publicKey,
         rentCollector: vaultPda,
         proposal: multisig.getProposalPda({
           multisigPda: otherMultisig,
@@ -292,7 +320,7 @@ describe("Instructions / batch_accounts_close", () => {
       instructions: [ix],
     }).compileToV0Message();
     const tx = new VersionedTransaction(message);
-    tx.sign([feePayer]);
+    tx.sign([feePayer, members.almighty]);
 
     await assert.rejects(
       () =>
@@ -317,6 +345,7 @@ describe("Instructions / batch_accounts_close", () => {
           connection,
           feePayer: members.almighty,
           multisigPda,
+          member: members.almighty,
           rentCollector: multisigAccount.rentCollector!,
           batchIndex,
           programId,
@@ -339,6 +368,7 @@ describe("Instructions / batch_accounts_close", () => {
           connection,
           feePayer: members.almighty,
           multisigPda,
+          member: members.almighty,
           rentCollector: multisigAccount.rentCollector!,
           batchIndex,
           programId,
@@ -361,6 +391,7 @@ describe("Instructions / batch_accounts_close", () => {
           connection,
           feePayer: members.almighty,
           multisigPda,
+          member: members.almighty,
           rentCollector: multisigAccount.rentCollector!,
           batchIndex,
           programId,
@@ -381,6 +412,7 @@ describe("Instructions / batch_accounts_close", () => {
       connection,
       feePayer: members.almighty,
       multisigPda,
+      member: members.almighty,
       rentCollector: multisigAccount.rentCollector!,
       batchIndex,
       programId,
@@ -423,6 +455,7 @@ describe("Instructions / batch_accounts_close", () => {
       connection,
       feePayer: members.almighty,
       multisigPda,
+      member: members.almighty,
       rentCollector: multisigAccount.rentCollector!,
       batchIndex,
       programId,
@@ -442,6 +475,7 @@ describe("Instructions / batch_accounts_close", () => {
       connection,
       feePayer: members.almighty,
       multisigPda,
+      member: members.almighty,
       rentCollector: multisigAccount.rentCollector!,
       batchIndex,
       programId,
@@ -461,6 +495,7 @@ describe("Instructions / batch_accounts_close", () => {
       connection,
       feePayer: members.almighty,
       multisigPda,
+      member: members.almighty,
       rentCollector: multisigAccount.rentCollector!,
       batchIndex,
       programId,

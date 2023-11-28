@@ -403,6 +403,9 @@ pub struct BatchAccountsClose<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
+    /// Member of the multisig.
+    pub member: Signer<'info>,
+
     #[account(mut, close = rent_collector)]
     pub proposal: Account<'info, Proposal>,
 
@@ -435,6 +438,15 @@ impl BatchAccountsClose<'_> {
             .ok_or(MultisigError::RentReclamationDisabled)?
             .key();
         //endregion
+
+        //region member
+        // Has to be a member of the `multisig`.
+        // This is checked to prevent potential attackers from closing the `Batch` and `Proposal`
+        // accounts before all `VaultBatchTransaction`s are closed.
+        require!(
+            multisig.is_member(self.member.key()).is_some(),
+            MultisigError::NotAMember
+        );
 
         //region rent_collector
         // Has to match the `multisig.rent_collector`.

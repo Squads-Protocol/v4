@@ -14,11 +14,13 @@ import { getProposalPda, getTransactionPda } from "../pda";
  */
 export function batchAccountsClose({
   multisigPda,
+  member,
   rentCollector,
   batchIndex,
   programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
+  member: PublicKey;
   rentCollector: PublicKey;
   batchIndex: bigint;
   programId?: PublicKey;
@@ -37,6 +39,7 @@ export function batchAccountsClose({
   return createBatchAccountsCloseInstruction(
     {
       multisig: multisigPda,
+      member,
       rentCollector,
       proposal: proposalPda,
       batch: batchPda,

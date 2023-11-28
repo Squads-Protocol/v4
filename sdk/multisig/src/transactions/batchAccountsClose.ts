@@ -9,6 +9,7 @@ export function batchAccountsClose({
   blockhash,
   feePayer,
   multisigPda,
+  member,
   rentCollector,
   batchIndex,
   programId,
@@ -16,6 +17,7 @@ export function batchAccountsClose({
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
+  member: PublicKey;
   rentCollector: PublicKey;
   batchIndex: bigint;
   programId?: PublicKey;
@@ -26,6 +28,7 @@ export function batchAccountsClose({
     instructions: [
       instructions.batchAccountsClose({
         multisigPda,
+        member,
         rentCollector,
         batchIndex,
         programId,

@@ -22,6 +22,7 @@ export async function batchAccountsClose({
   connection,
   feePayer,
   multisigPda,
+  member,
   rentCollector,
   batchIndex,
   sendOptions,
@@ -30,6 +31,7 @@ export async function batchAccountsClose({
   connection: Connection;
   feePayer: Signer;
   multisigPda: PublicKey;
+  member: Signer;
   rentCollector: PublicKey;
   batchIndex: bigint;
   sendOptions?: SendOptions;
@@ -40,13 +42,14 @@ export async function batchAccountsClose({
   const tx = transactions.batchAccountsClose({
     blockhash,
     feePayer: feePayer.publicKey,
+    member: member.publicKey,
     rentCollector,
     batchIndex,
     multisigPda,
     programId,
   });
 
-  tx.sign([feePayer]);
+  tx.sign([feePayer, member]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

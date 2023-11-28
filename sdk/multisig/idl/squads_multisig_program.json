@@ -1209,6 +1209,14 @@
           "isSigner": false
         },
         {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Member of the multisig."
+          ]
+        },
+        {
           "name": "proposal",
           "isMut": true,
           "isSigner": false

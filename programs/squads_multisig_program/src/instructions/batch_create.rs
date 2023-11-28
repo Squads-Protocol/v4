@@ -91,6 +91,8 @@ impl BatchCreate<'_> {
         batch.size = 0;
         batch.executed_transaction_index = 0;
 
+        batch.invariant()?;
+
         // Updated last transaction index in the multisig account.
         multisig.transaction_index = index;
 

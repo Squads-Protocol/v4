@@ -23,6 +23,7 @@ export const batchAccountsCloseStruct = new beet.BeetArgsStruct<{
  * Accounts required by the _batchAccountsClose_ instruction
  *
  * @property [] multisig
+ * @property [**signer**] member
  * @property [_writable_] proposal
  * @property [_writable_] batch
  * @property [_writable_] rentCollector
@@ -32,6 +33,7 @@ export const batchAccountsCloseStruct = new beet.BeetArgsStruct<{
  */
 export type BatchAccountsCloseInstructionAccounts = {
   multisig: web3.PublicKey
+  member: web3.PublicKey
   proposal: web3.PublicKey
   batch: web3.PublicKey
   rentCollector: web3.PublicKey
@@ -63,6 +65,11 @@ export function createBatchAccountsCloseInstruction(
       pubkey: accounts.multisig,
       isWritable: false,
       isSigner: false,
+    },
+    {
+      pubkey: accounts.member,
+      isWritable: false,
+      isSigner: true,
     },
     {
       pubkey: accounts.proposal,
