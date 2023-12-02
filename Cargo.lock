@@ -4190,6 +4190,7 @@ version = "0.3.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "solana-program",
  "solana-security-txt",
 ]
 

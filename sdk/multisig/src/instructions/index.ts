@@ -6,6 +6,7 @@ export * from "./configTransactionAccountsClose.js";
 export * from "./configTransactionCreate.js";
 export * from "./configTransactionExecute.js";
 export * from "./multisigCreate.js";
+export * from "./multisigCreateV2.js";
 export * from "./multisigAddMember.js";
 export * from "./multisigAddSpendingLimit.js";
 export * from "./multisigRemoveSpendingLimit.js";

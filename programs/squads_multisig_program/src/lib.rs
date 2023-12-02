@@ -4,13 +4,13 @@
 // #![deny(clippy::arithmetic_side_effects)]
 // #![deny(clippy::integer_arithmetic)]
 
-extern crate core;
-
-use anchor_lang::prelude::*;
-
 // Re-export anchor_lang for convenience.
 pub use anchor_lang;
+use anchor_lang::prelude::*;
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
 
+pub use instructions::ProgramConfig;
 pub use instructions::*;
 pub use state::*;
 pub use utils::SmallVec;
@@ -19,9 +19,6 @@ pub mod errors;
 pub mod instructions;
 pub mod state;
 mod utils;
-
-#[cfg(not(feature = "no-entrypoint"))]
-use solana_security_txt::security_txt;
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
@@ -44,9 +41,50 @@ declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
 pub mod squads_multisig_program {
     use super::*;
 
+    /// Initialize the program config.
+    pub fn program_config_init(
+        ctx: Context<ProgramConfigInit>,
+        args: ProgramConfigInitArgs,
+    ) -> Result<()> {
+        ProgramConfigInit::program_config_init(ctx, args)
+    }
+
+    /// Set the `authority` parameter of the program config.
+    pub fn program_config_set_authority(
+        ctx: Context<ProgramConfig>,
+        args: ProgramConfigSetAuthorityArgs,
+    ) -> Result<()> {
+        ProgramConfig::program_config_set_authority(ctx, args)
+    }
+
+    /// Set the `multisig_creation_fee` parameter of the program config.
+    pub fn program_config_set_multisig_creation_fee(
+        ctx: Context<ProgramConfig>,
+        args: ProgramConfigSetMultisigCreationFeeArgs,
+    ) -> Result<()> {
+        ProgramConfig::program_config_set_multisig_creation_fee(ctx, args)
+    }
+
+    /// Set the `treasury` parameter of the program config.
+    pub fn program_config_set_treasury(
+        ctx: Context<ProgramConfig>,
+        args: ProgramConfigSetTreasuryArgs,
+    ) -> Result<()> {
+        ProgramConfig::program_config_set_treasury(ctx, args)
+    }
+
     /// Create a multisig.
+    #[allow(deprecated)]
     pub fn multisig_create(ctx: Context<MultisigCreate>, args: MultisigCreateArgs) -> Result<()> {
         MultisigCreate::multisig_create(ctx, args)
+    }
+
+    /// Create a multisig.
+    pub fn multisig_create_v2(
+        ctx: Context<MultisigCreateV2>,
+        args: MultisigCreateArgs,
+    ) -> Result<()> {
+        MultisigCreateV2::multisig_create(ctx, args)
     }
 
     /// Add a new member to the controlled multisig.

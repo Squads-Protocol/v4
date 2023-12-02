@@ -4,6 +4,7 @@ import { toU32Bytes, toU64Bytes, toU8Bytes, toUtfBytes } from "./utils";
 import invariant from "invariant";
 
 const SEED_PREFIX = toUtfBytes("multisig");
+const SEED_PROGRAM_CONFIG = toUtfBytes("program_config");
 const SEED_MULTISIG = toUtfBytes("multisig");
 const SEED_VAULT = toUtfBytes("vault");
 const SEED_TRANSACTION = toUtfBytes("transaction");
@@ -11,6 +12,17 @@ const SEED_PROPOSAL = toUtfBytes("proposal");
 const SEED_BATCH_TRANSACTION = toUtfBytes("batch_transaction");
 const SEED_EPHEMERAL_SIGNER = toUtfBytes("ephemeral_signer");
 const SEED_SPENDING_LIMIT = toUtfBytes("spending_limit");
+
+export function getProgramConfigPda({
+  programId = PROGRAM_ID,
+}: {
+  programId?: PublicKey;
+}): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [SEED_PREFIX, SEED_PROGRAM_CONFIG],
+    programId
+  );
+}
 
 export function getMultisigPda({
   createKey,

@@ -75,6 +75,7 @@ impl ConfigTransactionAccountsClose<'_> {
         // Has to be either stale or in a terminal state.
         let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
 
+        #[allow(deprecated)]
         let can_close = match proposal.status {
             // Draft proposals can only be closed if stale,
             // so they can't be activated anymore.
@@ -188,6 +189,7 @@ impl VaultTransactionAccountsClose<'_> {
 
         let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
 
+        #[allow(deprecated)]
         let can_close = match proposal.status {
             // Draft proposals can only be closed if stale,
             // so they can't be activated anymore.
@@ -351,6 +353,7 @@ impl VaultBatchTransactionAccountClose<'_> {
 
         // Batch transactions that are marked as executed within the batch can be closed,
         // otherwise we need to check the proposal status.
+        #[allow(deprecated)]
         let can_close = is_batch_transaction_executed
             || match proposal.status {
                 // Transactions of Draft proposals can only be closed if stale,
@@ -467,6 +470,7 @@ impl BatchAccountsClose<'_> {
 
         let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
 
+        #[allow(deprecated)]
         let can_close = match proposal.status {
             // Draft proposals can only be closed if stale,
             // so they can't be activated anymore.
