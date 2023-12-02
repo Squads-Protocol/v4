@@ -34,6 +34,7 @@ export type ConfigActionRecord = {
     destinations: web3.PublicKey[]
   }
   RemoveSpendingLimit: { spendingLimit: web3.PublicKey }
+  SetRentCollector: { newRentCollector: beet.COption<web3.PublicKey> }
 }
 
 /**
@@ -70,6 +71,10 @@ export const isConfigActionRemoveSpendingLimit = (
   x: ConfigAction
 ): x is ConfigAction & { __kind: 'RemoveSpendingLimit' } =>
   x.__kind === 'RemoveSpendingLimit'
+export const isConfigActionSetRentCollector = (
+  x: ConfigAction
+): x is ConfigAction & { __kind: 'SetRentCollector' } =>
+  x.__kind === 'SetRentCollector'
 
 /**
  * @category userTypes
@@ -129,6 +134,14 @@ export const configActionBeet = beet.dataEnum<ConfigActionRecord>([
     new beet.BeetArgsStruct<ConfigActionRecord['RemoveSpendingLimit']>(
       [['spendingLimit', beetSolana.publicKey]],
       'ConfigActionRecord["RemoveSpendingLimit"]'
+    ),
+  ],
+
+  [
+    'SetRentCollector',
+    new beet.FixableBeetArgsStruct<ConfigActionRecord['SetRentCollector']>(
+      [['newRentCollector', beet.coption(beetSolana.publicKey)]],
+      'ConfigActionRecord["SetRentCollector"]'
     ),
   ],
 ]) as beet.FixableBeet<ConfigAction, ConfigAction>

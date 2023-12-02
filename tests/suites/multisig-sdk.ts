@@ -6,8 +6,6 @@ import {
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import * as assert from "assert";
-import * as path from "path";
-import { readFileSync } from "fs";
 import {
   createAutonomousMultisig,
   createControlledMultisig,
@@ -26,6 +24,13 @@ const { Multisig, VaultTransaction, ConfigTransaction, Proposal, Batch } =
 const { Permission, Permissions } = multisig.types;
 
 const programId = getTestProgramId();
+
+import "./instructions/multisigSetRentCollector";
+import "./instructions/configTransactionExecute";
+import "./instructions/configTransactionAccountsClose";
+import "./instructions/vaultBatchTransactionAccountClose";
+import "./instructions/batchAccountsClose";
+import "./instructions/vaultTransactionAccountsClose";
 
 describe("Multisig SDK", () => {
   const connection = createLocalhostConnection();
@@ -66,6 +71,7 @@ describe("Multisig SDK", () => {
               },
             ],
             createKey,
+            rentCollector: null,
             sendOptions: { skipPreflight: true },
             programId,
           }),
@@ -90,6 +96,7 @@ describe("Multisig SDK", () => {
         configAuthority: null,
         timeLock: 0,
         threshold: 1,
+        rentCollector: null,
         members: [
           {
             key: members.almighty.publicKey,
@@ -132,6 +139,7 @@ describe("Multisig SDK", () => {
             timeLock: 0,
             threshold: 1,
             members: [],
+            rentCollector: null,
             sendOptions: { skipPreflight: true },
             programId,
           }),
@@ -167,6 +175,7 @@ describe("Multisig SDK", () => {
                 },
               },
             ],
+            rentCollector: null,
             sendOptions: { skipPreflight: true },
             programId,
           }),
@@ -200,6 +209,7 @@ describe("Multisig SDK", () => {
               key: m.publicKey,
               permissions: Permissions.all(),
             })),
+            rentCollector: null,
             sendOptions: { skipPreflight: true },
             programId,
           }),
@@ -248,6 +258,7 @@ describe("Multisig SDK", () => {
             ],
             // Threshold is 3, but there are only 2 voters.
             threshold: 3,
+            rentCollector: null,
             sendOptions: { skipPreflight: true },
             programId,
           }),
@@ -264,6 +275,7 @@ describe("Multisig SDK", () => {
         members,
         threshold: 2,
         timeLock: 0,
+        rentCollector: null,
         programId,
       });
 
@@ -305,7 +317,7 @@ describe("Multisig SDK", () => {
           },
         ].sort((a, b) => comparePubkeys(a.key, b.key))
       );
-      assert.strictEqual(multisigAccount.reserved, 0);
+      assert.strictEqual(multisigAccount.rentCollector, null);
       assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
       assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "0");
       assert.strictEqual(
@@ -313,6 +325,31 @@ describe("Multisig SDK", () => {
         createKey.publicKey.toBase58()
       );
       assert.strictEqual(multisigAccount.bump, multisigBump);
+    });
+
+    it("create a new autonomous multisig with rent reclamation enabled", async () => {
+      const createKey = Keypair.generate();
+      const rentCollector = Keypair.generate().publicKey;
+
+      const [multisigPda, multisigBump] = await createAutonomousMultisig({
+        connection,
+        createKey,
+        members,
+        threshold: 2,
+        timeLock: 0,
+        rentCollector,
+        programId,
+      });
+
+      const multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+
+      assert.strictEqual(
+        multisigAccount.rentCollector?.toBase58(),
+        rentCollector.toBase58()
+      );
     });
 
     it("create a new controlled multisig", async () => {
@@ -326,6 +363,7 @@ describe("Multisig SDK", () => {
         members,
         threshold: 2,
         timeLock: 0,
+        rentCollector: null,
         programId,
       });
 
@@ -368,6 +406,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -559,6 +598,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -594,6 +634,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -645,6 +686,7 @@ describe("Multisig SDK", () => {
           threshold: 1,
           configAuthority: configAuthority.publicKey,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -700,6 +742,7 @@ describe("Multisig SDK", () => {
           threshold: 1,
           timeLock: 0,
           configAuthority: configAuthority.publicKey,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -750,6 +793,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -849,6 +893,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -902,6 +947,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1004,6 +1050,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1017,6 +1064,7 @@ describe("Multisig SDK", () => {
         threshold: 2,
         timeLock: 0,
         createKey: Keypair.generate(),
+        rentCollector: null,
         programId,
       });
     });
@@ -1036,6 +1084,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1114,6 +1163,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1176,6 +1226,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1253,6 +1304,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1265,6 +1317,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1407,6 +1460,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1585,6 +1639,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1784,6 +1839,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -1965,6 +2021,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -2200,6 +2257,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -2323,6 +2381,7 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
+          rentCollector: null,
           programId,
         })
       )[0];
@@ -2475,160 +2534,6 @@ describe("Multisig SDK", () => {
     it("error: execute reentrancy");
   });
 
-  describe("config_transaction_execute", () => {
-    let multisigPda: PublicKey;
-    const approvedTransactionIndex = 1n;
-    const rejectedTransactionIndex = 2n;
-
-    before(async () => {
-      // Create new autonomous multisig.
-      multisigPda = (
-        await createAutonomousMultisig({
-          connection,
-          members,
-          threshold: 2,
-          timeLock: 0,
-          programId,
-        })
-      )[0];
-
-      // Create a config transaction (Approved).
-      let signature = await multisig.rpc.configTransactionCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        creator: members.proposer.publicKey,
-        actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Create a proposal for the transaction (Approved).
-      signature = await multisig.rpc.proposalCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        creator: members.proposer,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Approve the proposal by the first member.
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        member: members.voter,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Approve the proposal by the second member.
-      signature = await multisig.rpc.proposalApprove({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex: approvedTransactionIndex,
-        member: members.almighty,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Create a config transaction (Rejected).
-      signature = await multisig.rpc.configTransactionCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: rejectedTransactionIndex,
-        creator: members.proposer.publicKey,
-        actions: [{ __kind: "ChangeThreshold", newThreshold: 3 }],
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Create a proposal for the transaction (Rejected).
-      signature = await multisig.rpc.proposalCreate({
-        connection,
-        feePayer: members.proposer,
-        multisigPda,
-        transactionIndex: rejectedTransactionIndex,
-        creator: members.proposer,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Reject the proposal by a member.
-      // Our threshold is 2 out of 2 voting members, so the cutoff is 1.
-      signature = await multisig.rpc.proposalReject({
-        connection,
-        feePayer: members.voter,
-        multisigPda,
-        transactionIndex: rejectedTransactionIndex,
-        member: members.voter,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-    });
-
-    it("execute a config transaction", async () => {
-      // Execute the approved config transaction.
-      const transactionIndex = 1n;
-
-      const signature = await multisig.rpc.configTransactionExecute({
-        connection,
-        feePayer: members.almighty,
-        multisigPda,
-        transactionIndex,
-        member: members.almighty,
-        rentPayer: members.almighty,
-        programId,
-      });
-      await connection.confirmTransaction(signature);
-
-      // Verify the proposal account.
-      const [proposalPda] = multisig.getProposalPda({
-        multisigPda,
-        transactionIndex,
-        programId,
-      });
-      const proposalAccount = await Proposal.fromAccountAddress(
-        connection,
-        proposalPda
-      );
-      assert.ok(
-        multisig.types.isProposalStatusExecuted(proposalAccount.status)
-      );
-
-      // Verify the multisig account.
-      const multisigAccount = await Multisig.fromAccountAddress(
-        connection,
-        multisigPda
-      );
-      // The threshold should have been updated.
-      assert.strictEqual(multisigAccount.threshold, 1);
-    });
-
-    it("error: invalid proposal status (Rejected)", async () => {
-      // Attempt to execute a transaction with a rejected proposal.
-      await assert.rejects(
-        () =>
-          multisig.rpc.configTransactionExecute({
-            connection,
-            feePayer: members.almighty,
-            multisigPda,
-            transactionIndex: rejectedTransactionIndex,
-            rentPayer: members.almighty,
-            member: members.almighty,
-            programId,
-          }),
-        /Invalid proposal status/
-      );
-    });
-  });
-
   describe("utils", () => {
     describe("getAvailableMemoSize", () => {
       it("provides estimates for available size to use for memo", async () => {
@@ -2659,6 +2564,7 @@ describe("Multisig SDK", () => {
               permissions: Permissions.all(),
             },
           ],
+          rentCollector: null,
           threshold: 1,
           programId,
         };

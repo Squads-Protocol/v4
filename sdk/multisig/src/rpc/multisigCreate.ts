@@ -19,6 +19,7 @@ export async function multisigCreate({
   threshold,
   members,
   timeLock,
+  rentCollector,
   memo,
   sendOptions,
   programId,
@@ -31,6 +32,7 @@ export async function multisigCreate({
   threshold: number;
   members: Member[];
   timeLock: number;
+  rentCollector: PublicKey | null;
   memo?: string;
   sendOptions?: SendOptions;
   programId?: PublicKey;
@@ -46,6 +48,7 @@ export async function multisigCreate({
     threshold,
     members,
     timeLock,
+    rentCollector,
     memo,
     programId,
   });

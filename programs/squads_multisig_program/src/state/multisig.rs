@@ -31,8 +31,9 @@ pub struct Multisig {
     /// Last stale transaction index. All transactions up until this index are stale.
     /// This index is updated when multisig config (members/threshold/time_lock) changes.
     pub stale_transaction_index: u64,
-    /// Reserved for future use.
-    pub _reserved: u8,
+    /// The address where the rent for the accounts related to executed, rejected, or cancelled
+    /// transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off.
+    pub rent_collector: Option<Pubkey>,
     /// Bump for the multisig PDA seed.
     pub bump: u8,
     /// Members of the multisig.
@@ -40,7 +41,9 @@ pub struct Multisig {
 }
 
 impl Multisig {
-    pub fn size(members_length: usize) -> usize {
+    pub fn size(members_length: usize, is_rent_collector_set: bool) -> usize {
+        let rent_collector_size = if is_rent_collector_set { 32 } else { 0 };
+
         8  + // anchor account discriminator
         32 + // create_key
         32 + // config_authority
@@ -48,7 +51,8 @@ impl Multisig {
         4  + // time_lock
         8  + // transaction_index
         8  + // stale_transaction_index
-        1  + // _reserved
+        1  + // rent_collector Option discriminator
+        rent_collector_size + // rent_collector
         1  + // bump
         4  + // members vector length
         members_length * Member::INIT_SPACE // members
@@ -80,6 +84,7 @@ impl Multisig {
     pub fn realloc_if_needed<'a>(
         multisig: AccountInfo<'a>,
         members_length: usize,
+        is_rent_collector_set: bool,
         rent_payer: AccountInfo<'a>,
         system_program: AccountInfo<'a>,
     ) -> Result<bool> {
@@ -92,7 +97,7 @@ impl Multisig {
         require_keys_eq!(*multisig.owner, id(), MultisigError::IllegalAccountOwner);
 
         let current_account_size = multisig.data.borrow().len();
-        let account_size_to_fit_members = Multisig::size(members_length);
+        let account_size_to_fit_members = Multisig::size(members_length, is_rent_collector_set);
 
         // Check if we need to reallocate space.
         if current_account_size >= account_size_to_fit_members {

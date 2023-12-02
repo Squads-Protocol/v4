@@ -38,6 +38,13 @@ pub struct MultisigSetConfigAuthorityArgs {
     pub memo: Option<String>,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct MultisigSetRentCollectorArgs {
+    pub rent_collector: Option<Pubkey>,
+    /// Memo is used for indexing only.
+    pub memo: Option<String>,
+}
+
 #[derive(Accounts)]
 pub struct MultisigConfig<'info> {
     #[account(
@@ -95,6 +102,7 @@ impl MultisigConfig<'_> {
         let reallocated = Multisig::realloc_if_needed(
             multisig.to_account_info(),
             multisig.members.len() + 1,
+            multisig.rent_collector.is_some(),
             rent_payer.to_account_info(),
             system_program.to_account_info(),
         )?;
@@ -194,6 +202,51 @@ impl MultisigConfig<'_> {
         multisig.config_authority = args.config_authority;
 
         multisig.invalidate_prior_transactions();
+
+        multisig.invariant()?;
+
+        Ok(())
+    }
+
+    /// Set the multisig `rent_collector` and reallocate space if necessary.
+    ///
+    /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
+    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    #[access_control(ctx.accounts.validate())]
+    pub fn multisig_set_rent_collector(
+        ctx: Context<Self>,
+        args: MultisigSetRentCollectorArgs,
+    ) -> Result<()> {
+        let multisig = &mut ctx.accounts.multisig;
+
+        let system_program = &ctx
+            .accounts
+            .system_program
+            .as_ref()
+            .ok_or(MultisigError::MissingAccount)?;
+        let rent_payer = &ctx
+            .accounts
+            .rent_payer
+            .as_ref()
+            .ok_or(MultisigError::MissingAccount)?;
+
+        // Check if we need to reallocate space.
+        let reallocated = Multisig::realloc_if_needed(
+            multisig.to_account_info(),
+            multisig.members.len(),
+            args.rent_collector.is_some(),
+            rent_payer.to_account_info(),
+            system_program.to_account_info(),
+        )?;
+
+        if reallocated {
+            multisig.reload()?;
+        }
+
+        multisig.rent_collector = args.rent_collector;
+
+        // We don't need to invalidate prior transactions here because changing
+        // `rent_collector` doesn't affect the consensus parameters of the multisig.
 
         multisig.invariant()?;
 

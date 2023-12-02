@@ -89,6 +89,14 @@ pub mod squads_multisig_program {
         MultisigConfig::multisig_set_config_authority(ctx, args)
     }
 
+    /// Set the multisig `rent_collector`.
+    pub fn multisig_set_rent_collector(
+        ctx: Context<MultisigConfig>,
+        args: MultisigSetRentCollectorArgs,
+    ) -> Result<()> {
+        MultisigConfig::multisig_set_rent_collector(ctx, args)
+    }
+
     /// Create a new spending limit for the controlled multisig.
     pub fn multisig_add_spending_limit(
         ctx: Context<MultisigAddSpendingLimit>,
@@ -187,5 +195,49 @@ pub mod squads_multisig_program {
         args: SpendingLimitUseArgs,
     ) -> Result<()> {
         SpendingLimitUse::spending_limit_use(ctx, args)
+    }
+
+    /// Closes a `ConfigTransaction` and the corresponding `Proposal`.
+    /// `transaction` can be closed if either:
+    /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
+    /// - the `proposal` is stale.
+    pub fn config_transaction_accounts_close(
+        ctx: Context<ConfigTransactionAccountsClose>,
+    ) -> Result<()> {
+        ConfigTransactionAccountsClose::config_transaction_accounts_close(ctx)
+    }
+
+    /// Closes a `VaultTransaction` and the corresponding `Proposal`.
+    /// `transaction` can be closed if either:
+    /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
+    /// - the `proposal` is stale and not `Approved`.
+    pub fn vault_transaction_accounts_close(
+        ctx: Context<VaultTransactionAccountsClose>,
+    ) -> Result<()> {
+        VaultTransactionAccountsClose::vault_transaction_accounts_close(ctx)
+    }
+
+    /// Closes a `VaultBatchTransaction` belonging to the `batch` and `proposal`.
+    /// `transaction` can be closed if either:
+    /// - it's marked as executed within the `batch`;
+    /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
+    /// - the `proposal` is stale and not `Approved`.
+    pub fn vault_batch_transaction_account_close(
+        ctx: Context<VaultBatchTransactionAccountClose>,
+        args: VaultBatchTransactionAccountCloseArgs,
+    ) -> Result<()> {
+        VaultBatchTransactionAccountClose::vault_batch_transaction_account_close(ctx, args)
+    }
+
+    /// Closes Batch and the corresponding Proposal accounts for proposals in terminal states:
+    /// `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.
+    ///
+    /// WARNING: Make sure to call this instruction only after all `VaultBatchTransaction`s
+    /// are already closed via `vault_batch_transaction_account_close`,
+    /// because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.
+    /// There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts
+    /// first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s.
+    pub fn batch_accounts_close(ctx: Context<BatchAccountsClose>) -> Result<()> {
+        BatchAccountsClose::batch_accounts_close(ctx)
     }
 }

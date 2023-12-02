@@ -16,6 +16,7 @@ export function multisigCreate({
   threshold,
   members,
   timeLock,
+  rentCollector,
   memo,
   programId,
 }: {
@@ -27,6 +28,7 @@ export function multisigCreate({
   threshold: number;
   members: Member[];
   timeLock: number;
+  rentCollector: PublicKey | null;
   memo?: string;
   programId?: PublicKey;
 }): VersionedTransaction {
@@ -38,6 +40,7 @@ export function multisigCreate({
     members,
     timeLock,
     createKey,
+    rentCollector,
     memo,
     programId,
   });

@@ -291,6 +291,55 @@
       ]
     },
     {
+      "name": "multisigSetRentCollector",
+      "docs": [
+        "Set the multisig `rent_collector`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "configAuthority",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Multisig `config_authority` that must authorize the configuration change."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "isOptional": true,
+          "docs": [
+            "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+            "for example when adding a new member or a spending limit.",
+            "This is usually the same as `config_authority`, but can be a different account if needed."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true,
+          "docs": [
+            "We might need it in case reallocation is needed."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigSetRentCollectorArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "multisigAddSpendingLimit",
       "docs": [
         "Create a new spending limit for the controlled multisig."
@@ -995,6 +1044,206 @@
           }
         }
       ]
+    },
+    {
+      "name": "configTransactionAccountsClose",
+      "docs": [
+        "Closes a `ConfigTransaction` and the corresponding `Proposal`.",
+        "`transaction` can be closed if either:",
+        "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+        "- the `proposal` is stale."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "ConfigTransaction corresponding to the `proposal`."
+          ]
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The rent collector."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "vaultTransactionAccountsClose",
+      "docs": [
+        "Closes a `VaultTransaction` and the corresponding `Proposal`.",
+        "`transaction` can be closed if either:",
+        "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+        "- the `proposal` is stale and not `Approved`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "VaultTransaction corresponding to the `proposal`."
+          ]
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The rent collector."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "vaultBatchTransactionAccountClose",
+      "docs": [
+        "Closes a `VaultBatchTransaction` belonging to the `batch` and `proposal`.",
+        "`transaction` can be closed if either:",
+        "- it's marked as executed within the `batch`;",
+        "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+        "- the `proposal` is stale and not `Approved`."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "batch",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "`Batch` corresponding to the `proposal`."
+          ]
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "`VaultBatchTransaction` account to close."
+          ]
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The rent collector."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VaultBatchTransactionAccountCloseArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "batchAccountsClose",
+      "docs": [
+        "Closes Batch and the corresponding Proposal accounts for proposals in terminal states:",
+        "`Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.",
+        "",
+        "WARNING: Make sure to call this instruction only after all `VaultBatchTransaction`s",
+        "are already closed via `vault_batch_transaction_account_close`,",
+        "because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.",
+        "There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts",
+        "first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Member of the multisig."
+          ]
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "batch",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "`Batch` corresponding to the `proposal`."
+          ]
+        },
+        {
+          "name": "rentCollector",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The rent collector."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -1218,11 +1467,14 @@
             "type": "u64"
           },
           {
-            "name": "reserved",
+            "name": "rentCollector",
             "docs": [
-              "Reserved for future use."
+              "The address where the rent for the accounts related to executed, rejected, or cancelled",
+              "transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off."
             ],
-            "type": "u8"
+            "type": {
+              "option": "publicKey"
+            }
           },
           {
             "name": "bump",
@@ -1742,6 +1994,29 @@
       }
     },
     {
+      "name": "MultisigSetRentCollectorArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rentCollector",
+            "type": {
+              "option": "publicKey"
+            }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "MultisigCreateArgs",
       "type": {
         "kind": "struct",
@@ -1777,9 +2052,19 @@
           {
             "name": "timeLock",
             "docs": [
-              "How many seconds must pass between transaction voting settlement and execution."
+              "How many seconds must pass between transaction voting, settlement, and execution."
             ],
             "type": "u32"
+          },
+          {
+            "name": "rentCollector",
+            "docs": [
+              "The address where the rent for the accounts related to executed, rejected, or cancelled",
+              "transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off."
+            ],
+            "type": {
+              "option": "publicKey"
+            }
           },
           {
             "name": "memo",
@@ -1873,6 +2158,18 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultBatchTransactionAccountCloseArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "transactionIndex",
+            "type": "u32"
           }
         ]
       }
@@ -2209,6 +2506,17 @@
                 "type": "publicKey"
               }
             ]
+          },
+          {
+            "name": "SetRentCollector",
+            "fields": [
+              {
+                "name": "newRentCollector",
+                "type": {
+                  "option": "publicKey"
+                }
+              }
+            ]
           }
         ]
       }
@@ -2466,6 +2774,31 @@
       "code": 6031,
       "name": "IllegalAccountOwner",
       "msg": "Account is not owned by Multisig program"
+    },
+    {
+      "code": 6032,
+      "name": "RentReclamationDisabled",
+      "msg": "Rent reclamation is disabled for this multisig"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidRentCollector",
+      "msg": "Invalid rent collector address"
+    },
+    {
+      "code": 6034,
+      "name": "ProposalForAnotherMultisig",
+      "msg": "Proposal is for another multisig"
+    },
+    {
+      "code": 6035,
+      "name": "TransactionForAnotherMultisig",
+      "msg": "Transaction is for another multisig"
+    },
+    {
+      "code": 6036,
+      "name": "TransactionNotMatchingProposal",
+      "msg": "Transaction doesn't match proposal"
     }
   ],
   "metadata": {

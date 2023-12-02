@@ -726,6 +726,130 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * RentReclamationDisabled: 'Rent reclamation is disabled for this multisig'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class RentReclamationDisabledError extends Error {
+  readonly code: number = 0x1790
+  readonly name: string = 'RentReclamationDisabled'
+  constructor() {
+    super('Rent reclamation is disabled for this multisig')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, RentReclamationDisabledError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1790, () => new RentReclamationDisabledError())
+createErrorFromNameLookup.set(
+  'RentReclamationDisabled',
+  () => new RentReclamationDisabledError()
+)
+
+/**
+ * InvalidRentCollector: 'Invalid rent collector address'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidRentCollectorError extends Error {
+  readonly code: number = 0x1791
+  readonly name: string = 'InvalidRentCollector'
+  constructor() {
+    super('Invalid rent collector address')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidRentCollectorError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1791, () => new InvalidRentCollectorError())
+createErrorFromNameLookup.set(
+  'InvalidRentCollector',
+  () => new InvalidRentCollectorError()
+)
+
+/**
+ * ProposalForAnotherMultisig: 'Proposal is for another multisig'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class ProposalForAnotherMultisigError extends Error {
+  readonly code: number = 0x1792
+  readonly name: string = 'ProposalForAnotherMultisig'
+  constructor() {
+    super('Proposal is for another multisig')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, ProposalForAnotherMultisigError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1792,
+  () => new ProposalForAnotherMultisigError()
+)
+createErrorFromNameLookup.set(
+  'ProposalForAnotherMultisig',
+  () => new ProposalForAnotherMultisigError()
+)
+
+/**
+ * TransactionForAnotherMultisig: 'Transaction is for another multisig'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TransactionForAnotherMultisigError extends Error {
+  readonly code: number = 0x1793
+  readonly name: string = 'TransactionForAnotherMultisig'
+  constructor() {
+    super('Transaction is for another multisig')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TransactionForAnotherMultisigError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1793,
+  () => new TransactionForAnotherMultisigError()
+)
+createErrorFromNameLookup.set(
+  'TransactionForAnotherMultisig',
+  () => new TransactionForAnotherMultisigError()
+)
+
+/**
+ * TransactionNotMatchingProposal: 'Transaction doesn't match proposal'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TransactionNotMatchingProposalError extends Error {
+  readonly code: number = 0x1794
+  readonly name: string = 'TransactionNotMatchingProposal'
+  constructor() {
+    super("Transaction doesn't match proposal")
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TransactionNotMatchingProposalError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1794,
+  () => new TransactionNotMatchingProposalError()
+)
+createErrorFromNameLookup.set(
+  'TransactionNotMatchingProposal',
+  () => new TransactionNotMatchingProposalError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated
