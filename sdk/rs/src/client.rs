@@ -92,6 +92,7 @@ pub async fn get_spending_limit(
 ///         threshold: 1,
 ///         time_lock: 0,
 ///         config_authority: None,
+///         rent_collector: None,
 ///         memo: Some("Deploy my own Squad".to_string()),
 ///     },
 ///     Some(squads_multisig_program::ID)
