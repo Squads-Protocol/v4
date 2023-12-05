@@ -1,4 +1,5 @@
 pub const SEED_PREFIX: &[u8] = b"multisig";
+pub const SEED_PROGRAM_CONFIG: &[u8] = b"program_config";
 pub const SEED_MULTISIG: &[u8] = b"multisig";
 pub const SEED_PROPOSAL: &[u8] = b"proposal";
 pub const SEED_TRANSACTION: &[u8] = b"transaction";

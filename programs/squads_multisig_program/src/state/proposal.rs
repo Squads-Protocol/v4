@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use anchor_lang::prelude::*;
 
 use crate::errors::*;

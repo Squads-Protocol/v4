@@ -3,11 +3,182 @@
   "name": "squads_multisig_program",
   "instructions": [
     {
+      "name": "programConfigInit",
+      "docs": [
+        "Initialize the program config."
+      ],
+      "accounts": [
+        {
+          "name": "programConfig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "initializer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The hard-coded account that is used to initialize the program config once."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProgramConfigInitArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "programConfigSetAuthority",
+      "docs": [
+        "Set the `authority` parameter of the program config."
+      ],
+      "accounts": [
+        {
+          "name": "programConfig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProgramConfigSetAuthorityArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "programConfigSetMultisigCreationFee",
+      "docs": [
+        "Set the `multisig_creation_fee` parameter of the program config."
+      ],
+      "accounts": [
+        {
+          "name": "programConfig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProgramConfigSetMultisigCreationFeeArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "programConfigSetTreasury",
+      "docs": [
+        "Set the `treasury` parameter of the program config."
+      ],
+      "accounts": [
+        {
+          "name": "programConfig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProgramConfigSetTreasuryArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "multisigCreate",
       "docs": [
         "Create a multisig."
       ],
       "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "createKey",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "An ephemeral signer that is used as a seed for the Multisig PDA.",
+            "Must be a signer to prevent front-running attack by someone else but the original creator."
+          ]
+        },
+        {
+          "name": "creator",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The creator of the multisig."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "MultisigCreateArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisigCreateV2",
+      "docs": [
+        "Create a multisig."
+      ],
+      "accounts": [
+        {
+          "name": "programConfig",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "Global program config account."
+          ]
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The treasury where the creation fee is transferred to."
+          ]
+        },
         {
           "name": "multisig",
           "isMut": true,
@@ -1498,6 +1669,51 @@
       }
     },
     {
+      "name": "ProgramConfig",
+      "docs": [
+        "Global program configuration account."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "The authority which can update the config."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "multisigCreationFee",
+            "docs": [
+              "The lamports amount charged for creating a new multisig account.",
+              "This fee is sent to the `treasury` account."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "The treasury account to send charged fees to."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "reserved",
+            "docs": [
+              "Reserved for future use."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "Proposal",
       "docs": [
         "Stores the data required for tracking the status of a multisig proposal.",
@@ -2091,6 +2307,71 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramConfigInitArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "The authority that can configure the program config: change the treasury, etc."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "multisigCreationFee",
+            "docs": [
+              "The fee that is charged for creating a new multisig."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "The treasury where the creation fee is transferred to."
+            ],
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramConfigSetAuthorityArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "newAuthority",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramConfigSetMultisigCreationFeeArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "newMultisigCreationFee",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramConfigSetTreasuryArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "newTreasury",
+            "type": "publicKey"
           }
         ]
       }

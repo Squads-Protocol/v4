@@ -9,13 +9,10 @@ import { Member } from "../generated";
 import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
 
-/**
- * @deprecated This instruction is deprecated and will be removed soon. Please use `multisigCreateV2` to ensure future compatibility.
- *
- * Creates a new multisig.
- */
-export async function multisigCreate({
+/** Creates a new multisig. */
+export async function multisigCreateV2({
   connection,
+  treasury,
   createKey,
   creator,
   multisigPda,
@@ -29,6 +26,7 @@ export async function multisigCreate({
   programId,
 }: {
   connection: Connection;
+  treasury: PublicKey;
   createKey: Signer;
   creator: Signer;
   multisigPda: PublicKey;
@@ -43,8 +41,9 @@ export async function multisigCreate({
 }): Promise<TransactionSignature> {
   const blockhash = (await connection.getLatestBlockhash()).blockhash;
 
-  const tx = transactions.multisigCreate({
+  const tx = transactions.multisigCreateV2({
     blockhash,
+    treasury,
     createKey: createKey.publicKey,
     creator: creator.publicKey,
     multisigPda,

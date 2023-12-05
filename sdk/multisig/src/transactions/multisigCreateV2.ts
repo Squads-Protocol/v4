@@ -7,12 +7,11 @@ import { Member } from "../generated";
 import * as instructions from "../instructions";
 
 /**
- * @deprecated This instruction is deprecated and will be removed soon. Please use `multisigCreateV2` to ensure future compatibility.
- *
  * Returns unsigned `VersionedTransaction` that needs to be signed by `creator` and `createKey` before sending it.
  */
-export function multisigCreate({
+export function multisigCreateV2({
   blockhash,
+  treasury,
   configAuthority,
   createKey,
   creator,
@@ -25,6 +24,7 @@ export function multisigCreate({
   programId,
 }: {
   blockhash: string;
+  treasury: PublicKey;
   createKey: PublicKey;
   creator: PublicKey;
   multisigPda: PublicKey;
@@ -36,7 +36,8 @@ export function multisigCreate({
   memo?: string;
   programId?: PublicKey;
 }): VersionedTransaction {
-  const ix = instructions.multisigCreate({
+  const ix = instructions.multisigCreateV2({
+    treasury,
     creator,
     multisigPda,
     configAuthority,
