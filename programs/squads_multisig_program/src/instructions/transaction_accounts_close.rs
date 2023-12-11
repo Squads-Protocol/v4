@@ -19,19 +19,32 @@ pub struct ConfigTransactionAccountsClose<'info> {
     #[account(
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
+        constraint = multisig.rent_collector.is_some() @ MultisigError::RentReclamationDisabled,
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account(mut, close = rent_collector)]
+    #[account(
+        mut,
+        has_one = multisig @ MultisigError::ProposalForAnotherMultisig,
+        close = rent_collector
+    )]
     pub proposal: Account<'info, Proposal>,
 
     /// ConfigTransaction corresponding to the `proposal`.
-    #[account(mut, close = rent_collector)]
+    #[account(
+        mut,
+        has_one = multisig @ MultisigError::TransactionForAnotherMultisig,
+        constraint = transaction.index == proposal.transaction_index @ MultisigError::TransactionNotMatchingProposal,
+        close = rent_collector
+    )]
     pub transaction: Account<'info, ConfigTransaction>,
 
     /// The rent collector.
-    /// CHECK: We do the checks in validate().
-    #[account(mut)]
+    /// CHECK: We only need to validate the address.
+    #[account(
+        mut,
+        address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
+    )]
     pub rent_collector: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
@@ -40,41 +53,12 @@ pub struct ConfigTransactionAccountsClose<'info> {
 impl ConfigTransactionAccountsClose<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
-            multisig,
-            proposal,
-            transaction,
-            rent_collector,
-            ..
+            multisig, proposal, ..
         } = self;
 
-        //region multisig
-        // Has to have `rent_collector` set.
-        let multisig_rent_collector_key = multisig
-            .rent_collector
-            .ok_or(MultisigError::RentReclamationDisabled)?
-            .key();
-        //endregion
-
-        //region rent_collector
-        // Has to match the `multisig.rent_collector`.
-        require_keys_eq!(
-            multisig_rent_collector_key,
-            rent_collector.key(),
-            MultisigError::InvalidRentCollector
-        );
-        //endregion
-
-        //region proposal
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            proposal.multisig,
-            multisig.key(),
-            MultisigError::ProposalForAnotherMultisig
-        );
-
-        // Has to be either stale or in a terminal state.
         let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
 
+        // Has to be either stale or in a terminal state.
         #[allow(deprecated)]
         let can_close = match proposal.status {
             // Draft proposals can only be closed if stale,
@@ -97,23 +81,6 @@ impl ConfigTransactionAccountsClose<'_> {
         };
 
         require!(can_close, MultisigError::InvalidProposalStatus);
-        //endregion
-
-        //region transaction
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            transaction.multisig,
-            multisig.key(),
-            MultisigError::TransactionForAnotherMultisig
-        );
-
-        // Has to be for the `proposal`.
-        require_eq!(
-            transaction.index,
-            proposal.transaction_index,
-            MultisigError::TransactionForAnotherMultisig
-        );
-        //endregion
 
         Ok(())
     }
@@ -134,19 +101,32 @@ pub struct VaultTransactionAccountsClose<'info> {
     #[account(
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
+        constraint = multisig.rent_collector.is_some() @ MultisigError::RentReclamationDisabled,
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account(mut, close = rent_collector)]
+    #[account(
+        mut,
+        has_one = multisig @ MultisigError::ProposalForAnotherMultisig,
+        close = rent_collector
+    )]
     pub proposal: Account<'info, Proposal>,
 
     /// VaultTransaction corresponding to the `proposal`.
-    #[account(mut, close = rent_collector)]
+    #[account(
+        mut,
+        has_one = multisig @ MultisigError::TransactionForAnotherMultisig,
+        constraint = transaction.index == proposal.transaction_index @ MultisigError::TransactionNotMatchingProposal,
+        close = rent_collector
+    )]
     pub transaction: Account<'info, VaultTransaction>,
 
     /// The rent collector.
-    /// CHECK: We do the checks in validate().
-    #[account(mut)]
+    /// CHECK: We only need to validate the address.
+    #[account(
+        mut,
+        address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
+    )]
     pub rent_collector: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
@@ -155,37 +135,8 @@ pub struct VaultTransactionAccountsClose<'info> {
 impl VaultTransactionAccountsClose<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
-            multisig,
-            proposal,
-            transaction,
-            rent_collector,
-            ..
+            multisig, proposal, ..
         } = self;
-
-        //region multisig
-        // Has to have `rent_collector` set.
-        let multisig_rent_collector_key = multisig
-            .rent_collector
-            .ok_or(MultisigError::RentReclamationDisabled)?
-            .key();
-        //endregion
-
-        //region rent_collector
-        // Has to match the `multisig.rent_collector`.
-        require_keys_eq!(
-            multisig_rent_collector_key,
-            rent_collector.key(),
-            MultisigError::InvalidRentCollector
-        );
-        //endregion
-
-        //region proposal
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            proposal.multisig,
-            multisig.key(),
-            MultisigError::ProposalForAnotherMultisig
-        );
 
         let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
 
@@ -211,23 +162,6 @@ impl VaultTransactionAccountsClose<'_> {
         };
 
         require!(can_close, MultisigError::InvalidProposalStatus);
-        //endregion
-
-        //region transaction
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            transaction.multisig,
-            multisig.key(),
-            MultisigError::TransactionForAnotherMultisig
-        );
-
-        // Has to be for the `proposal`.
-        require_eq!(
-            transaction.index,
-            proposal.transaction_index,
-            MultisigError::TransactionForAnotherMultisig
-        );
-        //endregion
 
         Ok(())
     }
@@ -256,18 +190,25 @@ pub struct VaultBatchTransactionAccountClose<'info> {
     #[account(
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
+        constraint = multisig.rent_collector.is_some() @ MultisigError::RentReclamationDisabled,
     )]
     pub multisig: Account<'info, Multisig>,
 
+    #[account(
+        has_one = multisig @ MultisigError::ProposalForAnotherMultisig,
+    )]
     pub proposal: Account<'info, Proposal>,
 
     /// `Batch` corresponding to the `proposal`.
+    #[account(
+        has_one = multisig @ MultisigError::TransactionForAnotherMultisig,
+        constraint = batch.index == proposal.transaction_index @ MultisigError::TransactionNotMatchingProposal,
+    )]
     pub batch: Account<'info, Batch>,
 
     /// `VaultBatchTransaction` account to close.
     #[account(
         mut,
-        close = rent_collector,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
@@ -277,12 +218,16 @@ pub struct VaultBatchTransactionAccountClose<'info> {
             &args.transaction_index.to_le_bytes(),
         ],
         bump = transaction.bump,
+        close = rent_collector,
     )]
     pub transaction: Account<'info, VaultBatchTransaction>,
 
     /// The rent collector.
-    /// CHECK: We do the checks in validate().
-    #[account(mut)]
+    /// CHECK: We only need to validate the address.
+    #[account(
+        mut,
+        address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
+    )]
     pub rent_collector: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
@@ -294,57 +239,10 @@ impl VaultBatchTransactionAccountClose<'_> {
             multisig,
             proposal,
             batch,
-            rent_collector,
             ..
         } = self;
 
         // `args.transaction_index` is checked with Anchor via `transaction`'s seeds.
-
-        //region multisig
-        // Has to have `rent_collector` set.
-        let multisig_rent_collector_key = multisig
-            .rent_collector
-            .ok_or(MultisigError::RentReclamationDisabled)?
-            .key();
-        //endregion
-
-        //region rent_collector
-        // Has to match the `multisig.rent_collector`.
-        require_keys_eq!(
-            multisig_rent_collector_key,
-            rent_collector.key(),
-            MultisigError::InvalidRentCollector
-        );
-        //endregion
-
-        //region proposal
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            proposal.multisig,
-            multisig.key(),
-            MultisigError::ProposalForAnotherMultisig
-        );
-        //endregion
-
-        //region batch
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            batch.multisig,
-            multisig.key(),
-            MultisigError::TransactionForAnotherMultisig
-        );
-
-        // Has to be for the `proposal`.
-        require_eq!(
-            batch.index,
-            proposal.transaction_index,
-            MultisigError::TransactionForAnotherMultisig
-        );
-        //endregion
-
-        //region transaction
-        // Has to be for the `batch`.
-        // This is checked with Anchor via `transaction`'s seeds.
 
         let is_batch_transaction_executed =
             args.transaction_index <= batch.executed_transaction_index;
@@ -376,7 +274,6 @@ impl VaultBatchTransactionAccountClose<'_> {
             };
 
         require!(can_close, MultisigError::InvalidProposalStatus);
-        //endregion
 
         Ok(())
     }
@@ -403,22 +300,40 @@ pub struct BatchAccountsClose<'info> {
     #[account(
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
+        constraint = multisig.rent_collector.is_some() @ MultisigError::RentReclamationDisabled,
     )]
     pub multisig: Account<'info, Multisig>,
 
-    /// Member of the multisig.
+    /// Has to be a member of the `multisig`.
+    /// This is checked to prevent potential attackers from closing the `Batch` and `Proposal`
+    /// accounts before all `VaultBatchTransaction`s are closed.
+    #[account(
+        constraint = multisig.is_member(member.key()).is_some() @ MultisigError::NotAMember,
+    )]
     pub member: Signer<'info>,
 
-    #[account(mut, close = rent_collector)]
+    #[account(
+        mut,
+        has_one = multisig @ MultisigError::ProposalForAnotherMultisig,
+        close = rent_collector
+    )]
     pub proposal: Account<'info, Proposal>,
 
     /// `Batch` corresponding to the `proposal`.
-    #[account(mut, close = rent_collector)]
+    #[account(
+        mut,
+        has_one = multisig @ MultisigError::TransactionForAnotherMultisig,
+        constraint = batch.index == proposal.transaction_index @ MultisigError::TransactionNotMatchingProposal,
+        close = rent_collector
+    )]
     pub batch: Account<'info, Batch>,
 
     /// The rent collector.
-    /// CHECK: We do the checks in validate().
-    #[account(mut)]
+    /// CHECK: We only need to validate the address.
+    #[account(
+        mut,
+        address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
+    )]
     pub rent_collector: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
@@ -427,46 +342,8 @@ pub struct BatchAccountsClose<'info> {
 impl BatchAccountsClose<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
-            multisig,
-            proposal,
-            batch,
-            rent_collector,
-            ..
+            multisig, proposal, ..
         } = self;
-
-        //region multisig
-        // Has to have `rent_collector` set.
-        let multisig_rent_collector_key = multisig
-            .rent_collector
-            .ok_or(MultisigError::RentReclamationDisabled)?
-            .key();
-        //endregion
-
-        //region member
-        // Has to be a member of the `multisig`.
-        // This is checked to prevent potential attackers from closing the `Batch` and `Proposal`
-        // accounts before all `VaultBatchTransaction`s are closed.
-        require!(
-            multisig.is_member(self.member.key()).is_some(),
-            MultisigError::NotAMember
-        );
-
-        //region rent_collector
-        // Has to match the `multisig.rent_collector`.
-        require_keys_eq!(
-            multisig_rent_collector_key,
-            rent_collector.key(),
-            MultisigError::InvalidRentCollector
-        );
-        //endregion
-
-        //region proposal
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            proposal.multisig,
-            multisig.key(),
-            MultisigError::ProposalForAnotherMultisig
-        );
 
         let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
 
@@ -492,23 +369,6 @@ impl BatchAccountsClose<'_> {
         };
 
         require!(can_close, MultisigError::InvalidProposalStatus);
-        //endregion
-
-        //region batch
-        // Has to be for the `multisig`.
-        require_keys_eq!(
-            batch.multisig,
-            multisig.key(),
-            MultisigError::TransactionForAnotherMultisig
-        );
-
-        // Has to be for the `proposal`.
-        require_eq!(
-            batch.index,
-            proposal.transaction_index,
-            MultisigError::TransactionForAnotherMultisig
-        );
-        //endregion
 
         Ok(())
     }
