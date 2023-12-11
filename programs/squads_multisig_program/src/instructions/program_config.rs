@@ -51,6 +51,8 @@ impl ProgramConfig<'_> {
 
         program_config.authority = args.new_authority;
 
+        program_config.invariant()?;
+
         Ok(())
     }
 
@@ -63,6 +65,8 @@ impl ProgramConfig<'_> {
 
         program_config.multisig_creation_fee = args.new_multisig_creation_fee;
 
+        program_config.invariant()?;
+
         Ok(())
     }
 
@@ -74,6 +78,8 @@ impl ProgramConfig<'_> {
         let program_config = &mut ctx.accounts.program_config;
 
         program_config.treasury = args.new_treasury;
+
+        program_config.invariant()?;
 
         Ok(())
     }
