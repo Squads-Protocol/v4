@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::MultisigError;
+use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct ProgramConfigSetAuthorityArgs {
@@ -19,7 +20,11 @@ pub struct ProgramConfigSetTreasuryArgs {
 
 #[derive(Accounts)]
 pub struct ProgramConfig<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [SEED_PREFIX, SEED_PROGRAM_CONFIG],
+        bump,
+    )]
     pub program_config: Account<'info, crate::state::ProgramConfig>,
 
     pub authority: Signer<'info>,

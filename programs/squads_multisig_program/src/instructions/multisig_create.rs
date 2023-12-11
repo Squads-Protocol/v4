@@ -89,6 +89,7 @@ impl MultisigCreate<'_> {
 #[instruction(args: MultisigCreateArgs)]
 pub struct MultisigCreateV2<'info> {
     /// Global program config account.
+    #[account(seeds = [SEED_PREFIX, SEED_PROGRAM_CONFIG], bump)]
     pub program_config: Account<'info, ProgramConfig>,
 
     /// The treasury where the creation fee is transferred to.
