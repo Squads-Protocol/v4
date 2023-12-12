@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::MultisigError;
+use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct ProgramConfigSetAuthorityArgs {
@@ -19,7 +20,11 @@ pub struct ProgramConfigSetTreasuryArgs {
 
 #[derive(Accounts)]
 pub struct ProgramConfig<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [SEED_PREFIX, SEED_PROGRAM_CONFIG],
+        bump,
+    )]
     pub program_config: Account<'info, crate::state::ProgramConfig>,
 
     pub authority: Signer<'info>,
@@ -51,6 +56,8 @@ impl ProgramConfig<'_> {
 
         program_config.authority = args.new_authority;
 
+        program_config.invariant()?;
+
         Ok(())
     }
 
@@ -63,6 +70,8 @@ impl ProgramConfig<'_> {
 
         program_config.multisig_creation_fee = args.new_multisig_creation_fee;
 
+        program_config.invariant()?;
+
         Ok(())
     }
 
@@ -74,6 +83,8 @@ impl ProgramConfig<'_> {
         let program_config = &mut ctx.accounts.program_config;
 
         program_config.treasury = args.new_treasury;
+
+        program_config.invariant()?;
 
         Ok(())
     }
