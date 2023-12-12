@@ -850,6 +850,32 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * SpendingLimitInvalidAmount: 'Invalid SpendingLimit amount'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class SpendingLimitInvalidAmountError extends Error {
+  readonly code: number = 0x1795
+  readonly name: string = 'SpendingLimitInvalidAmount'
+  constructor() {
+    super('Invalid SpendingLimit amount')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, SpendingLimitInvalidAmountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1795,
+  () => new SpendingLimitInvalidAmountError()
+)
+createErrorFromNameLookup.set(
+  'SpendingLimitInvalidAmount',
+  () => new SpendingLimitInvalidAmountError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

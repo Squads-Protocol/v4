@@ -106,6 +106,8 @@ impl MultisigAddSpendingLimit<'_> {
         spending_limit.members = args.members;
         spending_limit.destinations = args.destinations;
 
+        spending_limit.invariant()?;
+
         Ok(())
     }
 }

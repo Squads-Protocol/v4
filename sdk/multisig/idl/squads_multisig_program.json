@@ -3080,6 +3080,11 @@
       "code": 6036,
       "name": "TransactionNotMatchingProposal",
       "msg": "Transaction doesn't match proposal"
+    },
+    {
+      "code": 6037,
+      "name": "SpendingLimitInvalidAmount",
+      "msg": "Invalid SpendingLimit amount"
     }
   ],
   "metadata": {

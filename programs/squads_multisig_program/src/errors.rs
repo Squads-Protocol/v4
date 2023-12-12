@@ -76,4 +76,6 @@ pub enum MultisigError {
     TransactionForAnotherMultisig,
     #[msg("Transaction doesn't match proposal")]
     TransactionNotMatchingProposal,
+    #[msg("Invalid SpendingLimit amount")]
+    SpendingLimitInvalidAmount,
 }
