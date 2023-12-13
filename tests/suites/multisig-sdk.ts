@@ -789,6 +789,32 @@ describe("Multisig SDK", () => {
       );
     });
 
+    it("error: invalid SpendingLimit amount", async () => {
+      await assert.rejects(
+        () =>
+          multisig.rpc.multisigAddSpendingLimit({
+            connection,
+            feePayer: feePayer,
+            multisigPda: controlledMultisigPda,
+            spendingLimit: spendingLimitPda,
+            createKey: spendingLimitCreateKey,
+            rentPayer: feePayer,
+            // Must be positive.
+            amount: BigInt(0),
+            configAuthority: members.almighty.publicKey,
+            period: multisig.generated.Period.Day,
+            mint: Keypair.generate().publicKey,
+            destinations: [Keypair.generate().publicKey],
+            members: [members.almighty.publicKey],
+            vaultIndex: 1,
+            signers: [feePayer, members.almighty],
+            sendOptions: { skipPreflight: true },
+            programId,
+          }),
+        /Invalid SpendingLimit amount/
+      );
+    });
+
     it("create a new Spending Limit for the controlled multisig", async () => {
       const signature = await multisig.rpc.multisigAddSpendingLimit({
         connection,
