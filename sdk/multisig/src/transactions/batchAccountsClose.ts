@@ -5,11 +5,17 @@ import {
 } from "@solana/web3.js";
 import * as instructions from "../instructions/index.js";
 
+/**
+ * Closes Batch and the corresponding Proposal accounts for proposals in terminal states:
+ * `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.
+ *
+ * This instruction is only allowed to be executed when all `VaultBatchTransaction` accounts
+ * in the `batch` are already closed: `batch.size == 0`.
+ */
 export function batchAccountsClose({
   blockhash,
   feePayer,
   multisigPda,
-  member,
   rentCollector,
   batchIndex,
   programId,
@@ -17,7 +23,6 @@ export function batchAccountsClose({
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
-  member: PublicKey;
   rentCollector: PublicKey;
   batchIndex: bigint;
   programId?: PublicKey;
@@ -28,7 +33,6 @@ export function batchAccountsClose({
     instructions: [
       instructions.batchAccountsClose({
         multisigPda,
-        member,
         rentCollector,
         batchIndex,
         programId,

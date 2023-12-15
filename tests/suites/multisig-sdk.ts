@@ -19,16 +19,6 @@ import {
   TestMembers,
 } from "../utils";
 
-// Import test suites.
-import "./instructions/multisigCreate";
-import "./instructions/multisigCreateV2";
-import "./instructions/multisigSetRentCollector";
-import "./instructions/configTransactionExecute";
-import "./instructions/configTransactionAccountsClose";
-import "./instructions/vaultBatchTransactionAccountClose";
-import "./instructions/batchAccountsClose";
-import "./instructions/vaultTransactionAccountsClose";
-
 const { toBigInt } = multisig.utils;
 const { Multisig, VaultTransaction, ConfigTransaction, Proposal } =
   multisig.accounts;

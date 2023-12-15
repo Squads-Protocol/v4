@@ -178,14 +178,7 @@ impl VaultTransactionAccountsClose<'_> {
 }
 
 //region VaultBatchTransactionAccountClose
-
-#[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct VaultBatchTransactionAccountCloseArgs {
-    pub transaction_index: u32,
-}
-
 #[derive(Accounts)]
-#[instruction(args: VaultBatchTransactionAccountCloseArgs)]
 pub struct VaultBatchTransactionAccountClose<'info> {
     #[account(
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
@@ -201,23 +194,16 @@ pub struct VaultBatchTransactionAccountClose<'info> {
 
     /// `Batch` corresponding to the `proposal`.
     #[account(
+        mut,
         has_one = multisig @ MultisigError::TransactionForAnotherMultisig,
         constraint = batch.index == proposal.transaction_index @ MultisigError::TransactionNotMatchingProposal,
     )]
     pub batch: Account<'info, Batch>,
 
     /// `VaultBatchTransaction` account to close.
+    /// The transaction must be the current last one in the batch.
     #[account(
         mut,
-        seeds = [
-            SEED_PREFIX,
-            multisig.key().as_ref(),
-            SEED_TRANSACTION,
-            &batch.index.to_le_bytes(),
-            SEED_BATCH_TRANSACTION,
-            &args.transaction_index.to_le_bytes(),
-        ],
-        bump = transaction.bump,
         close = rent_collector,
     )]
     pub transaction: Account<'info, VaultBatchTransaction>,
@@ -234,44 +220,64 @@ pub struct VaultBatchTransactionAccountClose<'info> {
 }
 
 impl VaultBatchTransactionAccountClose<'_> {
-    fn validate(&self, args: &VaultBatchTransactionAccountCloseArgs) -> Result<()> {
+    fn validate(&self) -> Result<()> {
         let Self {
             multisig,
             proposal,
             batch,
+            transaction,
             ..
         } = self;
 
-        // `args.transaction_index` is checked with Anchor via `transaction`'s seeds.
+        // Transaction must be the last one in the batch.
+        // We do it here instead of the Anchor macro because we want to throw a more specific error,
+        // and the macro doesn't allow us to override the default "seeds constraint is violated" one.
+        // First, derive the address of the last transaction as if provided transaction is the last one.
+        let last_transaction_address = Pubkey::create_program_address(
+            &[
+                SEED_PREFIX,
+                multisig.key().as_ref(),
+                SEED_TRANSACTION,
+                &batch.index.to_le_bytes(),
+                SEED_BATCH_TRANSACTION,
+                // Last transaction index.
+                &batch.size.to_le_bytes(),
+                // We can assume the transaction bump is correct here.
+                &transaction.bump.to_le_bytes(),
+            ],
+            &crate::id(),
+        )
+        .map_err(|_| MultisigError::TransactionNotLastInBatch)?;
 
-        let is_batch_transaction_executed =
-            args.transaction_index <= batch.executed_transaction_index;
+        // Then compare it to the provided transaction address.
+        require_keys_eq!(
+            transaction.key(),
+            last_transaction_address,
+            MultisigError::TransactionNotLastInBatch
+        );
 
         let is_proposal_stale = proposal.transaction_index <= multisig.stale_transaction_index;
 
-        // Batch transactions that are marked as executed within the batch can be closed,
-        // otherwise we need to check the proposal status.
         #[allow(deprecated)]
-        let can_close = is_batch_transaction_executed
-            || match proposal.status {
-                // Transactions of Draft proposals can only be closed if stale,
-                // so the proposal can't be activated anymore.
-                ProposalStatus::Draft { .. } => is_proposal_stale,
-                // Transactions of Active proposals can only be closed if stale,
-                // so the proposal can't be voted on anymore.
-                ProposalStatus::Active { .. } => is_proposal_stale,
-                // Transactions of Approved proposals for `Batch`es cannot be closed even if stale,
-                // because they still can be executed.
-                ProposalStatus::Approved { .. } => false,
-                // Transactions of Rejected proposals can be closed.
-                ProposalStatus::Rejected { .. } => true,
-                // Transactions of Executed proposals can be closed.
-                ProposalStatus::Executed { .. } => true,
-                // Transactions of Cancelled proposals can be closed.
-                ProposalStatus::Cancelled { .. } => true,
-                // Should never really be in this state.
-                ProposalStatus::Executing => false,
-            };
+        let can_close = match proposal.status {
+            // Transactions of Draft proposals can only be closed if stale,
+            // so the proposal can't be activated anymore.
+            ProposalStatus::Draft { .. } => is_proposal_stale,
+            // Transactions of Active proposals can only be closed if stale,
+            // so the proposal can't be voted on anymore.
+            ProposalStatus::Active { .. } => is_proposal_stale,
+            // Transactions of Approved proposals for `Batch`es cannot be closed even if stale,
+            // because they still can be executed.
+            ProposalStatus::Approved { .. } => false,
+            // Transactions of Rejected proposals can be closed.
+            ProposalStatus::Rejected { .. } => true,
+            // Transactions of Executed proposals can be closed.
+            ProposalStatus::Executed { .. } => true,
+            // Transactions of Cancelled proposals can be closed.
+            ProposalStatus::Cancelled { .. } => true,
+            // Should never really be in this state.
+            ProposalStatus::Executing => false,
+        };
 
         require!(can_close, MultisigError::InvalidProposalStatus);
 
@@ -279,16 +285,19 @@ impl VaultBatchTransactionAccountClose<'_> {
     }
 
     /// Closes a `VaultBatchTransaction` belonging to the `batch` and `proposal`.
-    /// `transaction` can be closed if either:
-    /// - it's marked as executed within the `batch`;
+    /// Closing a transaction reduces the `batch.size` by 1.
+    /// `transaction` must be closed in the order from the last to the first,
+    /// and the operation is only allowed if any of the following conditions is met:
     /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
     /// - the `proposal` is stale and not `Approved`.
-    #[access_control(_ctx.accounts.validate(&_args))]
-    pub fn vault_batch_transaction_account_close(
-        _ctx: Context<Self>,
-        _args: VaultBatchTransactionAccountCloseArgs,
-    ) -> Result<()> {
-        // Anchor will close the account for us.
+    #[access_control(ctx.accounts.validate())]
+    pub fn vault_batch_transaction_account_close(ctx: Context<Self>) -> Result<()> {
+        let batch = &mut ctx.accounts.batch;
+
+        batch.size = batch.size.checked_sub(1).expect("overflow");
+
+        // Anchor macro will close the `transaction` account for us.
+
         Ok(())
     }
 }
@@ -303,14 +312,6 @@ pub struct BatchAccountsClose<'info> {
         constraint = multisig.rent_collector.is_some() @ MultisigError::RentReclamationDisabled,
     )]
     pub multisig: Account<'info, Multisig>,
-
-    /// Has to be a member of the `multisig`.
-    /// This is checked to prevent potential attackers from closing the `Batch` and `Proposal`
-    /// accounts before all `VaultBatchTransaction`s are closed.
-    #[account(
-        constraint = multisig.is_member(member.key()).is_some() @ MultisigError::NotAMember,
-    )]
-    pub member: Signer<'info>,
 
     #[account(
         mut,
@@ -342,7 +343,10 @@ pub struct BatchAccountsClose<'info> {
 impl BatchAccountsClose<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
-            multisig, proposal, ..
+            multisig,
+            proposal,
+            batch,
+            ..
         } = self;
 
         let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
@@ -355,7 +359,7 @@ impl BatchAccountsClose<'_> {
             // Active proposals can only be closed if stale,
             // so they can't be voted on anymore.
             ProposalStatus::Active { .. } => is_stale,
-            // Approved proposals for Batch'es cannot be closed even if stale,
+            // Approved proposals for `Batch`s cannot be closed even if stale,
             // because they still can be executed.
             ProposalStatus::Approved { .. } => false,
             // Rejected proposals can be closed.
@@ -370,17 +374,17 @@ impl BatchAccountsClose<'_> {
 
         require!(can_close, MultisigError::InvalidProposalStatus);
 
+        // Batch must be empty.
+        require_eq!(batch.size, 0, MultisigError::BatchNotEmpty);
+
         Ok(())
     }
 
     /// Closes Batch and the corresponding Proposal accounts for proposals in terminal states:
-    /// `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.
+    /// `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't `Approved`.
     ///
-    /// WARNING: Make sure that to call this instruction only after all `VaultBatchTransaction`s
-    /// are already closed via `vault_batch_transaction_account_close`,
-    /// because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.
-    /// There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts
-    /// first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s.
+    /// This instruction is only allowed to be executed when all `VaultBatchTransaction` accounts
+    /// in the `batch` are already closed: `batch.size == 0`.
     #[access_control(_ctx.accounts.validate())]
     pub fn batch_accounts_close(_ctx: Context<Self>) -> Result<()> {
         // Anchor will close the accounts for us.
