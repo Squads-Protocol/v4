@@ -262,19 +262,15 @@ pub mod squads_multisig_program {
     /// - the `proposal` is stale and not `Approved`.
     pub fn vault_batch_transaction_account_close(
         ctx: Context<VaultBatchTransactionAccountClose>,
-        args: VaultBatchTransactionAccountCloseArgs,
     ) -> Result<()> {
-        VaultBatchTransactionAccountClose::vault_batch_transaction_account_close(ctx, args)
+        VaultBatchTransactionAccountClose::vault_batch_transaction_account_close(ctx)
     }
 
     /// Closes Batch and the corresponding Proposal accounts for proposals in terminal states:
-    /// `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.
+    /// `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't `Approved`.
     ///
-    /// WARNING: Make sure to call this instruction only after all `VaultBatchTransaction`s
-    /// are already closed via `vault_batch_transaction_account_close`,
-    /// because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.
-    /// There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts
-    /// first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s.
+    /// This instruction is only allowed to be executed when all `VaultBatchTransaction` accounts
+    /// in the `batch` are already closed: `batch.size == 0`.
     pub fn batch_accounts_close(ctx: Context<BatchAccountsClose>) -> Result<()> {
         BatchAccountsClose::batch_accounts_close(ctx)
     }

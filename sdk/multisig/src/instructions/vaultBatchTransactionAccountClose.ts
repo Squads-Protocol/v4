@@ -54,7 +54,6 @@ export function vaultBatchTransactionAccountClose({
       batch: batchPda,
       transaction: batchTransactionPda,
     },
-    { args: { transactionIndex } },
     programId
   );
 }

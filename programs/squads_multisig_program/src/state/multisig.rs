@@ -85,15 +85,10 @@ impl Multisig {
         multisig: AccountInfo<'a>,
         members_length: usize,
         is_rent_collector_set: bool,
-        rent_payer: AccountInfo<'a>,
-        system_program: AccountInfo<'a>,
+        rent_payer: Option<AccountInfo<'a>>,
+        system_program: Option<AccountInfo<'a>>,
     ) -> Result<bool> {
         // Sanity checks
-        require_keys_eq!(
-            *system_program.key,
-            system_program::ID,
-            MultisigError::InvalidAccount
-        );
         require_keys_eq!(*multisig.owner, id(), MultisigError::IllegalAccountOwner);
 
         let current_account_size = multisig.data.borrow().len();
@@ -117,6 +112,15 @@ impl Multisig {
             rent_exempt_lamports.saturating_sub(multisig.to_account_info().lamports());
 
         if top_up_lamports > 0 {
+            let system_program = system_program.ok_or(MultisigError::MissingAccount)?;
+            require_keys_eq!(
+                *system_program.key,
+                system_program::ID,
+                MultisigError::InvalidAccount
+            );
+
+            let rent_payer = rent_payer.ok_or(MultisigError::MissingAccount)?;
+
             system_program::transfer(
                 CpiContext::new(
                     system_program,

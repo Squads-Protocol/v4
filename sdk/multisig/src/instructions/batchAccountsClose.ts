@@ -6,21 +6,16 @@ import { getProposalPda, getTransactionPda } from "../pda";
  * Closes Batch and the corresponding Proposal accounts for proposals in terminal states:
  * `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.
  *
- * WARNING: Make sure to call this instruction only after all `VaultBatchTransaction`s
- * are already closed via `vault_batch_transaction_account_close`,
- * because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.
- * There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts
- * first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s.
+ * This instruction is only allowed to be executed when all `VaultBatchTransaction` accounts
+ * in the `batch` are already closed: `batch.size == 0`.
  */
 export function batchAccountsClose({
   multisigPda,
-  member,
   rentCollector,
   batchIndex,
   programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
-  member: PublicKey;
   rentCollector: PublicKey;
   batchIndex: bigint;
   programId?: PublicKey;
@@ -39,7 +34,6 @@ export function batchAccountsClose({
   return createBatchAccountsCloseInstruction(
     {
       multisig: multisigPda,
-      member,
       rentCollector,
       proposal: proposalPda,
       batch: batchPda,

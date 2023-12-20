@@ -12,17 +12,13 @@ import { translateAndThrowAnchorError } from "../errors";
  * Closes Batch and the corresponding Proposal accounts for proposals in terminal states:
  * `Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.
  *
- * WARNING: Make sure to call this instruction only after all `VaultBatchTransaction`s
- * are already closed via `vault_batch_transaction_account_close`,
- * because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.
- * There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts
- * first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s.
+ * This instruction is only allowed to be executed when all `VaultBatchTransaction` accounts
+ * in the `batch` are already closed: `batch.size == 0`.
  */
 export async function batchAccountsClose({
   connection,
   feePayer,
   multisigPda,
-  member,
   rentCollector,
   batchIndex,
   sendOptions,
@@ -31,7 +27,6 @@ export async function batchAccountsClose({
   connection: Connection;
   feePayer: Signer;
   multisigPda: PublicKey;
-  member: Signer;
   rentCollector: PublicKey;
   batchIndex: bigint;
   sendOptions?: SendOptions;
@@ -42,14 +37,13 @@ export async function batchAccountsClose({
   const tx = transactions.batchAccountsClose({
     blockhash,
     feePayer: feePayer.publicKey,
-    member: member.publicKey,
     rentCollector,
     batchIndex,
     multisigPda,
     programId,
   });
 
-  tx.sign([feePayer, member]);
+  tx.sign([feePayer]);
 
   try {
     return await connection.sendTransaction(tx, sendOptions);

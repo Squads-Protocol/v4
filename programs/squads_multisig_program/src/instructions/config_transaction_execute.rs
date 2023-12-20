@@ -108,56 +108,6 @@ impl<'info> ConfigTransactionExecute<'info> {
 
         let rent = Rent::get()?;
 
-        // Check applying the config actions will require reallocation of space for the multisig account.
-
-        // Handle growing members vector.
-        let new_members_length =
-            members_length_after_actions(multisig.members.len(), &transaction.actions);
-        let needs_members_allocation = new_members_length > multisig.members.len();
-
-        // Handle growing rent_collector changing from None -> Some(Pubkey).
-        // The `rent_collector` field after applying the actions will be:
-        // - the `new_rent_collector` of the last `SetRentCollector` action, if any present among the actions.
-        // - the current `rent_collector` if no `SetRentCollector` action is present among the actions.
-        let new_rent_collector = transaction
-            .actions
-            .iter()
-            .rev()
-            .find_map(|action| {
-                if let ConfigAction::SetRentCollector { new_rent_collector } = action {
-                    Some(*new_rent_collector)
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(multisig.rent_collector);
-        let needs_rent_collector_allocation =
-            multisig.rent_collector.is_none() && new_rent_collector.is_some();
-
-        if needs_members_allocation || needs_rent_collector_allocation {
-            let rent_payer = &ctx
-                .accounts
-                .rent_payer
-                .as_ref()
-                .ok_or(MultisigError::MissingAccount)?;
-            let system_program = &ctx
-                .accounts
-                .system_program
-                .as_ref()
-                .ok_or(MultisigError::MissingAccount)?;
-
-            let reallocated = Multisig::realloc_if_needed(
-                multisig.to_account_info(),
-                new_members_length,
-                new_rent_collector.is_some(),
-                rent_payer.to_account_info(),
-                system_program.to_account_info(),
-            )?;
-            if reallocated {
-                multisig.reload()?;
-            }
-        }
-
         // Execute the actions one by one.
         for action in transaction.actions.iter() {
             match action {
@@ -323,6 +273,21 @@ impl<'info> ConfigTransactionExecute<'info> {
                 .expect("didn't expect more than `u16::MAX` members");
         };
 
+        // Make sure the multisig account can fit the updated state: added members or newly set rent_collector.
+        Multisig::realloc_if_needed(
+            multisig.to_account_info(),
+            multisig.members.len(),
+            multisig.rent_collector.is_some(),
+            ctx.accounts
+                .rent_payer
+                .as_ref()
+                .map(ToAccountInfo::to_account_info),
+            ctx.accounts
+                .system_program
+                .as_ref()
+                .map(ToAccountInfo::to_account_info),
+        )?;
+
         // Make sure the multisig state is valid after applying the actions.
         multisig.invariant()?;
 
@@ -332,30 +297,5 @@ impl<'info> ConfigTransactionExecute<'info> {
         };
 
         Ok(())
-    }
-}
-
-fn members_length_after_actions(members_length: usize, actions: &[ConfigAction]) -> usize {
-    let members_delta: isize = actions.iter().fold(0, |acc, action| match action {
-        ConfigAction::AddMember { .. } => acc.checked_add(1).expect("overflow"),
-        ConfigAction::RemoveMember { .. } => acc.checked_sub(1).expect("overflow"),
-        ConfigAction::ChangeThreshold { .. } => acc,
-        ConfigAction::SetTimeLock { .. } => acc,
-        ConfigAction::AddSpendingLimit { .. } => acc,
-        ConfigAction::RemoveSpendingLimit { .. } => acc,
-        ConfigAction::SetRentCollector { .. } => acc,
-    });
-
-    let abs_members_delta =
-        usize::try_from(members_delta.checked_abs().expect("overflow")).expect("overflow");
-
-    if members_delta.is_negative() {
-        members_length
-            .checked_sub(abs_members_delta)
-            .expect("overflow")
-    } else {
-        members_length
-            .checked_add(abs_members_delta)
-            .expect("overflow")
     }
 }

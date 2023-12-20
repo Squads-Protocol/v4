@@ -86,16 +86,6 @@ impl MultisigConfig<'_> {
     pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
         let MultisigAddMemberArgs { new_member, .. } = args;
 
-        let system_program = &ctx
-            .accounts
-            .system_program
-            .as_ref()
-            .ok_or(MultisigError::MissingAccount)?;
-        let rent_payer = &ctx
-            .accounts
-            .rent_payer
-            .as_ref()
-            .ok_or(MultisigError::MissingAccount)?;
         let multisig = &mut ctx.accounts.multisig;
 
         // Check if we need to reallocate space.
@@ -103,8 +93,14 @@ impl MultisigConfig<'_> {
             multisig.to_account_info(),
             multisig.members.len() + 1,
             multisig.rent_collector.is_some(),
-            rent_payer.to_account_info(),
-            system_program.to_account_info(),
+            ctx.accounts
+                .rent_payer
+                .as_ref()
+                .map(ToAccountInfo::to_account_info),
+            ctx.accounts
+                .system_program
+                .as_ref()
+                .map(ToAccountInfo::to_account_info),
         )?;
 
         if reallocated {
@@ -219,24 +215,19 @@ impl MultisigConfig<'_> {
     ) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
 
-        let system_program = &ctx
-            .accounts
-            .system_program
-            .as_ref()
-            .ok_or(MultisigError::MissingAccount)?;
-        let rent_payer = &ctx
-            .accounts
-            .rent_payer
-            .as_ref()
-            .ok_or(MultisigError::MissingAccount)?;
-
         // Check if we need to reallocate space.
         let reallocated = Multisig::realloc_if_needed(
             multisig.to_account_info(),
             multisig.members.len(),
             args.rent_collector.is_some(),
-            rent_payer.to_account_info(),
-            system_program.to_account_info(),
+            ctx.accounts
+                .rent_payer
+                .as_ref()
+                .map(ToAccountInfo::to_account_info),
+            ctx.accounts
+                .system_program
+                .as_ref()
+                .map(ToAccountInfo::to_account_info),
         )?;
 
         if reallocated {

@@ -76,6 +76,10 @@ pub enum MultisigError {
     TransactionForAnotherMultisig,
     #[msg("Transaction doesn't match proposal")]
     TransactionNotMatchingProposal,
+    #[msg("Transaction is not last in batch")]
+    TransactionNotLastInBatch,
+    #[msg("Batch is not empty")]
+    BatchNotEmpty,
     #[msg("Invalid SpendingLimit amount")]
     SpendingLimitInvalidAmount,
 }

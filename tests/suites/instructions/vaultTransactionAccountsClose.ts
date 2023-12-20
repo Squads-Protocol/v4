@@ -922,7 +922,7 @@ describe("Instructions / vault_transaction_accounts_close", () => {
         connection
           .sendTransaction(tx)
           .catch(multisig.errors.translateAndThrowAnchorError),
-      /Transaction is for another multisig/
+      /Transaction doesn't match proposal/
     );
   });
 

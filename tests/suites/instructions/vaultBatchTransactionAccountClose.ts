@@ -18,7 +18,7 @@ import {
 } from "../../utils";
 import { createMemoInstruction } from "@solana/spl-memo";
 
-const { Multisig, Proposal } = multisig.accounts;
+const { Multisig, Batch } = multisig.accounts;
 
 const programId = getTestProgramId();
 const connection = createLocalhostConnection();
@@ -290,7 +290,6 @@ describe("Instructions / vault_batch_transaction_account_close", () => {
             programId,
           })[0],
         },
-        { args: { transactionIndex: 1 } },
         programId
       );
 
@@ -310,6 +309,30 @@ describe("Instructions / vault_batch_transaction_account_close", () => {
           .sendTransaction(tx)
           .catch(multisig.errors.translateAndThrowAnchorError),
       /Proposal is for another multisig/
+    );
+  });
+
+  it("error: transaction is not the last one in batch", async () => {
+    const batchIndex = testMultisig.executedBatchIndex;
+
+    const multisigAccount = await Multisig.fromAccountAddress(
+      connection,
+      multisigPda
+    );
+
+    await assert.rejects(
+      () =>
+        multisig.rpc.vaultBatchTransactionAccountClose({
+          connection,
+          feePayer: members.almighty,
+          multisigPda,
+          rentCollector: multisigAccount.rentCollector!,
+          batchIndex,
+          // The first out of two transactions.
+          transactionIndex: 1,
+          programId,
+        }),
+      /TransactionNotLastInBatch: Transaction is not last in batch/
     );
   });
 
@@ -398,7 +421,7 @@ describe("Instructions / vault_batch_transaction_account_close", () => {
       multisigPda,
       rentCollector: multisigAccount.rentCollector!,
       batchIndex,
-      // First tx is already executed.
+      // Close one and only transaction in the batch.
       transactionIndex: 1,
       programId,
     });
@@ -428,27 +451,6 @@ describe("Instructions / vault_batch_transaction_account_close", () => {
     assert.notEqual(await connection.getAccountInfo(proposalPda), null);
   });
 
-  it("close executed batch transaction for Approved batch", async () => {
-    const batchIndex = testMultisig.approvedBatchIndex;
-
-    const multisigAccount = await Multisig.fromAccountAddress(
-      connection,
-      multisigPda
-    );
-
-    const signature = await multisig.rpc.vaultBatchTransactionAccountClose({
-      connection,
-      feePayer: members.almighty,
-      multisigPda,
-      rentCollector: multisigAccount.rentCollector!,
-      batchIndex,
-      // First tx is already executed.
-      transactionIndex: 1,
-      programId,
-    });
-    await connection.confirmTransaction(signature);
-  });
-
   it("close batch transaction for Executed batch", async () => {
     const batchIndex = testMultisig.executedBatchIndex;
 
@@ -457,18 +459,16 @@ describe("Instructions / vault_batch_transaction_account_close", () => {
       multisigPda
     );
 
-    let signature = await multisig.rpc.vaultBatchTransactionAccountClose({
-      connection,
-      feePayer: members.almighty,
+    const batchPda = multisig.getTransactionPda({
       multisigPda,
-      rentCollector: multisigAccount.rentCollector!,
-      batchIndex,
-      transactionIndex: 1,
+      index: batchIndex,
       programId,
-    });
-    await connection.confirmTransaction(signature);
+    })[0];
 
-    signature = await multisig.rpc.vaultBatchTransactionAccountClose({
+    let batchAccount = await Batch.fromAccountAddress(connection, batchPda);
+    assert.strictEqual(batchAccount.size, 2);
+
+    let signature = await multisig.rpc.vaultBatchTransactionAccountClose({
       connection,
       feePayer: members.almighty,
       multisigPda,
@@ -478,6 +478,23 @@ describe("Instructions / vault_batch_transaction_account_close", () => {
       programId,
     });
     await connection.confirmTransaction(signature);
+    // Make sure the batch size is reduced.
+    batchAccount = await Batch.fromAccountAddress(connection, batchPda);
+    assert.strictEqual(batchAccount.size, 1);
+
+    signature = await multisig.rpc.vaultBatchTransactionAccountClose({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      rentCollector: multisigAccount.rentCollector!,
+      batchIndex,
+      transactionIndex: 1,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+    // Make sure the batch size is reduced.
+    batchAccount = await Batch.fromAccountAddress(connection, batchPda);
+    assert.strictEqual(batchAccount.size, 0);
   });
 
   it("close batch transaction for Rejected batch", async () => {

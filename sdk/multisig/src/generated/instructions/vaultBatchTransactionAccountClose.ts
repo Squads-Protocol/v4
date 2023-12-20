@@ -7,33 +7,16 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
-import {
-  VaultBatchTransactionAccountCloseArgs,
-  vaultBatchTransactionAccountCloseArgsBeet,
-} from '../types/VaultBatchTransactionAccountCloseArgs'
 
 /**
  * @category Instructions
  * @category VaultBatchTransactionAccountClose
  * @category generated
  */
-export type VaultBatchTransactionAccountCloseInstructionArgs = {
-  args: VaultBatchTransactionAccountCloseArgs
-}
-/**
- * @category Instructions
- * @category VaultBatchTransactionAccountClose
- * @category generated
- */
-export const vaultBatchTransactionAccountCloseStruct = new beet.BeetArgsStruct<
-  VaultBatchTransactionAccountCloseInstructionArgs & {
-    instructionDiscriminator: number[] /* size: 8 */
-  }
->(
-  [
-    ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', vaultBatchTransactionAccountCloseArgsBeet],
-  ],
+export const vaultBatchTransactionAccountCloseStruct = new beet.BeetArgsStruct<{
+  instructionDiscriminator: number[] /* size: 8 */
+}>(
+  [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
   'VaultBatchTransactionAccountCloseInstructionArgs'
 )
 /**
@@ -41,7 +24,7 @@ export const vaultBatchTransactionAccountCloseStruct = new beet.BeetArgsStruct<
  *
  * @property [] multisig
  * @property [] proposal
- * @property [] batch
+ * @property [_writable_] batch
  * @property [_writable_] transaction
  * @property [_writable_] rentCollector
  * @category Instructions
@@ -66,21 +49,17 @@ export const vaultBatchTransactionAccountCloseInstructionDiscriminator = [
  * Creates a _VaultBatchTransactionAccountClose_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
- * @param args to provide as instruction data to the program
- *
  * @category Instructions
  * @category VaultBatchTransactionAccountClose
  * @category generated
  */
 export function createVaultBatchTransactionAccountCloseInstruction(
   accounts: VaultBatchTransactionAccountCloseInstructionAccounts,
-  args: VaultBatchTransactionAccountCloseInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
   const [data] = vaultBatchTransactionAccountCloseStruct.serialize({
     instructionDiscriminator:
       vaultBatchTransactionAccountCloseInstructionDiscriminator,
-    ...args,
   })
   const keys: web3.AccountMeta[] = [
     {
@@ -95,7 +74,7 @@ export function createVaultBatchTransactionAccountCloseInstruction(
     },
     {
       pubkey: accounts.batch,
-      isWritable: false,
+      isWritable: true,
       isSigner: false,
     },
     {

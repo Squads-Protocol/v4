@@ -1324,7 +1324,7 @@
         },
         {
           "name": "batch",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "`Batch` corresponding to the `proposal`."
@@ -1335,7 +1335,8 @@
           "isMut": true,
           "isSigner": false,
           "docs": [
-            "`VaultBatchTransaction` account to close."
+            "`VaultBatchTransaction` account to close.",
+            "The transaction must be the current last one in the batch."
           ]
         },
         {
@@ -1352,40 +1353,22 @@
           "isSigner": false
         }
       ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "VaultBatchTransactionAccountCloseArgs"
-          }
-        }
-      ]
+      "args": []
     },
     {
       "name": "batchAccountsClose",
       "docs": [
         "Closes Batch and the corresponding Proposal accounts for proposals in terminal states:",
-        "`Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't Approved.",
+        "`Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't `Approved`.",
         "",
-        "WARNING: Make sure to call this instruction only after all `VaultBatchTransaction`s",
-        "are already closed via `vault_batch_transaction_account_close`,",
-        "because the latter requires existing `Batch` and `Proposal` accounts, which this instruction closes.",
-        "There is no on-chain check preventing you from closing the `Batch` and `Proposal` accounts",
-        "first, so you will end up with no way to close the corresponding `VaultBatchTransaction`s."
+        "This instruction is only allowed to be executed when all `VaultBatchTransaction` accounts",
+        "in the `batch` are already closed: `batch.size == 0`."
       ],
       "accounts": [
         {
           "name": "multisig",
           "isMut": false,
           "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": false,
-          "isSigner": true,
-          "docs": [
-            "Member of the multisig."
-          ]
         },
         {
           "name": "proposal",
@@ -2444,18 +2427,6 @@
       }
     },
     {
-      "name": "VaultBatchTransactionAccountCloseArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "transactionIndex",
-            "type": "u32"
-          }
-        ]
-      }
-    },
-    {
       "name": "VaultTransactionCreateArgs",
       "type": {
         "kind": "struct",
@@ -3083,6 +3054,16 @@
     },
     {
       "code": 6037,
+      "name": "TransactionNotLastInBatch",
+      "msg": "Transaction is not last in batch"
+    },
+    {
+      "code": 6038,
+      "name": "BatchNotEmpty",
+      "msg": "Batch is not empty"
+    },
+    {
+      "code": 6039,
       "name": "SpendingLimitInvalidAmount",
       "msg": "Invalid SpendingLimit amount"
     }
