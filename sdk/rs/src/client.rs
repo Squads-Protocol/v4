@@ -1,20 +1,26 @@
 use solana_client::nonblocking::rpc_client::RpcClient;
 
+pub use squads_multisig_program::accounts::BatchAccountsClose as BatchAccountsCloseAccounts;
+pub use squads_multisig_program::accounts::ConfigTransactionAccountsClose as ConfigTransactionAccountsCloseAccounts;
 pub use squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
 pub use squads_multisig_program::accounts::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
 pub use squads_multisig_program::accounts::MultisigCreate as MultisigCreateAccounts;
 pub use squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 pub use squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
 pub use squads_multisig_program::accounts::SpendingLimitUse as SpendingLimitUseAccounts;
+pub use squads_multisig_program::accounts::VaultBatchTransactionAccountClose as VaultBatchTransactionAccountCloseAccounts;
+pub use squads_multisig_program::accounts::VaultTransactionAccountsClose as VaultTransactionAccountsCloseAccounts;
 pub use squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
 pub use squads_multisig_program::accounts::VaultTransactionExecute as VaultTransactionExecuteAccounts;
 use squads_multisig_program::anchor_lang::AnchorSerialize;
+pub use squads_multisig_program::instruction::ConfigTransactionAccountsClose as ConfigTransactionAccountsCloseData;
 pub use squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
 pub use squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
 pub use squads_multisig_program::instruction::MultisigCreate as MultisigCreateData;
 pub use squads_multisig_program::instruction::ProposalApprove as ProposalApproveData;
 pub use squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
 pub use squads_multisig_program::instruction::SpendingLimitUse as SpendingLimitUseData;
+pub use squads_multisig_program::instruction::VaultTransactionAccountsClose as VaultTransactionAccountsCloseData;
 pub use squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
 pub use squads_multisig_program::instruction::VaultTransactionExecute as VaultTransactionExecuteData;
 pub use squads_multisig_program::instructions::ConfigTransactionCreateArgs;
@@ -451,6 +457,75 @@ pub fn vault_transaction_execute(
     Ok(Instruction {
         accounts,
         data: VaultTransactionExecuteData {}.data(),
+        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+    })
+}
+
+/// Closes a `ConfigTransaction` and the corresponding `Proposal`.
+/// `transaction` can be closed if either:
+/// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
+/// - the `proposal` is stale.
+///
+/// Example:
+/// ```
+/// use squads_multisig::solana_program::{pubkey::Pubkey, system_program};
+/// use squads_multisig::client::{
+///    ConfigTransactionAccountsCloseAccounts,
+///    config_transaction_accounts_close
+/// };
+///
+/// let ix = config_transaction_accounts_close(
+///     ConfigTransactionAccountsCloseAccounts {
+///         multisig: Pubkey::new_unique(),
+///         proposal: Pubkey::new_unique(),
+///         transaction: Pubkey::new_unique(),
+///         rent_collector: Pubkey::new_unique(),
+///         system_program: system_program::id(),
+///     },
+///     None,
+/// );
+pub fn config_transaction_accounts_close(
+    accounts: ConfigTransactionAccountsCloseAccounts,
+    program_id: Option<Pubkey>,
+) -> ClientResult<Instruction> {
+    Ok(Instruction {
+        accounts: accounts.to_account_metas(Some(false)),
+        data: ConfigTransactionAccountsCloseData {}.data(),
+        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+    })
+}
+
+/// Closes a `VaultTransaction` and the corresponding `Proposal`.
+/// `transaction` can be closed if either:
+/// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
+/// - the `proposal` is stale and not `Approved`.
+///
+/// Example:
+/// ```
+/// use squads_multisig::solana_program::{pubkey::Pubkey, system_program};
+/// use squads_multisig::client::{
+///     VaultTransactionAccountsCloseAccounts,
+///     vault_transaction_accounts_close
+/// };
+///
+/// let ix = vault_transaction_accounts_close(
+///     VaultTransactionAccountsCloseAccounts {
+///         multisig: Pubkey::new_unique(),
+///         proposal: Pubkey::new_unique(),
+///         transaction: Pubkey::new_unique(),
+///         rent_collector: Pubkey::new_unique(),
+///         system_program: system_program::id(),
+///     },
+///     None,
+/// );
+/// ```
+pub fn vault_transaction_accounts_close(
+    accounts: VaultTransactionAccountsCloseAccounts,
+    program_id: Option<Pubkey>,
+) -> ClientResult<Instruction> {
+    Ok(Instruction {
+        accounts: accounts.to_account_metas(Some(false)),
+        data: VaultTransactionAccountsCloseData {}.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     })
 }
