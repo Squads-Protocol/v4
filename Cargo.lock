@@ -3230,27 +3230,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "solana-address-lookup-table-program"
-version = "1.17.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4d2c97d290e3c040c95e264202aa6c92ce3f80dcedf4df08df0b6322611e141"
-dependencies = [
- "bincode",
- "bytemuck",
- "log",
- "num-derive 0.3.3",
- "num-traits",
- "rustc_version",
- "serde",
- "solana-frozen-abi",
- "solana-frozen-abi-macro",
- "solana-program",
- "solana-program-runtime",
- "solana-sdk",
- "thiserror",
-]
-
-[[package]]
 name = "solana-clap-utils"
 version = "1.17.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4175,10 +4154,9 @@ dependencies = [
 
 [[package]]
 name = "squads-multisig"
-version = "0.0.23"
+version = "0.0.25"
 dependencies = [
  "futures",
- "solana-address-lookup-table-program",
  "solana-client",
  "squads-multisig-program",
  "thiserror",
