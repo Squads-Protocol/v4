@@ -487,12 +487,12 @@ pub fn vault_transaction_execute(
 pub fn config_transaction_accounts_close(
     accounts: ConfigTransactionAccountsCloseAccounts,
     program_id: Option<Pubkey>,
-) -> ClientResult<Instruction> {
-    Ok(Instruction {
+) -> Instruction {
+    Instruction {
         accounts: accounts.to_account_metas(Some(false)),
         data: ConfigTransactionAccountsCloseData {}.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
-    })
+    }
 }
 
 /// Closes a `VaultTransaction` and the corresponding `Proposal`.
@@ -522,10 +522,10 @@ pub fn config_transaction_accounts_close(
 pub fn vault_transaction_accounts_close(
     accounts: VaultTransactionAccountsCloseAccounts,
     program_id: Option<Pubkey>,
-) -> ClientResult<Instruction> {
-    Ok(Instruction {
+) -> Instruction {
+    Instruction {
         accounts: accounts.to_account_metas(Some(false)),
         data: VaultTransactionAccountsCloseData {}.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
-    })
+    }
 }
