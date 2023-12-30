@@ -36,6 +36,7 @@ use crate::anchor_lang::AccountDeserialize;
 use crate::anchor_lang::{
     solana_program::instruction::Instruction, InstructionData, ToAccountMetas,
 };
+use crate::client::utils::IntoAccountMetas;
 use crate::error::ClientError;
 use crate::pda::get_vault_pda;
 use crate::solana_program::address_lookup_table_account::AddressLookupTableAccount;
@@ -186,8 +187,10 @@ pub fn config_transaction_execute(
     spending_limit_accounts: Vec<Pubkey>,
     program_id: Option<Pubkey>,
 ) -> Instruction {
+    let program_id = program_id.unwrap_or(squads_multisig_program::ID);
+
     let account_metas = [
-        accounts.to_account_metas(Some(false)),
+        accounts.into_account_metas(program_id),
         // Spending Limit accounts are optional and are passed as remaining_accounts
         // if the Config Transaction adds or removes some.
         spending_limit_accounts
@@ -200,7 +203,7 @@ pub fn config_transaction_execute(
     Instruction {
         accounts: account_metas,
         data: ConfigTransactionExecuteData.data(),
-        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+        program_id,
     }
 }
 
@@ -315,10 +318,12 @@ pub fn spending_limit_use(
     args: SpendingLimitUseArgs,
     program_id: Option<Pubkey>,
 ) -> Instruction {
+    let program_id = program_id.unwrap_or(squads_multisig_program::ID);
+
     Instruction {
-        accounts: accounts.to_account_metas(Some(false)),
+        accounts: accounts.into_account_metas(program_id),
         data: SpendingLimitUseData { args }.data(),
-        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+        program_id,
     }
 }
 
@@ -527,5 +532,76 @@ pub fn vault_transaction_accounts_close(
         accounts: accounts.to_account_metas(Some(false)),
         data: VaultTransactionAccountsCloseData {}.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
+    }
+}
+
+mod utils {
+    use squads_multisig_program::accounts::{ConfigTransactionExecute, SpendingLimitUse};
+
+    use crate::solana_program::instruction::AccountMeta;
+    use crate::solana_program::pubkey::Pubkey;
+
+    /// A fix for the auto derived anchor `ToAccountMetas` trait.
+    /// The anchor one works incorrectly with Option accounts when program ID is different from the canonical one.
+    pub trait IntoAccountMetas {
+        fn into_account_metas(self, program_id: Pubkey) -> Vec<AccountMeta>;
+    }
+
+    impl IntoAccountMetas for ConfigTransactionExecute {
+        fn into_account_metas(self, program_id: Pubkey) -> Vec<AccountMeta> {
+            vec![
+                AccountMeta::new(self.multisig, false),
+                AccountMeta::new_readonly(self.member, true),
+                AccountMeta::new(self.proposal, false),
+                AccountMeta::new_readonly(self.transaction, false),
+                if let Some(rent_payer) = self.rent_payer {
+                    AccountMeta::new(rent_payer, true)
+                } else {
+                    AccountMeta::new_readonly(program_id, false)
+                },
+                if let Some(system_program) = self.system_program {
+                    AccountMeta::new_readonly(system_program, false)
+                } else {
+                    AccountMeta::new_readonly(program_id, false)
+                },
+            ]
+        }
+    }
+
+    impl IntoAccountMetas for SpendingLimitUse {
+        fn into_account_metas(self, program_id: Pubkey) -> Vec<AccountMeta> {
+            vec![
+                AccountMeta::new_readonly(self.multisig, false),
+                AccountMeta::new_readonly(self.member, true),
+                AccountMeta::new(self.spending_limit, false),
+                AccountMeta::new(self.vault, false),
+                AccountMeta::new(self.destination, false),
+                if let Some(system_program) = self.system_program {
+                    AccountMeta::new_readonly(system_program, false)
+                } else {
+                    AccountMeta::new_readonly(program_id, false)
+                },
+                if let Some(mint) = self.mint {
+                    AccountMeta::new_readonly(mint, false)
+                } else {
+                    AccountMeta::new_readonly(program_id, false)
+                },
+                if let Some(vault_token_account) = self.vault_token_account {
+                    AccountMeta::new(vault_token_account, false)
+                } else {
+                    AccountMeta::new_readonly(program_id, false)
+                },
+                if let Some(destination_token_account) = self.destination_token_account {
+                    AccountMeta::new(destination_token_account, false)
+                } else {
+                    AccountMeta::new_readonly(program_id, false)
+                },
+                if let Some(token_program) = self.token_program {
+                    AccountMeta::new_readonly(token_program, false)
+                } else {
+                    AccountMeta::new_readonly(program_id, false)
+                },
+            ]
+        }
     }
 }
