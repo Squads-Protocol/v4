@@ -438,7 +438,9 @@ pub fn vault_transaction_execute(
     address_lookup_table_accounts: &[AddressLookupTableAccount],
     program_id: Option<Pubkey>,
 ) -> ClientResult<Instruction> {
-    let vault_pda = get_vault_pda(&accounts.multisig, vault_index, None).0;
+    let program_id = program_id.unwrap_or(squads_multisig_program::ID);
+
+    let vault_pda = get_vault_pda(&accounts.multisig, vault_index, Some(&program_id)).0;
 
     let accounts_for_execute = message
         .get_accounts_for_execute(
@@ -446,7 +448,7 @@ pub fn vault_transaction_execute(
             &accounts.transaction,
             &address_lookup_table_accounts,
             num_ephemeral_signers,
-            &program_id.unwrap_or(squads_multisig_program::ID),
+            &program_id,
         )
         .map_err(|err| match err {
             Error::InvalidAddressLookupTableAccount => {
@@ -462,7 +464,7 @@ pub fn vault_transaction_execute(
     Ok(Instruction {
         accounts,
         data: VaultTransactionExecuteData {}.data(),
-        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+        program_id,
     })
 }
 
