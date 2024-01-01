@@ -555,7 +555,7 @@ mod utils {
                 AccountMeta::new(self.multisig, false),
                 AccountMeta::new_readonly(self.member, true),
                 AccountMeta::new(self.proposal, false),
-                AccountMeta::new_readonly(self.transaction, false),
+                AccountMeta::new(self.transaction, false),
                 if let Some(rent_payer) = self.rent_payer {
                     AccountMeta::new(rent_payer, true)
                 } else {
@@ -573,7 +573,7 @@ mod utils {
     impl IntoAccountMetas for SpendingLimitUse {
         fn into_account_metas(self, program_id: Pubkey) -> Vec<AccountMeta> {
             vec![
-                AccountMeta::new_readonly(self.multisig, false),
+                AccountMeta::new(self.multisig, false),
                 AccountMeta::new_readonly(self.member, true),
                 AccountMeta::new(self.spending_limit, false),
                 AccountMeta::new(self.vault, false),
