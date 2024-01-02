@@ -101,7 +101,7 @@ pub trait VaultTransactionMessageExt {
 
         // region: -- address_lookup_table_accounts --
 
-        let address_lookup_table_accounts = address_lookup_table_accounts
+        let address_lookup_table_accounts_map = address_lookup_table_accounts
             .into_iter()
             .map(|alt| (alt.key, alt))
             .collect::<HashMap<_, _>>();
@@ -112,9 +112,9 @@ pub trait VaultTransactionMessageExt {
 
         // First go the lookup table accounts used by the transaction. They are needed for on-chain validation.
         let lookup_table_account_metas = address_lookup_table_accounts
-            .keys()
-            .map(|&pubkey| AccountMeta {
-                pubkey,
+            .into_iter()
+            .map(|alt| AccountMeta {
+                pubkey: alt.key,
                 is_writable: false,
                 is_signer: false,
             })
@@ -143,7 +143,7 @@ pub trait VaultTransactionMessageExt {
             .address_table_lookups
             .iter()
             .map(|lookup| {
-                let lookup_table_account = address_lookup_table_accounts
+                let lookup_table_account = address_lookup_table_accounts_map
                     .get(&lookup.account_key)
                     .ok_or(Error::InvalidAddressLookupTableAccount)?;
 
