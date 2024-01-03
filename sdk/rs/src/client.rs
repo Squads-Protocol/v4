@@ -18,6 +18,8 @@ pub use squads_multisig_program::instruction::ConfigTransactionCreate as ConfigT
 pub use squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
 pub use squads_multisig_program::instruction::MultisigCreate as MultisigCreateData;
 pub use squads_multisig_program::instruction::ProposalApprove as ProposalApproveData;
+use squads_multisig_program::instruction::ProposalCancel;
+pub use squads_multisig_program::instruction::ProposalCancel as ProposalCancelData;
 pub use squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
 pub use squads_multisig_program::instruction::SpendingLimitUse as SpendingLimitUseData;
 pub use squads_multisig_program::instruction::VaultTransactionAccountsClose as VaultTransactionAccountsCloseData;
@@ -275,6 +277,38 @@ pub fn proposal_approve(
     Instruction {
         accounts: accounts.to_account_metas(Some(false)),
         data: ProposalApproveData { args }.data(),
+        program_id: program_id.unwrap_or(squads_multisig_program::ID),
+    }
+}
+
+/// Votes "cancel" on a multisig proposal.
+/// Example:
+/// ```
+/// use squads_multisig::solana_program::pubkey::Pubkey;
+/// use squads_multisig::client::{
+///     ProposalVoteAccounts,
+///     ProposalVoteArgs,
+///     proposal_cancel,
+/// };
+///
+/// let ix = proposal_cancel(
+///     ProposalVoteAccounts {
+///         multisig: Pubkey::new_unique(),
+///         proposal: Pubkey::new_unique(),
+///         member: Pubkey::new_unique(),
+///     },
+///     ProposalVoteArgs { memo: None },
+///     Some(squads_multisig_program::ID)
+/// );
+/// ```
+pub fn proposal_cancel(
+    accounts: ProposalVoteAccounts,
+    args: ProposalVoteArgs,
+    program_id: Option<Pubkey>,
+) -> Instruction {
+    Instruction {
+        accounts: accounts.to_account_metas(Some(false)),
+        data: ProposalCancelData { args }.data(),
         program_id: program_id.unwrap_or(squads_multisig_program::ID),
     }
 }
