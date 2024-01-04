@@ -264,15 +264,6 @@ impl<'info> ConfigTransactionExecute<'info> {
             }
         }
 
-        // After all the actions are applied, update the threshold if necessary.
-        if usize::from(multisig.threshold) > multisig.members.len() {
-            multisig.threshold = multisig
-                .members
-                .len()
-                .try_into()
-                .expect("didn't expect more than `u16::MAX` members");
-        };
-
         // Make sure the multisig account can fit the updated state: added members or newly set rent_collector.
         Multisig::realloc_if_needed(
             multisig.to_account_info(),
