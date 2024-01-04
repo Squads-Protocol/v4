@@ -36,7 +36,16 @@ By using a multisig, it is important to acknowledge certain concepts. Here are s
  - Users might inadvertently set long or permanent time-locks in their multisig, preventing access to their funds for that period of time.
  - Multisig participants might not have enough of the native token of the underlying SVM blockchain to pay for transaction and state fees.
    
-   
+## Developers
+
+You can interact with the Squads program via our SDK's. 
+
+List of SDKs:
+- Rust crate: [squads-multisig-program](https://crates.io/crates/squads-multisig-program)
+- Typescript SDK: [@sqds/multisig](https://www.npmjs.com/package/@sqds/multisig)
+
+Documentation:
+- You can find the SDK documentation including instructions and helper functions here: https://docs.squads.so/main/v/development/development/overview.
 
 ## Compiling and testing
 
