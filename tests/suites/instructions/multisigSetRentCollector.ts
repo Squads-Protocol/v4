@@ -80,10 +80,10 @@ describe("Instructions / multisig_set_rent_collector", () => {
       multisigAccountPostExecution.staleTransactionIndex.toString(),
       "0"
     );
-    // multisig space should be reallocated: increased by at least 32 bytes of new rent_collector.
+    // multisig space should not be reallocated because we allocate 32 bytes for potential rent_collector when we create multisig.
     assert.ok(
-      multisigAccountInfoPostExecution!.data.length >=
-        multisigAccountInfoPreExecution!.data.length + 32
+      multisigAccountInfoPostExecution!.data.length ===
+        multisigAccountInfoPreExecution!.data.length
     );
   });
 

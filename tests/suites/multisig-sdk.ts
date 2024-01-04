@@ -145,8 +145,9 @@ describe("Multisig SDK", () => {
         }).byteSize;
       const initialAllocatedSize = multisigAccountInfo.data.length;
 
-      // Right after the creation of the multisig, the allocated account space is fully utilized.
-      assert.equal(initialOccupiedSize, initialAllocatedSize);
+      // Right after the creation of the multisig, the allocated account space is almost fully utilized,
+      // with only 32 bytes left for the potential rent collector.
+      assert.equal(initialOccupiedSize, initialAllocatedSize - 32);
 
       let signature = await multisig.rpc.multisigAddMember({
         connection,

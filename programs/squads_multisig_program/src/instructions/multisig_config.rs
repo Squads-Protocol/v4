@@ -92,7 +92,6 @@ impl MultisigConfig<'_> {
         let reallocated = Multisig::realloc_if_needed(
             multisig.to_account_info(),
             multisig.members.len() + 1,
-            multisig.rent_collector.is_some(),
             ctx.accounts
                 .rent_payer
                 .as_ref()
@@ -216,10 +215,10 @@ impl MultisigConfig<'_> {
         let multisig = &mut ctx.accounts.multisig;
 
         // Check if we need to reallocate space.
+        // We need it to handle legacy Multisigs that were created before we started allocating space for the rent collector.
         let reallocated = Multisig::realloc_if_needed(
             multisig.to_account_info(),
             multisig.members.len(),
-            args.rent_collector.is_some(),
             ctx.accounts
                 .rent_payer
                 .as_ref()
