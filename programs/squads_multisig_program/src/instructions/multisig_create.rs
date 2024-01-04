@@ -34,7 +34,7 @@ pub struct MultisigCreate<'info> {
     #[account(
         init,
         payer = creator,
-        space = Multisig::size(args.members.len(), args.rent_collector.is_some()),
+        space = Multisig::size(args.members.len()),
         seeds = [SEED_PREFIX, SEED_MULTISIG, create_key.key().as_ref()],
         bump
     )]
@@ -100,7 +100,7 @@ pub struct MultisigCreateV2<'info> {
     #[account(
         init,
         payer = creator,
-        space = Multisig::size(args.members.len(), args.rent_collector.is_some()),
+        space = Multisig::size(args.members.len()),
         seeds = [SEED_PREFIX, SEED_MULTISIG, create_key.key().as_ref()],
         bump
     )]

@@ -475,7 +475,7 @@ describe("Instructions / multisig_create_v2", () => {
     await connection.confirmTransaction(signature);
 
     const creatorBalancePost = await connection.getBalance(creator.publicKey);
-    const rentAndNetworkFee = 2515600;
+    const rentAndNetworkFee = 2738320;
 
     assert.strictEqual(
       creatorBalancePost,

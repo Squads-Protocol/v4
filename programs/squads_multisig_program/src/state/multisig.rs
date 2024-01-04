@@ -41,9 +41,7 @@ pub struct Multisig {
 }
 
 impl Multisig {
-    pub fn size(members_length: usize, is_rent_collector_set: bool) -> usize {
-        let rent_collector_size = if is_rent_collector_set { 32 } else { 0 };
-
+    pub fn size(members_length: usize) -> usize {
         8  + // anchor account discriminator
         32 + // create_key
         32 + // config_authority
@@ -52,7 +50,7 @@ impl Multisig {
         8  + // transaction_index
         8  + // stale_transaction_index
         1  + // rent_collector Option discriminator
-        rent_collector_size + // rent_collector
+        32 + // rent_collector (always 32 bytes, even if None, just to keep the realloc logic simpler)
         1  + // bump
         4  + // members vector length
         members_length * Member::INIT_SPACE // members
@@ -84,7 +82,6 @@ impl Multisig {
     pub fn realloc_if_needed<'a>(
         multisig: AccountInfo<'a>,
         members_length: usize,
-        is_rent_collector_set: bool,
         rent_payer: Option<AccountInfo<'a>>,
         system_program: Option<AccountInfo<'a>>,
     ) -> Result<bool> {
@@ -92,7 +89,7 @@ impl Multisig {
         require_keys_eq!(*multisig.owner, id(), MultisigError::IllegalAccountOwner);
 
         let current_account_size = multisig.data.borrow().len();
-        let account_size_to_fit_members = Multisig::size(members_length, is_rent_collector_set);
+        let account_size_to_fit_members = Multisig::size(members_length);
 
         // Check if we need to reallocate space.
         if current_account_size >= account_size_to_fit_members {

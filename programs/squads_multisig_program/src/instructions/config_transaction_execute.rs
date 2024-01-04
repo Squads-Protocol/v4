@@ -277,7 +277,6 @@ impl<'info> ConfigTransactionExecute<'info> {
         Multisig::realloc_if_needed(
             multisig.to_account_info(),
             multisig.members.len(),
-            multisig.rent_collector.is_some(),
             ctx.accounts
                 .rent_payer
                 .as_ref()
