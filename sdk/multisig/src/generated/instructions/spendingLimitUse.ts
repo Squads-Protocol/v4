@@ -40,7 +40,7 @@ export const spendingLimitUseStruct = new beet.FixableBeetArgsStruct<
 /**
  * Accounts required by the _spendingLimitUse_ instruction
  *
- * @property [_writable_] multisig
+ * @property [] multisig
  * @property [**signer**] member
  * @property [_writable_] spendingLimit
  * @property [_writable_] vault
@@ -95,7 +95,7 @@ export function createSpendingLimitUseInstruction(
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: true,
+      isWritable: false,
       isSigner: false,
     },
     {

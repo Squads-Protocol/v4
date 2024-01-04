@@ -34,7 +34,6 @@ pub struct ConfigTransactionExecute<'info> {
 
     /// The transaction to execute.
     #[account(
-        mut,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
@@ -103,7 +102,7 @@ impl<'info> ConfigTransactionExecute<'info> {
     #[access_control(ctx.accounts.validate())]
     pub fn config_transaction_execute(ctx: Context<'_, '_, 'info, 'info, Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
-        let transaction = &mut ctx.accounts.transaction;
+        let transaction = &ctx.accounts.transaction;
         let proposal = &mut ctx.accounts.proposal;
 
         let rent = Rent::get()?;

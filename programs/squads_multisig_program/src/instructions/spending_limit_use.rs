@@ -20,7 +20,6 @@ pub struct SpendingLimitUseArgs {
 pub struct SpendingLimitUse<'info> {
     /// The multisig account the `spending_limit` is for.
     #[account(
-        mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]

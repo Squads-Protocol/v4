@@ -679,7 +679,7 @@
         },
         {
           "name": "transaction",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false,
           "docs": [
             "The transaction to execute."
@@ -1126,7 +1126,7 @@
       "accounts": [
         {
           "name": "multisig",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false,
           "docs": [
             "The multisig account the `spending_limit` is for."
