@@ -88,10 +88,12 @@ impl MultisigConfig<'_> {
 
         let multisig = &mut ctx.accounts.multisig;
 
-        // Check if we need to reallocate space.
-        let reallocated = Multisig::realloc_if_needed(
+        multisig.add_member(new_member);
+
+        // Make sure the multisig account can fit the newly set rent_collector.
+        Multisig::realloc_if_needed(
             multisig.to_account_info(),
-            multisig.members.len() + 1,
+            multisig.members.len(),
             ctx.accounts
                 .rent_payer
                 .as_ref()
@@ -101,12 +103,6 @@ impl MultisigConfig<'_> {
                 .as_ref()
                 .map(ToAccountInfo::to_account_info),
         )?;
-
-        if reallocated {
-            multisig.reload()?;
-        }
-
-        multisig.add_member(new_member);
 
         multisig.invalidate_prior_transactions();
 
@@ -214,9 +210,10 @@ impl MultisigConfig<'_> {
     ) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
 
-        // Check if we need to reallocate space.
-        // We need it to handle legacy Multisigs that were created before we started allocating space for the rent collector.
-        let reallocated = Multisig::realloc_if_needed(
+        multisig.rent_collector = args.rent_collector;
+
+        // Make sure the multisig account can fit the newly set rent_collector.
+        Multisig::realloc_if_needed(
             multisig.to_account_info(),
             multisig.members.len(),
             ctx.accounts
@@ -228,12 +225,6 @@ impl MultisigConfig<'_> {
                 .as_ref()
                 .map(ToAccountInfo::to_account_info),
         )?;
-
-        if reallocated {
-            multisig.reload()?;
-        }
-
-        multisig.rent_collector = args.rent_collector;
 
         // We don't need to invalidate prior transactions here because changing
         // `rent_collector` doesn't affect the consensus parameters of the multisig.
