@@ -38,7 +38,7 @@ By using a multisig, it is important to acknowledge certain concepts. Here are s
    
 ## Developers
 
-You can interact with the Squads program via our SDK's. 
+You can interact with the Squads program via our SDKs. 
 
 List of SDKs:
 - Rust crate: [squads-multisig-program](https://crates.io/crates/squads-multisig-program)
