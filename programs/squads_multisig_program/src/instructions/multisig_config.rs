@@ -126,15 +126,6 @@ impl MultisigConfig<'_> {
 
         multisig.remove_member(args.old_member)?;
 
-        // Update the threshold if necessary.
-        if usize::from(multisig.threshold) > multisig.members.len() {
-            multisig.threshold = multisig
-                .members
-                .len()
-                .try_into()
-                .expect("didn't expect more that `u16::MAX` members");
-        };
-
         multisig.invalidate_prior_transactions();
 
         multisig.invariant()?;

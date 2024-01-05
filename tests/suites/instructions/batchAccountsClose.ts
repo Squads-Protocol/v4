@@ -63,7 +63,6 @@ describe("Instructions / batch_accounts_close", () => {
         members,
         threshold: 1,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -209,7 +208,6 @@ describe("Instructions / batch_accounts_close", () => {
         members,
         threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];

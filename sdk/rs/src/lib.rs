@@ -52,7 +52,6 @@ pub mod cpi {
         members: Vec<Member>,
         threshold: u16,
         config_authority: Option<Pubkey>,
-        rent_collector: Option<Pubkey>,
         time_lock: u32,
         memo: Option<String>,
     ) -> Result<()> {
@@ -63,7 +62,6 @@ pub mod cpi {
                 threshold,
                 config_authority,
                 time_lock,
-                rent_collector,
                 memo,
             },
         )

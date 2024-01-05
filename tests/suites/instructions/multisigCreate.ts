@@ -54,7 +54,6 @@ describe("Instructions / multisig_create", () => {
             },
           ],
           createKey,
-          rentCollector: null,
           sendOptions: { skipPreflight: true },
           programId,
         }),
@@ -79,7 +78,6 @@ describe("Instructions / multisig_create", () => {
       configAuthority: null,
       timeLock: 0,
       threshold: 1,
-      rentCollector: null,
       members: [
         {
           key: members.almighty.publicKey,
@@ -122,7 +120,6 @@ describe("Instructions / multisig_create", () => {
           timeLock: 0,
           threshold: 1,
           members: [],
-          rentCollector: null,
           sendOptions: { skipPreflight: true },
           programId,
         }),
@@ -158,7 +155,6 @@ describe("Instructions / multisig_create", () => {
               },
             },
           ],
-          rentCollector: null,
           sendOptions: { skipPreflight: true },
           programId,
         }),
@@ -192,7 +188,6 @@ describe("Instructions / multisig_create", () => {
             key: m.publicKey,
             permissions: Permissions.all(),
           })),
-          rentCollector: null,
           sendOptions: { skipPreflight: true },
           programId,
         }),
@@ -241,7 +236,6 @@ describe("Instructions / multisig_create", () => {
           ],
           // Threshold is 3, but there are only 2 voters.
           threshold: 3,
-          rentCollector: null,
           sendOptions: { skipPreflight: true },
           programId,
         }),
@@ -258,7 +252,6 @@ describe("Instructions / multisig_create", () => {
       members,
       threshold: 2,
       timeLock: 0,
-      rentCollector: null,
       programId,
     });
 
@@ -310,31 +303,6 @@ describe("Instructions / multisig_create", () => {
     assert.strictEqual(multisigAccount.bump, multisigBump);
   });
 
-  it("create a new autonomous multisig with rent reclamation enabled", async () => {
-    const createKey = Keypair.generate();
-    const rentCollector = Keypair.generate().publicKey;
-
-    const [multisigPda, multisigBump] = await createAutonomousMultisig({
-      connection,
-      createKey,
-      members,
-      threshold: 2,
-      timeLock: 0,
-      rentCollector,
-      programId,
-    });
-
-    const multisigAccount = await Multisig.fromAccountAddress(
-      connection,
-      multisigPda
-    );
-
-    assert.strictEqual(
-      multisigAccount.rentCollector?.toBase58(),
-      rentCollector.toBase58()
-    );
-  });
-
   it("create a new controlled multisig", async () => {
     const createKey = Keypair.generate();
     const configAuthority = await generateFundedKeypair(connection);
@@ -346,7 +314,6 @@ describe("Instructions / multisig_create", () => {
       members,
       threshold: 2,
       timeLock: 0,
-      rentCollector: null,
       programId,
     });
 

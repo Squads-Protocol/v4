@@ -48,7 +48,6 @@ describe("Examples / Spending Limits", () => {
         members,
         threshold: 1,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];

@@ -28,7 +28,6 @@ describe("Instructions / config_transaction_execute", () => {
         members,
         threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -85,15 +84,15 @@ describe("Instructions / config_transaction_execute", () => {
     );
   });
 
-  it("execute config transaction with ChangeThreshold action", async () => {
+  it("error: removing a member causes threshold to be unreachable", async () => {
     // Create new autonomous multisig.
     const multisigPda = (
       await createAutonomousMultisig({
         connection,
         members,
-        threshold: 1,
+        // Threshold is 2/2, we have just 2 voting members: almighty and voter.
+        threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -106,7 +105,173 @@ describe("Instructions / config_transaction_execute", () => {
       multisigPda,
       transactionIndex,
       creator: members.proposer.publicKey,
-      actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+      // Try to remove 1 out of 2 voting members.
+      actions: [{ __kind: "RemoveMember", oldMember: members.voter.publicKey }],
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Create a proposal for the transaction.
+    signature = await multisig.rpc.proposalCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex,
+      creator: members.proposer,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Approve the proposal 1.
+    signature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.voter,
+      multisigPda,
+      transactionIndex,
+      member: members.voter,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Approve the proposal 2.
+    signature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      transactionIndex,
+      member: members.almighty,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    await assert.rejects(
+      () =>
+        multisig.rpc.configTransactionExecute({
+          connection,
+          feePayer: members.almighty,
+          multisigPda,
+          transactionIndex,
+          member: members.almighty,
+          rentPayer: members.almighty,
+          programId,
+        }),
+      /InvalidThreshold: Invalid threshold, must be between 1 and number of members with Vote permission/
+    );
+  });
+
+  it("execute config transaction with RemoveMember and ChangeThreshold actions", async () => {
+    // Create new autonomous multisig.
+    const multisigPda = (
+      await createAutonomousMultisig({
+        connection,
+        members,
+        // Threshold is 2/2, we have just 2 voting members: almighty and voter.
+        threshold: 2,
+        timeLock: 0,
+        programId,
+      })
+    )[0];
+
+    // Create a config transaction.
+    const transactionIndex = 1n;
+    let signature = await multisig.rpc.configTransactionCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex,
+      creator: members.proposer.publicKey,
+      actions: [
+        // Remove 1 out of 2 voting members.
+        { __kind: "RemoveMember", oldMember: members.voter.publicKey },
+        // and simultaneously change the threshold to 1/1.
+        { __kind: "ChangeThreshold", newThreshold: 1 },
+      ],
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Create a proposal for the transaction.
+    signature = await multisig.rpc.proposalCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex,
+      creator: members.proposer,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Approve the proposal 1.
+    signature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.voter,
+      multisigPda,
+      transactionIndex,
+      member: members.voter,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Approve the proposal 2.
+    signature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      transactionIndex,
+      member: members.almighty,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    signature = await multisig.rpc.configTransactionExecute({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      transactionIndex,
+      member: members.almighty,
+      rentPayer: members.almighty,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Verify the multisig account.
+    const multisigAccount = await Multisig.fromAccountAddress(
+      connection,
+      multisigPda
+    );
+    // The threshold should have been updated.
+    assert.strictEqual(multisigAccount.threshold, 1);
+    // Voter should have been removed.
+    assert(
+      !multisigAccount.members.some((m) =>
+        m.key.equals(members.voter.publicKey)
+      )
+    );
+    // The stale transaction index should be updated and set to 1.
+    assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "1");
+  });
+
+  it("execute config transaction with ChangeThreshold action", async () => {
+    // Create new autonomous multisig.
+    const multisigPda = (
+      await createAutonomousMultisig({
+        connection,
+        members,
+        threshold: 1,
+        timeLock: 0,
+        programId,
+      })
+    )[0];
+
+    // Create a config transaction.
+    const transactionIndex = 1n;
+    let signature = await multisig.rpc.configTransactionCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex,
+      creator: members.proposer.publicKey,
+      actions: [{ __kind: "ChangeThreshold", newThreshold: 2 }],
       programId,
     });
     await connection.confirmTransaction(signature);
@@ -163,7 +328,7 @@ describe("Instructions / config_transaction_execute", () => {
       multisigPda
     );
     // The threshold should have been updated.
-    assert.strictEqual(multisigAccount.threshold, 1);
+    assert.strictEqual(multisigAccount.threshold, 2);
     // The stale transaction index should be updated and set to 1.
     assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "1");
   });
@@ -176,7 +341,6 @@ describe("Instructions / config_transaction_execute", () => {
         members,
         threshold: 1,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];

@@ -60,7 +60,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -253,7 +252,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -289,7 +287,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -341,7 +338,6 @@ describe("Multisig SDK", () => {
           threshold: 1,
           configAuthority: configAuthority.publicKey,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -397,7 +393,6 @@ describe("Multisig SDK", () => {
           threshold: 1,
           timeLock: 0,
           configAuthority: configAuthority.publicKey,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -448,7 +443,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -548,7 +542,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -602,7 +595,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -705,7 +697,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 1,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -719,7 +710,6 @@ describe("Multisig SDK", () => {
         threshold: 2,
         timeLock: 0,
         createKey: Keypair.generate(),
-        rentCollector: null,
         programId,
       });
     });
@@ -739,7 +729,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -844,7 +833,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -907,7 +895,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -985,7 +972,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -998,7 +984,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -1141,7 +1126,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -1320,7 +1304,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -1520,7 +1503,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -1702,7 +1684,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -1938,7 +1919,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -2062,7 +2042,6 @@ describe("Multisig SDK", () => {
           members,
           threshold: 2,
           timeLock: 0,
-          rentCollector: null,
           programId,
         })
       )[0];
@@ -2245,7 +2224,6 @@ describe("Multisig SDK", () => {
               permissions: Permissions.all(),
             },
           ],
-          rentCollector: null,
           threshold: 1,
           programId,
         };

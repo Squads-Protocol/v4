@@ -8,9 +8,9 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  MultisigCreateArgs,
-  multisigCreateArgsBeet,
-} from '../types/MultisigCreateArgs'
+  MultisigCreateArgsV2,
+  multisigCreateArgsV2Beet,
+} from '../types/MultisigCreateArgsV2'
 
 /**
  * @category Instructions
@@ -18,7 +18,7 @@ import {
  * @category generated
  */
 export type MultisigCreateV2InstructionArgs = {
-  args: MultisigCreateArgs
+  args: MultisigCreateArgsV2
 }
 /**
  * @category Instructions
@@ -32,7 +32,7 @@ export const multisigCreateV2Struct = new beet.FixableBeetArgsStruct<
 >(
   [
     ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['args', multisigCreateArgsBeet],
+    ['args', multisigCreateArgsV2Beet],
   ],
   'MultisigCreateV2InstructionArgs'
 )

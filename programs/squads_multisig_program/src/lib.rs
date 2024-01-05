@@ -82,7 +82,7 @@ pub mod squads_multisig_program {
     /// Create a multisig.
     pub fn multisig_create_v2(
         ctx: Context<MultisigCreateV2>,
-        args: MultisigCreateArgs,
+        args: MultisigCreateArgsV2,
     ) -> Result<()> {
         MultisigCreateV2::multisig_create(ctx, args)
     }
