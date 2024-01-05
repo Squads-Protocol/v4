@@ -130,14 +130,12 @@ export async function createAutonomousMultisig({
   members,
   threshold,
   timeLock,
-  rentCollector,
   programId,
 }: {
   createKey?: Keypair;
   members: TestMembers;
   threshold: number;
   timeLock: number;
-  rentCollector: PublicKey | null;
   connection: Connection;
   programId: PublicKey;
 }) {
@@ -171,7 +169,6 @@ export async function createAutonomousMultisig({
       },
     ],
     createKey: createKey,
-    rentCollector,
     sendOptions: { skipPreflight: true },
     programId,
   });
@@ -253,7 +250,6 @@ export async function createControlledMultisig({
   members,
   threshold,
   timeLock,
-  rentCollector,
   programId,
 }: {
   createKey?: Keypair;
@@ -261,7 +257,6 @@ export async function createControlledMultisig({
   members: TestMembers;
   threshold: number;
   timeLock: number;
-  rentCollector: PublicKey | null;
   connection: Connection;
   programId: PublicKey;
 }) {
@@ -295,7 +290,6 @@ export async function createControlledMultisig({
       },
     ],
     createKey: createKey,
-    rentCollector,
     sendOptions: { skipPreflight: true },
     programId,
   });
@@ -430,6 +424,13 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
   rentCollector: PublicKey | null;
   programId: PublicKey;
 }): Promise<MultisigWithRentReclamationAndVariousBatches> {
+  const programConfig =
+    await multisig.accounts.ProgramConfig.fromAccountAddress(
+      connection,
+      multisig.getProgramConfigPda({ programId })[0]
+    );
+  const programTreasury = programConfig.treasury;
+
   const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
@@ -443,8 +444,9 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
   });
 
   //region Create a multisig
-  let signature = await multisig.rpc.multisigCreate({
+  let signature = await multisig.rpc.multisigCreateV2({
     connection,
+    treasury: programTreasury,
     creator,
     multisigPda,
     configAuthority: null,

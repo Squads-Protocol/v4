@@ -9,6 +9,7 @@ import * as multisig from "@sqds/multisig";
 import assert from "assert";
 import {
   createAutonomousMultisig,
+  createAutonomousMultisigV2,
   createLocalhostConnection,
   createTestTransferInstruction,
   generateFundedKeypair,
@@ -50,7 +51,7 @@ describe("Instructions / vault_transaction_accounts_close", () => {
     });
 
     // Create new autonomous multisig with rentCollector set to its default vault.
-    await createAutonomousMultisig({
+    await createAutonomousMultisigV2({
       connection,
       createKey,
       members,
@@ -509,7 +510,7 @@ describe("Instructions / vault_transaction_accounts_close", () => {
   it("error: rent reclamation is not enabled", async () => {
     // Create a multisig with rent reclamation disabled.
     const multisigPda = (
-      await createAutonomousMultisig({
+      await createAutonomousMultisigV2({
         connection,
         members,
         threshold: 1,
@@ -646,7 +647,6 @@ describe("Instructions / vault_transaction_accounts_close", () => {
         members,
         threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -794,7 +794,6 @@ describe("Instructions / vault_transaction_accounts_close", () => {
         members,
         threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];

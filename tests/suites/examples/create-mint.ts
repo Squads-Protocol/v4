@@ -34,7 +34,6 @@ describe("Examples / Create Mint", () => {
       members,
       threshold: 2,
       timeLock: 0,
-      rentCollector: null,
       programId,
     });
 

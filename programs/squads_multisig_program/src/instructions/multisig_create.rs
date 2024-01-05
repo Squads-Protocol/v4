@@ -17,9 +17,6 @@ pub struct MultisigCreateArgs {
     pub members: Vec<Member>,
     /// How many seconds must pass between transaction voting, settlement, and execution.
     pub time_lock: u32,
-    /// The address where the rent for the accounts related to executed, rejected, or cancelled
-    /// transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off.
-    pub rent_collector: Option<Pubkey>,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
@@ -77,7 +74,7 @@ impl MultisigCreate<'_> {
         multisig.create_key = ctx.accounts.create_key.key();
         multisig.bump = ctx.bumps.multisig;
         multisig.members = members;
-        multisig.rent_collector = args.rent_collector;
+        multisig.rent_collector = None;
 
         multisig.invariant()?;
 
@@ -85,8 +82,26 @@ impl MultisigCreate<'_> {
     }
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub struct MultisigCreateArgsV2 {
+    /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
+    /// Should be set to `None` for autonomous multisigs.
+    pub config_authority: Option<Pubkey>,
+    /// The number of signatures required to execute a transaction.
+    pub threshold: u16,
+    /// The members of the multisig.
+    pub members: Vec<Member>,
+    /// How many seconds must pass between transaction voting, settlement, and execution.
+    pub time_lock: u32,
+    /// The address where the rent for the accounts related to executed, rejected, or cancelled
+    /// transactions can be reclaimed. If set to `None`, the rent reclamation feature is turned off.
+    pub rent_collector: Option<Pubkey>,
+    /// Memo is used for indexing only.
+    pub memo: Option<String>,
+}
+
 #[derive(Accounts)]
-#[instruction(args: MultisigCreateArgs)]
+#[instruction(args: MultisigCreateArgsV2)]
 pub struct MultisigCreateV2<'info> {
     /// Global program config account.
     #[account(seeds = [SEED_PREFIX, SEED_PROGRAM_CONFIG], bump)]
@@ -132,7 +147,7 @@ impl MultisigCreateV2<'_> {
 
     /// Creates a multisig.
     #[access_control(ctx.accounts.validate())]
-    pub fn multisig_create(ctx: Context<Self>, args: MultisigCreateArgs) -> Result<()> {
+    pub fn multisig_create(ctx: Context<Self>, args: MultisigCreateArgsV2) -> Result<()> {
         // Sort the members by pubkey.
         let mut members = args.members;
         members.sort_by_key(|m| m.key);

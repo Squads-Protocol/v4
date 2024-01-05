@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "2.0.0",
   "name": "squads_multisig_program",
   "instructions": [
     {
@@ -211,7 +211,7 @@
         {
           "name": "args",
           "type": {
-            "defined": "MultisigCreateArgs"
+            "defined": "MultisigCreateArgsV2"
           }
         }
       ]
@@ -2217,6 +2217,58 @@
     },
     {
       "name": "MultisigCreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "configAuthority",
+            "docs": [
+              "The authority that can configure the multisig: add/remove members, change the threshold, etc.",
+              "Should be set to `None` for autonomous multisigs."
+            ],
+            "type": {
+              "option": "publicKey"
+            }
+          },
+          {
+            "name": "threshold",
+            "docs": [
+              "The number of signatures required to execute a transaction."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "members",
+            "docs": [
+              "The members of the multisig."
+            ],
+            "type": {
+              "vec": {
+                "defined": "Member"
+              }
+            }
+          },
+          {
+            "name": "timeLock",
+            "docs": [
+              "How many seconds must pass between transaction voting, settlement, and execution."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigCreateArgsV2",
       "type": {
         "kind": "struct",
         "fields": [

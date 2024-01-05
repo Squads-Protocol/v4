@@ -28,7 +28,6 @@ describe("Instructions / config_transaction_execute", () => {
         members,
         threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -94,7 +93,6 @@ describe("Instructions / config_transaction_execute", () => {
         // Threshold is 2/2, we have just 2 voting members: almighty and voter.
         threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -170,7 +168,6 @@ describe("Instructions / config_transaction_execute", () => {
         // Threshold is 2/2, we have just 2 voting members: almighty and voter.
         threshold: 2,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -262,7 +259,6 @@ describe("Instructions / config_transaction_execute", () => {
         members,
         threshold: 1,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
@@ -345,7 +341,6 @@ describe("Instructions / config_transaction_execute", () => {
         members,
         threshold: 1,
         timeLock: 0,
-        rentCollector: null,
         programId,
       })
     )[0];
