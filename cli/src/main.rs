@@ -16,5 +16,8 @@ async fn main() -> eyre::Result<()> {
 
     match app.command {
         Command::ProgramConfigInit(command) => command.execute().await,
+        Command::MultisigCreate(command) => command.execute().await,
+        Command::ProposalVote(command) => command.execute().await,
+        Command::VaultTransactionExecute(command) => command.execute().await,
     }
 }
