@@ -30,11 +30,11 @@ use squads_multisig::squads_multisig_program::ProgramConfigInitArgs;
 pub struct ProgramConfigInit {
     /// RPC URL
     #[arg(long)]
-    rpc_url: String,
+    rpc_url: Option<String>,
 
     /// Multisig Program ID
     #[arg(long)]
-    program_id: String,
+    program_id: Option<String>,
 
     /// Path to the Program Config Initializer Keypair
     #[arg(long)]
@@ -64,6 +64,9 @@ impl ProgramConfigInit {
             multisig_creation_fee,
         } = self;
 
+        let program_id =
+            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
         let program_config_authority = Pubkey::from_str(&program_config_authority)
             .expect("Invalid program config authority address");
@@ -74,6 +77,8 @@ impl ProgramConfigInit {
         let initializer = initializer_keypair.pubkey();
 
         let program_config = get_program_config_pda(Some(&program_id)).0;
+
+        let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
         println!();
         println!(
