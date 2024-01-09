@@ -19,5 +19,6 @@ async fn main() -> eyre::Result<()> {
         Command::MultisigCreate(command) => command.execute().await,
         Command::ProposalVote(command) => command.execute().await,
         Command::VaultTransactionExecute(command) => command.execute().await,
+        Command::VaultTransactionCreate(command) => command.execute().await,
     }
 }

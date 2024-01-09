@@ -15,20 +15,22 @@ use solana_sdk::signature::{EncodableKey, Keypair, Signer};
 use solana_sdk::transaction::VersionedTransaction;
 
 use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::pda::get_proposal_pda;
+use squads_multisig::client::get_multisig;
+use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig::solana_client::client_error::ClientErrorKind;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::solana_client::rpc_request::{RpcError, RpcResponseErrorData};
 use squads_multisig::solana_client::rpc_response::RpcSimulateTransactionResult;
-use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
+use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
+use squads_multisig::squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
-use squads_multisig::squads_multisig_program::instruction::ProposalCancel;
-use squads_multisig::squads_multisig_program::instruction::ProposalReject;
-use squads_multisig::squads_multisig_program::ProposalVoteArgs;
+use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
+use squads_multisig::squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
+use squads_multisig::squads_multisig_program::ProposalCreateArgs;
+use squads_multisig::squads_multisig_program::VaultTransactionCreateArgs;
 
 #[derive(Args)]
-pub struct ProposalVote {
+pub struct VaultTransactionCreate {
     /// RPC URL
     #[arg(long)]
     rpc_url: Option<String>,
@@ -41,33 +43,31 @@ pub struct ProposalVote {
     #[arg(long)]
     keypair: String,
 
-    /// Index of the transaction to vote on
-    #[arg(long)]
-    transaction_index: u64,
-
     /// The multisig where the transaction has been proposed
     #[arg(long)]
     multisig_pubkey: String,
 
-    /// Vote action to cast
     #[arg(long)]
-    action: String,
+    vault_index: u8,
 
-    /// Transaction Memo
+    #[arg(long)]
+    transaction_message: Vec<u8>,
+
+    /// Memo to be included in the transaction
     #[arg(long)]
     memo: Option<String>,
 }
 
-impl ProposalVote {
+impl VaultTransactionCreate {
     pub async fn execute(self) -> eyre::Result<()> {
         let Self {
             rpc_url,
             program_id,
             keypair,
             multisig_pubkey,
-            transaction_index,
-            action,
             memo,
+            transaction_message,
+            vault_index,
         } = self;
 
         let program_id =
@@ -79,26 +79,32 @@ impl ProposalVote {
             Keypair::read_from_file(Path::new(&keypair)).expect("Invalid keypair");
         let transaction_creator = transaction_creator_keypair.pubkey();
 
+        let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
+        let rpc_url_clone = rpc_url.clone();
+        let rpc_client = &RpcClient::new(rpc_url);
+
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
 
+        let multisig_data = get_multisig(rpc_client, &multisig).await?;
+
+        let transaction_index = multisig_data.transaction_index + 1;
+
+        let transaction_pda = get_transaction_pda(&multisig, transaction_index, Some(&program_id));
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
-
-        let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
-
         println!();
         println!(
             "{}",
-            "👀 You're about to vote on a proposal, please review the details:".yellow()
+            "👀 You're about to create a vault transaction, please review the details:".yellow()
         );
         println!();
-        println!("RPC Cluster URL:   {}", rpc_url);
+        println!("RPC Cluster URL:   {}", rpc_url_clone);
         println!("Program ID:        {}", program_id);
         println!("Your Public Key:       {}", transaction_creator);
         println!();
         println!("⚙️ Config Parameters");
         println!("Multisig Key:       {}", multisig_pubkey);
         println!("Transaction Index:       {}", transaction_index);
-        println!("Vote Type:       {}", action);
+        println!("Vault Index:       {}", vault_index);
         println!();
 
         let proceed = Confirm::new()
@@ -111,8 +117,6 @@ impl ProposalVote {
         }
         println!();
 
-        let rpc_client = RpcClient::new(rpc_url);
-
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
         progress.enable_steady_tick(Duration::from_millis(100));
 
@@ -121,37 +125,48 @@ impl ProposalVote {
             .await
             .expect("Failed to get blockhash");
 
-        let data = match action.to_lowercase().as_str() {
-            "approve" | "ap" => ProposalApprove {
-                args: ProposalVoteArgs { memo },
-            }
-            .data(),
-            "reject" | "rj" => ProposalReject {
-                args: ProposalVoteArgs { memo },
-            }
-            .data(),
-            "cancel" | "cl" => ProposalCancel {
-                args: ProposalVoteArgs { memo },
-            }
-            .data(),
-            _ => {
-                eprintln!("Invalid action. Please use one of: Approve, Reject, Cancel, Activate (or their short forms)");
-                std::process::exit(1);
-            }
-        };
-
         let message = Message::try_compile(
             &transaction_creator,
-            &[Instruction {
-                accounts: ProposalVoteAccounts {
-                    member: transaction_creator,
-                    multisig,
-                    proposal: proposal_pda.0,
-                }
-                .to_account_metas(Some(false)),
-                data,
-                program_id,
-            }],
+            &[
+                Instruction {
+                    accounts: VaultTransactionCreateAccounts {
+                        creator: transaction_creator,
+                        rent_payer: transaction_creator,
+                        transaction: transaction_pda.0,
+                        multisig,
+                        system_program: solana_sdk::system_program::id(),
+                    }
+                    .to_account_metas(Some(false)),
+                    data: VaultTransactionCreateData {
+                        args: VaultTransactionCreateArgs {
+                            ephemeral_signers: 0,
+                            vault_index,
+                            memo,
+                            transaction_message,
+                        },
+                    }
+                    .data(),
+                    program_id,
+                },
+                Instruction {
+                    accounts: ProposalCreateAccounts {
+                        creator: transaction_creator,
+                        rent_payer: transaction_creator,
+                        proposal: proposal_pda.0,
+                        multisig,
+                        system_program: solana_sdk::system_program::id(),
+                    }
+                    .to_account_metas(Some(false)),
+                    data: ProposalCreateData {
+                        args: ProposalCreateArgs {
+                            draft: false,
+                            transaction_index,
+                        },
+                    }
+                    .data(),
+                    program_id,
+                },
+            ],
             &[],
             blockhash,
         )
@@ -191,8 +206,8 @@ impl ProposalVote {
         }
 
         println!(
-            "✅ Casted {} vote. Signature: {}",
-            action, transaction.signatures[0]
+            "✅ Transaction created successfully. Signature: {}",
+            transaction.signatures[0]
         );
         Ok(())
     }
