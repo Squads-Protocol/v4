@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use clap::Parser;
 
 use command::Command;
@@ -20,5 +22,6 @@ async fn main() -> eyre::Result<()> {
         Command::ProposalVote(command) => command.execute().await,
         Command::VaultTransactionExecute(command) => command.execute().await,
         Command::VaultTransactionCreate(command) => command.execute().await,
+        Command::ConfigTransactionCreate(command) => command.execute().await,
     }
 }
