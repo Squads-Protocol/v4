@@ -67,6 +67,7 @@ impl MultisigCreate {
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
+
         let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
 
         let transaction_creator = transaction_creator_keypair.pubkey();

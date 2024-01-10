@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -11,19 +10,22 @@ use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{EncodableKey, Keypair, Signer};
 use solana_sdk::transaction::VersionedTransaction;
 
 use squads_multisig::anchor_lang::InstructionData;
+use squads_multisig::client::get_multisig;
 use squads_multisig::pda::get_proposal_pda;
 use squads_multisig::solana_client::client_error::ClientErrorKind;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::solana_client::rpc_request::{RpcError, RpcResponseErrorData};
 use squads_multisig::solana_client::rpc_response::RpcSimulateTransactionResult;
 use squads_multisig::squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
+use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
+
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
-use squads_multisig::squads_multisig_program::ConfigTransactionCreateArgs;
+use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
+use squads_multisig::squads_multisig_program::{ConfigTransactionCreateArgs, ProposalCreateArgs};
 use squads_multisig::state::{ConfigAction, Period, Permissions};
 
 use crate::utils::create_signer_from_path;
@@ -41,10 +43,6 @@ pub struct ConfigTransactionCreate {
     /// Path to the Program Config Initializer Keypair
     #[arg(long)]
     keypair: String,
-
-    /// Index of the transaction to vote on
-    #[arg(long)]
-    transaction_index: u64,
 
     /// The multisig where the transaction has been proposed
     #[arg(long)]
@@ -66,7 +64,6 @@ impl ConfigTransactionCreate {
             program_id,
             keypair,
             multisig_pubkey,
-            transaction_index,
             action,
             memo,
         } = self;
@@ -80,13 +77,19 @@ impl ConfigTransactionCreate {
 
         let transaction_creator = transaction_creator_keypair.pubkey();
 
+        let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
+        let rpc_url_clone = rpc_url.clone();
+        let rpc_client = &RpcClient::new(rpc_url);
+
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
+
+        let multisig_data = get_multisig(rpc_client, &multisig).await?;
+
+        let transaction_index = multisig_data.transaction_index + 1;
 
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
 
         let transaction_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
-
-        let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
         let config_action = parse_action(&action);
 
@@ -96,7 +99,7 @@ impl ConfigTransactionCreate {
             "👀 You're about to execute a vault transaction, please review the details:".yellow()
         );
         println!();
-        println!("RPC Cluster URL:   {}", rpc_url);
+        println!("RPC Cluster URL:   {}", rpc_url_clone);
         println!("Program ID:        {}", program_id);
         println!("Your Public Key:       {}", transaction_creator);
         println!();
@@ -116,8 +119,6 @@ impl ConfigTransactionCreate {
         }
         println!();
 
-        let rpc_client = RpcClient::new(rpc_url);
-
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
         progress.enable_steady_tick(Duration::from_millis(100));
 
@@ -128,24 +129,44 @@ impl ConfigTransactionCreate {
 
         let message = Message::try_compile(
             &transaction_creator,
-            &[Instruction {
-                accounts: ConfigTransactionCreateAccounts {
-                    creator: transaction_creator,
-                    multisig,
-                    rent_payer: transaction_creator,
-                    transaction: transaction_pda.0,
-                    system_program: solana_sdk::system_program::id(),
-                }
-                .to_account_metas(Some(false)),
-                data: ConfigTransactionCreateData {
-                    args: ConfigTransactionCreateArgs {
-                        actions: vec![config_action.unwrap()],
-                        memo,
-                    },
-                }
-                .data(),
-                program_id,
-            }],
+            &[
+                Instruction {
+                    accounts: ConfigTransactionCreateAccounts {
+                        creator: transaction_creator,
+                        multisig,
+                        rent_payer: transaction_creator,
+                        transaction: transaction_pda.0,
+                        system_program: solana_sdk::system_program::id(),
+                    }
+                    .to_account_metas(Some(false)),
+                    data: ConfigTransactionCreateData {
+                        args: ConfigTransactionCreateArgs {
+                            actions: vec![config_action.unwrap()],
+                            memo,
+                        },
+                    }
+                    .data(),
+                    program_id,
+                },
+                Instruction {
+                    accounts: ProposalCreateAccounts {
+                        creator: transaction_creator,
+                        multisig,
+                        rent_payer: transaction_creator,
+                        proposal: proposal_pda.0,
+                        system_program: solana_sdk::system_program::id(),
+                    }
+                    .to_account_metas(Some(false)),
+                    data: ProposalCreateData {
+                        args: ProposalCreateArgs {
+                            draft: false,
+                            transaction_index,
+                        },
+                    }
+                    .data(),
+                    program_id,
+                },
+            ],
             &[],
             blockhash,
         )
@@ -268,7 +289,6 @@ fn parse_add_spending_limit(parts: &[&str]) -> Result<ConfigAction, String> {
     let vault_index = parts[1].parse().map_err(|_| "Invalid vault_index format")?;
     let mint = parts[2].parse().map_err(|_| "Invalid mint format")?;
     let amount = parts[3].parse().map_err(|_| "Invalid amount format")?;
-    let period = parts[4].to_string(); // Assuming Period can be represented as a String
     let members = parse_pubkey_list(parts[5]).map_err(|_| "Invalid members format")?;
     let destinations = parse_pubkey_list(parts[6]).map_err(|_| "Invalid destinations format")?;
 
