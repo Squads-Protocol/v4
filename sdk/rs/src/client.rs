@@ -623,7 +623,7 @@ pub fn vault_transaction_accounts_close(
     }
 }
 
-mod utils {
+pub mod utils {
     use squads_multisig_program::accounts::{ConfigTransactionExecute, SpendingLimitUse};
 
     use crate::solana_program::instruction::AccountMeta;

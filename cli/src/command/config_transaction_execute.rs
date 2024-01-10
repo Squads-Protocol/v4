@@ -11,9 +11,9 @@ use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
-
 use squads_multisig::anchor_lang::InstructionData;
 use squads_multisig::client::get_multisig;
+use squads_multisig::client::utils::IntoAccountMetas;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig::solana_client::client_error::ClientErrorKind;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
@@ -121,7 +121,7 @@ impl ConfigTransactionExecute {
                     proposal: proposal_pda.0,
                     system_program: Some(solana_sdk::system_program::id()),
                 }
-                .to_account_metas(Some(false)),
+                .into_account_metas(program_id),
                 data: ConfigTransactionExecuteData {}.data(),
                 program_id,
             }],
