@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -11,7 +10,6 @@ use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{EncodableKey, Keypair, Signer};
 use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
 
@@ -25,6 +23,8 @@ use squads_multisig::squads_multisig_program::accounts::ProgramConfigInit as Pro
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::ProgramConfigInit as ProgramConfigInitData;
 use squads_multisig::squads_multisig_program::ProgramConfigInitArgs;
+
+use crate::utils::create_signer_from_path;
 
 #[derive(Args)]
 pub struct ProgramConfigInit {
@@ -72,9 +72,9 @@ impl ProgramConfigInit {
             .expect("Invalid program config authority address");
         let treasury = Pubkey::from_str(&treasury).expect("Invalid treasury address");
 
-        let initializer_keypair =
-            Keypair::read_from_file(Path::new(&initializer_keypair)).expect("Invalid keypair");
-        let initializer = initializer_keypair.pubkey();
+        let transaction_creator_keypair = create_signer_from_path(initializer_keypair).unwrap();
+
+        let transaction_creator = transaction_creator_keypair.pubkey();
 
         let program_config = get_program_config_pda(Some(&program_id)).0;
 
@@ -88,7 +88,7 @@ impl ProgramConfigInit {
         println!();
         println!("RPC Cluster URL:   {}", rpc_url);
         println!("Program ID:        {}", program_id);
-        println!("Initializer:       {}", initializer);
+        println!("Initializer:       {}", transaction_creator);
         println!();
         println!("⚙️ Config Parameters");
         println!();
@@ -118,11 +118,11 @@ impl ProgramConfigInit {
             .expect("Failed to get blockhash");
 
         let message = Message::try_compile(
-            &initializer,
+            &transaction_creator,
             &[Instruction {
                 accounts: ProgramConfigInitAccounts {
                     program_config,
-                    initializer,
+                    initializer: transaction_creator,
                     system_program: system_program::id(),
                 }
                 .to_account_metas(Some(false)),
@@ -143,7 +143,7 @@ impl ProgramConfigInit {
 
         let transaction = VersionedTransaction::try_new(
             VersionedMessage::V0(message),
-            &[&initializer_keypair as &dyn Signer],
+            &[&*transaction_creator_keypair],
         )
         .expect("Failed to create transaction");
 

@@ -1,7 +1,3 @@
-use std::path::Path;
-use std::str::FromStr;
-use std::time::Duration;
-
 use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
@@ -11,9 +7,11 @@ use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{EncodableKey, Keypair, Signer};
+use solana_sdk::signature::{Keypair, Signer};
 use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
+use std::str::FromStr;
+use std::time::Duration;
 
 use squads_multisig::anchor_lang::InstructionData;
 use squads_multisig::pda::get_multisig_pda;
@@ -26,6 +24,8 @@ use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::MultisigCreate as MultisigCreateData;
 use squads_multisig::squads_multisig_program::MultisigCreateArgs;
 use squads_multisig::state::{Member, Permissions};
+
+use crate::utils::create_signer_from_path;
 
 #[derive(Args)]
 pub struct MultisigCreate {
@@ -67,9 +67,8 @@ impl MultisigCreate {
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
+        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
 
-        let transaction_creator_keypair =
-            Keypair::read_from_file(Path::new(&keypair)).expect("Invalid keypair");
         let transaction_creator = transaction_creator_keypair.pubkey();
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
@@ -153,7 +152,10 @@ impl MultisigCreate {
 
         let transaction = VersionedTransaction::try_new(
             VersionedMessage::V0(message),
-            &[&transaction_creator_keypair as &dyn Signer],
+            &[
+                &*transaction_creator_keypair,
+                &random_keypair as &dyn Signer,
+            ],
         )
         .expect("Failed to create transaction");
 

@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -11,7 +10,6 @@ use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{EncodableKey, Keypair, Signer};
 use solana_sdk::transaction::VersionedTransaction;
 
 use squads_multisig::anchor_lang::InstructionData;
@@ -26,6 +24,8 @@ use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
 use squads_multisig::squads_multisig_program::instruction::ProposalCancel;
 use squads_multisig::squads_multisig_program::instruction::ProposalReject;
 use squads_multisig::squads_multisig_program::ProposalVoteArgs;
+
+use crate::utils::create_signer_from_path;
 
 #[derive(Args)]
 pub struct ProposalVote {
@@ -75,8 +75,8 @@ impl ProposalVote {
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair =
-            Keypair::read_from_file(Path::new(&keypair)).expect("Invalid keypair");
+        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+
         let transaction_creator = transaction_creator_keypair.pubkey();
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
@@ -159,7 +159,7 @@ impl ProposalVote {
 
         let transaction = VersionedTransaction::try_new(
             VersionedMessage::V0(message),
-            &[&transaction_creator_keypair as &dyn Signer],
+            &[&*transaction_creator_keypair],
         )
         .expect("Failed to create transaction");
 

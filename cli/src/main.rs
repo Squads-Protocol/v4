@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use clap::Parser;
 
 use command::Command;

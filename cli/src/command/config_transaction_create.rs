@@ -26,6 +26,8 @@ use squads_multisig::squads_multisig_program::instruction::ConfigTransactionCrea
 use squads_multisig::squads_multisig_program::ConfigTransactionCreateArgs;
 use squads_multisig::state::{ConfigAction, Period, Permissions};
 
+use crate::utils::create_signer_from_path;
+
 #[derive(Args)]
 pub struct ConfigTransactionCreate {
     /// RPC URL
@@ -74,8 +76,8 @@ impl ConfigTransactionCreate {
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair =
-            Keypair::read_from_file(Path::new(&keypair)).expect("Invalid keypair");
+        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+
         let transaction_creator = transaction_creator_keypair.pubkey();
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
@@ -151,7 +153,7 @@ impl ConfigTransactionCreate {
 
         let transaction = VersionedTransaction::try_new(
             VersionedMessage::V0(message),
-            &[&transaction_creator_keypair as &dyn Signer],
+            &[&*transaction_creator_keypair],
         )
         .expect("Failed to create transaction");
 
