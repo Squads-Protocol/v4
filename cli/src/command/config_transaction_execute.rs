@@ -12,7 +12,6 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::client::get_multisig;
 use squads_multisig::client::utils::IntoAccountMetas;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig::solana_client::client_error::ClientErrorKind;
@@ -20,7 +19,6 @@ use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::solana_client::rpc_request::{RpcError, RpcResponseErrorData};
 use squads_multisig::solana_client::rpc_response::RpcSimulateTransactionResult;
 use squads_multisig::squads_multisig_program::accounts::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
 
 use crate::utils::create_signer_from_path;
@@ -42,6 +40,10 @@ pub struct ConfigTransactionExecute {
     /// The multisig where the transaction has been proposed
     #[arg(long)]
     multisig_pubkey: String,
+
+    /// Index of the transaction to vote on
+    #[arg(long)]
+    transaction_index: u64,
 }
 
 impl ConfigTransactionExecute {
@@ -51,6 +53,7 @@ impl ConfigTransactionExecute {
             program_id,
             keypair,
             multisig_pubkey,
+            transaction_index,
         } = self;
 
         let program_id =
@@ -67,10 +70,6 @@ impl ConfigTransactionExecute {
         let rpc_client = &RpcClient::new(rpc_url);
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
-
-        let multisig_data = get_multisig(rpc_client, &multisig).await?;
-
-        let transaction_index = multisig_data.transaction_index + 1;
 
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
 
