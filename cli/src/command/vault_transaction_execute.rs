@@ -1,18 +1,15 @@
-use std::str::FromStr;
-use std::time::Duration;
-
 use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use eyre::eyre;
 use indicatif::ProgressBar;
+use solana_program::instruction::AccountMeta;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
-
-use squads_multisig::anchor_lang::InstructionData;
+use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
 use squads_multisig::pda::get_proposal_pda;
 use squads_multisig::solana_client::client_error::ClientErrorKind;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
@@ -21,6 +18,10 @@ use squads_multisig::solana_client::rpc_response::RpcSimulateTransactionResult;
 use squads_multisig::squads_multisig_program::accounts::VaultTransactionExecute as VaultTransactionExecuteAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::VaultTransactionExecute as VaultTransactionExecuteData;
+use squads_multisig::squads_multisig_program::state::VaultTransaction;
+use squads_multisig::state::VaultTransactionMessage;
+use std::str::FromStr;
+use std::time::Duration;
 
 use crate::utils::create_signer_from_path;
 
@@ -102,6 +103,27 @@ impl VaultTransactionExecute {
 
         let rpc_client = RpcClient::new(rpc_url);
 
+        let transaction_account_data = rpc_client
+            .get_account(&transaction_pda.0)
+            .await
+            .expect("Failed to get transaction account")
+            .data;
+
+        let mut transaction_account_data_slice = transaction_account_data.as_slice();
+
+        let deserialized_account_data =
+            VaultTransaction::try_deserialize(&mut transaction_account_data_slice).unwrap();
+
+        let transaction_message = deserialized_account_data.message;
+        let remaining_account_metas = message_to_execute_account_metas(transaction_message);
+        let mut vault_transaction_account_metas = VaultTransactionExecuteAccounts {
+            member: transaction_creator,
+            multisig,
+            proposal: proposal_pda.0,
+            transaction: transaction_pda.0,
+        }
+        .to_account_metas(Some(false));
+        vault_transaction_account_metas.extend(remaining_account_metas);
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
         progress.enable_steady_tick(Duration::from_millis(100));
 
@@ -113,13 +135,7 @@ impl VaultTransactionExecute {
         let message = Message::try_compile(
             &transaction_creator,
             &[Instruction {
-                accounts: VaultTransactionExecuteAccounts {
-                    member: transaction_creator,
-                    multisig,
-                    proposal: proposal_pda.0,
-                    transaction: transaction_pda.0,
-                }
-                .to_account_metas(Some(false)),
+                accounts: vault_transaction_account_metas,
                 data: VaultTransactionExecuteData {}.data(),
                 program_id,
             }],
@@ -167,4 +183,26 @@ impl VaultTransactionExecute {
         );
         Ok(())
     }
+}
+
+pub fn message_to_execute_account_metas(message: VaultTransactionMessage) -> Vec<AccountMeta> {
+    let mut account_metas = Vec::with_capacity(message.account_keys.len());
+
+    // Iterate over account_keys and set the properties based on the index
+    for (index, pubkey) in message.account_keys.iter().enumerate() {
+        let is_signer = index < message.num_signers as usize;
+        let is_writable = if is_signer {
+            index < message.num_writable_signers as usize
+        } else {
+            index < (message.num_signers as usize + message.num_writable_non_signers as usize)
+        };
+
+        account_metas.push(AccountMeta {
+            pubkey: *pubkey,
+            is_signer,
+            is_writable,
+        });
+    }
+
+    account_metas
 }
