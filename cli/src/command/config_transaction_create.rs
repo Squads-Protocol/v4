@@ -14,7 +14,7 @@ use solana_sdk::transaction::VersionedTransaction;
 
 use squads_multisig::anchor_lang::InstructionData;
 use squads_multisig::client::get_multisig;
-use squads_multisig::pda::get_proposal_pda;
+use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig::solana_client::client_error::ClientErrorKind;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::solana_client::rpc_request::{RpcError, RpcResponseErrorData};
@@ -89,7 +89,7 @@ impl ConfigTransactionCreate {
 
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
 
-        let transaction_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
+        let transaction_pda = get_transaction_pda(&multisig, transaction_index, Some(&program_id));
 
         let config_action = parse_action(&action);
 
@@ -206,7 +206,7 @@ impl ConfigTransactionCreate {
         }
 
         println!(
-            "✅ Executed Vault Transaction. Signature: {}",
+            "✅ Created Config Transaction. Signature: {}",
             transaction.signatures[0]
         );
         Ok(())
