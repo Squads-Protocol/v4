@@ -14,7 +14,7 @@ use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
 
 use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::pda::get_proposal_pda;
+use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig::solana_client::client_error::ClientErrorKind;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::solana_client::rpc_request::{RpcError, RpcResponseErrorData};
@@ -62,14 +62,13 @@ impl VaultTransactionAccountsClose {
             transaction_index,
             rent_collector,
         } = self;
-
         let program_id =
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig key");
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
 
-        let transaction_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
+        let transaction_pda = get_transaction_pda(&multisig, transaction_index, Some(&program_id));
 
         let rent_collector_key =
             Pubkey::from_str(&rent_collector).expect("Invalid rent collector key");
@@ -121,7 +120,7 @@ impl VaultTransactionAccountsClose {
             &transaction_creator,
             &[Instruction {
                 accounts: VaultTransactionAccountsCloseAccounts {
-                    multisig: multisig,
+                    multisig,
                     proposal: proposal_pda.0,
                     rent_collector: rent_collector_key,
                     transaction: transaction_pda.0,
