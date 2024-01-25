@@ -23,5 +23,6 @@ async fn main() -> eyre::Result<()> {
         Command::VaultTransactionCreate(command) => command.execute().await,
         Command::ConfigTransactionCreate(command) => command.execute().await,
         Command::ConfigTransactionExecute(command) => command.execute().await,
+        Command::VaultTransactionAccountsClose(command) => command.execute().await,
     }
 }
