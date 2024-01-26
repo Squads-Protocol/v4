@@ -10,7 +10,8 @@ Overview
    - [Create config transaction](#config-transaction-create)
    - [Execute config transaction](#config-transaction-execute)
    - [Create multisig](#multisig-create)
-   - [Proposal Vote](#proposal-vote)
+   - [Vote on proposals](#proposal-vote)
+   - [Reclaim Vault Transaction rent](#vault-transaction-accounts-close)
   
 # 1. Installation
 
@@ -172,3 +173,27 @@ proposal_vote --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_P
    proposal_vote --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --action Cancel
    ```
    Cancels the transaction at index 1 in the multisig account.
+
+## Vault Transaction Accounts Close
+
+### Description
+Closes the accounts associated with a specific transaction in a multisig vault on the Solana blockchain. This command is used to collect rent from the transaction accounts and clean up state.
+
+### Syntax
+```bash
+vault_transaction_accounts_close --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index <TRANSACTION_INDEX> --rent_collector <RENT_COLLECTOR_PUBKEY>
+```
+
+### Parameters
+- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
+- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--transaction_index <TRANSACTION_INDEX>`: The index of the transaction whose accounts are to be closed.
+- `--rent_collector <RENT_COLLECTOR_PUBKEY>`: The public key of the account responsible for collecting rent.
+
+### Example Usage
+```bash
+vault_transaction_accounts_close --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --rent_collector <RENT_COLLECTOR_PUBKEY>
+```
+In this example, the command closes the transaction accounts for the transaction at index 1 in the specified multisig account and collects rent using the provided rent collector public key.
