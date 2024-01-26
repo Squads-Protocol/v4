@@ -4,18 +4,54 @@ The following is an overview of commands available to interact with the Squads V
 
 Overview
 
-1. Installation
-2. Supported wallets
-3. [Commands](#3.-commands)
+1. [Installation](#installation)
+2. [Supported wallets](#supported-wallets)
+3. [Commands](#3-commands)
    - [Create config transaction](#config-transaction-create)
    - [Execute config transaction](#config-transaction-execute)
    - [Create multisig](#multisig-create)
    - [Vote on proposals](#proposal-vote)
    - [Reclaim Vault Transaction rent](#vault-transaction-accounts-close)
+   - [Create new Vault Transaction](#vault-transaction-create)
+   - [Execute Vault Transaction](#vault-transaction-execute)
   
 # 1. Installation
 
+You can install the CLI with Cargo. 
+For this an installation of Rust will be needed. You can find installation steps [here](https://www.rust-lang.org/tools/install).
+
+Now, install the Squads CLI.
+
+```bash
+cargo install squads-multisig-cli
+```
+
 # 2. Supported wallets
+
+The Squads CLI has exactly the same wallet support as the Solana CLI, meaning it supports file system wallets as well as Ledger hardware wallets.
+
+### File system wallets
+
+You can easily use your local filesystem wallet by using it as the "keypair" argument in commands.
+
+```bash
+squads-multisig-cli example-command --keypair /path/to/keypair.json
+```
+This specifies the path of the Keypair that you want to use to sign a CLI transaction.
+
+### Ledger support
+
+To use a Ledger with the Squads CLI, just specify the Ledger device URL in the "keypair" argument.
+
+```bash
+squads-multisig-cli example-command --keypair usb://ledger
+```
+This will use the default derivation path of your Ledger.
+
+```bash
+squads-multisig-cli example-command --keypair usb://ledger/BsNsvfXqQTtJnagwFWdBS7FBXgnsK8VZ5CmuznN85swK?key=0/0
+```
+This specifies a custom derivation path. You can read more about it [here](https://docs.solana.com/wallet-guide/hardware-wallets/ledger).
 
 # 3. Commands
 
@@ -177,7 +213,7 @@ proposal_vote --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_P
 ## Vault Transaction Accounts Close
 
 ### Description
-Closes the accounts associated with a specific transaction in a multisig vault on the Solana blockchain. This command is used to collect rent from the transaction accounts and clean up state.
+Closes the proposal and transaction accounts associated with a specific Vault Transaction. The rent will be returned to the multisigs "rent_collector".
 
 ### Syntax
 ```bash
@@ -197,3 +233,51 @@ vault_transaction_accounts_close --rpc_url <RPC_URL> --program_id <PROGRAM_ID> -
 vault_transaction_accounts_close --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --rent_collector <RENT_COLLECTOR_PUBKEY>
 ```
 In this example, the command closes the transaction accounts for the transaction at index 1 in the specified multisig account and collects rent using the provided rent collector public key.
+
+## Vault Transaction Create
+
+### Description
+Creates a new vault transaction with a custom transaction message.
+
+### Syntax
+```bash
+vault_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --vault_index <VAULT_INDEX> --transaction_message <TRANSACTION_MESSAGE> [--memo <MEMO>]
+```
+
+### Parameters
+- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
+- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--vault_index <VAULT_INDEX>`: The index of the vault where the transaction is being created.
+- `--transaction_message <TRANSACTION_MESSAGE>`: The message or payload of the transaction.
+- `--memo <MEMO>`: (Optional) A memo for the transaction.
+
+### Example Usage
+```bash
+vault_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --vault_index 1 --transaction_message [1, 2, 3, 5, 5, 6, 7, 8]
+```
+In this example, a new transaction with the specified message is proposed in the multisig vault at vault index 1.
+
+## Vault Transaction Execute
+
+### Description
+Executes a transaction once its proposal has reachen threshold.
+
+### Syntax
+```bash
+vault_transaction_execute --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index <TRANSACTION_INDEX>
+```
+
+### Parameters
+- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
+- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--transaction_index <TRANSACTION_INDEX>`: The index of the transaction to be executed.
+
+### Example Usage
+```bash
+vault_transaction_execute --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1
+```
+This example executes the transaction at index 1 in the specified multisig.
