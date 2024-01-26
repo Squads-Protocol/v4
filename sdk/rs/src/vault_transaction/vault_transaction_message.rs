@@ -133,7 +133,7 @@ pub trait VaultTransactionMessageExt {
                     // because they are PDAs and hence won't have their signatures on the transaction.
                     is_signer: message.is_signer_index(index)
                         && &pubkey != vault_pda
-                        && ephemeral_signer_pdas.contains(&pubkey),
+                        && !ephemeral_signer_pdas.contains(&pubkey),
                 }
             })
             .collect::<Vec<_>>();
