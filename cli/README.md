@@ -4,8 +4,8 @@ The following is an overview of commands available to interact with the Squads V
 
 Overview
 
-1. [Installation](#installation)
-2. [Supported wallets](#supported-wallets)
+1. [Installation](#1-installation)
+2. [Supported wallets](#2-supported-wallets)
 3. [Commands](#3-commands)
    - [Create config transaction](#config-transaction-create)
    - [Execute config transaction](#config-transaction-execute)
