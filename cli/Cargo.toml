@@ -17,7 +17,7 @@ colored = "2.1.0"
 # Solana deps
 solana-sdk = "1.17.15"
 # local deps
-squads-multisig = { path = "../sdk/rs", version = "0.1.1" }
+squads-multisig = { path = "../sdk/rs", version = "2.0.0" }
 solana-remote-wallet = "1.17.15"
 solana-clap-v3-utils = "1.17.15"
 solana-program = "1.17.15"
