@@ -163,7 +163,7 @@ impl ConfigTransactionExecute {
         }
 
         println!(
-            "✅ Executed Vault Transaction. Signature: {}",
+            "✅ Executed Config Transaction. Signature: {}",
             transaction.signatures[0]
         );
         Ok(())
