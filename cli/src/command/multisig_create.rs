@@ -1,6 +1,3 @@
-use std::str::FromStr;
-use std::time::Duration;
-
 use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
@@ -9,21 +6,25 @@ use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
+use solana_sdk::signature::{Keypair, Signer};
 use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
+use std::str::FromStr;
+use std::time::Duration;
 
 use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::pda::get_program_config_pda;
+use squads_multisig::pda::get_multisig_pda;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ProgramConfigInit as ProgramConfigInitAccounts;
+use squads_multisig::squads_multisig_program::accounts::MultisigCreate as MultisigCreateAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ProgramConfigInit as ProgramConfigInitData;
-use squads_multisig::squads_multisig_program::ProgramConfigInitArgs;
+use squads_multisig::squads_multisig_program::instruction::MultisigCreate as MultisigCreateData;
+use squads_multisig::squads_multisig_program::MultisigCreateArgs;
+use squads_multisig::state::{Member, Permissions};
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
 #[derive(Args)]
-pub struct ProgramConfigInit {
+pub struct MultisigCreate {
     /// RPC URL
     #[arg(long)]
     rpc_url: Option<String>,
@@ -34,64 +35,66 @@ pub struct ProgramConfigInit {
 
     /// Path to the Program Config Initializer Keypair
     #[arg(long)]
-    initializer_keypair: String,
+    keypair: String,
 
     /// Address of the Program Config Authority that will be set to control the Program Config
     #[arg(long)]
-    program_config_authority: String,
+    config_authority: Option<String>,
 
-    /// Address of the Treasury that will be set to receive the multisig creation fees
-    #[arg(long)]
-    treasury: String,
+    #[arg(long, short, value_delimiter = ' ')]
+    members: Vec<String>,
 
-    /// Multisig creation fee in lamports
     #[arg(long)]
-    multisig_creation_fee: u64,
+    threshold: u16,
 }
 
-impl ProgramConfigInit {
+impl MultisigCreate {
     pub async fn execute(self) -> eyre::Result<()> {
         let Self {
             rpc_url,
             program_id,
-            initializer_keypair,
-            program_config_authority,
-            treasury,
-            multisig_creation_fee,
+            keypair,
+            config_authority,
+            members,
+            threshold,
         } = self;
 
         let program_id =
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
-        let program_config_authority = Pubkey::from_str(&program_config_authority)
-            .expect("Invalid program config authority address");
-        let treasury = Pubkey::from_str(&treasury).expect("Invalid treasury address");
 
-        let transaction_creator_keypair = create_signer_from_path(initializer_keypair).unwrap();
+        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
 
         let transaction_creator = transaction_creator_keypair.pubkey();
 
-        let program_config = get_program_config_pda(Some(&program_id)).0;
-
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
+
+        let members = parse_members(members).unwrap_or_else(|err| {
+            eprintln!("Error parsing members: {}", err);
+            std::process::exit(1);
+        });
 
         println!();
         println!(
             "{}",
-            "👀 You're about to initialize ProgramConfig, please review the details:".yellow()
+            "👀 You're about to create a multisig, please review the details:".yellow()
         );
         println!();
         println!("RPC Cluster URL:   {}", rpc_url);
         println!("Program ID:        {}", program_id);
-        println!("Initializer:       {}", transaction_creator);
+        println!("Your Public Key:       {}", transaction_creator);
         println!();
         println!("⚙️ Config Parameters");
         println!();
-        println!("Config Authority:  {}", program_config_authority);
-        println!("Treasury:          {}", treasury);
-        println!("Creation Fee:      {}", multisig_creation_fee);
+        println!(
+            "Config Authority:  {}",
+            config_authority.as_deref().unwrap_or("None")
+        );
+        println!("Members amount:      {}", members.len());
         println!();
+
+        let config_authority = config_authority.map(|s| Pubkey::from_str(&s)).transpose()?;
 
         let proceed = Confirm::new()
             .with_prompt("Do you want to proceed?")
@@ -113,20 +116,27 @@ impl ProgramConfigInit {
             .await
             .expect("Failed to get blockhash");
 
+        let random_keypair = Keypair::new();
+
+        let multisig_key = get_multisig_pda(&random_keypair.pubkey(), Some(&program_id));
+
         let message = Message::try_compile(
             &transaction_creator,
             &[Instruction {
-                accounts: ProgramConfigInitAccounts {
-                    program_config,
-                    initializer: transaction_creator,
+                accounts: MultisigCreateAccounts {
+                    create_key: random_keypair.pubkey(),
+                    creator: transaction_creator,
+                    multisig: multisig_key.0,
                     system_program: system_program::id(),
                 }
                 .to_account_metas(Some(false)),
-                data: ProgramConfigInitData {
-                    args: ProgramConfigInitArgs {
-                        authority: program_config_authority,
-                        multisig_creation_fee,
-                        treasury,
+                data: MultisigCreateData {
+                    args: MultisigCreateArgs {
+                        config_authority,
+                        members,
+                        threshold,
+                        time_lock: 0,
+                        memo: None,
                     },
                 }
                 .data(),
@@ -139,13 +149,41 @@ impl ProgramConfigInit {
 
         let transaction = VersionedTransaction::try_new(
             VersionedMessage::V0(message),
-            &[&*transaction_creator_keypair],
+            &[
+                &*transaction_creator_keypair,
+                &random_keypair as &dyn Signer,
+            ],
         )
         .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
-        
-        println!("✅ ProgramConfig Account initialized: {}. Signature: {}", program_config, signature.green());
+
+        println!("✅ Created Multisig: {}. Signature: {}", multisig_key.0, signature.green());
         Ok(())
     }
+}
+
+fn parse_members(member_strings: Vec<String>) -> Result<Vec<Member>, String> {
+    member_strings
+        .into_iter()
+        .map(|s| {
+            let parts: Vec<&str> = s.split(',').collect();
+            if parts.len() != 2 {
+                return Err(
+                    "Each entry must be in the format <public_key>,<permission>".to_string()
+                );
+            }
+
+            let key =
+                Pubkey::from_str(parts[0]).map_err(|_| "Invalid public key format".to_string())?;
+            let permissions = parts[1]
+                .parse::<u8>()
+                .map_err(|_| "Invalid permission format".to_string())?;
+
+            Ok(Member {
+                key,
+                permissions: Permissions { mask: permissions },
+            })
+        })
+        .collect()
 }

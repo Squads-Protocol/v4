@@ -623,7 +623,7 @@ pub fn vault_transaction_accounts_close(
     }
 }
 
-mod utils {
+pub mod utils {
     use squads_multisig_program::accounts::{ConfigTransactionExecute, SpendingLimitUse};
 
     use crate::solana_program::instruction::AccountMeta;
@@ -641,7 +641,7 @@ mod utils {
                 AccountMeta::new(self.multisig, false),
                 AccountMeta::new_readonly(self.member, true),
                 AccountMeta::new(self.proposal, false),
-                AccountMeta::new_readonly(self.transaction, false),
+                AccountMeta::new(self.transaction, false),
                 if let Some(rent_payer) = self.rent_payer {
                     AccountMeta::new(rent_payer, true)
                 } else {
