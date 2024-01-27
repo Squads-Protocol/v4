@@ -5,7 +5,8 @@ name = "squads-multisig-cli"
 version = "0.1.0"
 edition = "2021"
 authors = ["Valentin Madrid", "Vova Guguiev"]
-license = "https://raw.githubusercontent.com/Squads-Protocol/v4/main/LICENSE"
+license = "MIT OR Apache-2.0"
+description = "Command line interface to interact with the Squads v4 program."
 
 [dependencies]
 tokio = { version = "1.35.1", features = ["rt", "rt-multi-thread", "macros"] }
@@ -17,7 +18,7 @@ colored = "2.1.0"
 # Solana deps
 solana-sdk = "1.17.15"
 # local deps
-squads-multisig = { path = "../sdk/rs", version = "2.0.0" }
+squads-multisig = { path = "../sdk/rs", version = "2.0.1" }
 solana-remote-wallet = "1.17.15"
 solana-clap-v3-utils = "1.17.15"
 solana-program = "1.17.15"
