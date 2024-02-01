@@ -47,6 +47,7 @@ export function multisigAddSpendingLimit({
         createKey,
         vaultIndex,
         mint,
+        // @ts-ignore
         amount: new BN(amount.toString()),
         period,
         members,
