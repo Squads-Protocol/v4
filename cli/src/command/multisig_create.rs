@@ -12,13 +12,15 @@ use solana_sdk::transaction::VersionedTransaction;
 use std::str::FromStr;
 use std::time::Duration;
 
-use squads_multisig::anchor_lang::InstructionData;
+use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
 use squads_multisig::pda::get_multisig_pda;
+use squads_multisig::pda::get_program_config_pda;
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::MultisigCreate as MultisigCreateAccounts;
+use squads_multisig::squads_multisig_program::accounts::MultisigCreateV2 as MultisigCreateV2Accounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::MultisigCreate as MultisigCreateData;
-use squads_multisig::squads_multisig_program::MultisigCreateArgs;
+use squads_multisig::squads_multisig_program::instruction::MultisigCreateV2 as MultisigCreateV2Data;
+use squads_multisig::squads_multisig_program::state::ProgramConfig;
+use squads_multisig::squads_multisig_program::MultisigCreateArgsV2;
 use squads_multisig::state::{Member, Permissions};
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
@@ -41,6 +43,9 @@ pub struct MultisigCreate {
     #[arg(long)]
     config_authority: Option<String>,
 
+    #[arg(long)]
+    rent_collector: Option<Pubkey>,
+
     #[arg(long, short, value_delimiter = ' ')]
     members: Vec<String>,
 
@@ -57,6 +62,7 @@ impl MultisigCreate {
             config_authority,
             members,
             threshold,
+            rent_collector,
         } = self;
 
         let program_id =
@@ -91,6 +97,13 @@ impl MultisigCreate {
             "Config Authority:  {}",
             config_authority.as_deref().unwrap_or("None")
         );
+        println!("Threshold:          {}", threshold);
+        println!(
+            "Rent Collector:     {}",
+            rent_collector
+                .map(|k| k.to_string())
+                .unwrap_or_else(|| "None".to_string())
+        );
         println!("Members amount:      {}", members.len());
         println!();
 
@@ -120,23 +133,39 @@ impl MultisigCreate {
 
         let multisig_key = get_multisig_pda(&random_keypair.pubkey(), Some(&program_id));
 
+        let program_config_pda = get_program_config_pda(Some(&program_id));
+
+        let program_config = rpc_client
+            .get_account(&program_config_pda.0)
+            .await
+            .expect("Failed to fetch program config account");
+
+        let mut program_config_data = program_config.data.as_slice();
+
+        let treasury = ProgramConfig::try_deserialize(&mut program_config_data)
+            .unwrap()
+            .treasury;
+
         let message = Message::try_compile(
             &transaction_creator,
             &[Instruction {
-                accounts: MultisigCreateAccounts {
+                accounts: MultisigCreateV2Accounts {
                     create_key: random_keypair.pubkey(),
                     creator: transaction_creator,
                     multisig: multisig_key.0,
                     system_program: system_program::id(),
+                    program_config: program_config_pda.0,
+                    treasury,
                 }
                 .to_account_metas(Some(false)),
-                data: MultisigCreateData {
-                    args: MultisigCreateArgs {
+                data: MultisigCreateV2Data {
+                    args: MultisigCreateArgsV2 {
                         config_authority,
                         members,
                         threshold,
                         time_lock: 0,
                         memo: None,
+                        rent_collector,
                     },
                 }
                 .data(),
@@ -158,7 +187,11 @@ impl MultisigCreate {
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 
-        println!("✅ Created Multisig: {}. Signature: {}", multisig_key.0, signature.green());
+        println!(
+            "✅ Created Multisig: {}. Signature: {}",
+            multisig_key.0,
+            signature.green()
+        );
         Ok(())
     }
 }
