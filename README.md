@@ -104,8 +104,12 @@ Squads Protocol v4 has undergone various independent audits by leading cybersecu
 
 Below is a list of audit reports pertaining to the v4 program. Each entry enumerates the responsible auditor and is accompanied by a corresponding GitHub link for review:
 
- - OtterSec: [View full report](https://github.com/Squads-Protocol/v4/blob/main/ottersec_squads_v4_audit_final.pdf)
- - Neodyme: [View full report](https://github.com/Squads-Protocol/v4/blob/main/neodyme_squads_v4_report.pdf)
+ - OtterSec: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/ottersec_squads_v4_audit.pdf)
+ - OtterSec 2024: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/ottersec_squads_v4_audit_2024.pdf)
+ - Neodyme: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report.pdf)
+ - Neodyme 2024: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report_2024.pdf)
+ - Certora + Formal verification: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/certora_squads_v4_security_report_and_formal_verification.pdf)
+ - Trail of Bits: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/trail_of_bits_squads_v4_security_audit.pdf)
 
 
 ## License
