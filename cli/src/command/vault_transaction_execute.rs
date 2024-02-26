@@ -9,7 +9,7 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
-use squads_multisig::pda::get_proposal_pda;
+use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::VaultTransactionExecute as VaultTransactionExecuteAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
@@ -67,7 +67,7 @@ impl VaultTransactionExecute {
 
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
 
-        let transaction_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
+        let transaction_pda = get_transaction_pda(&multisig, transaction_index, Some(&program_id));
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
@@ -146,7 +146,6 @@ impl VaultTransactionExecute {
         )
         .expect("Failed to create transaction");
 
-        
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 
         println!(
