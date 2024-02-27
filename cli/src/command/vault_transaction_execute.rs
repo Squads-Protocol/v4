@@ -192,7 +192,7 @@ pub async fn message_to_execute_account_metas(
                 additional_signer_index as u8,
                 program_id,
             );
-            pda // Simply return the PDA
+            pda
         })
         .collect();
 
@@ -219,7 +219,6 @@ pub async fn message_to_execute_account_metas(
         account_metas.push(AccountMeta::new(key, false));
     }
 
-    // 2. Static Account Keys
     for (account_index, account_key) in message.account_keys.iter().enumerate() {
         let is_writable =
             VaultTransactionMessage::is_static_writable_index(&message, account_index);
@@ -234,7 +233,6 @@ pub async fn message_to_execute_account_metas(
         });
     }
 
-    // 3. Accounts from Address Lookup Tables
     for lookup in &message.address_table_lookups {
         let lookup_table_account = address_lookup_table_accounts
             .iter()
@@ -253,10 +251,8 @@ pub async fn message_to_execute_account_metas(
         }
 
         for &account_index in &lookup.readonly_indexes {
-            // Convert u8 to usize
             let account_index_usize = account_index as usize;
 
-            // Use the converted usize index to access the slice
             let pubkey = lookup_table_account
                 .addresses
                 .get(account_index_usize)
