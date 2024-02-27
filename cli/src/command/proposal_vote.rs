@@ -163,7 +163,8 @@ impl ProposalVote {
 
         println!(
             "✅ Casted {} vote. Signature: {}",
-            action, signature.green()
+            action,
+            signature.green()
         );
         Ok(())
     }

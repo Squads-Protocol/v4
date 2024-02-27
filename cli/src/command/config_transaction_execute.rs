@@ -84,7 +84,6 @@ impl ConfigTransactionExecute {
         println!("⚙️ Config Parameters");
         println!("Multisig Key:       {}", multisig_pubkey);
         println!("Transaction Index:       {}", transaction_index);
-        println!("Vote Type:       {}", transaction_index);
         println!();
 
         let proceed = Confirm::new()

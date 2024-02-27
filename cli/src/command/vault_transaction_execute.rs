@@ -3,13 +3,16 @@ use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
 use solana_program::instruction::AccountMeta;
+use solana_sdk::address_lookup_table::AddressLookupTableAccount;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
-use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
+use squads_multisig::pda::{
+    get_ephemeral_signer_pda, get_proposal_pda, get_transaction_pda, get_vault_pda,
+};
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::VaultTransactionExecute as VaultTransactionExecuteAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
@@ -84,7 +87,6 @@ impl VaultTransactionExecute {
         println!("⚙️ Config Parameters");
         println!("Multisig Key:       {}", multisig_pubkey);
         println!("Transaction Index:       {}", transaction_index);
-        println!("Vote Type:       {}", transaction_index);
         println!();
 
         let proceed = Confirm::new()
@@ -110,8 +112,23 @@ impl VaultTransactionExecute {
         let deserialized_account_data =
             VaultTransaction::try_deserialize(&mut transaction_account_data_slice).unwrap();
 
+        let vault_pda = get_vault_pda(
+            &multisig,
+            deserialized_account_data.vault_index,
+            Some(&program_id),
+        );
+
         let transaction_message = deserialized_account_data.message;
-        let remaining_account_metas = message_to_execute_account_metas(transaction_message);
+        let remaining_account_metas = message_to_execute_account_metas(
+            &rpc_client,
+            transaction_message,
+            deserialized_account_data.ephemeral_signer_bumps,
+            &vault_pda.0,
+            &transaction_pda.0,
+            Some(&program_id),
+        )
+        .await;
+
         let mut vault_transaction_account_metas = VaultTransactionExecuteAccounts {
             member: transaction_creator,
             multisig,
@@ -119,7 +136,7 @@ impl VaultTransactionExecute {
             transaction: transaction_pda.0,
         }
         .to_account_metas(Some(false));
-        vault_transaction_account_metas.extend(remaining_account_metas);
+        vault_transaction_account_metas.extend(remaining_account_metas.0);
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
         progress.enable_steady_tick(Duration::from_millis(100));
 
@@ -135,7 +152,7 @@ impl VaultTransactionExecute {
                 data: VaultTransactionExecuteData {}.data(),
                 program_id,
             }],
-            &[],
+            &remaining_account_metas.1.as_slice(),
             blockhash,
         )
         .unwrap();
@@ -156,24 +173,98 @@ impl VaultTransactionExecute {
     }
 }
 
-pub fn message_to_execute_account_metas(message: VaultTransactionMessage) -> Vec<AccountMeta> {
+pub async fn message_to_execute_account_metas(
+    rpc_client: &RpcClient,
+    message: VaultTransactionMessage,
+    ephemeral_signer_bumps: Vec<u8>,
+    vault_pda: &Pubkey,
+    transaction_pda: &Pubkey,
+    program_id: Option<&Pubkey>,
+) -> (Vec<AccountMeta>, Vec<AddressLookupTableAccount>) {
     let mut account_metas = Vec::with_capacity(message.account_keys.len());
 
-    // Iterate over account_keys and set the properties based on the index
-    for (index, pubkey) in message.account_keys.iter().enumerate() {
-        let is_signer = index < message.num_signers as usize;
-        let is_writable = if is_signer {
-            index < message.num_writable_signers as usize
-        } else {
-            index < (message.num_signers as usize + message.num_writable_non_signers as usize)
+    let mut address_lookup_table_accounts: Vec<AddressLookupTableAccount> = Vec::new();
+
+    let ephemeral_signer_pdas: Vec<Pubkey> = (0..ephemeral_signer_bumps.len())
+        .map(|additional_signer_index| {
+            let (pda, _bump_seed) = get_ephemeral_signer_pda(
+                &transaction_pda,
+                additional_signer_index as u8,
+                program_id,
+            );
+            pda // Simply return the PDA
+        })
+        .collect();
+
+    let address_lookup_table_keys = message
+        .address_table_lookups
+        .iter()
+        .map(|lookup| lookup.account_key)
+        .collect::<Vec<_>>();
+
+    for key in address_lookup_table_keys {
+        let account_data = rpc_client.get_account(&key).await.unwrap().data;
+        let lookup_table =
+            solana_address_lookup_table_program::state::AddressLookupTable::deserialize(
+                &account_data,
+            )
+            .unwrap();
+
+        let address_lookup_table_account = AddressLookupTableAccount {
+            addresses: lookup_table.addresses.to_vec(),
+            key,
         };
 
+        address_lookup_table_accounts.push(address_lookup_table_account);
+        account_metas.push(AccountMeta::new(key, false));
+    }
+
+    // 2. Static Account Keys
+    for (account_index, account_key) in message.account_keys.iter().enumerate() {
+        let is_writable =
+            VaultTransactionMessage::is_static_writable_index(&message, account_index);
+        let is_signer = VaultTransactionMessage::is_signer_index(&message, account_index)
+            && !account_key.eq(&vault_pda)
+            && !ephemeral_signer_pdas.contains(account_key);
+
         account_metas.push(AccountMeta {
-            pubkey: *pubkey,
+            pubkey: *account_key,
             is_signer,
             is_writable,
         });
     }
 
-    account_metas
+    // 3. Accounts from Address Lookup Tables
+    for lookup in &message.address_table_lookups {
+        let lookup_table_account = address_lookup_table_accounts
+            .iter()
+            .find(|account| account.key == lookup.account_key)
+            .unwrap();
+
+        for &account_index in &lookup.writable_indexes {
+            let account_index_usize = account_index as usize;
+
+            let pubkey = lookup_table_account
+                .addresses
+                .get(account_index_usize)
+                .unwrap();
+
+            account_metas.push(AccountMeta::new(*pubkey, false));
+        }
+
+        for &account_index in &lookup.readonly_indexes {
+            // Convert u8 to usize
+            let account_index_usize = account_index as usize;
+
+            // Use the converted usize index to access the slice
+            let pubkey = lookup_table_account
+                .addresses
+                .get(account_index_usize)
+                .unwrap();
+
+            account_metas.push(AccountMeta::new_readonly(*pubkey, false));
+        }
+    }
+
+    (account_metas, address_lookup_table_accounts)
 }
