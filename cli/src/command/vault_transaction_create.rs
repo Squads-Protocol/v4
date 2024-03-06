@@ -5,6 +5,7 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
+use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -52,6 +53,9 @@ pub struct VaultTransactionCreate {
     /// Memo to be included in the transaction
     #[arg(long)]
     memo: Option<String>,
+
+    #[arg(long)]
+    priority_fee_lamports: Option<u64>,
 }
 
 impl VaultTransactionCreate {
@@ -64,6 +68,7 @@ impl VaultTransactionCreate {
             memo,
             transaction_message,
             vault_index,
+            priority_fee_lamports,
         } = self;
 
         let program_id =
@@ -124,6 +129,9 @@ impl VaultTransactionCreate {
         let message = Message::try_compile(
             &transaction_creator,
             &[
+                ComputeBudgetInstruction::set_compute_unit_price(
+                    priority_fee_lamports.unwrap_or(5000),
+                ),
                 Instruction {
                     accounts: VaultTransactionCreateAccounts {
                         creator: transaction_creator,

@@ -5,12 +5,12 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
+use solana_sdk::{compute_budget::ComputeBudgetInstruction, instruction::Instruction};
 
 use squads_multisig::anchor_lang::InstructionData;
 use squads_multisig::pda::get_program_config_pda;
@@ -47,6 +47,9 @@ pub struct ProgramConfigInit {
     /// Multisig creation fee in lamports
     #[arg(long)]
     multisig_creation_fee: u64,
+
+    #[arg(long)]
+    priority_fee_lamports: Option<u64>,
 }
 
 impl ProgramConfigInit {
@@ -58,6 +61,7 @@ impl ProgramConfigInit {
             program_config_authority,
             treasury,
             multisig_creation_fee,
+            priority_fee_lamports,
         } = self;
 
         let program_id =
@@ -115,23 +119,28 @@ impl ProgramConfigInit {
 
         let message = Message::try_compile(
             &transaction_creator,
-            &[Instruction {
-                accounts: ProgramConfigInitAccounts {
-                    program_config,
-                    initializer: transaction_creator,
-                    system_program: system_program::id(),
-                }
-                .to_account_metas(Some(false)),
-                data: ProgramConfigInitData {
-                    args: ProgramConfigInitArgs {
-                        authority: program_config_authority,
-                        multisig_creation_fee,
-                        treasury,
-                    },
-                }
-                .data(),
-                program_id,
-            }],
+            &[
+                ComputeBudgetInstruction::set_compute_unit_price(
+                    priority_fee_lamports.unwrap_or(5000),
+                ),
+                Instruction {
+                    accounts: ProgramConfigInitAccounts {
+                        program_config,
+                        initializer: transaction_creator,
+                        system_program: system_program::id(),
+                    }
+                    .to_account_metas(Some(false)),
+                    data: ProgramConfigInitData {
+                        args: ProgramConfigInitArgs {
+                            authority: program_config_authority,
+                            multisig_creation_fee,
+                            treasury,
+                        },
+                    }
+                    .data(),
+                    program_id,
+                },
+            ],
             &[],
             blockhash,
         )
@@ -144,8 +153,12 @@ impl ProgramConfigInit {
         .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
-        
-        println!("✅ ProgramConfig Account initialized: {}. Signature: {}", program_config, signature.green());
+
+        println!(
+            "✅ ProgramConfig Account initialized: {}. Signature: {}",
+            program_config,
+            signature.green()
+        );
         Ok(())
     }
 }

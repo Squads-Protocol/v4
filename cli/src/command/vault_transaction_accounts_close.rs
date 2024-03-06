@@ -5,6 +5,7 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
+use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -46,6 +47,9 @@ pub struct VaultTransactionAccountsClose {
     /// The proposal account key
     #[arg(long)]
     rent_collector: String,
+
+    #[arg(long)]
+    priority_fee_lamports: Option<u64>,
 }
 
 impl VaultTransactionAccountsClose {
@@ -57,6 +61,7 @@ impl VaultTransactionAccountsClose {
             multisig_pubkey,
             transaction_index,
             rent_collector,
+            priority_fee_lamports,
         } = self;
         let program_id =
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
@@ -114,18 +119,23 @@ impl VaultTransactionAccountsClose {
 
         let message = Message::try_compile(
             &transaction_creator,
-            &[Instruction {
-                accounts: VaultTransactionAccountsCloseAccounts {
-                    multisig,
-                    proposal: proposal_pda.0,
-                    rent_collector: rent_collector_key,
-                    transaction: transaction_pda.0,
-                    system_program: system_program::id(),
-                }
-                .to_account_metas(Some(false)),
-                data: VaultTransactionAccountsCloseData {}.data(),
-                program_id,
-            }],
+            &[
+                ComputeBudgetInstruction::set_compute_unit_price(
+                    priority_fee_lamports.unwrap_or(5000),
+                ),
+                Instruction {
+                    accounts: VaultTransactionAccountsCloseAccounts {
+                        multisig,
+                        proposal: proposal_pda.0,
+                        rent_collector: rent_collector_key,
+                        transaction: transaction_pda.0,
+                        system_program: system_program::id(),
+                    }
+                    .to_account_metas(Some(false)),
+                    data: VaultTransactionAccountsCloseData {}.data(),
+                    program_id,
+                },
+            ],
             &[],
             blockhash,
         )
