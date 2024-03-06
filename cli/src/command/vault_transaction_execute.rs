@@ -4,6 +4,7 @@ use dialoguer::Confirm;
 use indicatif::ProgressBar;
 use solana_program::instruction::AccountMeta;
 use solana_sdk::address_lookup_table::AddressLookupTableAccount;
+use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -45,6 +46,12 @@ pub struct VaultTransactionExecute {
     /// The multisig where the transaction has been proposed
     #[arg(long)]
     multisig_pubkey: String,
+
+    #[arg(long)]
+    priority_fee_lamports: Option<u64>,
+
+    #[arg(long)]
+    compute_unit_limit: Option<u32>,
 }
 
 impl VaultTransactionExecute {
@@ -55,6 +62,8 @@ impl VaultTransactionExecute {
             keypair,
             multisig_pubkey,
             transaction_index,
+            priority_fee_lamports,
+            compute_unit_limit,
         } = self;
 
         let program_id =
@@ -147,11 +156,19 @@ impl VaultTransactionExecute {
 
         let message = Message::try_compile(
             &transaction_creator,
-            &[Instruction {
-                accounts: vault_transaction_account_metas,
-                data: VaultTransactionExecuteData {}.data(),
-                program_id,
-            }],
+            &[
+                ComputeBudgetInstruction::set_compute_unit_limit(
+                    compute_unit_limit.unwrap_or(200_000),
+                ),
+                ComputeBudgetInstruction::set_compute_unit_price(
+                    priority_fee_lamports.unwrap_or(5000),
+                ),
+                Instruction {
+                    accounts: vault_transaction_account_metas,
+                    data: VaultTransactionExecuteData {}.data(),
+                    program_id,
+                },
+            ],
             &remaining_account_metas.1.as_slice(),
             blockhash,
         )
