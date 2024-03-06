@@ -4,6 +4,7 @@
   "description": "SDK for Squads Multisig Program v4",
   "main": "lib/index.js",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "generate": "yarn solita",
