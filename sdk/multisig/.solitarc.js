@@ -1,6 +1,6 @@
-const { Keypair } = require("@solana/web3.js");
-const { readFileSync } = require("fs");
-const path = require("path");
+const Keypair = (await import('@solana/web3.js')).Keypair;
+const readFileSync = (await import('fs')).readFileSync;
+const path = await import('path');
 
 const PROGRAM_NAME = "squads_multisig_program";
 
