@@ -15,5 +15,5 @@ runs:
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: 1.75.0
         components: rustfmt, clippy
