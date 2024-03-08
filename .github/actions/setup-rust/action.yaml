@@ -3,15 +3,7 @@ description: "Setup Rust toolchain"
 runs:
   using: "composite"
   steps:
-    - name: Cache Rust toolchain
-      id: rust-toolchain-cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.rustup
-        key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain') }}
-
-    - if: ${{ steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
-      name: Install Rust toolchain
+    - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
