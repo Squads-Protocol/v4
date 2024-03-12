@@ -3,9 +3,20 @@
   "version": "2.0.1",
   "description": "SDK for Squads Multisig Program v4",
   "main": "lib/index.js",
+  "module": "lib/index.mjs",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./lib/index.js",
+      "import": "./lib/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
   "license": "MIT",
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --outDir lib",
+    "build:js": "tsup src/index.ts --format esm,cjs --outDir lib",
+    "build:types": "tsc --emitDeclarationOnly",
+    "build": "yarn build:js && yarn build:types",
     "generate": "yarn solita",
     "ts": "tsc --noEmit",
     "prepare:canary": "yarn build && npm version --prerelease --preid=canary"
