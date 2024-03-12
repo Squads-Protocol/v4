@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts --format esm,cjs --outDir lib",
     "generate": "yarn solita",
     "ts": "tsc --noEmit",
     "prepare:canary": "yarn build && npm version --prerelease --preid=canary"
