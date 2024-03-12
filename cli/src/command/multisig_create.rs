@@ -2,6 +2,7 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
+use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -51,6 +52,9 @@ pub struct MultisigCreate {
 
     #[arg(long)]
     threshold: u16,
+
+    #[arg(long)]
+    priority_fee_lamports: Option<u64>,
 }
 
 impl MultisigCreate {
@@ -63,6 +67,7 @@ impl MultisigCreate {
             members,
             threshold,
             rent_collector,
+            priority_fee_lamports,
         } = self;
 
         let program_id =
@@ -148,29 +153,34 @@ impl MultisigCreate {
 
         let message = Message::try_compile(
             &transaction_creator,
-            &[Instruction {
-                accounts: MultisigCreateV2Accounts {
-                    create_key: random_keypair.pubkey(),
-                    creator: transaction_creator,
-                    multisig: multisig_key.0,
-                    system_program: system_program::id(),
-                    program_config: program_config_pda.0,
-                    treasury,
-                }
-                .to_account_metas(Some(false)),
-                data: MultisigCreateV2Data {
-                    args: MultisigCreateArgsV2 {
-                        config_authority,
-                        members,
-                        threshold,
-                        time_lock: 0,
-                        memo: None,
-                        rent_collector,
-                    },
-                }
-                .data(),
-                program_id,
-            }],
+            &[
+                ComputeBudgetInstruction::set_compute_unit_price(
+                    priority_fee_lamports.unwrap_or(5000),
+                ),
+                Instruction {
+                    accounts: MultisigCreateV2Accounts {
+                        create_key: random_keypair.pubkey(),
+                        creator: transaction_creator,
+                        multisig: multisig_key.0,
+                        system_program: system_program::id(),
+                        program_config: program_config_pda.0,
+                        treasury,
+                    }
+                    .to_account_metas(Some(false)),
+                    data: MultisigCreateV2Data {
+                        args: MultisigCreateArgsV2 {
+                            config_authority,
+                            members,
+                            threshold,
+                            time_lock: 0,
+                            memo: None,
+                            rent_collector,
+                        },
+                    }
+                    .data(),
+                    program_id,
+                },
+            ],
             &[],
             blockhash,
         )

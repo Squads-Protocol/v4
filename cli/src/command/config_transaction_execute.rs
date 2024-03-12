@@ -5,6 +5,7 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
+use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -40,6 +41,9 @@ pub struct ConfigTransactionExecute {
     /// Index of the transaction to vote on
     #[arg(long)]
     transaction_index: u64,
+
+    #[arg(long)]
+    priority_fee_lamports: Option<u64>,
 }
 
 impl ConfigTransactionExecute {
@@ -50,6 +54,7 @@ impl ConfigTransactionExecute {
             keypair,
             multisig_pubkey,
             transaction_index,
+            priority_fee_lamports,
         } = self;
 
         let program_id =
@@ -106,19 +111,24 @@ impl ConfigTransactionExecute {
 
         let message = Message::try_compile(
             &transaction_creator,
-            &[Instruction {
-                accounts: ConfigTransactionExecuteAccounts {
-                    member: transaction_creator,
-                    transaction: transaction_pda.0,
-                    rent_payer: Some(transaction_creator),
-                    multisig,
-                    proposal: proposal_pda.0,
-                    system_program: Some(solana_sdk::system_program::id()),
-                }
-                .into_account_metas(program_id),
-                data: ConfigTransactionExecuteData {}.data(),
-                program_id,
-            }],
+            &[
+                ComputeBudgetInstruction::set_compute_unit_price(
+                    priority_fee_lamports.unwrap_or(5000),
+                ),
+                Instruction {
+                    accounts: ConfigTransactionExecuteAccounts {
+                        member: transaction_creator,
+                        transaction: transaction_pda.0,
+                        rent_payer: Some(transaction_creator),
+                        multisig,
+                        proposal: proposal_pda.0,
+                        system_program: Some(solana_sdk::system_program::id()),
+                    }
+                    .into_account_metas(program_id),
+                    data: ConfigTransactionExecuteData {}.data(),
+                    program_id,
+                },
+            ],
             &[],
             blockhash,
         )
