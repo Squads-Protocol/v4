@@ -67,15 +67,15 @@ Creates a new configuration proposal transaction for a specific action.
 ### Syntax
 
 ```bash
-config_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action <ACTION> [--memo <MEMO>]
+config-transaction-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action <ACTION> [--memo <MEMO>]
 ```
 
 ### Parameters
 
-- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
 - `--action <ACTION>`: The action to execute. Format depends on the action type.
 - `--memo <MEMO>`: (Optional) A memo for the transaction.
 
@@ -84,7 +84,7 @@ config_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypai
 1. **Add a New Member:**
 
    ```bash
-   config_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action "AddMember <NEW_MEMBER_PUBLIC_KEY> <PERMISSIONS>"
+   config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "AddMember <NEW_MEMBER_PUBLIC_KEY> <PERMISSIONS>"
    ```
 
    Adds a new member to the multisig configuration with specified permissions.
@@ -95,7 +95,7 @@ config_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypai
 2. **Remove a Member:**
 
    ```bash
-   config_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action "RemoveMember <MEMBER_PUBLIC_KEY>"
+   config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "RemoveMember <MEMBER_PUBLIC_KEY>"
    ```
 
    Removes an existing member from the multisig configuration.
@@ -103,7 +103,7 @@ config_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypai
 3. **Change Threshold:**
 
    ```bash
-   config_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action "ChangeThreshold <NEW_THRESHOLD>"
+   config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "ChangeThreshold <NEW_THRESHOLD>"
    ```
 
    Changes the threshold number of signatures required for executing multisig transactions.
@@ -111,7 +111,7 @@ config_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypai
 4. **Set Time Lock:**
 
    ```bash
-   config_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action "SetTimeLock <TIME_LOCK_VALUE>"
+   config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "SetTimeLock <TIME_LOCK_VALUE>"
    ```
 
    Sets a time lock for the multisig account.
@@ -119,7 +119,7 @@ config_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypai
 5. **Add Spending Limit:**
 
    ```bash
-   config_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action "AddSpendingLimit <CREATE_KEY> <VAULT_INDEX> <MINT> <AMOUNT> <PERIOD> <MEMBERS> <DESTINATIONS>"
+   config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "AddSpendingLimit <CREATE_KEY> <VAULT_INDEX> <MINT> <AMOUNT> <PERIOD> <MEMBERS> <DESTINATIONS>"
    ```
 
    Adds a spending limit to the multisig account.
@@ -127,14 +127,14 @@ config_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypai
 6. **Remove Spending Limit:**
 
    ```bash
-   config_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action "RemoveSpendingLimit <SPENDING_LIMIT_PUBKEY>"
+   config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "RemoveSpendingLimit <SPENDING_LIMIT_PUBKEY>"
    ```
 
    Removes an existing spending limit from the multisig account.
 
 7. **Set Rent Collector:**
    ```bash
-   config_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --action "SetRentCollector <NEW_RENT_COLLECTOR_PUBKEY>"
+   config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "SetRentCollector <NEW_RENT_COLLECTOR_PUBKEY>"
    ```
    Sets a new rent collector for the multisig account.
 
@@ -147,21 +147,21 @@ Executes a proposed transaction for a multisig configuration change. This comman
 ### Syntax
 
 ```bash
-config_transaction_execute --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index <TRANSACTION_INDEX>
+config-transaction-execute --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index <TRANSACTION_INDEX>
 ```
 
 ### Parameters
 
-- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
-- `--transaction_index <TRANSACTION_INDEX>`: The index of the transaction to be executed.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction to be executed.
 
 ### Example Usage
 
 ```bash
-config_transaction_execute --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1
+config-transaction-execute --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index 1
 ```
 
 ## Multisig Create
@@ -173,25 +173,25 @@ Creates a new multisig with initial members and threshold configuration.
 ### Syntax
 
 ```bash
-multisig_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --config_authority <CONFIG_AUTHORITY> --members <MEMBER_1> <MEMBER_2> ... --threshold <THRESHOLD>
+multisig-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --config-authority <CONFIG_AUTHORITY> --members <MEMBER_1> <MEMBER_2> ... --threshold <THRESHOLD>
 ```
 
 ### Parameters
 
-- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--config_authority <CONFIG_AUTHORITY>`: (Optional) Address of the Program Config Authority.
+- `--config-authority <CONFIG_AUTHORITY>`: (Optional) Address of the Program Config Authority.
 - `--members <MEMBER_...>`: List of members' public keys, separated by spaces.
 - `--threshold <THRESHOLD>`: The threshold number of signatures required for executing multisig transactions.
-- `--rent_collector <RENT_COLLECTOR>` : The Public key that will be able to reclaim rent from canceled and executed transactions.
+- `--rent-collector <RENT_COLLECTOR>` : The Public key that will be able to reclaim rent from canceled and executed transactions.
 
 ### Example Usage
 
 1. **Creating a Multisig with Two Members:**
 
    ```bash
-   multisig_create --keypair /path/to/keypair.json --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 2
+   multisig-create --keypair /path/to/keypair.json --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 2
    ```
 
    Creates a new multisig account with two members and a threshold of 2.
@@ -199,14 +199,14 @@ multisig_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR
 2. **Creating a Multisig with Config Authority:**
 
    ```bash
-   multisig_create --keypair /path/to/keypair.json --config_authority <CONFIG_AUTHORITY_PUBKEY> --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 1
+   multisig-create --keypair /path/to/keypair.json --config-authority <CONFIG_AUTHORITY_PUBKEY> --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 1
    ```
 
    Initializes a multisig account with a specified config authority and a threshold of 1.
 
 3. **Creating a Multisig with Rent Collector:**
    ```bash
-   multisig_create --keypair /path/to/keypair.json --config_authority <RENT_COLLECTOR_PUBKEY> --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 1
+   multisig-create --keypair /path/to/keypair.json --config-authority <RENT_COLLECTOR_PUBKEY> --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 1
    ```
    Initializes a multisig account with a specified rent collector and a threshold of 1.
 
@@ -219,16 +219,16 @@ Casts a vote on a proposed transaction proposal. This command allows a member of
 ### Syntax
 
 ```bash
-proposal_vote --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index <TRANSACTION_INDEX> --action <ACTION> [--memo <MEMO>]
+proposal-vote --rpc_url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index <TRANSACTION_INDEX> --action <ACTION> [--memo <MEMO>]
 ```
 
 ### Parameters
 
-- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
-- `--transaction_index <TRANSACTION_INDEX>`: The index of the transaction to vote on.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction to vote on.
 - `--action <ACTION>`: The vote action to cast (Approve, Reject, Cancel).
 - `--memo <MEMO>`: (Optional) A memo for the vote.
 
@@ -237,7 +237,7 @@ proposal_vote --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_P
 1. **Approving a Transaction:**
 
    ```bash
-   proposal_vote --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --action Approve
+   proposal-vote --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --action Approve
    ```
 
    Casts an approval vote for the transaction at index 1 in the specified multisig account.
@@ -245,14 +245,14 @@ proposal_vote --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_P
 2. **Rejecting a Transaction:**
 
    ```bash
-   proposal_vote --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --action Reject
+   proposal-vote --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --action Reject
    ```
 
    Casts a rejection vote for the transaction at index 1.
 
 3. **Cancelling a Transaction:**
    ```bash
-   proposal_vote --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --action Cancel
+   proposal-vote --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index 1 --action Cancel
    ```
    Cancels the transaction at index 1 in the multisig account.
 
@@ -265,22 +265,22 @@ Closes the proposal and transaction accounts associated with a specific Vault Tr
 ### Syntax
 
 ```bash
-vault_transaction_accounts_close --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index <TRANSACTION_INDEX> --rent_collector <RENT_COLLECTOR_PUBKEY>
+vault-transaction_accounts-close --rpc_url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index <TRANSACTION_INDEX> --rent-collector <RENT_COLLECTOR_PUBKEY>
 ```
 
 ### Parameters
 
-- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
-- `--transaction_index <TRANSACTION_INDEX>`: The index of the transaction whose accounts are to be closed.
-- `--rent_collector <RENT_COLLECTOR_PUBKEY>`: The public key of the account responsible for collecting rent.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction whose accounts are to be closed.
+- `--rent-collector <RENT_COLLECTOR_PUBKEY>`: The public key of the account responsible for collecting rent.
 
 ### Example Usage
 
 ```bash
-vault_transaction_accounts_close --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1 --rent_collector <RENT_COLLECTOR_PUBKEY>
+vault-transaction-accounts-close --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index 1 --rent-collector <RENT_COLLECTOR_PUBKEY>
 ```
 
 In this example, the command closes the transaction accounts for the transaction at index 1 in the specified multisig account and collects rent using the provided rent collector public key.
@@ -294,23 +294,23 @@ Creates a new vault transaction with a custom transaction message.
 ### Syntax
 
 ```bash
-vault_transaction_create --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --vault_index <VAULT_INDEX> --transaction_message <TRANSACTION_MESSAGE> [--memo <MEMO>]
+vault-transaction-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index <VAULT_INDEX> --transaction-message <TRANSACTION_MESSAGE> [--memo <MEMO>]
 ```
 
 ### Parameters
 
-- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
-- `--vault_index <VAULT_INDEX>`: The index of the vault where the transaction is being created.
-- `--transaction_message <TRANSACTION_MESSAGE>`: The message or payload of the transaction.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--vault-index <VAULT_INDEX>`: The index of the vault where the transaction is being created.
+- `--transaction-message <TRANSACTION_MESSAGE>`: The message or payload of the transaction.
 - `--memo <MEMO>`: (Optional) A memo for the transaction.
 
 ### Example Usage
 
 ```bash
-vault_transaction_create --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --vault_index 1 --transaction_message [1, 2, 3, 5, 5, 6, 7, 8]
+vault-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 1 --transaction-message [1, 2, 3, 5, 5, 6, 7, 8]
 ```
 
 In this example, a new transaction with the specified message is proposed in the multisig vault at vault index 1.
@@ -324,21 +324,21 @@ Executes a transaction once its proposal has reachen threshold.
 ### Syntax
 
 ```bash
-vault_transaction_execute --rpc_url <RPC_URL> --program_id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index <TRANSACTION_INDEX>
+vault-transaction-execute --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index <TRANSACTION_INDEX>
 ```
 
 ### Parameters
 
-- `--rpc_url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program_id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--multisig_pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
-- `--transaction_index <TRANSACTION_INDEX>`: The index of the transaction to be executed.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction to be executed.
 
 ### Example Usage
 
 ```bash
-vault_transaction_execute --keypair /path/to/keypair.json --multisig_pubkey <MULTISIG_PUBLIC_KEY> --transaction_index 1
+vault-transaction-execute --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --transaction-index 1
 ```
 
 This example executes the transaction at index 1 in the specified multisig.
