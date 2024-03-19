@@ -453,9 +453,10 @@ describe("Multisig SDK", () => {
           connection,
           feePayer,
           multisigPda: multisigPda,
-          configAuthority: wrongConfigAuthority,
+          configAuthority: wrongConfigAuthority.publicKey,
           oldMember: members.proposer.publicKey,
           programId,
+          signers: [wrongConfigAuthority],
         }),
         /Attempted to perform an unauthorized action/
       );
@@ -469,6 +470,7 @@ describe("Multisig SDK", () => {
         configAuthority: configAuthority.publicKey,
         oldMember: members.voter.publicKey,
         programId,
+        signers: [configAuthority],
       });
       await connection.confirmTransaction(signature);
     });
