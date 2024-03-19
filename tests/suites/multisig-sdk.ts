@@ -373,10 +373,6 @@ describe("Multisig SDK", () => {
     });
   });
 
-  describe("multisig_remove_member", () => {
-    it("error: invalid authority");
-  });
-
   describe("multisig_set_config_authority", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
@@ -422,6 +418,56 @@ describe("Multisig SDK", () => {
         configAuthority: configAuthority.publicKey,
         newConfigAuthority: members.voter.publicKey,
         signers: [feePayer, configAuthority],
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+    });
+  });
+
+  describe("multisig_remove_member", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    let wrongConfigAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+      wrongConfigAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 0,
+          programId,
+        })
+      )[0];
+    });
+
+    it("error: invalid authority", async () => {
+      const feePayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.multisigRemoveMember({
+          connection,
+          feePayer,
+          multisigPda: multisigPda,
+          configAuthority: wrongConfigAuthority,
+          oldMember: members.proposer.publicKey,
+          programId,
+        }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+
+    it("remove the member for the controlled multisig", async () => {
+      const signature = await multisig.rpc.multisigRemoveMember({
+        connection,
+        feePayer: members.proposer,
+        multisigPda: multisigPda,
+        configAuthority: configAuthority.publicKey,
+        oldMember: members.voter.publicKey,
         programId,
       });
       await connection.confirmTransaction(signature);
