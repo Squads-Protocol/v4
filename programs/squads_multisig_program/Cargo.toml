@@ -15,11 +15,12 @@ no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
 testing = []
-default = []
+default = ["custom-heap"]
+custom-heap = []
 
 [dependencies]
 anchor-lang = { version = "=0.29.0", features = ["allow-missing-optionals"] }
 anchor-spl = { version="=0.29.0", features=["token"] }
-solana-program = "1.17.4"
+solana-program = {version="1.17.4"}
 solana-security-txt = "1.1.1"
 #

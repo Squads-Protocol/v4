@@ -15,6 +15,8 @@ pub use instructions::*;
 pub use state::*;
 pub use utils::SmallVec;
 
+mod allocator;
+
 pub mod errors;
 pub mod instructions;
 pub mod state;
