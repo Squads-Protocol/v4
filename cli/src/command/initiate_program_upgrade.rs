@@ -112,7 +112,7 @@ impl InitiateProgramUpgrade {
         println!();
         println!(
             "{}",
-            "👀 You're about to create a vault to upgrade your program from a buffer, please review the details:".yellow()
+            "👀 You're about to initiate a proposal and a vault transaction to upgrade your program from a buffer, please review the details:".yellow()
         );
         println!();
         println!("RPC Cluster URL:   {}", rpc_url_clone);
