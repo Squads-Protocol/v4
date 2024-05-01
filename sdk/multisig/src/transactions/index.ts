@@ -8,6 +8,7 @@ export * from "./configTransactionExecute.js";
 export * from "./multisigAddMember.js";
 export * from "./multisigAddSpendingLimit.js";
 export * from "./multisigRemoveSpendingLimit.js";
+export * from "./multisigChangeThreshold.js";
 export * from "./multisigCreate.js";
 export * from "./multisigCreateV2.js";
 export * from "./multisigSetConfigAuthority.js";

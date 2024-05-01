@@ -13,7 +13,6 @@ export function multisigChangeThreshold({
   programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
-  spendingLimit: PublicKey;
   configAuthority: PublicKey;
   rentPayer: PublicKey;
   newThreshold: number;
