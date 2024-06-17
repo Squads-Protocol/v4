@@ -93,6 +93,10 @@ impl MultisigAddSpendingLimit<'_> {
         args: MultisigAddSpendingLimitArgs,
     ) -> Result<()> {
         let spending_limit = &mut ctx.accounts.spending_limit;
+        
+        // Make sure there are no duplicate keys in this direct invocation by sorting so the invariant will catch
+        let mut sorted_members = args.members;
+        sorted_members.sort();
 
         spending_limit.multisig = ctx.accounts.multisig.key();
         spending_limit.create_key = args.create_key;
@@ -103,7 +107,7 @@ impl MultisigAddSpendingLimit<'_> {
         spending_limit.remaining_amount = args.amount;
         spending_limit.last_reset = Clock::get()?.unix_timestamp;
         spending_limit.bump = ctx.bumps.spending_limit;
-        spending_limit.members = args.members;
+        spending_limit.members = sorted_members;
         spending_limit.destinations = args.destinations;
 
         spending_limit.invariant()?;
