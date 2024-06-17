@@ -31,6 +31,8 @@ pub struct ProposalVote<'info> {
         bump = proposal.bump,
     )]
     pub proposal: Account<'info, Proposal>,
+
+    pub system_program: Program<'info, System>,
 }
 
 impl ProposalVote<'_> {
@@ -112,9 +114,14 @@ impl ProposalVote<'_> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
+        let system_program = &ctx.accounts.system_program;
 
         proposal.cancel(member.key(), usize::from(multisig.threshold))?;
 
+        // ensure that the cancel array contains no keys that are not currently members
+        proposal.cancelled.retain(|k| multisig.is_member(*k).is_some());
+
+        Proposal::realloc_if_needed(proposal.to_account_info(), multisig.members.len(), Some(member.to_account_info()), Some(system_program.to_account_info()))?;
         Ok(())
     }
 }
