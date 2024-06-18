@@ -46,11 +46,13 @@ pub struct ConfigTransactionCreate<'info> {
 impl ConfigTransactionCreate<'_> {
     fn validate(&self, args: &ConfigTransactionCreateArgs) -> Result<()> {
         // multisig
-        require_keys_eq!(
-            self.multisig.config_authority,
-            Pubkey::default(),
-            MultisigError::NotSupportedForControlled
-        );
+        if self.multisig.config_authority != Pubkey::default() {
+            require_keys_eq!(
+                self.creator.key(),
+                self.multisig.config_authority,
+                MultisigError::ConfigAuthorityIsNotSigner
+            );
+        }
 
         // creator
         require!(

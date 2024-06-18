@@ -82,4 +82,6 @@ pub enum MultisigError {
     BatchNotEmpty,
     #[msg("Invalid SpendingLimit amount")]
     SpendingLimitInvalidAmount,
+    #[msg("Config authority is not a signer")]
+    ConfigAuthorityIsNotSigner,
 }
