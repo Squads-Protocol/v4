@@ -121,6 +121,7 @@ impl ProposalVote<'_> {
         // ensure that the cancel array contains no keys that are not currently members
         proposal.cancelled.retain(|k| multisig.is_member(*k).is_some());
 
+        // reallocate the proposal size if needed
         Proposal::realloc_if_needed(proposal.to_account_info(), multisig.members.len(), Some(member.to_account_info()), Some(system_program.to_account_info()))?;
         Ok(())
     }
