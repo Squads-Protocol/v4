@@ -227,6 +227,12 @@ pub mod squads_multisig_program {
         ProposalVote::proposal_cancel(ctx, args)
     }
 
+    /// Cancel a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Approved`.
+    pub fn proposal_cancel_v2(ctx: Context<ProposalVoteV2>, args: ProposalVoteArgs) -> Result<()> {
+        ProposalVoteV2::proposal_cancel(ctx, args)
+    }
+
     /// Use a spending limit to transfer tokens from a multisig vault to a destination account.
     pub fn spending_limit_use(
         ctx: Context<SpendingLimitUse>,
