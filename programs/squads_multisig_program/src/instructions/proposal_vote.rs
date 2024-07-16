@@ -140,6 +140,8 @@ impl ProposalVote<'_> {
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
 
+        proposal.cancelled.retain(|k| multisig.is_member(*k).is_some());
+
         proposal.cancel(member.key(), usize::from(multisig.threshold))?;
 
         Ok(())
