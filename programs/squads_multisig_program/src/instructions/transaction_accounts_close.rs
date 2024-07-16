@@ -105,18 +105,21 @@ pub struct VaultTransactionAccountsClose<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account(
-        mut,
-        has_one = multisig @ MultisigError::ProposalForAnotherMultisig,
-        close = rent_collector
+    #[account(mut,
+        seeds = [
+            SEED_PREFIX,
+            multisig.key().as_ref(),
+            SEED_TRANSACTION,
+            &transaction.index.to_le_bytes(),
+            SEED_PROPOSAL,
+        ], bump,
     )]
-    pub proposal: Account<'info, Proposal>,
+    pub proposal: AccountInfo<'info>,
 
     /// VaultTransaction corresponding to the `proposal`.
     #[account(
         mut,
         has_one = multisig @ MultisigError::TransactionForAnotherMultisig,
-        constraint = transaction.index == proposal.transaction_index @ MultisigError::TransactionNotMatchingProposal,
         close = rent_collector
     )]
     pub transaction: Account<'info, VaultTransaction>,
@@ -135,30 +138,38 @@ pub struct VaultTransactionAccountsClose<'info> {
 impl VaultTransactionAccountsClose<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
-            multisig, proposal, ..
+            multisig, proposal, transaction, ..
         } = self;
 
-        let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
+        let is_stale = transaction.index <= multisig.stale_transaction_index;
+
+        let proposal_account: Option<Proposal> = if proposal.data.borrow().len() > 0 {
+            Some( Proposal::try_from_slice(&proposal.data.borrow())? )
+        } else { None };
 
         #[allow(deprecated)]
-        let can_close = match proposal.status {
-            // Draft proposals can only be closed if stale,
-            // so they can't be activated anymore.
-            ProposalStatus::Draft { .. } => is_stale,
-            // Active proposals can only be closed if stale,
-            // so they can't be voted on anymore.
-            ProposalStatus::Active { .. } => is_stale,
-            // Approved proposals for VaultTransactions cannot be closed even if stale,
-            // because they still can be executed.
-            ProposalStatus::Approved { .. } => false,
-            // Rejected proposals can be closed.
-            ProposalStatus::Rejected { .. } => true,
-            // Executed proposals can be closed.
-            ProposalStatus::Executed { .. } => true,
-            // Cancelled proposals can be closed.
-            ProposalStatus::Cancelled { .. } => true,
-            // Should never really be in this state.
-            ProposalStatus::Executing => false,
+        let can_close = if let Some(proposal_account) = proposal_account {
+            match proposal_account.status {
+                // Draft proposals can only be closed if stale,
+                // so they can't be activated anymore.
+                ProposalStatus::Draft { .. } => is_stale,
+                // Active proposals can only be closed if stale,
+                // so they can't be voted on anymore.
+                ProposalStatus::Active { .. } => is_stale,
+                // Approved proposals for VaultTransactions cannot be closed even if stale,
+                // because they still can be executed.
+                ProposalStatus::Approved { .. } => false,
+                // Rejected proposals can be closed.
+                ProposalStatus::Rejected { .. } => true,
+                // Executed proposals can be closed.
+                ProposalStatus::Executed { .. } => true,
+                // Cancelled proposals can be closed.
+                ProposalStatus::Cancelled { .. } => true,
+                // Should never really be in this state.
+                ProposalStatus::Executing => false,
+            }
+        } else {
+            is_stale
         };
 
         require!(can_close, MultisigError::InvalidProposalStatus);
