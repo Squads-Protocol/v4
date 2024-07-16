@@ -229,8 +229,13 @@ pub mod squads_multisig_program {
 
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
-    pub fn proposal_cancel_v2(ctx: Context<ProposalVoteV2>, args: ProposalVoteArgs) -> Result<()> {
-        ProposalVoteV2::proposal_cancel(ctx, args)
+    /// This was introduced to incorporate proper state update, as old multisig members
+    /// may have lingering votes, and the proposal size may need to be reallocated to
+    /// accommodate the new amount of cancel votes.
+    /// The previous implemenation still works if the proposal size is in line with the
+    /// thresholdhold size.
+    pub fn proposal_cancel_v2(ctx: Context<ProposalCancel>, args: ProposalVoteArgs) -> Result<()> {
+        ProposalCancel::proposal_cancel(ctx, args)
     }
 
     /// Use a spending limit to transfer tokens from a multisig vault to a destination account.

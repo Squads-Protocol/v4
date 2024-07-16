@@ -34,7 +34,7 @@ pub struct ProposalVote<'info> {
 }
 
 #[derive(Accounts)]
-pub struct ProposalVoteV2<'info> {
+pub struct ProposalCancel<'info> {
     #[account(
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
@@ -146,8 +146,8 @@ impl ProposalVote<'_> {
     }
 }
 
-impl ProposalVoteV2<'_> {
-    fn validate(&self, vote: Vote) -> Result<()> {
+impl ProposalCancel<'_> {
+    fn validate(&self) -> Result<()> {
         let Self {
             multisig,
             proposal,
@@ -165,72 +165,29 @@ impl ProposalVoteV2<'_> {
             MultisigError::Unauthorized
         );
 
-        // proposal
-        match vote {
-            Vote::Approve | Vote::Reject => {
-                require!(
-                    matches!(proposal.status, ProposalStatus::Active { .. }),
-                    MultisigError::InvalidProposalStatus
-                );
-                // CANNOT approve or reject a stale proposal
-                require!(
-                    proposal.transaction_index > multisig.stale_transaction_index,
-                    MultisigError::StaleProposal
-                );
-            }
-            Vote::Cancel => {
-                require!(
-                    matches!(proposal.status, ProposalStatus::Approved { .. }),
-                    MultisigError::InvalidProposalStatus
-                );
-                // CAN cancel a stale proposal.
-            }
-        }
 
-        Ok(())
-    }
-
-    /// Approve a multisig proposal on behalf of the `member`.
-    /// The proposal must be `Active`.
-    #[access_control(ctx.accounts.validate(Vote::Approve))]
-    pub fn proposal_approve(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
-        let multisig = &mut ctx.accounts.multisig;
-        let proposal = &mut ctx.accounts.proposal;
-        let member = &mut ctx.accounts.member;
-
-        proposal.approve(member.key(), usize::from(multisig.threshold))?;
-
-        Ok(())
-    }
-
-    /// Reject a multisig proposal on behalf of the `member`.
-    /// The proposal must be `Active`.
-    #[access_control(ctx.accounts.validate(Vote::Reject))]
-    pub fn proposal_reject(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
-        let multisig = &mut ctx.accounts.multisig;
-        let proposal = &mut ctx.accounts.proposal;
-        let member = &mut ctx.accounts.member;
-
-        let cutoff = Multisig::cutoff(multisig);
-
-        proposal.reject(member.key(), cutoff)?;
+        require!(
+            matches!(proposal.status, ProposalStatus::Approved { .. }),
+            MultisigError::InvalidProposalStatus
+        );
+        // CAN cancel a stale proposal.
 
         Ok(())
     }
 
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
-    #[access_control(ctx.accounts.validate(Vote::Cancel))]
+    #[access_control(ctx.accounts.validate())]
     pub fn proposal_cancel(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
         let system_program = &ctx.accounts.system_program;
 
-        proposal.cancel(member.key(), usize::from(multisig.threshold))?;
-
         // ensure that the cancel array contains no keys that are not currently members
         proposal.cancelled.retain(|k| multisig.is_member(*k).is_some());
+
+        proposal.cancel(member.key(), usize::from(multisig.threshold))?;
 
         // reallocate the proposal size if needed
         Proposal::realloc_if_needed(proposal.to_account_info(), multisig.members.len(), Some(member.to_account_info()), Some(system_program.to_account_info()))?;
