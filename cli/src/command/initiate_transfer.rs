@@ -14,7 +14,7 @@ use solana_sdk::transaction::VersionedTransaction;
 
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 use spl_token::instruction::transfer;
-use squads_multisig::anchor_lang::InstructionData;
+use squads_multisig::anchor_lang::{AnchorSerialize, InstructionData};
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
@@ -24,7 +24,9 @@ use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
 use squads_multisig::squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
 use squads_multisig::squads_multisig_program::ProposalCreateArgs;
+use squads_multisig::squads_multisig_program::TransactionMessage;
 use squads_multisig::squads_multisig_program::VaultTransactionCreateArgs;
+use squads_multisig::vault_transaction::VaultTransactionMessageExt;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
@@ -165,7 +167,7 @@ impl InitiateTransfer {
             &token_program_id,
         );
 
-        let transfer_message = Message::try_compile(
+        let transfer_message = TransactionMessage::try_compile(
             &vault_pda.0,
             &[transfer(
                 &token_program_id,
@@ -177,7 +179,6 @@ impl InitiateTransfer {
             )
             .unwrap()],
             &[],
-            blockhash,
         )
         .unwrap();
 
@@ -201,7 +202,7 @@ impl InitiateTransfer {
                             ephemeral_signers: 0,
                             vault_index,
                             memo,
-                            transaction_message: transfer_message.serialize(),
+                            transaction_message: transfer_message.try_to_vec().unwrap(),
                         },
                     }
                     .data(),
