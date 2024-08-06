@@ -27,13 +27,14 @@ describe("Instructions / vault_transaction_accounts_close", () => {
   let members: TestMembers;
   let multisigPda: PublicKey;
   const staleNonApprovedTransactionIndex = 1n;
-  const staleApprovedTransactionIndex = 2n;
-  const executedConfigTransactionIndex = 3n;
-  const executedVaultTransactionIndex = 4n;
-  const activeTransactionIndex = 5n;
-  const approvedTransactionIndex = 6n;
-  const rejectedTransactionIndex = 7n;
-  const cancelledTransactionIndex = 8n;
+  const staleNoProposalTransactionIndex = 2n;
+  const staleApprovedTransactionIndex = 3n;
+  const executedConfigTransactionIndex = 4n;
+  const executedVaultTransactionIndex = 5n;
+  const activeTransactionIndex = 6n;
+  const approvedTransactionIndex = 7n;
+  const rejectedTransactionIndex = 8n;
+  const cancelledTransactionIndex = 9n;
 
   // Set up a multisig with some transactions.
   before(async () => {
@@ -106,6 +107,26 @@ describe("Instructions / vault_transaction_accounts_close", () => {
       programId,
     });
     await connection.confirmTransaction(signature);
+    // This transaction will become stale when the config transaction is executed.
+    //endregion
+
+    //region Stale and No Proposal
+    // Create a vault transaction (Stale and Non-Approved).
+    signature = await multisig.rpc.vaultTransactionCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex: staleNoProposalTransactionIndex,
+      vaultIndex: 0,
+      transactionMessage: testTransferMessage,
+      ephemeralSigners: 0,
+      creator: members.proposer.publicKey,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // No proposal created for this transaction.
+
     // This transaction will become stale when the config transaction is executed.
     //endregion
 
@@ -710,7 +731,7 @@ describe("Instructions / vault_transaction_accounts_close", () => {
         connection
           .sendTransaction(tx)
           .catch(multisig.errors.translateAndThrowAnchorError),
-      /Proposal is for another multisig/
+      /A seeds constraint was violated/
     );
   });
 
@@ -849,7 +870,7 @@ describe("Instructions / vault_transaction_accounts_close", () => {
           rentCollector: vaultPda,
           proposal: multisig.getProposalPda({
             multisigPda,
-            transactionIndex: rejectedTransactionIndex,
+            transactionIndex: 1n,
             programId,
           })[0],
           transaction: multisig.getTransactionPda({
@@ -921,7 +942,7 @@ describe("Instructions / vault_transaction_accounts_close", () => {
         connection
           .sendTransaction(tx)
           .catch(multisig.errors.translateAndThrowAnchorError),
-      /Transaction doesn't match proposal/
+      /A seeds constraint was violated/
     );
   });
 
@@ -970,6 +991,53 @@ describe("Instructions / vault_transaction_accounts_close", () => {
 
     const postBalance = await connection.getBalance(vaultPda);
     const accountsRent = 6479760;
+    assert.equal(postBalance, preBalance + accountsRent);
+  });
+
+  it("close accounts for Stale transaction with No Proposal", async () => {
+    const transactionIndex = staleNoProposalTransactionIndex;
+
+    const multisigAccount = await Multisig.fromAccountAddress(
+      connection,
+      multisigPda
+    );
+
+    // Make sure there's no proposal.
+    let proposalAccount = await connection.getAccountInfo(
+      multisig.getProposalPda({
+        multisigPda,
+        transactionIndex,
+        programId,
+      })[0]
+    );
+    assert.equal(proposalAccount, null);
+
+    // Make sure the transaction is stale.
+    assert.ok(
+      transactionIndex <=
+        multisig.utils.toBigInt(multisigAccount.staleTransactionIndex)
+    );
+
+    const [vaultPda] = multisig.getVaultPda({
+      multisigPda,
+      index: 0,
+      programId,
+    });
+
+    const preBalance = await connection.getBalance(vaultPda);
+
+    const sig = await multisig.rpc.vaultTransactionAccountsClose({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      rentCollector: vaultPda,
+      transactionIndex,
+      programId,
+    });
+    await connection.confirmTransaction(sig);
+
+    const postBalance = await connection.getBalance(vaultPda);
+    const accountsRent = 2_429_040; // Rent for the transaction account.
     assert.equal(postBalance, preBalance + accountsRent);
   });
 

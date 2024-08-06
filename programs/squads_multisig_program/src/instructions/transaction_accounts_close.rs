@@ -13,6 +13,7 @@ use anchor_lang::prelude::*;
 
 use crate::errors::*;
 use crate::state::*;
+use crate::utils;
 
 #[derive(Accounts)]
 pub struct ConfigTransactionAccountsClose<'info> {
@@ -23,18 +24,25 @@ pub struct ConfigTransactionAccountsClose<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
+    /// CHECK: `seeds` and `bump` verify that the account is the canonical Proposal,
+    ///         the logic within `config_transaction_accounts_close` does the rest of the checks.
     #[account(
         mut,
-        has_one = multisig @ MultisigError::ProposalForAnotherMultisig,
-        close = rent_collector
+        seeds = [
+            SEED_PREFIX,
+            multisig.key().as_ref(),
+            SEED_TRANSACTION,
+            &transaction.index.to_le_bytes(),
+            SEED_PROPOSAL,
+        ],
+        bump,
     )]
-    pub proposal: Account<'info, Proposal>,
+    pub proposal: AccountInfo<'info>,
 
     /// ConfigTransaction corresponding to the `proposal`.
     #[account(
         mut,
         has_one = multisig @ MultisigError::TransactionForAnotherMultisig,
-        constraint = transaction.index == proposal.transaction_index @ MultisigError::TransactionNotMatchingProposal,
         close = rent_collector
     )]
     pub transaction: Account<'info, ConfigTransaction>,
@@ -51,47 +59,63 @@ pub struct ConfigTransactionAccountsClose<'info> {
 }
 
 impl ConfigTransactionAccountsClose<'_> {
-    fn validate(&self) -> Result<()> {
-        let Self {
-            multisig, proposal, ..
-        } = self;
-
-        let is_stale = proposal.transaction_index <= multisig.stale_transaction_index;
-
-        // Has to be either stale or in a terminal state.
-        #[allow(deprecated)]
-        let can_close = match proposal.status {
-            // Draft proposals can only be closed if stale,
-            // so they can't be activated anymore.
-            ProposalStatus::Draft { .. } => is_stale,
-            // Active proposals can only be closed if stale,
-            // so they can't be voted on anymore.
-            ProposalStatus::Active { .. } => is_stale,
-            // Approved proposals for ConfigTransactions can be closed if stale,
-            // because they cannot be executed anymore.
-            ProposalStatus::Approved { .. } => is_stale,
-            // Rejected proposals can be closed.
-            ProposalStatus::Rejected { .. } => true,
-            // Executed proposals can be closed.
-            ProposalStatus::Executed { .. } => true,
-            // Cancelled proposals can be closed.
-            ProposalStatus::Cancelled { .. } => true,
-            // Should never really be in this state.
-            ProposalStatus::Executing => false,
-        };
-
-        require!(can_close, MultisigError::InvalidProposalStatus);
-
-        Ok(())
-    }
-
     /// Closes a `ConfigTransaction` and the corresponding `Proposal`.
     /// `transaction` can be closed if either:
     /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
     /// - the `proposal` is stale.
-    #[access_control(_ctx.accounts.validate())]
-    pub fn config_transaction_accounts_close(_ctx: Context<Self>) -> Result<()> {
-        // Anchor will close the accounts for us.
+    pub fn config_transaction_accounts_close(ctx: Context<Self>) -> Result<()> {
+        let multisig = &ctx.accounts.multisig;
+        let transaction = &ctx.accounts.transaction;
+        let proposal = &mut ctx.accounts.proposal;
+        let rent_collector = &ctx.accounts.rent_collector;
+
+        let is_stale = transaction.index <= multisig.stale_transaction_index;
+
+        let proposal_account = if proposal.data.borrow().is_empty() {
+            None
+        } else {
+            Some(Proposal::try_deserialize(
+                &mut &**proposal.data.borrow_mut(),
+            )?)
+        };
+
+        #[allow(deprecated)]
+        let can_close = if let Some(proposal_account) = &proposal_account {
+            match proposal_account.status {
+                // Draft proposals can only be closed if stale,
+                // so they can't be activated anymore.
+                ProposalStatus::Draft { .. } => is_stale,
+                // Active proposals can only be closed if stale,
+                // so they can't be voted on anymore.
+                ProposalStatus::Active { .. } => is_stale,
+                // Approved proposals for ConfigTransactions can be closed if stale,
+                // because they cannot be executed anymore.
+                ProposalStatus::Approved { .. } => is_stale,
+                // Rejected proposals can be closed.
+                ProposalStatus::Rejected { .. } => true,
+                // Executed proposals can be closed.
+                ProposalStatus::Executed { .. } => true,
+                // Cancelled proposals can be closed.
+                ProposalStatus::Cancelled { .. } => true,
+                // Should never really be in this state.
+                ProposalStatus::Executing => false,
+            }
+        } else {
+            // If no Proposal account exists then the ConfigTransaction can only be closed if stale
+            is_stale
+        };
+
+        require!(can_close, MultisigError::InvalidProposalStatus);
+
+        // Close the `proposal` account if exists.
+        if proposal_account.is_some() {
+            utils::close(
+                ctx.accounts.proposal.to_account_info(),
+                rent_collector.to_account_info(),
+            )?;
+        }
+
+        // Anchor will close the `transaction` account for us.
         Ok(())
     }
 }
@@ -105,14 +129,18 @@ pub struct VaultTransactionAccountsClose<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account(mut,
+    /// CHECK: `seeds` and `bump` verify that the account is the canonical Proposal,
+    ///         the logic within `vault_transaction_accounts_close` does the rest of the checks.
+    #[account(
+        mut,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION,
             &transaction.index.to_le_bytes(),
             SEED_PROPOSAL,
-        ], bump,
+        ],
+        bump,
     )]
     pub proposal: AccountInfo<'info>,
 
@@ -136,19 +164,30 @@ pub struct VaultTransactionAccountsClose<'info> {
 }
 
 impl VaultTransactionAccountsClose<'_> {
-    fn validate(&self) -> Result<()> {
-        let Self {
-            multisig, proposal, transaction, ..
-        } = self;
+    /// Closes a `VaultTransaction` and the corresponding `Proposal`.
+    /// `transaction` can be closed if either:
+    /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
+    /// - the `proposal` is stale and not `Approved`.
+    pub fn vault_transaction_accounts_close(
+        ctx: Context<VaultTransactionAccountsClose>,
+    ) -> Result<()> {
+        let multisig = &ctx.accounts.multisig;
+        let transaction = &ctx.accounts.transaction;
+        let proposal = &mut ctx.accounts.proposal;
+        let rent_collector = &ctx.accounts.rent_collector;
 
         let is_stale = transaction.index <= multisig.stale_transaction_index;
 
-        let proposal_account: Option<Proposal> = if proposal.data.borrow().len() > 0 {
-            Some( Proposal::try_from_slice(&proposal.data.borrow())? )
-        } else { None };
+        let proposal_account = if proposal.data.borrow().is_empty() {
+            None
+        } else {
+            Some(Proposal::try_deserialize(
+                &mut &**proposal.data.borrow_mut(),
+            )?)
+        };
 
         #[allow(deprecated)]
-        let can_close = if let Some(proposal_account) = proposal_account {
+        let can_close = if let Some(proposal_account) = &proposal_account {
             match proposal_account.status {
                 // Draft proposals can only be closed if stale,
                 // so they can't be activated anymore.
@@ -169,21 +208,21 @@ impl VaultTransactionAccountsClose<'_> {
                 ProposalStatus::Executing => false,
             }
         } else {
+            // If no Proposal account exists then the VaultTransaction can only be closed if stale
             is_stale
         };
 
         require!(can_close, MultisigError::InvalidProposalStatus);
 
-        Ok(())
-    }
+        // Close the `proposal` account if exists.
+        if proposal_account.is_some() {
+            utils::close(
+                ctx.accounts.proposal.to_account_info(),
+                rent_collector.to_account_info(),
+            )?;
+        }
 
-    /// Closes a `VaultTransaction` and the corresponding `Proposal`.
-    /// `transaction` can be closed if either:
-    /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
-    /// - the `proposal` is stale and not `Approved`.
-    #[access_control(_ctx.accounts.validate())]
-    pub fn vault_transaction_accounts_close(_ctx: Context<Self>) -> Result<()> {
-        // Anchor will close the accounts for us.
+        // Anchor will close the `transaction` account for us.
         Ok(())
     }
 }

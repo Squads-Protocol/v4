@@ -1233,7 +1233,10 @@
         {
           "name": "proposal",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "the logic within `config_transaction_accounts_close` does the rest of the checks."
+          ]
         },
         {
           "name": "transaction",
@@ -1276,7 +1279,10 @@
         {
           "name": "proposal",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "the logic within `vault_transaction_accounts_close` does the rest of the checks."
+          ]
         },
         {
           "name": "transaction",
