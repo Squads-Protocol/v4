@@ -1379,7 +1379,10 @@
         {
           "name": "proposal",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "the logic within `batch_accounts_close` does the rest of the checks."
+          ]
         },
         {
           "name": "batch",

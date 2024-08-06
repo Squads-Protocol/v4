@@ -375,6 +375,12 @@ export type MultisigWithRentReclamationAndVariousBatches = {
    */
   staleDraftBatchIndex: bigint;
   /**
+   * Index of a batch with a proposal in the Draft state.
+   * The batch contains 1 transaction, which is not executed.
+   * The proposal is stale.
+   */
+  staleDraftBatchNoProposalIndex: bigint;
+  /**
    * Index of a batch with a proposal in the Approved state.
    * The batch contains 2 transactions, the first of which is executed, the second is not.
    * The proposal is stale.
@@ -491,13 +497,14 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
   //endregion
 
   const staleDraftBatchIndex = 1n;
-  const staleApprovedBatchIndex = 2n;
-  const executedConfigTransactionIndex = 3n;
-  const executedBatchIndex = 4n;
-  const activeBatchIndex = 5n;
-  const approvedBatchIndex = 6n;
-  const rejectedBatchIndex = 7n;
-  const cancelledBatchIndex = 8n;
+  const staleDraftBatchNoProposalIndex = 2n;
+  const staleApprovedBatchIndex = 3n;
+  const executedConfigTransactionIndex = 4n;
+  const executedBatchIndex = 5n;
+  const activeBatchIndex = 6n;
+  const approvedBatchIndex = 7n;
+  const rejectedBatchIndex = 8n;
+  const cancelledBatchIndex = 9n;
 
   //region Stale batch with proposal in Draft state
   // Create a batch (Stale and Non-Approved).
@@ -538,6 +545,24 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
     programId,
   });
   await connection.confirmTransaction(signature);
+  // This batch will become stale when the config transaction is executed.
+  //endregion
+
+  //region Stale batch with No Proposal
+  // Create a batch (Stale and Non-Approved).
+  signature = await multisig.rpc.batchCreate({
+    connection,
+    feePayer: members.proposer,
+    multisigPda,
+    batchIndex: staleDraftBatchNoProposalIndex,
+    vaultIndex: 0,
+    creator: members.proposer,
+    programId,
+  });
+  await connection.confirmTransaction(signature);
+
+  // No Proposal for this batch.
+
   // This batch will become stale when the config transaction is executed.
   //endregion
 
@@ -1148,6 +1173,7 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
   return {
     multisigPda,
     staleDraftBatchIndex,
+    staleDraftBatchNoProposalIndex,
     staleApprovedBatchIndex,
     executedConfigTransactionIndex,
     executedBatchIndex,
