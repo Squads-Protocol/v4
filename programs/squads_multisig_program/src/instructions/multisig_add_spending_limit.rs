@@ -18,9 +18,8 @@ pub struct MultisigAddSpendingLimitArgs {
     /// The reset period of the spending limit.
     /// When it passes, the remaining amount is reset, unless it's `Period::OneTime`.
     pub period: Period,
-    /// Members of the multisig that can use the spending limit.
-    /// In case a member is removed from the multisig, the spending limit will remain existent
-    /// (until explicitly deleted), but the removed member will not be able to use it anymore.
+    /// Members of the Spending Limit that can use it.
+    /// Don't have to be members of the multisig.
     pub members: Vec<Pubkey>,
     /// The destination addresses the spending limit is allowed to sent funds to.
     /// If empty, funds can be sent to any address.
@@ -72,14 +71,6 @@ impl MultisigAddSpendingLimit<'_> {
         );
 
         // `spending_limit` is partially checked via its seeds.
-
-        // SpendingLimit members must all be members of the multisig.
-        for sl_member in self.spending_limit.members.iter() {
-            require!(
-                self.multisig.is_member(*sl_member).is_some(),
-                MultisigError::NotAMember
-            );
-        }
 
         Ok(())
     }

@@ -2055,9 +2055,8 @@
           {
             "name": "members",
             "docs": [
-              "Members of the multisig that can use the spending limit.",
-              "In case a member is removed from the multisig, the spending limit will remain existent",
-              "(until explicitly deleted), but the removed member will not be able to use it anymore."
+              "Members of the Spending Limit that can use it.",
+              "Don't have to be members of the multisig."
             ],
             "type": {
               "vec": "publicKey"
