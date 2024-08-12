@@ -843,7 +843,9 @@ describe("Multisig SDK", () => {
       );
     });
 
-    it("create a new Spending Limit for the controlled multisig", async () => {
+    it("create a new Spending Limit for the controlled multisig with member of the ms and non-member", async () => {
+      const nonMember = await generateFundedKeypair(connection);
+
       const signature = await multisig.rpc.multisigAddSpendingLimit({
         connection,
         feePayer: feePayer,
@@ -856,7 +858,7 @@ describe("Multisig SDK", () => {
         period: multisig.generated.Period.Day,
         mint: Keypair.generate().publicKey,
         destinations: [Keypair.generate().publicKey],
-        members: [members.almighty.publicKey],
+        members: [members.almighty.publicKey, nonMember.publicKey],
         vaultIndex: 1,
         signers: [feePayer, members.almighty],
         sendOptions: { skipPreflight: true },
