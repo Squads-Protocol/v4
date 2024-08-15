@@ -179,7 +179,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     /// * `protected_accounts` - Accounts that must not be passed as writable to the CPI calls to prevent potential reentrancy attacks.
     pub fn execute_message(
         &self,
-        vault_seeds: &[Vec<u8>],
+        vault_seeds: &[&[u8]],
         ephemeral_signer_seeds: &[Vec<Vec<u8>>],
         protected_accounts: &[Pubkey],
     ) -> Result<()> {
@@ -191,9 +191,6 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::ProtectedAccount
                 );
             }
-
-            // Convert vault_seeds to Vec<&[u8]>.
-            let vault_seeds = vault_seeds.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
             // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
             let ephemeral_signer_seeds = &ephemeral_signer_seeds
