@@ -28,7 +28,7 @@ pub struct VaultTransaction {
     /// When wrapping such transactions into multisig ones, we replace these "ephemeral" signing keypairs
     /// with PDAs derived from the MultisigTransaction's `transaction_index` and controlled by the Multisig Program;
     /// during execution the program includes the seeds of these PDAs into the `invoke_signed` calls,
-    /// thus "signing" on behalf of these PDAs.  
+    /// thus "signing" on behalf of these PDAs.
     pub ephemeral_signer_bumps: Vec<u8>,
     /// data required for executing the transaction.
     pub message: VaultTransactionMessage,
@@ -45,13 +45,15 @@ impl VaultTransaction {
             32 +  // multisig
             32 +  // creator
             8 +   // index
-            1 +   // bump 
+            1 +   // bump
             1 +   // vault_index
             1 +   // vault_bump
             (4 + usize::from(ephemeral_signers_length)) +   // ephemeral_signers_bumps vec
             message_size, // message
         )
     }
+    /// Reduces the VaultTransaction to its default empty value and moves
+    /// ownership of the data to the caller/return value.
     pub fn take(&mut self) -> VaultTransaction {
         core::mem::take(self)
     }

@@ -183,6 +183,10 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         ephemeral_signer_seeds: &[Vec<Vec<u8>>],
         protected_accounts: &[Pubkey],
     ) -> Result<()> {
+        // NOTE: `self.to_instructions_and_accounts()` calls `take()` on
+        // `self.message.instructions`, therefore after this point no more
+        // references or usages of `self.message` should be made to avoid
+        // faulty behavior.
         for (ix, account_infos) in self.to_instructions_and_accounts() {
             // Make sure we don't pass protected accounts as writable to CPI calls.
             for account_meta in ix.accounts.iter().filter(|m| m.is_writable) {

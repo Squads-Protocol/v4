@@ -71,6 +71,8 @@ impl VaultBatchTransaction {
         )
     }
 
+    /// Reduces the VaultBatchTransaction to its default empty value and moves
+    /// ownership of the data to the caller/return value.
     pub fn take(&mut self) -> VaultBatchTransaction {
         core::mem::take(self)
     }
