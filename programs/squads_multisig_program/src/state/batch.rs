@@ -40,6 +40,7 @@ impl Batch {
 
 /// Stores data required for execution of one transaction from a batch.
 #[account]
+#[derive(Default)]
 pub struct VaultBatchTransaction {
     /// PDA bump.
     pub bump: u8,
@@ -68,5 +69,9 @@ impl VaultBatchTransaction {
             (4 + usize::from(ephemeral_signers_length)) +   // ephemeral_signers_bumps vec
             message_size, // message
         )
+    }
+
+    pub fn take(&mut self) -> VaultBatchTransaction {
+        core::mem::take(self)
     }
 }

@@ -108,7 +108,7 @@ impl BatchExecuteTransaction<'_> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let batch = &mut ctx.accounts.batch;
-        let transaction = &mut ctx.accounts.transaction;
+        let transaction = ctx.accounts.transaction.take();
 
         let multisig_key = multisig.key();
         let batch_key = batch.key();
@@ -121,7 +121,7 @@ impl BatchExecuteTransaction<'_> {
             &[batch.vault_bump],
         ];
 
-        let transaction_message = &transaction.message;
+        let transaction_message = transaction.message;
         let num_lookups = transaction_message.address_table_lookups.len();
 
         let message_account_infos = ctx

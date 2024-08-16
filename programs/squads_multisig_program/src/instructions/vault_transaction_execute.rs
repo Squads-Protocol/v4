@@ -88,10 +88,10 @@ impl VaultTransactionExecute<'_> {
     pub fn vault_transaction_execute(ctx: Context<Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
-        let transaction = &mut ctx.accounts.transaction;
+        let transaction = ctx.accounts.transaction.take();
 
         let multisig_key = multisig.key();
-        let transaction_key = transaction.key();
+        let transaction_key = ctx.accounts.transaction.key();
 
         let vault_seeds = &[
             SEED_PREFIX,
@@ -101,7 +101,7 @@ impl VaultTransactionExecute<'_> {
             &[transaction.vault_bump],
         ];
 
-        let transaction_message = &transaction.message;
+        let transaction_message = transaction.message;
         let num_lookups = transaction_message.address_table_lookups.len();
 
         let message_account_infos = ctx
