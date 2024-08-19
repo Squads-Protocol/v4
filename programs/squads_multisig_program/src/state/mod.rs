@@ -6,6 +6,7 @@ pub use proposal::*;
 pub use seeds::*;
 pub use spending_limit::*;
 pub use vault_transaction::*;
+pub use transaction_buffer::*;
 
 mod batch;
 mod config_transaction;
@@ -15,3 +16,4 @@ mod proposal;
 mod seeds;
 mod spending_limit;
 mod vault_transaction;
+mod transaction_buffer;
