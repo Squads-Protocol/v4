@@ -1119,6 +1119,48 @@
       ]
     },
     {
+      "name": "proposalCancelV2",
+      "docs": [
+        "Cancel a multisig proposal on behalf of the `member`.",
+        "The proposal must be `Approved`.",
+        "This was introduced to incorporate proper state update, as old multisig members",
+        "may have lingering votes, and the proposal size may need to be reallocated to",
+        "accommodate the new amount of cancel votes.",
+        "The previous implemenation still works if the proposal size is in line with the",
+        "thresholdhold size."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "member",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProposalVoteArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "spendingLimitUse",
       "docs": [
         "Use a spending limit to transfer tokens from a multisig vault to a destination account."
