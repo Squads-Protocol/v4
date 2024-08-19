@@ -8,6 +8,7 @@ import "./suites/instructions/configTransactionAccountsClose";
 import "./suites/instructions/vaultBatchTransactionAccountClose";
 import "./suites/instructions/batchAccountsClose";
 import "./suites/instructions/vaultTransactionAccountsClose";
+import "./suites/instructions/cancelRealloc";
 import "./suites/multisig-sdk";
 import "./suites/account-migrations";
 import "./suites/examples/batch-sol-transfer";
