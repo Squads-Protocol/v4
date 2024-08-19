@@ -160,10 +160,7 @@ impl BatchExecuteTransaction<'_> {
         // references or usages of `self.message` should be made to avoid
         // faulty behavior.
         executable_message.execute_message(
-            &vault_seeds
-                .iter()
-                .map(|seed| seed.to_vec())
-                .collect::<Vec<Vec<u8>>>(),
+            vault_seeds,
             &ephemeral_signer_seeds,
             protected_accounts,
         )?;

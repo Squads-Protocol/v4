@@ -179,15 +179,28 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     /// * `protected_accounts` - Accounts that must not be passed as writable to the CPI calls to prevent potential reentrancy attacks.
     pub fn execute_message(
         self,
-        vault_seeds: &[Vec<u8>],
+        vault_seeds: &[&[u8]],
         ephemeral_signer_seeds: &[Vec<Vec<u8>>],
         protected_accounts: &[Pubkey],
     ) -> Result<()> {
+        // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
+        let ephemeral_signer_seeds = &ephemeral_signer_seeds
+            .iter()
+            .map(|seeds| seeds.iter().map(Vec::as_slice).collect::<Vec<&[u8]>>())
+            .collect::<Vec<Vec<&[u8]>>>();
+        // Second round of type conversion; from Vec<Vec<&[u8]>> to Vec<&[&[u8]]>.
+        let mut signer_seeds = ephemeral_signer_seeds
+            .iter()
+            .map(Vec::as_slice)
+            .collect::<Vec<&[&[u8]]>>();
+        // Add the vault seeds.
+        signer_seeds.push(&vault_seeds);
+      
         // NOTE: `self.to_instructions_and_accounts()` calls `take()` on
         // `self.message.instructions`, therefore after this point no more
         // references or usages of `self.message` should be made to avoid
         // faulty behavior.
-        for (ix, account_infos) in self.to_instructions_and_accounts() {
+        for (ix, account_infos) in self.to_instructions_and_accounts().iter() {
             // Make sure we don't pass protected accounts as writable to CPI calls.
             for account_meta in ix.accounts.iter().filter(|m| m.is_writable) {
                 require!(
@@ -195,27 +208,8 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::ProtectedAccount
                 );
             }
-
-            // Convert vault_seeds to Vec<&[u8]>.
-            let vault_seeds = vault_seeds.iter().map(Vec::as_slice).collect::<Vec<_>>();
-
-            // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
-            let ephemeral_signer_seeds = &ephemeral_signer_seeds
-                .iter()
-                .map(|seeds| seeds.iter().map(Vec::as_slice).collect::<Vec<&[u8]>>())
-                .collect::<Vec<Vec<&[u8]>>>();
-            // Second round of type conversion; from Vec<Vec<&[u8]>> to Vec<&[&[u8]]>.
-            let mut signer_seeds = ephemeral_signer_seeds
-                .iter()
-                .map(Vec::as_slice)
-                .collect::<Vec<&[&[u8]]>>();
-
-            // Add the vault seeds.
-            signer_seeds.push(&vault_seeds);
-
             invoke_signed(&ix, &account_infos, &signer_seeds)?;
         }
-
         Ok(())
     }
 
