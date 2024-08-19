@@ -233,7 +233,7 @@ pub mod squads_multisig_program {
     /// may have lingering votes, and the proposal size may need to be reallocated to
     /// accommodate the new amount of cancel votes.
     /// The previous implemenation still works if the proposal size is in line with the
-    /// thresholdhold size.
+    /// threshold size.
     pub fn proposal_cancel_v2(ctx: Context<ProposalCancel>, args: ProposalVoteArgs) -> Result<()> {
         ProposalCancel::proposal_cancel(ctx, args)
     }
