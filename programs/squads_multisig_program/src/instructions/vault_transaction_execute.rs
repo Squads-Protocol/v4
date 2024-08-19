@@ -130,10 +130,7 @@ impl VaultTransactionExecute<'_> {
 
         // Execute the transaction message instructions one-by-one.
         executable_message.execute_message(
-            &vault_seeds
-                .iter()
-                .map(|seed| seed.to_vec())
-                .collect::<Vec<Vec<u8>>>(),
+            vault_seeds,
             &ephemeral_signer_seeds,
             protected_accounts,
         )?;
