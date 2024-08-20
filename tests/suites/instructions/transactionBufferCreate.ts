@@ -77,12 +77,14 @@ describe("Instructions / transaction_buffer_create", () => {
       1 * LAMPORTS_PER_SOL
     );
 
+    // Initialize a transaction message with a single instruction.
     const testTransferMessage = new TransactionMessage({
       payerKey: vaultPda,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
       instructions: [testIx],
     });
 
+    // Serialize with SDK util
     const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
       message: testTransferMessage,
       addressLookupTableAccounts: [],
@@ -99,6 +101,7 @@ describe("Instructions / transaction_buffer_create", () => {
       programId
     );
 
+    // Convert to a SHA256 hash.
     const messageHash = crypto
       .createHash("sha256")
       .update(messageBuffer)
@@ -134,6 +137,7 @@ describe("Instructions / transaction_buffer_create", () => {
 
     tx.sign([members.proposer]);
 
+    // Send transaction.
     const signature = await connection.sendTransaction(tx, {
       skipPreflight: true,
     });
@@ -143,6 +147,7 @@ describe("Instructions / transaction_buffer_create", () => {
       transactionBuffer
     );
 
+    // Verify account exists.
     assert.notEqual(transactionBufferAccount, null);
     assert.ok(transactionBufferAccount?.data.length! > 0);
   });

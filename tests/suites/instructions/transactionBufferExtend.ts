@@ -80,7 +80,7 @@ describe("Instructions / transaction_buffer_extend", () => {
     let instructions = [];
 
     // Add 28 transfer instructions to the message.
-    for (let i = 0; i <= 28; i++) {
+    for (let i = 0; i <= 42; i++) {
       instructions.push(testIx);
     }
 
@@ -90,6 +90,7 @@ describe("Instructions / transaction_buffer_extend", () => {
       instructions: instructions,
     });
 
+    // Serialize with SDK util
     const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
       message: testTransferMessage,
       addressLookupTableAccounts: [],
@@ -106,12 +107,14 @@ describe("Instructions / transaction_buffer_extend", () => {
       programId
     );
 
+    // Convert message buffer to a SHA256 hash.
     const messageHash = crypto
       .createHash("sha256")
       .update(messageBuffer)
       .digest();
 
-    const firstHalf = messageBuffer.slice(0, messageBuffer.length / 2);
+    // Slice the first 750 bytes of the message buffer.
+    const firstHalf = messageBuffer.slice(0, 750);
 
     const ix = multisig.generated.createTransactionBufferCreateInstruction(
       {
@@ -143,6 +146,7 @@ describe("Instructions / transaction_buffer_extend", () => {
 
     tx.sign([members.proposer]);
 
+    // Send first transaction.
     const signature = await connection.sendTransaction(tx, {
       skipPreflight: true,
     });
@@ -152,12 +156,14 @@ describe("Instructions / transaction_buffer_extend", () => {
       transactionBuffer
     );
 
+    // Ensure the transaction buffer account exists.
     assert.notEqual(transactionBufferAccount, null);
     assert.ok(transactionBufferAccount?.data.length! > 0);
 
+    // Slice that last bytes of the message buffer.
     const secondHalf = messageBuffer.slice(
-      messageBuffer.length / 2,
-      messageBuffer.length
+      750,
+      messageBuffer.byteLength
     );
 
     const secondIx =
@@ -185,6 +191,7 @@ describe("Instructions / transaction_buffer_extend", () => {
 
     secondTx.sign([members.proposer]);
 
+    // Send second transaction.
     const secondSignature = await connection.sendTransaction(secondTx, {
       skipPreflight: true,
     });
