@@ -162,7 +162,6 @@ describe("Initialize Global ProgramConfig", () => {
     const tx = new VersionedTransaction(message);
     tx.sign([programConfigInitializer]);
     const sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
-    console.log(sig);
     await connection.confirmTransaction(sig);
 
     const programConfigData =

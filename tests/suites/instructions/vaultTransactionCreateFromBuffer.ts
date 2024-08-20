@@ -5,7 +5,8 @@ import {
   SystemProgram,
   TransactionMessage,
   VersionedTransaction,
-  Transaction
+  Transaction,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import {
@@ -14,7 +15,7 @@ import {
   TransactionBufferExtendArgs,
   TransactionBufferExtendInstructionArgs,
   VaultTransactionCreateFromBufferArgs,
-  VaultTransactionCreateFromBufferInstructionArgs
+  VaultTransactionCreateFromBufferInstructionArgs,
 } from "@sqds/multisig/lib/generated";
 import assert from "assert";
 import { BN } from "bn.js";
@@ -57,7 +58,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       connection,
       createKey,
       members,
-      threshold: 2,
+      threshold: 1,
       timeLock: 0,
       rentCollector: vaultPda,
       programId,
@@ -95,11 +96,12 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     });
 
     // Serialize the message. Must be done with this util function
-    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
-      message: testTransferMessage,
-      addressLookupTableAccounts: [],
-      vaultPda,
-    });
+    const messageBuffer =
+      multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+        message: testTransferMessage,
+        addressLookupTableAccounts: [],
+        vaultPda,
+      });
 
     const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
       [
@@ -164,18 +166,18 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     assert.ok(transactionBufferAccount?.data.length! > 0);
 
     // Need to add some deserialization to check if it actually worked.
-    const transactionBufferInfo1 = await connection.getAccountInfo(transactionBuffer);
-    const [txBufferDeser1] = await multisig.generated.TransactionBuffer.fromAccountInfo(
-      transactionBufferInfo1!
+    const transactionBufferInfo1 = await connection.getAccountInfo(
+      transactionBuffer
     );
+    const [txBufferDeser1] =
+      await multisig.generated.TransactionBuffer.fromAccountInfo(
+        transactionBufferInfo1!
+      );
 
     // First chunk uploaded. Check that length is as expected.
     assert.equal(txBufferDeser1.buffer.length, 700);
 
-    const secondSlice = messageBuffer.slice(
-      700,
-      messageBuffer.byteLength
-    );
+    const secondSlice = messageBuffer.slice(700, messageBuffer.byteLength);
 
     // Extned the buffer.
     const secondIx =
@@ -211,12 +213,15 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     await connection.confirmTransaction(secondSignature);
 
     // Need to add some deserialization to check if it actually worked.
-    const transactionBufferInfo2 = await connection.getAccountInfo(transactionBuffer);
-    const [txBufferDeser2] = await multisig.generated.TransactionBuffer.fromAccountInfo(
-      transactionBufferInfo2!
+    const transactionBufferInfo2 = await connection.getAccountInfo(
+      transactionBuffer
     );
+    const [txBufferDeser2] =
+      multisig.generated.TransactionBuffer.fromAccountInfo(
+        transactionBufferInfo2!
+      );
 
-    // First chunk uploaded. Check that length is as expected.
+    // Final chunk uploaded. Check that length is as expected.
     assert.equal(txBufferDeser2.buffer.length, messageBuffer.byteLength);
 
     // Derive vault transaction PDA.
@@ -290,11 +295,12 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       instructions: [testIx],
     });
 
-    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
-      message: testTransferMessage,
-      addressLookupTableAccounts: [],
-      vaultPda,
-    });
+    const messageBuffer =
+      multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+        message: testTransferMessage,
+        addressLookupTableAccounts: [],
+        vaultPda,
+      });
 
     const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
       [
@@ -309,24 +315,25 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     // Create a dummy hash of zeros
     const dummyHash = new Uint8Array(32).fill(0);
 
-    const createIx = multisig.generated.createTransactionBufferCreateInstruction(
-      {
-        multisig: multisigPda,
-        transactionBuffer,
-        creator: members.proposer.publicKey,
-        rentPayer: members.proposer.publicKey,
-        systemProgram: SystemProgram.programId,
-      },
-      {
-        args: {
-          vaultIndex: 0,
-          finalBufferHash: Array.from(dummyHash),
-          finalBufferSize: messageBuffer.length,
-          buffer: messageBuffer,
-        } as TransactionBufferCreateArgs,
-      } as TransactionBufferCreateInstructionArgs,
-      programId
-    );
+    const createIx =
+      multisig.generated.createTransactionBufferCreateInstruction(
+        {
+          multisig: multisigPda,
+          transactionBuffer,
+          creator: members.proposer.publicKey,
+          rentPayer: members.proposer.publicKey,
+          systemProgram: SystemProgram.programId,
+        },
+        {
+          args: {
+            vaultIndex: 0,
+            finalBufferHash: Array.from(dummyHash),
+            finalBufferSize: messageBuffer.length,
+            buffer: messageBuffer,
+          } as TransactionBufferCreateArgs,
+        } as TransactionBufferCreateInstructionArgs,
+        programId
+      );
 
     const createMessage = new TransactionMessage({
       payerKey: members.proposer.publicKey,
@@ -337,7 +344,9 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     const createTx = new VersionedTransaction(createMessage);
     createTx.sign([members.proposer]);
 
-    const createBufferSig = await connection.sendTransaction(createTx, { skipPreflight: true });
+    const createBufferSig = await connection.sendTransaction(createTx, {
+      skipPreflight: true,
+    });
     await connection.confirmTransaction(createBufferSig);
 
     const [transactionPda] = multisig.getTransactionPda({
@@ -346,23 +355,24 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       programId,
     });
 
-    const createFromBufferIx = multisig.generated.createVaultTransactionCreateFromBufferInstruction(
-      {
-        multisig: multisigPda,
-        transactionBuffer,
-        transaction: transactionPda,
-        creator: members.proposer.publicKey,
-        rentPayer: members.proposer.publicKey,
-        systemProgram: SystemProgram.programId,
-      },
-      {
-        args: {
-          ephemeralSigners: 0,
-          memo: null,
-        } as VaultTransactionCreateFromBufferArgs,
-      } as VaultTransactionCreateFromBufferInstructionArgs,
-      programId
-    );
+    const createFromBufferIx =
+      multisig.generated.createVaultTransactionCreateFromBufferInstruction(
+        {
+          multisig: multisigPda,
+          transactionBuffer,
+          transaction: transactionPda,
+          creator: members.proposer.publicKey,
+          rentPayer: members.proposer.publicKey,
+          systemProgram: SystemProgram.programId,
+        },
+        {
+          args: {
+            ephemeralSigners: 0,
+            memo: null,
+          } as VaultTransactionCreateFromBufferArgs,
+        } as VaultTransactionCreateFromBufferInstructionArgs,
+        programId
+      );
 
     const createFromBufferMessage = new TransactionMessage({
       payerKey: members.proposer.publicKey,
@@ -370,11 +380,16 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       instructions: [createFromBufferIx],
     }).compileToV0Message();
 
-    const createFromBufferTx = new VersionedTransaction(createFromBufferMessage);
+    const createFromBufferTx = new VersionedTransaction(
+      createFromBufferMessage
+    );
     createFromBufferTx.sign([members.proposer]);
 
     await assert.rejects(
-      () => connection.sendTransaction(createFromBufferTx).catch(multisig.errors.translateAndThrowAnchorError),
+      () =>
+        connection
+          .sendTransaction(createFromBufferTx)
+          .catch(multisig.errors.translateAndThrowAnchorError),
       /FinalBufferHashMismatch/
     );
   });
@@ -431,12 +446,10 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       [members.almighty],
       { skipPreflight: true }
     );
-
     await connection.confirmTransaction(signature4);
 
-    assert.doesNotThrow(
-      async () => await getLogs(connection, signature4),
-      /Error: memory allocation failed, out of memory/
-    )
+    const logs = (await getLogs(connection, signature4)).join("");
+
+    assert.match(logs, /Access violation in heap section at address/);
   });
 });

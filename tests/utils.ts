@@ -5,6 +5,7 @@ import {
   PublicKey,
   SystemProgram,
   TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import { readFileSync } from "fs";
@@ -1224,4 +1225,58 @@ export function range(min: number, max: number, step: number = 1) {
 
 export function comparePubkeys(a: PublicKey, b: PublicKey) {
   return a.toBuffer().compare(b.toBuffer());
+}
+
+export async function processBufferInChunks(
+  member: Keypair,
+  multisigPda: PublicKey,
+  bufferAccount: PublicKey,
+  buffer: Uint8Array,
+  connection: Connection,
+  programId: PublicKey,
+  chunkSize: number = 700,
+  startIndex: number = 0
+) {
+  const processChunk = async (startIndex: number) => {
+    if (startIndex >= buffer.length) {
+      return;
+    }
+
+    const chunk = buffer.slice(startIndex, startIndex + chunkSize);
+
+    const ix = multisig.generated.createTransactionBufferExtendInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer:bufferAccount,
+        creator: member.publicKey,
+      },
+      {
+        args: {
+          buffer: chunk,
+        },
+      },
+      programId
+    );
+
+    const message = new TransactionMessage({
+      payerKey: member.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [ix],
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(message);
+
+    tx.sign([member]);
+
+    const signature = await connection.sendRawTransaction(tx.serialize(), {
+      skipPreflight: true,
+    });
+
+    await connection.confirmTransaction(signature);
+
+    // Move to next chunk
+    await processChunk(startIndex + chunkSize);
+  };
+
+  await processChunk(startIndex);
 }
