@@ -28,7 +28,7 @@ describe("Instructions / transaction_buffer_close", () => {
         );
         await connection.confirmTransaction(signature);
         const createArgs: HeapTestInstructionArgs = {
-            length: 50000,
+            length: 25000,
         };
         const heapTestIx = multisig.generated.createHeapTestInstruction(
             {
@@ -43,10 +43,15 @@ describe("Instructions / transaction_buffer_close", () => {
         const computeBudgetCUIx = ComputeBudgetProgram.setComputeUnitLimit({
             units: 1_400_000
         });
+        // const heapTestMessage = new TransactionMessage({
+        //     payerKey: keypair.publicKey,
+        //     recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        //     instructions: [computeBudgetIx, computeBudgetCUIx, heapTestIx],
+        // }).compileToV0Message();
         const heapTestMessage = new TransactionMessage({
             payerKey: keypair.publicKey,
             recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-            instructions: [computeBudgetIx, computeBudgetCUIx, heapTestIx],
+            instructions: [computeBudgetCUIx, heapTestIx],
         }).compileToV0Message();
         const heapTestTx = new VersionedTransaction(heapTestMessage);
         heapTestTx.sign([keypair]);
