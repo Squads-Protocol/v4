@@ -3478,6 +3478,11 @@
       "code": 6041,
       "name": "FinalBufferSizeExceeded",
       "msg": "Final buffer size cannot exceed 4000 bytes"
+    },
+    {
+      "code": 6042,
+      "name": "FinalBufferSizeMismatch",
+      "msg": "Final buffer size mismatch"
     }
   ],
   "metadata": {

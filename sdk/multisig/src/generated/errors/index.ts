@@ -968,6 +968,29 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * FinalBufferSizeMismatch: 'Final buffer size mismatch'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class FinalBufferSizeMismatchError extends Error {
+  readonly code: number = 0x179a
+  readonly name: string = 'FinalBufferSizeMismatch'
+  constructor() {
+    super('Final buffer size mismatch')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, FinalBufferSizeMismatchError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x179a, () => new FinalBufferSizeMismatchError())
+createErrorFromNameLookup.set(
+  'FinalBufferSizeMismatch',
+  () => new FinalBufferSizeMismatchError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

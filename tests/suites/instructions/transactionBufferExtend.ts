@@ -251,6 +251,15 @@ describe("Instructions / transaction_buffer_extend", () => {
     assert.notEqual(transactionBufferAccount, null);
     assert.ok(transactionBufferAccount?.data.length! > 0);
 
+    // Need to add some deserialization to check if it actually worked.
+    const transactionBufferInfo1 = await connection.getAccountInfo(transactionBuffer);
+    const [txBufferDeser1] = await multisig.generated.TransactionBuffer.fromAccountInfo(
+      transactionBufferInfo1!
+    );
+
+    // First chunk uploaded. Check that length is as expected.
+    assert.equal(txBufferDeser1.buffer.length, 750);
+
     // Slice that last bytes of the message buffer.
     const secondHalf = messageBuffer.slice(
       750,
@@ -290,6 +299,13 @@ describe("Instructions / transaction_buffer_extend", () => {
     await connection.confirmTransaction(secondSignature);
 
     // Need to add some deserialization to check if it actually worked.
+    const transactionBufferInfo2 = await connection.getAccountInfo(transactionBuffer);
+    const [txBufferDeser2] = await multisig.generated.TransactionBuffer.fromAccountInfo(
+      transactionBufferInfo2!
+    );
+
+    // Buffer fully uploaded. Check that length is as expected.
+    assert.equal(txBufferDeser2.buffer.length, messageBuffer.byteLength);
 
     // Close the transaction buffer account.
     await closeTransactionBuffer(members.proposer, transactionBuffer);
