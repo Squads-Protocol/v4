@@ -40,6 +40,7 @@ impl TransactionBuffer {
             8 +   // vault_index
             8 +   // transaction_index
             32 +  // transaction_message_hash
+            2 +  // final_buffer_size
             final_message_buffer_size as usize, // transaction_message
         )
     }
