@@ -5,6 +5,7 @@ import {
   SystemProgram,
   TransactionMessage,
   VersionedTransaction,
+  Transaction
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import {
@@ -24,6 +25,7 @@ import {
   createLocalhostConnection,
   createTestTransferInstruction,
   generateMultisigMembers,
+  getLogs,
   getTestProgramId,
 } from "../../utils";
 
@@ -161,6 +163,15 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     assert.notEqual(transactionBufferAccount, null);
     assert.ok(transactionBufferAccount?.data.length! > 0);
 
+    // Need to add some deserialization to check if it actually worked.
+    const transactionBufferInfo1 = await connection.getAccountInfo(transactionBuffer);
+    const [txBufferDeser1] = await multisig.generated.TransactionBuffer.fromAccountInfo(
+      transactionBufferInfo1!
+    );
+
+    // First chunk uploaded. Check that length is as expected.
+    assert.equal(txBufferDeser1.buffer.length, 700);
+
     const secondSlice = messageBuffer.slice(
       700,
       messageBuffer.byteLength
@@ -200,6 +211,13 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     await connection.confirmTransaction(secondSignature);
 
     // Need to add some deserialization to check if it actually worked.
+    const transactionBufferInfo2 = await connection.getAccountInfo(transactionBuffer);
+    const [txBufferDeser2] = await multisig.generated.TransactionBuffer.fromAccountInfo(
+      transactionBufferInfo2!
+    );
+
+    // First chunk uploaded. Check that length is as expected.
+    assert.equal(txBufferDeser2.buffer.length, messageBuffer.byteLength);
 
     // Derive vault transaction PDA.
     const [transactionPda] = multisig.getTransactionPda({
@@ -359,5 +377,66 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       () => connection.sendTransaction(createFromBufferTx).catch(multisig.errors.translateAndThrowAnchorError),
       /FinalBufferHashMismatch/
     );
+  });
+
+  // We expect the program to run out of memory in a base case, given 43 transfers.
+  it("error: out of memory (no allocator)", async () => {
+    const [transactionPda] = multisig.getTransactionPda({
+      multisigPda,
+      index: 1n,
+      programId,
+    });
+
+    const transactionInfo =
+      await multisig.accounts.VaultTransaction.fromAccountAddress(
+        connection,
+        transactionPda
+      );
+
+    // Check that we're dealing with the same account from first test.
+    assert.equal(transactionInfo.message.instructions.length, 43);
+
+    const fourthSignature = await multisig.rpc.proposalCreate({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      transactionIndex: 1n,
+      creator: members.almighty,
+      isDraft: false,
+      programId,
+    });
+    await connection.confirmTransaction(fourthSignature);
+
+    const fifthSignature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      transactionIndex: 1n,
+      member: members.almighty,
+      programId,
+    });
+    await connection.confirmTransaction(fifthSignature);
+
+    const executeIx = await multisig.instructions.vaultTransactionExecute({
+      connection,
+      multisigPda,
+      transactionIndex: 1n,
+      member: members.almighty.publicKey,
+      programId,
+    });
+
+    const executeTx = new Transaction().add(executeIx.instruction);
+    const signature4 = await connection.sendTransaction(
+      executeTx,
+      [members.almighty],
+      { skipPreflight: true }
+    );
+
+    await connection.confirmTransaction(signature4);
+
+    assert.doesNotThrow(
+      async () => await getLogs(connection, signature4),
+      /Error: memory allocation failed, out of memory/
+    )
   });
 });

@@ -71,7 +71,7 @@ describe("Instructions / transaction_buffer_create", () => {
     const transactionIndex = 1n;
 
     const testPayee = Keypair.generate();
-    const testIx = await createTestTransferInstruction(
+    const testIx = createTestTransferInstruction(
       vaultPda,
       testPayee.publicKey,
       1 * LAMPORTS_PER_SOL
