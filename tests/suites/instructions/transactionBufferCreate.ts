@@ -30,7 +30,7 @@ describe("Instructions / transaction_buffer_create", () => {
   let members: TestMembers;
 
   const createKey = Keypair.generate();
-  
+
   let multisigPda = multisig.getMultisigPda({
     createKey: createKey.publicKey,
     programId,
@@ -85,11 +85,12 @@ describe("Instructions / transaction_buffer_create", () => {
     });
 
     // Serialize with SDK util
-    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
-      message: testTransferMessage,
-      addressLookupTableAccounts: [],
-      vaultPda,
-    });
+    const messageBuffer =
+      multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+        message: testTransferMessage,
+        addressLookupTableAccounts: [],
+        vaultPda,
+      });
 
     const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
       [
@@ -150,6 +151,52 @@ describe("Instructions / transaction_buffer_create", () => {
     // Verify account exists.
     assert.notEqual(transactionBufferAccount, null);
     assert.ok(transactionBufferAccount?.data.length! > 0);
+  });
+
+  it("close transaction buffer", async () => {
+    const transactionIndex = 1n;
+
+    const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("multisig"),
+        multisigPda.toBuffer(),
+        Buffer.from("transaction_buffer"),
+        new BN(Number(transactionIndex)).toBuffer("le", 8),
+      ],
+      programId
+    );
+
+    const ix = multisig.generated.createTransactionBufferCloseInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: members.proposer.publicKey,
+      },
+      programId
+    );
+
+    const message = new TransactionMessage({
+      payerKey: members.proposer.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [ix],
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(message);
+
+    tx.sign([members.proposer]);
+
+    // Send transaction.
+    const signature = await connection.sendTransaction(tx, {
+      skipPreflight: true,
+    });
+    await connection.confirmTransaction(signature);
+
+    const transactionBufferAccount = await connection.getAccountInfo(
+      transactionBuffer
+    );
+
+    // Verify account is closed.
+    assert.equal(transactionBufferAccount, null);
   });
 
   /// Incrementing transaction index causes an error

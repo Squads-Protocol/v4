@@ -803,6 +803,33 @@
       ]
     },
     {
+      "name": "transactionBufferClose",
+      "docs": [
+        "Close a transaction buffer account."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transactionBuffer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that created the TransactionBuffer."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "transactionBufferExtend",
       "docs": [
         "Extend a transaction buffer account."
