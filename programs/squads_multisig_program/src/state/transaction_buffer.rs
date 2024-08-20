@@ -6,10 +6,10 @@ use crate::errors::MultisigError;
 // Since VaultTransaction doesn't implement zero-copy, we are limited to
 // deserializing the account onto the Stack. This means we are limited to a
 // theoretical max size of 4KiB
-const MAX_BUFFER_SIZE: usize = 4000;
+pub const MAX_BUFFER_SIZE: usize = 4000;
 
 #[account]
-#[derive(Default, Debug )]
+#[derive(Default, Debug)]
 pub struct TransactionBuffer {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -21,6 +21,8 @@ pub struct TransactionBuffer {
     pub transaction_index: u64,
     /// Hash of the final assembled transaction message.
     pub final_buffer_hash: [u8; 32],
+    /// The size of the final assembled transaction message.
+    pub final_buffer_size: u16,
     /// The buffer of the transaction message.
     pub buffer: Vec<u8>,
 }
@@ -38,6 +40,7 @@ impl TransactionBuffer {
             8 +   // vault_index
             8 +   // transaction_index
             32 +  // transaction_message_hash
+            2 +  // final_buffer_size
             final_message_buffer_size as usize, // transaction_message
         )
     }
@@ -50,11 +53,27 @@ impl TransactionBuffer {
         );
         Ok(())
     }
+    pub fn validate_size(&self) -> Result<()> {
+        require_eq!(
+            self.buffer.len(),
+            self.final_buffer_size as usize,
+            MultisigError::FinalBufferSizeMismatch
+        );
+        Ok(())
+    }
 
     pub fn invariant(&self) -> Result<()> {
         require!(
+            self.final_buffer_size as usize <= MAX_BUFFER_SIZE,
+            MultisigError::FinalBufferSizeExceeded
+        );
+        require!(
             self.buffer.len() < MAX_BUFFER_SIZE,
             MultisigError::FinalBufferSizeExceeded
+        );
+        require!(
+            self.buffer.len() <= self.final_buffer_size as usize,
+            MultisigError::FinalBufferSizeMismatch
         );
 
         Ok(())

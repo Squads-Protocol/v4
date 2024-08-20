@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::errors::*;
 use crate::state::*;
-use crate::utils::*;
+use crate::state::MAX_BUFFER_SIZE;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct TransactionBufferCreateArgs {
@@ -51,7 +51,7 @@ pub struct TransactionBufferCreate<'info> {
 }
 
 impl TransactionBufferCreate<'_> {
-    fn validate(&self) -> Result<()> {
+    fn validate(&self, args: &TransactionBufferCreateArgs) -> Result<()> {
         let Self {
             multisig, creator, ..
         } = self;
@@ -67,11 +67,13 @@ impl TransactionBufferCreate<'_> {
             MultisigError::Unauthorized
         );
 
+        // Final Buffer Size must not exceed 4000 bytes
+        require!(args.final_buffer_size as usize <= MAX_BUFFER_SIZE, MultisigError::FinalBufferSizeExceeded);
         Ok(())
     }
 
     /// Create a new vault transaction.
-    #[access_control(ctx.accounts.validate())]
+    #[access_control(ctx.accounts.validate(&args))]
     pub fn transaction_buffer_create(
         ctx: Context<Self>,
         args: TransactionBufferCreateArgs,
@@ -92,6 +94,7 @@ impl TransactionBufferCreate<'_> {
         transaction_buffer.vault_index = args.vault_index;
         transaction_buffer.transaction_index = transaction_index;
         transaction_buffer.final_buffer_hash = args.final_buffer_hash;
+        transaction_buffer.final_buffer_size = args.final_buffer_size;
         transaction_buffer.buffer = args.buffer;
 
 

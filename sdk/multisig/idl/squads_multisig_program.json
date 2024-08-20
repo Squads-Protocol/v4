@@ -756,6 +756,167 @@
       ]
     },
     {
+      "name": "transactionBufferCreate",
+      "docs": [
+        "Create a transaction buffer account."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transactionBuffer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that is creating the transaction."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The payer for the transaction account rent."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "TransactionBufferCreateArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "transactionBufferClose",
+      "docs": [
+        "Close a transaction buffer account."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transactionBuffer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that created the TransactionBuffer."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "transactionBufferExtend",
+      "docs": [
+        "Extend a transaction buffer account."
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transactionBuffer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that created the TransactionBuffer."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "TransactionBufferExtendArgs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vaultTransactionCreateFromBuffer",
+      "docs": [
+        "Create a new vault transaction from a completed transaction buffer.",
+        "Finalized buffer hash must match `final_buffer_hash`"
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transactionBuffer",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "transaction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "creator",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "The member of the multisig that is creating the transaction."
+          ]
+        },
+        {
+          "name": "rentPayer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The payer for the transaction account rent."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VaultTransactionCreateFromBufferArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "vaultTransactionExecute",
       "docs": [
         "Execute a vault transaction.",
@@ -1127,7 +1288,7 @@
         "may have lingering votes, and the proposal size may need to be reallocated to",
         "accommodate the new amount of cancel votes.",
         "The previous implemenation still works if the proposal size is in line with the",
-        "thresholdhold size."
+        "threshold size."
       ],
       "accounts": [
         {
@@ -1918,6 +2079,68 @@
       }
     },
     {
+      "name": "TransactionBuffer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "multisig",
+            "docs": [
+              "The multisig this belongs to."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "Member of the Multisig who created the TransactionBuffer."
+            ],
+            "type": "publicKey"
+          },
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "Vault index of the transaction this buffer belongs to."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "transactionIndex",
+            "docs": [
+              "Index of the transaction this buffer belongs to."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "finalBufferHash",
+            "docs": [
+              "Hash of the final assembled transaction message."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "finalBufferSize",
+            "docs": [
+              "The size of the final assembled transaction message."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "buffer",
+            "docs": [
+              "The buffer of the transaction message."
+            ],
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
       "name": "VaultTransaction",
       "docs": [
         "Stores data required for tracking the voting and execution status of a vault transaction.",
@@ -2520,6 +2743,83 @@
             "name": "memo",
             "docs": [
               "Memo used for indexing."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TransactionBufferCreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vaultIndex",
+            "docs": [
+              "Index of the vault this transaction belongs to."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "finalBufferHash",
+            "docs": [
+              "Hash of the final assembled transaction message."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "finalBufferSize",
+            "docs": [
+              "Final size of the buffer."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "buffer",
+            "docs": [
+              "Initial slice of the buffer."
+            ],
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TransactionBufferExtendArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "buffer",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultTransactionCreateFromBufferArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "ephemeralSigners",
+            "docs": [
+              "Number of ephemeral signing PDAs required by the transaction."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Optional Memo"
             ],
             "type": {
               "option": "string"
@@ -3168,6 +3468,21 @@
       "code": 6039,
       "name": "SpendingLimitInvalidAmount",
       "msg": "Invalid SpendingLimit amount"
+    },
+    {
+      "code": 6040,
+      "name": "FinalBufferHashMismatch",
+      "msg": "Final message buffer hash doesnt match the expected hash"
+    },
+    {
+      "code": 6041,
+      "name": "FinalBufferSizeExceeded",
+      "msg": "Final buffer size cannot exceed 4000 bytes"
+    },
+    {
+      "code": 6042,
+      "name": "FinalBufferSizeMismatch",
+      "msg": "Final buffer size mismatch"
     }
   ],
   "metadata": {

@@ -8,9 +8,14 @@ import "./suites/instructions/configTransactionAccountsClose";
 import "./suites/instructions/vaultBatchTransactionAccountClose";
 import "./suites/instructions/batchAccountsClose";
 import "./suites/instructions/vaultTransactionAccountsClose";
+import "./suites/instructions/transactionBufferClose";
+import "./suites/instructions/transactionBufferCreate";
+import "./suites/instructions/transactionBufferExtend";
+import "./suites/instructions/vaultTransactionCreateFromBuffer";
 import "./suites/multisig-sdk";
 import "./suites/account-migrations";
 import "./suites/examples/batch-sol-transfer";
 import "./suites/examples/create-mint";
 import "./suites/examples/immediate-execution";
+
 import "./suites/examples/spending-limits";

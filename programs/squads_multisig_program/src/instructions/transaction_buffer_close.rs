@@ -17,7 +17,7 @@ pub struct TransactionBufferClose<'info> {
         // Rent gets returned to the creator
         close = creator,
         // Only the creator can close the buffer
-        constraint = transaction_buffer.creator == creator.key(),
+        constraint = transaction_buffer.creator == creator.key() @ MultisigError::Unauthorized,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
@@ -49,7 +49,7 @@ impl TransactionBufferClose<'_> {
 
     /// Create a new vault transaction.
     #[access_control(ctx.accounts.validate())]
-    pub fn transaction_buffer_create(
+    pub fn transaction_buffer_close(
         ctx: Context<Self>,
     ) -> Result<()> {
         Ok(())

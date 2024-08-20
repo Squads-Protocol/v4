@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 
 use crate::errors::*;
 use crate::state::*;
-use crate::utils::*;
 use crate::TransactionMessage;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -83,13 +82,15 @@ impl VaultTransactionCreateFromBuffer<'_> {
 
         // Transaction buffer hash validation
         transaction_buffer.validate_hash()?;
+        // Transaction buffer size validation
+        transaction_buffer.validate_size()?;
 
         Ok(())
     }
 
     /// Create a new vault transaction.
     #[access_control(ctx.accounts.validate())]
-    pub fn vault_transaction_create(
+    pub fn vault_transaction_create_from_buffer(
         ctx: Context<Self>,
         args: VaultTransactionCreateFromBufferArgs,
     ) -> Result<()> {
