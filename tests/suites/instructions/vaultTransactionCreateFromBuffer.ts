@@ -31,7 +31,7 @@ import * as crypto from "crypto";
 const programId = getTestProgramId();
 const connection = createLocalhostConnection();
 
-describe("Instructions / transaction_buffer_extend", () => {
+describe("Instructions / vault_transaction_create_from_buffer", () => {
   let members: TestMembers;
 
   const createKey = Keypair.generate();
@@ -82,8 +82,8 @@ describe("Instructions / transaction_buffer_extend", () => {
 
     let instructions = [];
 
-    // Add 12 transfer instructions to the message.
-    for (let i = 0; i <= 12; i++) {
+    // Add 48 transfer instructions to the message.
+    for (let i = 0; i <= 42; i++) {
       instructions.push(testIx);
     }
 
@@ -93,7 +93,12 @@ describe("Instructions / transaction_buffer_extend", () => {
       instructions: instructions,
     });
 
-    const messageBuffer = testTransferMessage.compileToV0Message().serialize();
+    // Serialize the message. Must be done with this util function
+    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+      message: testTransferMessage,
+      addressLookupTableAccounts: [],
+      vaultPda,
+    });
 
     const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
       [
@@ -110,7 +115,8 @@ describe("Instructions / transaction_buffer_extend", () => {
       .update(messageBuffer)
       .digest();
 
-    const firstHalf = messageBuffer.slice(0, messageBuffer.length / 2);
+    // Slice the message buffer into two parts.
+    const firstSlice = messageBuffer.slice(0, 700);
 
     const ix = multisig.generated.createTransactionBufferCreateInstruction(
       {
@@ -126,7 +132,7 @@ describe("Instructions / transaction_buffer_extend", () => {
           // Must be a SHA256 hash of the message buffer.
           finalBufferHash: Array.from(messageHash),
           finalBufferSize: messageBuffer.length,
-          buffer: firstHalf,
+          buffer: firstSlice,
         } as TransactionBufferCreateArgs,
       } as TransactionBufferCreateInstructionArgs,
       programId
@@ -142,6 +148,7 @@ describe("Instructions / transaction_buffer_extend", () => {
 
     tx.sign([members.proposer]);
 
+    // Send first transaction.
     const signature = await connection.sendTransaction(tx, {
       skipPreflight: true,
     });
@@ -151,14 +158,16 @@ describe("Instructions / transaction_buffer_extend", () => {
       transactionBuffer
     );
 
+    // Check buffer account exists.
     assert.notEqual(transactionBufferAccount, null);
     assert.ok(transactionBufferAccount?.data.length! > 0);
 
-    const secondHalf = messageBuffer.slice(
-      messageBuffer.length / 2,
-      messageBuffer.length
+    const secondSlice = messageBuffer.slice(
+      700,
+      messageBuffer.byteLength
     );
 
+    // Extned the buffer.
     const secondIx =
       multisig.generated.createTransactionBufferExtendInstruction(
         {
@@ -168,7 +177,7 @@ describe("Instructions / transaction_buffer_extend", () => {
         },
         {
           args: {
-            buffer: secondHalf,
+            buffer: secondSlice,
           } as TransactionBufferExtendArgs,
         } as TransactionBufferExtendInstructionArgs,
         programId
@@ -184,6 +193,7 @@ describe("Instructions / transaction_buffer_extend", () => {
 
     secondTx.sign([members.proposer]);
 
+    // Send second transaction to extend.
     const secondSignature = await connection.sendTransaction(secondTx, {
       skipPreflight: true,
     });
@@ -213,7 +223,7 @@ describe("Instructions / transaction_buffer_extend", () => {
         {
           args: {
             ephemeralSigners: 0,
-            memo: "Hello world!",
+            memo: null,
           } as VaultTransactionCreateFromBufferArgs,
         } as VaultTransactionCreateFromBufferInstructionArgs,
         programId
@@ -243,6 +253,7 @@ describe("Instructions / transaction_buffer_extend", () => {
         transactionPda
       );
 
-    assert.equal(transactionInfo.message.instructions.length, 28);
+    // Ensure final vault transaction has 43 instructions
+    assert.equal(transactionInfo.message.instructions.length, 43);
   });
 });

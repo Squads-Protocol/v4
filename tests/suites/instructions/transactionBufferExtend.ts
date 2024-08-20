@@ -90,7 +90,11 @@ describe("Instructions / transaction_buffer_extend", () => {
       instructions: instructions,
     });
 
-    const messageBuffer = testTransferMessage.compileToV0Message().serialize();
+    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+      message: testTransferMessage,
+      addressLookupTableAccounts: [],
+      vaultPda,
+    });
 
     const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
       [
