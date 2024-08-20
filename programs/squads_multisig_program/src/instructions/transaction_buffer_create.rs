@@ -18,7 +18,7 @@ pub struct TransactionBufferCreateArgs {
 
 #[derive(Accounts)]
 #[instruction(args: TransactionBufferCreateArgs)]
-pub struct VaultTransactionCreate<'info> {
+pub struct TransactionBufferCreate<'info> {
     #[account(
         mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
@@ -50,23 +50,22 @@ pub struct VaultTransactionCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl VaultTransactionCreate<'_> {
+impl TransactionBufferCreate<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
             multisig, creator, ..
         } = self;
 
-        // creator
+        // creator is a member in the multisig
         require!(
             multisig.is_member(creator.key()).is_some(),
             MultisigError::NotAMember
         );
-        // initiator permissions
+        // creator has initiate permissions
         require!(
             multisig.member_has_permission(creator.key(), Permission::Initiate),
             MultisigError::Unauthorized
         );
-
 
         Ok(())
     }
@@ -94,6 +93,10 @@ impl VaultTransactionCreate<'_> {
         transaction_buffer.transaction_index = transaction_index;
         transaction_buffer.final_buffer_hash = args.final_buffer_hash;
         transaction_buffer.buffer = args.buffer;
+
+
+        // Invariant function on the transaction buffer
+        transaction_buffer.invariant()?;
 
         Ok(())
     }

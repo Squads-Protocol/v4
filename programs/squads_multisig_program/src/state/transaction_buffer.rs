@@ -3,8 +3,13 @@ use anchor_lang::solana_program::hash::hash;
 
 use crate::errors::MultisigError;
 
+// Since VaultTransaction doesn't implement zero-copy, we are limited to
+// deserializing the account onto the Stack. This means we are limited to a
+// theoretical max size of 4KiB
+const MAX_BUFFER_SIZE: usize = 4000;
+
 #[account]
-#[derive(Default)]
+#[derive(Default, Debug )]
 pub struct TransactionBuffer {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -22,8 +27,8 @@ pub struct TransactionBuffer {
 
 impl TransactionBuffer {
     pub fn size(final_message_buffer_size: u16) -> Result<usize> {
-        // Make sure final size is not greater than 10_000 bytes.
-        if (final_message_buffer_size as usize) > 10_000 {
+        // Make sure final size is not greater than MAX_BUFFER_SIZE bytes.
+        if (final_message_buffer_size as usize) > MAX_BUFFER_SIZE {
             return err!(MultisigError::FinalBufferSizeExceeded);
         }
         Ok(
@@ -43,6 +48,15 @@ impl TransactionBuffer {
             message_buffer_hash.to_bytes() == self.final_buffer_hash,
             MultisigError::FinalBufferHashMismatch
         );
+        Ok(())
+    }
+
+    pub fn invariant(&self) -> Result<()> {
+        require!(
+            self.buffer.len() < MAX_BUFFER_SIZE,
+            MultisigError::FinalBufferSizeExceeded
+        );
+
         Ok(())
     }
 }
