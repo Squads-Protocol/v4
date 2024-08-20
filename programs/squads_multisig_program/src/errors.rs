@@ -84,6 +84,6 @@ pub enum MultisigError {
     SpendingLimitInvalidAmount,
     #[msg("Final message buffer hash doesnt match the expected hash")]
     FinalBufferHashMismatch,
-    #[msg("Final buffer size cannot exceed 10_000 bytes")]
+    #[msg("Final buffer size cannot exceed 4000 bytes")]
     FinalBufferSizeExceeded,
 }

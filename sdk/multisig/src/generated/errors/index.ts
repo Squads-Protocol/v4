@@ -945,7 +945,7 @@ createErrorFromNameLookup.set(
 )
 
 /**
- * FinalBufferSizeExceeded: 'Final buffer size cannot exceed 10_000 bytes'
+ * FinalBufferSizeExceeded: 'Final buffer size cannot exceed 4000 bytes'
  *
  * @category Errors
  * @category generated
@@ -954,7 +954,7 @@ export class FinalBufferSizeExceededError extends Error {
   readonly code: number = 0x1799
   readonly name: string = 'FinalBufferSizeExceeded'
   constructor() {
-    super('Final buffer size cannot exceed 10_000 bytes')
+    super('Final buffer size cannot exceed 4000 bytes')
     if (typeof Error.captureStackTrace === 'function') {
       Error.captureStackTrace(this, FinalBufferSizeExceededError)
     }

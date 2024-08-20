@@ -20,6 +20,7 @@ export type TransactionBufferArgs = {
   vaultIndex: number
   transactionIndex: beet.bignum
   finalBufferHash: number[] /* size: 32 */
+  finalBufferSize: number
   buffer: Uint8Array
 }
 
@@ -40,6 +41,7 @@ export class TransactionBuffer implements TransactionBufferArgs {
     readonly vaultIndex: number,
     readonly transactionIndex: beet.bignum,
     readonly finalBufferHash: number[] /* size: 32 */,
+    readonly finalBufferSize: number,
     readonly buffer: Uint8Array
   ) {}
 
@@ -53,6 +55,7 @@ export class TransactionBuffer implements TransactionBufferArgs {
       args.vaultIndex,
       args.transactionIndex,
       args.finalBufferHash,
+      args.finalBufferSize,
       args.buffer
     )
   }
@@ -177,6 +180,7 @@ export class TransactionBuffer implements TransactionBufferArgs {
         return x
       })(),
       finalBufferHash: this.finalBufferHash,
+      finalBufferSize: this.finalBufferSize,
       buffer: this.buffer,
     }
   }
@@ -199,6 +203,7 @@ export const transactionBufferBeet = new beet.FixableBeetStruct<
     ['vaultIndex', beet.u8],
     ['transactionIndex', beet.u64],
     ['finalBufferHash', beet.uniformFixedSizeArray(beet.u8, 32)],
+    ['finalBufferSize', beet.u16],
     ['buffer', beet.bytes],
   ],
   TransactionBuffer.fromArgs,

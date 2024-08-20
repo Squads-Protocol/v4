@@ -2124,6 +2124,13 @@
             }
           },
           {
+            "name": "finalBufferSize",
+            "docs": [
+              "The size of the final assembled transaction message."
+            ],
+            "type": "u16"
+          },
+          {
             "name": "buffer",
             "docs": [
               "The buffer of the transaction message."
@@ -3470,7 +3477,7 @@
     {
       "code": 6041,
       "name": "FinalBufferSizeExceeded",
-      "msg": "Final buffer size cannot exceed 10_000 bytes"
+      "msg": "Final buffer size cannot exceed 4000 bytes"
     }
   ],
   "metadata": {

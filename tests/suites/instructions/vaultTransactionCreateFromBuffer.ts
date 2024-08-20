@@ -2,31 +2,30 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
+  SystemProgram,
   TransactionMessage,
   VersionedTransaction,
-  SystemProgram,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
-import assert from "assert";
-import {
-  createAutonomousMultisigV2,
-  createLocalhostConnection,
-  createTestTransferInstruction,
-  generateMultisigMembers,
-  getTestProgramId,
-  TestMembers,
-} from "../../utils";
-import { BN } from "bn.js";
 import {
   TransactionBufferCreateArgs,
   TransactionBufferCreateInstructionArgs,
   TransactionBufferExtendArgs,
   TransactionBufferExtendInstructionArgs,
   VaultTransactionCreateFromBufferArgs,
-  VaultTransactionCreateFromBufferInstructionAccounts,
-  VaultTransactionCreateFromBufferInstructionArgs,
+  VaultTransactionCreateFromBufferInstructionArgs
 } from "@sqds/multisig/lib/generated";
+import assert from "assert";
+import { BN } from "bn.js";
 import * as crypto from "crypto";
+import {
+  TestMembers,
+  createAutonomousMultisigV2,
+  createLocalhostConnection,
+  createTestTransferInstruction,
+  generateMultisigMembers,
+  getTestProgramId,
+} from "../../utils";
 
 const programId = getTestProgramId();
 const connection = createLocalhostConnection();
@@ -255,5 +254,110 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
 
     // Ensure final vault transaction has 43 instructions
     assert.equal(transactionInfo.message.instructions.length, 43);
+  });
+
+  it("error: create from buffer with mismatched hash", async () => {
+    const transactionIndex = 2n;
+
+    // Create a simple transfer instruction
+    const testIx = await createTestTransferInstruction(
+      vaultPda,
+      Keypair.generate().publicKey,
+      0.1 * LAMPORTS_PER_SOL
+    );
+
+    const testTransferMessage = new TransactionMessage({
+      payerKey: vaultPda,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [testIx],
+    });
+
+    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+      message: testTransferMessage,
+      addressLookupTableAccounts: [],
+      vaultPda,
+    });
+
+    const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("multisig"),
+        multisigPda.toBuffer(),
+        Buffer.from("transaction_buffer"),
+        new BN(Number(transactionIndex)).toBuffer("le", 8),
+      ],
+      programId
+    );
+
+    // Create a dummy hash of zeros
+    const dummyHash = new Uint8Array(32).fill(0);
+
+    const createIx = multisig.generated.createTransactionBufferCreateInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: members.proposer.publicKey,
+        rentPayer: members.proposer.publicKey,
+        systemProgram: SystemProgram.programId,
+      },
+      {
+        args: {
+          vaultIndex: 0,
+          finalBufferHash: Array.from(dummyHash),
+          finalBufferSize: messageBuffer.length,
+          buffer: messageBuffer,
+        } as TransactionBufferCreateArgs,
+      } as TransactionBufferCreateInstructionArgs,
+      programId
+    );
+
+    const createMessage = new TransactionMessage({
+      payerKey: members.proposer.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [createIx],
+    }).compileToV0Message();
+
+    const createTx = new VersionedTransaction(createMessage);
+    createTx.sign([members.proposer]);
+
+    const createBufferSig = await connection.sendTransaction(createTx, { skipPreflight: true });
+    await connection.confirmTransaction(createBufferSig);
+
+    const [transactionPda] = multisig.getTransactionPda({
+      multisigPda,
+      index: transactionIndex,
+      programId,
+    });
+
+    const createFromBufferIx = multisig.generated.createVaultTransactionCreateFromBufferInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        transaction: transactionPda,
+        creator: members.proposer.publicKey,
+        rentPayer: members.proposer.publicKey,
+        systemProgram: SystemProgram.programId,
+      },
+      {
+        args: {
+          ephemeralSigners: 0,
+          memo: null,
+        } as VaultTransactionCreateFromBufferArgs,
+      } as VaultTransactionCreateFromBufferInstructionArgs,
+      programId
+    );
+
+    const createFromBufferMessage = new TransactionMessage({
+      payerKey: members.proposer.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [createFromBufferIx],
+    }).compileToV0Message();
+
+    const createFromBufferTx = new VersionedTransaction(createFromBufferMessage);
+    createFromBufferTx.sign([members.proposer]);
+
+    await assert.rejects(
+      () => connection.sendTransaction(createFromBufferTx).catch(multisig.errors.translateAndThrowAnchorError),
+      /FinalBufferHashMismatch/
+    );
   });
 });

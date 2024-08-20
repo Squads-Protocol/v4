@@ -2,34 +2,35 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
+  SystemProgram,
   TransactionMessage,
   VersionedTransaction,
-  SystemProgram,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
-import assert from "assert";
-import {
-  createAutonomousMultisigV2,
-  createLocalhostConnection,
-  createTestTransferInstruction,
-  generateMultisigMembers,
-  getTestProgramId,
-  TestMembers,
-} from "../../utils";
-import { BN } from "bn.js";
 import {
   TransactionBufferCreateArgs,
   TransactionBufferCreateInstructionArgs,
   TransactionBufferExtendArgs,
   TransactionBufferExtendInstructionArgs,
 } from "@sqds/multisig/lib/generated";
+import assert from "assert";
+import { BN } from "bn.js";
 import * as crypto from "crypto";
+import {
+  TestMembers,
+  createAutonomousMultisigV2,
+  createLocalhostConnection,
+  createTestTransferInstruction,
+  generateMultisigMembers,
+  getTestProgramId,
+} from "../../utils";
 
 const programId = getTestProgramId();
 const connection = createLocalhostConnection();
 
 describe("Instructions / transaction_buffer_extend", () => {
   let members: TestMembers;
+  let transactionBufferAccount: PublicKey;
 
   const createKey = Keypair.generate();
 
@@ -53,7 +54,7 @@ describe("Instructions / transaction_buffer_extend", () => {
       connection,
       createKey,
       members,
-      threshold: 2,
+      threshold: 1,
       timeLock: 0,
       rentCollector: vaultPda,
       programId,
@@ -66,6 +67,97 @@ describe("Instructions / transaction_buffer_extend", () => {
     );
     await connection.confirmTransaction(signature);
   });
+
+  // Helper function to create a transaction buffer
+  async function createTransactionBuffer(creator: Keypair, transactionIndex: bigint) {
+    const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("multisig"),
+        multisigPda.toBuffer(),
+        Buffer.from("transaction_buffer"),
+        new BN(Number(transactionIndex)).toBuffer("le", 8),
+      ],
+      programId
+    );
+
+    const testIx = await createTestTransferInstruction(
+      vaultPda,
+      Keypair.generate().publicKey,
+      1 * LAMPORTS_PER_SOL
+    );
+
+    const testTransferMessage = new TransactionMessage({
+      payerKey: vaultPda,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [testIx],
+    });
+
+    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+      message: testTransferMessage,
+      addressLookupTableAccounts: [],
+      vaultPda,
+    });
+
+    const messageHash = crypto.createHash("sha256").update(messageBuffer).digest();
+
+    const createIx = multisig.generated.createTransactionBufferCreateInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: creator.publicKey,
+        rentPayer: creator.publicKey,
+        systemProgram: SystemProgram.programId,
+      },
+      {
+        args: {
+          vaultIndex: 0,
+          finalBufferHash: Array.from(messageHash),
+          finalBufferSize: messageBuffer.length,
+          buffer: messageBuffer.slice(0, 750),
+        } as TransactionBufferCreateArgs,
+      } as TransactionBufferCreateInstructionArgs,
+      programId
+    );
+
+    const createMessage = new TransactionMessage({
+      payerKey: creator.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [createIx],
+    }).compileToV0Message();
+
+    const createTx = new VersionedTransaction(createMessage);
+    createTx.sign([creator]);
+
+    const sig = await connection.sendTransaction(createTx, { skipPreflight: true });
+    await connection.confirmTransaction(sig);
+
+    return transactionBuffer;
+  }
+
+  // Helper function to close a transaction buffer
+  async function closeTransactionBuffer(creator: Keypair, transactionBuffer: PublicKey) {
+    const closeIx = multisig.generated.createTransactionBufferCloseInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: creator.publicKey,
+      },
+      programId
+    );
+
+    const closeMessage = new TransactionMessage({
+      payerKey: creator.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [closeIx],
+    }).compileToV0Message();
+
+    const closeTx = new VersionedTransaction(closeMessage);
+    closeTx.sign([creator]);
+
+    const sig = await connection.sendTransaction(closeTx, { skipPreflight: true });
+
+    await connection.confirmTransaction(sig);
+  }
 
   it("set transaction buffer and extend", async () => {
     const transactionIndex = 1n;
@@ -106,7 +198,6 @@ describe("Instructions / transaction_buffer_extend", () => {
       ],
       programId
     );
-
     // Convert message buffer to a SHA256 hash.
     const messageHash = crypto
       .createHash("sha256")
@@ -199,5 +290,131 @@ describe("Instructions / transaction_buffer_extend", () => {
     await connection.confirmTransaction(secondSignature);
 
     // Need to add some deserialization to check if it actually worked.
+
+    // Close the transaction buffer account.
+    await closeTransactionBuffer(members.proposer, transactionBuffer);
+
+    // Fetch the transaction buffer account.
+    const closedTransactionBufferInfo = await connection.getAccountInfo(
+      transactionBuffer
+    );
+    assert.equal(closedTransactionBufferInfo, null);
   });
+
+  // Test: Attempt to extend a transaction buffer as a non-member
+  it("error: extending buffer as non-member", async () => {
+    const transactionIndex = 1n;
+    const nonMember = Keypair.generate();
+    await connection.requestAirdrop(nonMember.publicKey, 1 * LAMPORTS_PER_SOL);
+
+    const transactionBuffer = await createTransactionBuffer(members.almighty, transactionIndex);
+
+    const dummyData = Buffer.alloc(100, 1);
+    const ix = multisig.generated.createTransactionBufferExtendInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: nonMember.publicKey,
+      },
+      {
+        args: {
+          buffer: dummyData,
+        } as TransactionBufferExtendArgs,
+      } as TransactionBufferExtendInstructionArgs,
+      programId
+    );
+
+    const message = new TransactionMessage({
+      payerKey: nonMember.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [ix],
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(message);
+    tx.sign([nonMember]);
+
+    await assert.rejects(
+      () => connection.sendTransaction(tx).catch(multisig.errors.translateAndThrowAnchorError),
+      /Unauthorized/
+    );
+
+    await closeTransactionBuffer(members.almighty, transactionBuffer);
+  });
+
+  // Test: Attempt to extend a transaction buffer past the 4000 byte limit
+  it("error: extending buffer past submitted byte value", async () => {
+    const transactionIndex = 1n;
+
+    const transactionBuffer = await createTransactionBuffer(members.almighty, transactionIndex);
+
+    const largeData = Buffer.alloc(500, 1);
+    const ix = multisig.generated.createTransactionBufferExtendInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: members.almighty.publicKey,
+      },
+      {
+        args: {
+          buffer: largeData,
+        } as TransactionBufferExtendArgs,
+      } as TransactionBufferExtendInstructionArgs,
+      programId
+    );
+
+    const message = new TransactionMessage({
+      payerKey: members.almighty.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [ix],
+    }).compileToV0Message();
+
+    const tx = new VersionedTransaction(message);
+    tx.sign([members.almighty]);
+
+    await assert.rejects(
+      () => connection.sendTransaction(tx).catch(multisig.errors.translateAndThrowAnchorError),
+      /FinalBufferSizeExceeded/
+    );
+
+    await closeTransactionBuffer(members.almighty, transactionBuffer);
+  });
+
+  // Test: Attempt to extend a transaction buffer by a member who is not the original creator
+  it("error: extending buffer by non-creator member", async () => {
+    const transactionIndex = 1n;
+
+    const transactionBuffer = await createTransactionBuffer(members.proposer, transactionIndex);
+
+    const dummyData = Buffer.alloc(100, 1);
+    const extendIx = multisig.generated.createTransactionBufferExtendInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: members.almighty.publicKey,
+      },
+      {
+        args: {
+          buffer: dummyData,
+        } as TransactionBufferExtendArgs,
+      } as TransactionBufferExtendInstructionArgs,
+      programId
+    );
+
+    const extendMessage = new TransactionMessage({
+      payerKey: members.almighty.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [extendIx],
+    }).compileToV0Message();
+
+    const extendTx = new VersionedTransaction(extendMessage);
+    extendTx.sign([members.almighty]);
+
+    await assert.rejects(
+      () => connection.sendTransaction(extendTx).catch(multisig.errors.translateAndThrowAnchorError),
+      /Unauthorized/
+    );
+
+    await closeTransactionBuffer(members.proposer, transactionBuffer);
+  });
+
 });
