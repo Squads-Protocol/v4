@@ -82,6 +82,8 @@ impl VaultTransactionCreateFromBuffer<'_> {
 
         // Transaction buffer hash validation
         transaction_buffer.validate_hash()?;
+        // Transaction buffer size validation
+        transaction_buffer.validate_size()?;
 
         Ok(())
     }

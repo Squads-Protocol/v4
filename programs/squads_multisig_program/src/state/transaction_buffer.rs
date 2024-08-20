@@ -53,6 +53,14 @@ impl TransactionBuffer {
         );
         Ok(())
     }
+    pub fn validate_size(&self) -> Result<()> {
+        require_eq!(
+            self.buffer.len(),
+            self.final_buffer_size as usize,
+            MultisigError::FinalBufferSizeMismatch
+        );
+        Ok(())
+    }
 
     pub fn invariant(&self) -> Result<()> {
         require!(
@@ -62,6 +70,10 @@ impl TransactionBuffer {
         require!(
             self.buffer.len() < MAX_BUFFER_SIZE,
             MultisigError::FinalBufferSizeExceeded
+        );
+        require!(
+            self.buffer.len() <= self.final_buffer_size as usize,
+            MultisigError::FinalBufferSizeMismatch
         );
 
         Ok(())
