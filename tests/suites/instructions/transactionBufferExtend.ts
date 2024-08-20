@@ -430,6 +430,7 @@ describe("Instructions / transaction_buffer_extend", () => {
       /Unauthorized/
     );
 
+
     await closeTransactionBuffer(members.proposer, transactionBuffer);
   });
 
