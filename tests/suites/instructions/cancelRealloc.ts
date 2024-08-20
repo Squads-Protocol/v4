@@ -150,7 +150,7 @@ describe("Instructions / proposal_cancel_v2", () => {
   // then we change the threshold to be greater than the last total size
   // then we change the state of the multisig so that one original cancel voter is removed
   // then we vote to cancel (and be able to close the transfer transaction)
-  it("cancel config with stale state size", async () => {
+  it("cancel tx with stale state size", async () => {
     // Create a config transaction.
     let transactionIndex = 2n;
     const [proposalPda] = multisig.getProposalPda({
@@ -398,6 +398,10 @@ describe("Instructions / proposal_cancel_v2", () => {
     let deprecatedCancelVote = proposalAccount.cancelled[0];
     assert.ok(deprecatedCancelVote.equals(originalCancel.publicKey));
 
+    // get the pre realloc size
+    const rawProposal = await connection.getAccountInfo(proposalPda);
+    const rawProposalData = rawProposal?.data.length;
+
     // now cast a cancel against it with the first all perm key
     signature = await multisig.rpc.proposalCancelV2({
       connection,
@@ -413,6 +417,10 @@ describe("Instructions / proposal_cancel_v2", () => {
       connection,
       proposalPda
     );
+    // check the data length to ensure it has changed
+    const updatedRawProposal = await connection.getAccountInfo(proposalPda);
+    const updatedRawProposalData = updatedRawProposal?.data.length;
+    assert.notStrictEqual(updatedRawProposalData, rawProposalData);
     assert.strictEqual(proposalAccount.cancelled.length, 1);
     let newCancelVote = proposalAccount.cancelled[0];
     assert.ok(newCancelVote.equals(members.almighty.publicKey));
