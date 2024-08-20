@@ -1610,6 +1610,22 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "heapTest",
+      "accounts": [
+        {
+          "name": "authority",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "length",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -3489,6 +3505,6 @@
     "address": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
     "origin": "anchor",
     "binaryVersion": "0.29.0",
-    "libVersion": "=0.29.0"
+    "libVersion": "0.29.0"
   }
 }

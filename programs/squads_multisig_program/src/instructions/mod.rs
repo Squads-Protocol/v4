@@ -20,6 +20,7 @@ pub use transaction_buffer_create::*;
 pub use transaction_buffer_extend::*;
 pub use transaction_buffer_close::*;
 pub use vault_transaction_create_from_buffer::*;
+pub use heap_test::*;
 
 mod batch_add_transaction;
 mod batch_create;
@@ -43,3 +44,4 @@ mod transaction_buffer_create;
 mod transaction_buffer_extend;
 mod transaction_buffer_close;
 mod vault_transaction_create_from_buffer;
+mod heap_test;
