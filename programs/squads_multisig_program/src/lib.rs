@@ -175,6 +175,31 @@ pub mod squads_multisig_program {
         VaultTransactionCreate::vault_transaction_create(ctx, args)
     }
 
+    /// Create a transaction buffer account.
+    pub fn transaction_buffer_create(
+        ctx: Context<TransactionBufferCreate>,
+        args: TransactionBufferCreateArgs,
+    ) -> Result<()> {
+        TransactionBufferCreate::transaction_buffer_create(ctx, args)
+    }
+
+    /// Extend a transaction buffer account.
+    pub fn transaction_buffer_extend(
+        ctx: Context<TransactionBufferExtend>,
+        args: TransactionBufferExtendArgs,
+    ) -> Result<()> {
+        TransactionBufferExtend::transaction_buffer_extend(ctx, args)
+    }
+
+    /// Create a new vault transaction from a completed transaction buffer.
+    /// Finalized buffer hash must match `final_buffer_hash`
+    pub fn vault_transaction_create_from_buffer(
+        ctx: Context<VaultTransactionCreateFromBuffer>,
+        args: VaultTransactionCreateFromBufferArgs,
+    ) -> Result<()> {
+        VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
+    }
+
     /// Execute a vault transaction.
     /// The transaction must be `Approved`.
     pub fn vault_transaction_execute(ctx: Context<VaultTransactionExecute>) -> Result<()> {

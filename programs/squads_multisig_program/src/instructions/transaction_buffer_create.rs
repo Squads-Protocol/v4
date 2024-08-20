@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 
 use crate::errors::*;
 use crate::state::*;
-use crate::utils::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct TransactionBufferCreateArgs {

@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 
 use crate::errors::*;
 use crate::state::*;
-use crate::utils::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct TransactionBufferExtendArgs {
@@ -21,6 +20,7 @@ pub struct TransactionBufferExtend<'info> {
     pub multisig: Account<'info, Multisig>,
 
     #[account(
+        mut,
         // Only the creator can extend the buffer
         constraint = transaction_buffer.creator == creator.key(),
         seeds = [
@@ -60,7 +60,7 @@ impl TransactionBufferExtend<'_> {
 
     /// Create a new vault transaction.
     #[access_control(ctx.accounts.validate())]
-    pub fn transaction_buffer_create(
+    pub fn transaction_buffer_extend(
         ctx: Context<Self>,
         args: TransactionBufferExtendArgs,
     ) -> Result<()> {
