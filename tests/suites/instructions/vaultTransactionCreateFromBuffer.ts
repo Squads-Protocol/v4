@@ -15,7 +15,7 @@ import {
   TransactionBufferExtendArgs,
   TransactionBufferExtendInstructionArgs,
   VaultTransactionCreateFromBufferArgs,
-  VaultTransactionCreateFromBufferInstructionArgs,
+  VaultTransactionCreateFromBufferInstructionArgs
 } from "@sqds/multisig/lib/generated";
 import assert from "assert";
 import { BN } from "bn.js";
@@ -102,6 +102,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         addressLookupTableAccounts: [],
         vaultPda,
       });
+
 
     const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
       [
@@ -222,6 +223,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       );
 
     // Final chunk uploaded. Check that length is as expected.
+
     assert.equal(txBufferDeser2.buffer.length, messageBuffer.byteLength);
 
     // Derive vault transaction PDA.
@@ -302,6 +304,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         vaultPda,
       });
 
+
     const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
       [
         Buffer.from("multisig"),
@@ -335,6 +338,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         programId
       );
 
+
     const createMessage = new TransactionMessage({
       payerKey: members.proposer.publicKey,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
@@ -354,6 +358,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       index: transactionIndex,
       programId,
     });
+
 
     const createFromBufferIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
@@ -379,6 +384,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
       instructions: [createFromBufferIx],
     }).compileToV0Message();
+
 
     const createFromBufferTx = new VersionedTransaction(
       createFromBufferMessage
@@ -451,5 +457,6 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     const logs = (await getLogs(connection, signature4)).join("");
 
     assert.match(logs, /Access violation in heap section at address/);
+
   });
 });

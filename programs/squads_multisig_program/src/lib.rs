@@ -185,7 +185,9 @@ pub mod squads_multisig_program {
     }
 
     /// Close a transaction buffer account.
-    pub fn transaction_buffer_close(ctx: Context<TransactionBufferClose>) -> Result<()> {
+    pub fn transaction_buffer_close(
+        ctx: Context<TransactionBufferClose>,
+    ) -> Result<()> {
         TransactionBufferClose::transaction_buffer_close(ctx)
     }
 
