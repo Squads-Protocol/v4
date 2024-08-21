@@ -16,6 +16,10 @@ pub use spending_limit_use::*;
 pub use transaction_accounts_close::*;
 pub use vault_transaction_create::*;
 pub use vault_transaction_execute::*;
+pub use transaction_buffer_create::*;
+pub use transaction_buffer_extend::*;
+pub use transaction_buffer_close::*;
+pub use vault_transaction_create_from_buffer::*;
 
 mod batch_add_transaction;
 mod batch_create;
@@ -35,3 +39,7 @@ mod spending_limit_use;
 mod transaction_accounts_close;
 mod vault_transaction_create;
 mod vault_transaction_execute;
+mod transaction_buffer_create;
+mod transaction_buffer_extend;
+mod transaction_buffer_close;
+mod vault_transaction_create_from_buffer;

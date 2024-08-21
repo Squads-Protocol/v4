@@ -4,6 +4,7 @@ export * from './Multisig'
 export * from './ProgramConfig'
 export * from './Proposal'
 export * from './SpendingLimit'
+export * from './TransactionBuffer'
 export * from './VaultBatchTransaction'
 export * from './VaultTransaction'
 
@@ -14,6 +15,7 @@ import { Multisig } from './Multisig'
 import { ProgramConfig } from './ProgramConfig'
 import { Proposal } from './Proposal'
 import { SpendingLimit } from './SpendingLimit'
+import { TransactionBuffer } from './TransactionBuffer'
 import { VaultTransaction } from './VaultTransaction'
 
 export const accountProviders = {
@@ -24,5 +26,6 @@ export const accountProviders = {
   ProgramConfig,
   Proposal,
   SpendingLimit,
+  TransactionBuffer,
   VaultTransaction,
 }

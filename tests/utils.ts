@@ -124,6 +124,14 @@ export function createLocalhostConnection() {
   return new Connection("http://127.0.0.1:8899", "confirmed");
 }
 
+export const getLogs = async (connection: Connection, signature: string): Promise<string[]> => {
+  const tx = await connection.getTransaction(
+      signature,
+      { commitment: "confirmed" }
+  )
+  return tx!.meta!.logMessages || []
+}
+
 export async function createAutonomousMultisig({
   connection,
   createKey = Keypair.generate(),
