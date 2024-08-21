@@ -195,7 +195,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             .collect::<Vec<&[&[u8]]>>();
         // Add the vault seeds.
         signer_seeds.push(&vault_seeds);
-      
+
         // NOTE: `self.to_instructions_and_accounts()` calls `take()` on
         // `self.message.instructions`, therefore after this point no more
         // references or usages of `self.message` should be made to avoid

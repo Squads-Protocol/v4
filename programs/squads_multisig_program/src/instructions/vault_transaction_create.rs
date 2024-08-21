@@ -24,7 +24,7 @@ pub struct VaultTransactionCreate<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account( 
+    #[account(
         init,
         payer = rent_payer,
         space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message)?,

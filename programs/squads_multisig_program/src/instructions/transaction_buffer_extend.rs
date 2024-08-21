@@ -63,7 +63,8 @@ impl TransactionBufferExtend<'_> {
         let current_buffer_size = transaction_buffer.buffer.len() as u16;
         let remaining_space = transaction_buffer
             .final_buffer_size
-            .checked_sub(current_buffer_size).unwrap();
+            .checked_sub(current_buffer_size)
+            .unwrap();
 
         // Check if the new data exceeds the remaining space
         let new_data_size = args.buffer.len() as u16;
