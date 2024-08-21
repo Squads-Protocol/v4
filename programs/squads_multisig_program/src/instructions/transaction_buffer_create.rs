@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::state::*;
 use crate::state::MAX_BUFFER_SIZE;
+use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct TransactionBufferCreateArgs {
@@ -68,7 +68,10 @@ impl TransactionBufferCreate<'_> {
         );
 
         // Final Buffer Size must not exceed 4000 bytes
-        require!(args.final_buffer_size as usize <= MAX_BUFFER_SIZE, MultisigError::FinalBufferSizeExceeded);
+        require!(
+            args.final_buffer_size as usize <= MAX_BUFFER_SIZE,
+            MultisigError::FinalBufferSizeExceeded
+        );
         Ok(())
     }
 
@@ -97,11 +100,9 @@ impl TransactionBufferCreate<'_> {
         transaction_buffer.final_buffer_size = args.final_buffer_size;
         transaction_buffer.buffer = args.buffer;
 
-
         // Invariant function on the transaction buffer
         transaction_buffer.invariant()?;
 
         Ok(())
     }
 }
-

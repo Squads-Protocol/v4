@@ -49,9 +49,7 @@ impl TransactionBufferClose<'_> {
 
     /// Create a new vault transaction.
     #[access_control(ctx.accounts.validate())]
-    pub fn transaction_buffer_close(
-        ctx: Context<Self>,
-    ) -> Result<()> {
+    pub fn transaction_buffer_close(ctx: Context<Self>) -> Result<()> {
         Ok(())
     }
 }

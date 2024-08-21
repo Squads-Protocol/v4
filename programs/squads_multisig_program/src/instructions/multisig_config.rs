@@ -89,7 +89,10 @@ impl MultisigConfig<'_> {
         let multisig = &mut ctx.accounts.multisig;
 
         // Make sure that the new member is not already in the multisig.
-        require!(multisig.is_member(new_member.key).is_none(), MultisigError::DuplicateMember);
+        require!(
+            multisig.is_member(new_member.key).is_none(),
+            MultisigError::DuplicateMember
+        );
 
         multisig.add_member(new_member);
 

@@ -20,3 +20,7 @@ import "./suites/examples/create-mint";
 import "./suites/examples/immediate-execution";
 import "./suites/examples/spending-limits";
 import "./suites/examples/transaction-buffer";
+// Uncomment to enable the heapTest instruction testing
+//import "./suites/instructions/heapTest";
+import "./suites/examples/custom-heap";
+

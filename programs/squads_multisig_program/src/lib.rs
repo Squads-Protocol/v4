@@ -15,6 +15,7 @@ pub use instructions::*;
 pub use state::*;
 pub use utils::SmallVec;
 
+pub mod allocator;
 pub mod errors;
 pub mod instructions;
 pub mod state;
@@ -184,9 +185,7 @@ pub mod squads_multisig_program {
     }
 
     /// Close a transaction buffer account.
-    pub fn transaction_buffer_close(
-        ctx: Context<TransactionBufferClose>,
-    ) -> Result<()> {
+    pub fn transaction_buffer_close(ctx: Context<TransactionBufferClose>) -> Result<()> {
         TransactionBufferClose::transaction_buffer_close(ctx)
     }
 
@@ -317,4 +316,8 @@ pub mod squads_multisig_program {
     pub fn batch_accounts_close(ctx: Context<BatchAccountsClose>) -> Result<()> {
         BatchAccountsClose::batch_accounts_close(ctx)
     }
+    // Uncomment to enable the heap_test instruction
+    // pub fn heap_test(ctx: Context<HeapTest>, length: u64) -> Result<()> {
+    //     HeapTest::handler(ctx, length)
+    // }
 }

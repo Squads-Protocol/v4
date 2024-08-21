@@ -84,7 +84,7 @@ impl MultisigAddSpendingLimit<'_> {
         args: MultisigAddSpendingLimitArgs,
     ) -> Result<()> {
         let spending_limit = &mut ctx.accounts.spending_limit;
-        
+
         // Make sure there are no duplicate keys in this direct invocation by sorting so the invariant will catch
         let mut sorted_members = args.members;
         sorted_members.sort();
