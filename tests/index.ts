@@ -12,6 +12,7 @@ import "./suites/instructions/transactionBufferClose";
 import "./suites/instructions/transactionBufferCreate";
 import "./suites/instructions/transactionBufferExtend";
 import "./suites/instructions/vaultTransactionCreateFromBuffer";
+import "./suites/instructions/cancelRealloc";
 import "./suites/multisig-sdk";
 import "./suites/account-migrations";
 import "./suites/examples/batch-sol-transfer";
