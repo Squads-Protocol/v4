@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "es2022",
-    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "es6",
+    "esModuleInterop": true,
     "lib": ["es2015", "DOM"],
     "allowJs": true,
-    "esModuleInterop": true,
     "outDir": "lib",
     "declaration": true,
     "strict": true
