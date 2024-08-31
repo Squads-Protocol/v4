@@ -9,11 +9,13 @@
     ".": {
       "types": "./lib/index.d.ts",
       "require": "./lib/index.js",
-      "import": "./lib/index.mjs"
+      "import": "./lib/index.mjs",
+      "default": "./lib/index.js"
     },
     "./package.json": "./package.json"
   },
   "license": "MIT",
+  "sideEffects": false,
   "scripts": {
     "build:js": "tsup src/index.ts --format esm,cjs --outDir lib",
     "build:types": "tsc --emitDeclarationOnly",
@@ -42,5 +44,8 @@
     "tsup": "^8.0.2",
     "typedoc": "^0.25.7",
     "typescript": "*"
+  },
+  "engines": {
+    "node": ">=14"
   }
 }
