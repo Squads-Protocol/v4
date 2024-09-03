@@ -1,3 +1,4 @@
+import { createMemoInstruction } from "@solana/spl-memo";
 import {
   Connection,
   Keypair,
@@ -8,10 +9,10 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
+import assert from "assert";
+import { Schema, serialize } from "borsh";
 import { readFileSync } from "fs";
 import path from "path";
-import { createMemoInstruction } from "@solana/spl-memo";
-import assert from "assert";
 
 const { Permission, Permissions } = multisig.types;
 const { Proposal } = multisig.accounts;
@@ -127,8 +128,8 @@ export function createLocalhostConnection() {
 
 export const getLogs = async (connection: Connection, signature: string): Promise<string[]> => {
   const tx = await connection.getTransaction(
-      signature,
-      { commitment: "confirmed" }
+    signature,
+    { commitment: "confirmed" }
   )
   return tx!.meta!.logMessages || []
 }
@@ -1247,7 +1248,7 @@ export async function processBufferInChunks(
     const ix = multisig.generated.createTransactionBufferExtendInstruction(
       {
         multisig: multisigPda,
-        transactionBuffer:bufferAccount,
+        transactionBuffer: bufferAccount,
         creator: member.publicKey,
       },
       {
@@ -1279,4 +1280,60 @@ export async function processBufferInChunks(
   };
 
   await processChunk(startIndex);
+}
+
+// Period enum
+export enum Period {
+  OneTime = 0,
+  Day = 1,
+  Week = 2,
+  Month = 3,
+}
+// Handmade arg serializer for the hook args (I was too lazy to go thru the
+// whole solita dance)
+// Define the InitializeSpendingLimitHookArgs interface
+export class InitializeSpendingLimitHookArgs {
+  amount: bigint;
+  period: number;
+  mint: Uint8Array;
+  members: Uint8Array[];
+  destinations: Uint8Array[];
+
+  constructor(fields: {
+    amount: bigint;
+    period: number;
+    mint: PublicKey;
+    members: PublicKey[];
+    destinations: PublicKey[];
+  }) {
+    this.amount = fields.amount;
+    this.period = fields.period;
+    this.mint = fields.mint.toBytes();
+    this.members = fields.members.map(pubkey => pubkey.toBytes());
+    this.destinations = fields.destinations.map(pubkey => pubkey.toBytes());
+  }
+}
+
+const schema: Schema = new Map([
+  [InitializeSpendingLimitHookArgs, {
+    kind: 'struct',
+    fields: [
+      ['amount', 'u64'],
+      ['period', 'u8'],
+      ['mint', [32]],
+      ['members', [[32]]],
+      ['destinations', [[32]]],
+    ]
+  }]
+]);
+
+export function serializeInitializeSpendingLimitHookArgs(args: {
+  amount: bigint;
+  period: number;
+  mint: PublicKey;
+  members: PublicKey[];
+  destinations: PublicKey[];
+}): Uint8Array {
+  const hookArgs = new InitializeSpendingLimitHookArgs(args);
+  return serialize(schema, hookArgs);
 }

@@ -5,8 +5,8 @@ import {
   Signer,
   TransactionSignature,
 } from "@solana/web3.js";
-import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
+import * as transactions from "../transactions";
 
 /** Execute a config transaction. */
 export async function configTransactionExecute({
@@ -49,7 +49,7 @@ export async function configTransactionExecute({
   tx.sign([feePayer, member, rentPayer, ...(signers ?? [])]);
 
   try {
-    return await connection.sendTransaction(tx, sendOptions);
+    return await connection.sendRawTransaction(tx.serialize(), sendOptions);
   } catch (err) {
     translateAndThrowAnchorError(err);
   }

@@ -1,3 +1,4 @@
+import { PublicKey } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import assert from "assert";
 import {
@@ -5,7 +6,9 @@ import {
   createLocalhostConnection,
   generateMultisigMembers,
   getTestProgramId,
-  TestMembers,
+  Period,
+  serializeInitializeSpendingLimitHookArgs,
+  TestMembers
 } from "../../utils";
 
 const { Multisig, Proposal } = multisig.accounts;
@@ -434,7 +437,135 @@ describe("Instructions / config_transaction_execute", () => {
     // multisig space should not be reallocated because we allocate 32 bytes for potential rent_collector when we create multisig.
     assert.ok(
       multisigAccountInfoPostExecution!.data.length ===
-        multisigAccountInfoPreExecution!.data.length
+      multisigAccountInfoPreExecution!.data.length
+    );
+  });
+
+  it("execute config transaction: addHook action", async () => {
+    // Create new autonomous multisig without.
+    const multisigPda = (
+      await createAutonomousMultisig({
+        connection,
+        members,
+        threshold: 1,
+        timeLock: 0,
+        programId,
+      })
+    )[0];
+
+    const multisigAccountInfoPreExecution = await connection.getAccountInfo(
+      multisigPda
+    )!;
+
+    const vaultPda = multisig.getVaultPda({
+      multisigPda,
+      index: 0,
+      programId,
+    })[0];
+
+    const hookProgram = new PublicKey("HookYW72xzkWmZE8bHJEjFmxYWpamG1ym8JgW8cpgHj")
+
+    // Create a config transaction.
+    const transactionIndex = 1n;
+    let signature = await multisig.rpc.configTransactionCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex,
+      creator: members.proposer.publicKey,
+      actions: [{
+        __kind: "AddHook",
+        hookProgramId: hookProgram,
+        hookInstructionName: "spending_limit",
+        seralizedArgs: serializeInitializeSpendingLimitHookArgs({
+          amount: BigInt(1000000), // 1 SOL in lamports
+          period: Period.OneTime,
+          mint: new PublicKey('So11111111111111111111111111111111111111112'),
+          members: [
+            members.executor.publicKey,
+          ],
+          destinations: [
+            members.voter.publicKey,
+          ],
+        }),
+      }],
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Create a proposal for the transaction (Approved).
+    signature = await multisig.rpc.proposalCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex,
+      creator: members.proposer,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Approve the proposal.
+    signature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.voter,
+      multisigPda,
+      transactionIndex,
+      member: members.voter,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+    const spendingLimitHookAccount = await PublicKey.findProgramAddressSync(
+      [Buffer.from("hook"), multisigPda.toBuffer(), Buffer.from("spending_limit")], hookProgram
+    )
+    // Execute the approved config transaction.
+    signature = await multisig.rpc.configTransactionExecute({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      transactionIndex,
+      member: members.almighty,
+      rentPayer: members.almighty,
+      programId,
+      spendingLimits: [spendingLimitHookAccount[0]],
+      sendOptions: { skipPreflight: true },
+    });
+    console.log(signature);
+    
+    await connection.confirmTransaction(signature);
+
+    // Verify the proposal account.
+    const [proposalPda] = multisig.getProposalPda({
+      multisigPda,
+      transactionIndex,
+      programId,
+    });
+    const proposalAccount = await Proposal.fromAccountAddress(
+      connection,
+      proposalPda
+    );
+    assert.ok(multisig.types.isProposalStatusExecuted(proposalAccount.status));
+
+    // Verify the multisig account.
+    const multisigAccountInfoPostExecution = await connection.getAccountInfo(
+      multisigPda
+    );
+    const [multisigAccountPostExecution] = Multisig.fromAccountInfo(
+      multisigAccountInfoPostExecution!
+    );
+    // The hook should be updated.
+    assert.strictEqual(
+      multisigAccountPostExecution.hook?.instructionName,
+      "spending_limit"
+    );
+    // The stale transaction index should be updated.
+    assert.strictEqual(
+      multisigAccountPostExecution.staleTransactionIndex.toString(),
+      "1"
+    );
+    // multisig space should not be reallocated because we allocate 32 bytes for potential rent_collector when we create multisig.
+    assert.ok(
+      multisigAccountInfoPostExecution!.data.length ===
+      multisigAccountInfoPreExecution!.data.length
     );
   });
 });

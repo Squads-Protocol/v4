@@ -7,7 +7,6 @@ use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct InitializeSpendingLimitHookArgs {
-    pub vault_index: u8,
     pub amount: u64,
     pub period: Period,
     pub mint: Pubkey,
