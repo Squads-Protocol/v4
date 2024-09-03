@@ -1,6 +1,6 @@
 {
   "name": "@sqds/multisig",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "SDK for Squads Multisig Program v4",
   "main": "lib/index.js",
   "module": "lib/index.mjs",
