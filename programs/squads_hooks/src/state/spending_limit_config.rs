@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use squads_multisig_program::Period;
 
-
 #[account]
 pub struct SpendingLimitConfig {
     pub multisig: Pubkey,
@@ -23,8 +22,9 @@ impl SpendingLimitConfig {
         members_length * 32 + // members
         8  + // amount
         1  + // period
-        8  + // last_reset
         4  + // destinations vector length
-        destinations_length * 32 // destinations
+        destinations_length * 32 + // destinations
+        8  + // remaining_amount
+        8 // last_reset
     }
 }

@@ -8,7 +8,7 @@ skip-lint = false
 
 [programs.localnet]
 multisig = "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf"
-squads-hooks = "6dtfZRdX1TUx9L92vKg41XgkGx21qZiYtRec44DFndf"
+squads-hooks = "HookYW72xzkWmZE8bHJEjFmxYWpamG1ym8JgW8cpgHj"
 
 [registry]
 url = "https://api.apr.dev"

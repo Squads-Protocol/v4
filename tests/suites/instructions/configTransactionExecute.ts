@@ -526,11 +526,11 @@ describe("Instructions / config_transaction_execute", () => {
       member: members.almighty,
       rentPayer: members.almighty,
       programId,
-      spendingLimits: [spendingLimitHookAccount[0]],
+      spendingLimits: [spendingLimitHookAccount[0], hookProgram],
       sendOptions: { skipPreflight: true },
     });
     console.log(signature);
-    
+
     await connection.confirmTransaction(signature);
 
     // Verify the proposal account.

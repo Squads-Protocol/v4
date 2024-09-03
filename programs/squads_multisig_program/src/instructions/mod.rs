@@ -21,6 +21,7 @@ pub use transaction_buffer_extend::*;
 pub use vault_transaction_create::*;
 pub use vault_transaction_create_from_buffer::*;
 pub use vault_transaction_execute::*;
+pub use vault_transaction_execute_with_hook::*;
 
 mod batch_add_transaction;
 mod batch_create;
@@ -45,3 +46,4 @@ mod transaction_buffer_extend;
 mod vault_transaction_create;
 mod vault_transaction_create_from_buffer;
 mod vault_transaction_execute;
+mod vault_transaction_execute_with_hook;

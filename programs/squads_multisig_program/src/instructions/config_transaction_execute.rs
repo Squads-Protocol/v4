@@ -6,6 +6,7 @@ use crate::errors::*;
 use crate::id;
 use crate::state::*;
 use crate::utils::*;
+use crate::ID;
 
 #[derive(Accounts)]
 pub struct ConfigTransactionExecute<'info> {
@@ -305,7 +306,7 @@ impl<'info> ConfigTransactionExecute<'info> {
                         rent_payer.clone(),
                         system_program.to_account_info(),
                     ];
-                    
+
                     let create_hook_config_ix_name =
                         format!("global:sqds_hook_{}_create", hook_instruction_name);
 
@@ -324,13 +325,11 @@ impl<'info> ConfigTransactionExecute<'info> {
                         accounts: create_hook_config_accounts,
                         data: create_hook_instruction_data,
                     };
-
                     invoke_signed(
                         &create_hook_config_instruction,
                         create_hook_account_infos,
                         &[&[
                             SEED_PREFIX,
-                            multisig.key().as_ref(),
                             SEED_MULTISIG,
                             multisig.create_key.as_ref(),
                             &[multisig.bump],
