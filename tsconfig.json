@@ -3,9 +3,16 @@
     "target": "esnext",
     "module": "es2022",
     "moduleResolution": "node",
-    "lib": ["es2015", "DOM"],
-    "types": ["mocha"],
-    "typeRoots": ["./node_modules/@types"],
+    "lib": [
+      "es2015",
+      "DOM"
+    ],
+    "types": [
+      "mocha"
+    ],
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
     "allowJs": true,
     "esModuleInterop": true,
     "strict": true,
@@ -15,9 +22,7 @@
     // It is faster to skip typechecking.
     // Remove if you want ts-node to do typechecking.
     // "transpileOnly": true,
-
     "files": true,
-
     "compilerOptions": {
       // compilerOptions specified here will override those declared below,
       // but *only* in ts-node.  Useful if you want ts-node and tsc to use

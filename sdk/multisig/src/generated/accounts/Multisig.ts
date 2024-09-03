@@ -9,6 +9,7 @@ import * as web3 from '@solana/web3.js'
 import * as beet from '@metaplex-foundation/beet'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
 import { Member, memberBeet } from '../types/Member'
+import { Hook, hookBeet } from '../types/Hook'
 
 /**
  * Arguments used to create {@link Multisig}
@@ -25,6 +26,7 @@ export type MultisigArgs = {
   rentCollector: beet.COption<web3.PublicKey>
   bump: number
   members: Member[]
+  hook: beet.COption<Hook>
 }
 
 export const multisigDiscriminator = [224, 116, 121, 186, 68, 161, 79, 236]
@@ -45,7 +47,8 @@ export class Multisig implements MultisigArgs {
     readonly staleTransactionIndex: beet.bignum,
     readonly rentCollector: beet.COption<web3.PublicKey>,
     readonly bump: number,
-    readonly members: Member[]
+    readonly members: Member[],
+    readonly hook: beet.COption<Hook>
   ) {}
 
   /**
@@ -61,7 +64,8 @@ export class Multisig implements MultisigArgs {
       args.staleTransactionIndex,
       args.rentCollector,
       args.bump,
-      args.members
+      args.members,
+      args.hook
     )
   }
 
@@ -199,6 +203,7 @@ export class Multisig implements MultisigArgs {
       rentCollector: this.rentCollector,
       bump: this.bump,
       members: this.members,
+      hook: this.hook,
     }
   }
 }
@@ -224,6 +229,7 @@ export const multisigBeet = new beet.FixableBeetStruct<
     ['rentCollector', beet.coption(beetSolana.publicKey)],
     ['bump', beet.u8],
     ['members', beet.array(memberBeet)],
+    ['hook', beet.coption(hookBeet)],
   ],
   Multisig.fromArgs,
   'Multisig'

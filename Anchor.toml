@@ -1,6 +1,6 @@
 [toolchain]
-anchor_version = "0.29.0" # `anchor-cli` version to use
-solana_version = "1.17.0" # Solana version to use
+anchor_version = "0.29.0"
+solana_version = "1.17.0"
 
 [features]
 seeds = false
@@ -8,20 +8,29 @@ skip-lint = false
 
 [programs.localnet]
 multisig = "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf"
+squads-hooks = "6dtfZRdX1TUx9L92vKg41XgkGx21qZiYtRec44DFndf"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "Localnet"
+wallet = "/Users/orion/.config/solana/id.json"
+
+[scripts]
+test = "npx mocha --node-option require=ts-node/register --extension ts -t 1000000 tests/index.ts"
+
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+upgradeable = false
 
 [test.validator]
+bind_address = "0.0.0.0"
 url = "https://api.devnet.solana.com"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
 
 [[test.validator.account]]
 address = "D3oQ6QxSYk6aKUsmBTa9BghFQvbRi7kxP6h95NSdjjXz"
 filename = "tests/fixtures/pre-rent-collector/multisig-account.json"
-
-[scripts]
-test = "npx mocha --node-option require=ts-node/register --extension ts -t 1000000 tests/index.ts"

@@ -1,0 +1,24 @@
+[package]
+name = "squads-hooks"
+version = "0.1.0"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "squads_hooks"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.29.0"
+anchor-spl = "0.29.0"
+spl-token = {version="4.0.0", features = ["no-entrypoint"]}
+squads-multisig-program = { version = "2.0.0", path = "../squads_multisig_program", features = ["cpi"]}
+
+

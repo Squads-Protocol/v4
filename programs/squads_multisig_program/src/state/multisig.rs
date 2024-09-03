@@ -38,6 +38,8 @@ pub struct Multisig {
     pub bump: u8,
     /// Members of the multisig.
     pub members: Vec<Member>,
+    /// Hook that can be used for additional functionality.
+    pub hook: Option<Hook>,
 }
 
 impl Multisig {
@@ -53,7 +55,8 @@ impl Multisig {
         32 + // rent_collector (always 32 bytes, even if None, just to keep the realloc logic simpler)
         1  + // bump
         4  + // members vector length
-        members_length * Member::INIT_SPACE // members
+        members_length * Member::INIT_SPACE + // members
+        1 + Hook::INIT_SPACE // Optional hook
     }
 
     pub fn num_voters(members: &[Member]) -> usize {
@@ -253,6 +256,13 @@ impl Multisig {
 pub struct Member {
     pub key: Pubkey,
     pub permissions: Permissions,
+}
+
+#[derive(AnchorDeserialize, AnchorSerialize, InitSpace, Eq, PartialEq, Clone)]
+pub struct Hook {
+    pub program_id: Pubkey,
+    #[max_len(32)]
+    pub instruction_name: String,
 }
 
 #[derive(Clone, Copy)]

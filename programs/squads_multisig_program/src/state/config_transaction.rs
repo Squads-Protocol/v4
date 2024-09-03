@@ -31,7 +31,7 @@ impl ConfigTransaction {
         32 +  // multisig
         32 +  // creator
         8 +   // index
-        1 +   // bump 
+        1 +   // bump
         4 +  // actions vector length
         actions_size
     }
@@ -75,4 +75,10 @@ pub enum ConfigAction {
     RemoveSpendingLimit { spending_limit: Pubkey },
     /// Set the `rent_collector` config parameter of the multisig.
     SetRentCollector { new_rent_collector: Option<Pubkey> },
+    /// Add a new hook to the multisig.
+    AddHook {
+        hook_program_id: Pubkey,
+        hook_instruction_name: String,
+        seralized_args: Vec<u8>,
+    },
 }

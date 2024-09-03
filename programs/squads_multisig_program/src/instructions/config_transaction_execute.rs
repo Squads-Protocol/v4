@@ -1,4 +1,6 @@
 use anchor_lang::prelude::*;
+use solana_program::instruction::Instruction;
+use solana_program::program::invoke_signed;
 
 use crate::errors::*;
 use crate::id;
@@ -52,7 +54,7 @@ pub struct ConfigTransactionExecute<'info> {
 
     /// We might need it in case reallocation is needed.
     pub system_program: Option<Program<'info, System>>,
-    // In case the transaction contains Add(Remove)SpendingLimit actions,
+    // In case the transaction contains Add(Remove)SpendingLimit or AddHook actions,
     // `remaining_accounts` must contain the SpendingLimit accounts to be initialized/closed.
     // remaining_accounts
 }
@@ -251,6 +253,90 @@ impl<'info> ConfigTransactionExecute<'info> {
 
                     // We don't need to invalidate prior transactions here because changing
                     // `rent_collector` doesn't affect the consensus parameters of the multisig.
+                }
+                ConfigAction::AddHook {
+                    hook_program_id,
+                    hook_instruction_name,
+                    seralized_args,
+                } => {
+                    // Set the hook inside the multisig
+                    multisig.hook = Some(Hook {
+                        program_id: *hook_program_id,
+                        instruction_name: hook_instruction_name.clone(),
+                    });
+                    // Derive the hook config account.
+                    let (hook_config_account, _) = Pubkey::find_program_address(
+                        &[
+                            b"hook",
+                            multisig.key().as_ref(),
+                            hook_instruction_name.as_bytes(),
+                        ],
+                        hook_program_id,
+                    );
+
+                    // Find the hook config account in `remaining_accounts`.
+                    let hook_config_info = ctx
+                        .remaining_accounts
+                        .iter()
+                        .find(|acc| acc.key == &hook_config_account)
+                        .ok_or(MultisigError::MissingAccount)?;
+
+                    // Determine the rent payer
+                    let rent_payer = match ctx.accounts.rent_payer.is_some() {
+                        true => ctx.accounts.rent_payer.as_ref().unwrap(),
+                        false => ctx.accounts.member.as_ref(),
+                    };
+                    // Get the system program
+                    let system_program = ctx
+                        .accounts
+                        .system_program
+                        .as_ref()
+                        .ok_or(MultisigError::MissingAccount)?;
+
+                    let create_hook_config_accounts = vec![
+                        AccountMeta::new_readonly(multisig.key(), true),
+                        AccountMeta::new(hook_config_account, false),
+                        AccountMeta::new(rent_payer.key(), true),
+                        AccountMeta::new_readonly(system_program.key(), false),
+                    ];
+                    let create_hook_account_infos = &[
+                        multisig.to_account_info(),
+                        hook_config_info.clone(),
+                        rent_payer.clone(),
+                        system_program.to_account_info(),
+                    ];
+                    
+                    let create_hook_config_ix_name =
+                        format!("global:sqds_hook_{}_create", hook_instruction_name);
+
+                    let create_hook_instruction_discriminator: [u8; 8] =
+                        solana_program::hash::hash(create_hook_config_ix_name.as_bytes())
+                            .to_bytes()[..8]
+                            .try_into()
+                            .unwrap();
+                    let mut create_hook_instruction_data: Vec<u8> = Vec::new();
+                    create_hook_instruction_data
+                        .extend_from_slice(&create_hook_instruction_discriminator);
+                    create_hook_instruction_data.extend_from_slice(&seralized_args);
+
+                    let create_hook_config_instruction = Instruction {
+                        program_id: *hook_program_id,
+                        accounts: create_hook_config_accounts,
+                        data: create_hook_instruction_data,
+                    };
+
+                    invoke_signed(
+                        &create_hook_config_instruction,
+                        create_hook_account_infos,
+                        &[&[
+                            SEED_PREFIX,
+                            multisig.key().as_ref(),
+                            SEED_MULTISIG,
+                            multisig.create_key.as_ref(),
+                            &[multisig.bump],
+                        ]],
+                    )?;
+                    multisig.invalidate_prior_transactions();
                 }
             }
         }
