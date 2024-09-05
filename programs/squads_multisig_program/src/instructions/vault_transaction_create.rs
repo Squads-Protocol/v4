@@ -48,8 +48,8 @@ pub struct VaultTransactionCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl VaultTransactionCreate<'_> {
-    fn validate(&self) -> Result<()> {
+impl<'info> VaultTransactionCreate<'info> {
+    pub fn validate(&self) -> Result<()> {
         let Self {
             multisig, creator, ..
         } = self;
@@ -128,6 +128,61 @@ impl VaultTransactionCreate<'_> {
         msg!("transaction index: {}", transaction_index);
 
         Ok(())
+    }
+
+    pub fn build_args_from_buffer_account(
+        ctx: &Context<'_, '_, 'info, 'info, Self>,
+        args: &VaultTransactionCreateArgs,
+    ) -> Result<VaultTransactionCreateArgs> {
+        let multisig = &ctx.accounts.multisig;
+        let remaining_accounts = ctx.remaining_accounts;
+
+        // Determine valid buffer account address
+        let (transaction_buffer_address, _) = Pubkey::find_program_address(
+            &[
+                SEED_PREFIX,
+                multisig.key().as_ref(),
+                SEED_TRANSACTION_BUFFER,
+                &multisig
+                    .transaction_index
+                    .checked_add(1)
+                    .unwrap()
+                    .to_le_bytes(),
+            ],
+            ctx.program_id,
+        );
+
+        // Find the buffer account in remaining accounts
+        let transaction_buffer_info = remaining_accounts
+            .iter()
+            .find(|acc| acc.key == &transaction_buffer_address)
+            .ok_or(MultisigError::MissingAccount)?;
+        let transaction_buffer_account: Account<'info, TransactionBuffer> =
+            Account::<TransactionBuffer>::try_from(transaction_buffer_info)?;
+
+        // Check that the buffer creator is the same as the transaction creator
+        require_keys_eq!(
+            transaction_buffer_account.creator,
+            ctx.accounts.creator.key(),
+            MultisigError::InvalidAccount
+        );
+        
+        // Check that the buffer is writable
+        require!(
+            transaction_buffer_info.is_writable,
+            MultisigError::InvalidAccount
+        );
+
+        // Close the buffer account
+        transaction_buffer_account.close(ctx.accounts.creator.to_account_info())?;
+
+        // Build the args
+        Ok(VaultTransactionCreateArgs {
+            vault_index: transaction_buffer_account.vault_index,
+            ephemeral_signers: args.ephemeral_signers,
+            transaction_message: transaction_buffer_account.buffer.clone(),
+            memo: None,
+        })
     }
 }
 

@@ -199,11 +199,13 @@ pub mod squads_multisig_program {
 
     /// Create a new vault transaction from a completed transaction buffer.
     /// Finalized buffer hash must match `final_buffer_hash`
-    pub fn vault_transaction_create_from_buffer(
-        ctx: Context<VaultTransactionCreateFromBuffer>,
-        args: VaultTransactionCreateFromBufferArgs,
+    pub fn vault_transaction_create_from_buffer<'info>(
+        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreate<'info>>,
+        args: VaultTransactionCreateArgs,
     ) -> Result<()> {
-        VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
+        msg!("got here");
+        let create_args = VaultTransactionCreate::build_args_from_buffer_account(&ctx, &args)?;
+        VaultTransactionCreate::vault_transaction_create(ctx, create_args)
     }
 
     /// Execute a vault transaction.

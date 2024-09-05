@@ -8,9 +8,9 @@
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
 import {
-  VaultTransactionCreateFromBufferArgs,
-  vaultTransactionCreateFromBufferArgsBeet,
-} from '../types/VaultTransactionCreateFromBufferArgs'
+  VaultTransactionCreateArgs,
+  vaultTransactionCreateArgsBeet,
+} from '../types/VaultTransactionCreateArgs'
 
 /**
  * @category Instructions
@@ -18,7 +18,7 @@ import {
  * @category generated
  */
 export type VaultTransactionCreateFromBufferInstructionArgs = {
-  args: VaultTransactionCreateFromBufferArgs
+  args: VaultTransactionCreateArgs
 }
 /**
  * @category Instructions
@@ -33,7 +33,7 @@ export const vaultTransactionCreateFromBufferStruct =
   >(
     [
       ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-      ['args', vaultTransactionCreateFromBufferArgsBeet],
+      ['args', vaultTransactionCreateArgsBeet],
     ],
     'VaultTransactionCreateFromBufferInstructionArgs'
   )
@@ -41,7 +41,6 @@ export const vaultTransactionCreateFromBufferStruct =
  * Accounts required by the _vaultTransactionCreateFromBuffer_ instruction
  *
  * @property [_writable_] multisig
- * @property [_writable_] transactionBuffer
  * @property [_writable_] transaction
  * @property [**signer**] creator
  * @property [_writable_, **signer**] rentPayer
@@ -51,7 +50,6 @@ export const vaultTransactionCreateFromBufferStruct =
  */
 export type VaultTransactionCreateFromBufferInstructionAccounts = {
   multisig: web3.PublicKey
-  transactionBuffer: web3.PublicKey
   transaction: web3.PublicKey
   creator: web3.PublicKey
   rentPayer: web3.PublicKey
@@ -86,11 +84,6 @@ export function createVaultTransactionCreateFromBufferInstruction(
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: true,
-      isSigner: false,
-    },
-    {
-      pubkey: accounts.transactionBuffer,
       isWritable: true,
       isSigner: false,
     },

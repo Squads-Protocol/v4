@@ -1,12 +1,12 @@
 import {
+  AccountMeta,
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
-  TransactionMessage,
-  VersionedTransaction,
   Transaction,
-  ComputeBudgetProgram,
+  TransactionMessage,
+  VersionedTransaction
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import {
@@ -14,7 +14,7 @@ import {
   TransactionBufferCreateInstructionArgs,
   TransactionBufferExtendArgs,
   TransactionBufferExtendInstructionArgs,
-  VaultTransactionCreateFromBufferArgs,
+  VaultTransactionCreateArgs,
   VaultTransactionCreateFromBufferInstructionArgs
 } from "@sqds/multisig/lib/generated";
 import assert from "assert";
@@ -156,6 +156,8 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     const signature = await connection.sendTransaction(tx, {
       skipPreflight: true,
     });
+    console.log(signature);
+
     await connection.confirmTransaction(signature);
 
     const transactionBufferAccount = await connection.getAccountInfo(
@@ -233,30 +235,40 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       programId,
     });
 
+    const transactionBufferMeta: AccountMeta = {
+      pubkey: transactionBuffer,
+      isWritable: true,
+      isSigner: false
+    }
+
     // Create final instruction.
     const thirdIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
         {
           multisig: multisigPda,
-          transactionBuffer,
           transaction: transactionPda,
           creator: members.proposer.publicKey,
           rentPayer: members.proposer.publicKey,
           systemProgram: SystemProgram.programId,
+          anchorRemainingAccounts: [transactionBufferMeta]
         },
         {
           args: {
+            vaultIndex: 0,
             ephemeralSigners: 0,
+            transactionMessage: Buffer.from("123"),
             memo: null,
-          } as VaultTransactionCreateFromBufferArgs,
+          } as VaultTransactionCreateArgs,
         } as VaultTransactionCreateFromBufferInstructionArgs,
         programId
       );
 
     // Add third instruction to the message.
+    const blockhash = await connection.getLatestBlockhash();
+
     const thirdMessage = new TransactionMessage({
       payerKey: members.proposer.publicKey,
-      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      recentBlockhash: blockhash.blockhash,
       instructions: [thirdIx],
     }).compileToV0Message();
 
@@ -265,18 +277,24 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     thirdTx.sign([members.proposer]);
 
     // Send final transaction.
-    const thirdSignature = await connection.sendTransaction(thirdTx, {
+    const thirdSignature = await connection.sendRawTransaction(thirdTx.serialize(), {
       skipPreflight: true,
     });
 
-    await connection.confirmTransaction(thirdSignature);
+    console.log("Create Vault Tx:", thirdSignature);
+
+    await connection.confirmTransaction({
+      signature: thirdSignature,
+      blockhash: blockhash.blockhash,
+      lastValidBlockHeight: blockhash.lastValidBlockHeight,
+    }, "confirmed");
 
     const transactionInfo =
       await multisig.accounts.VaultTransaction.fromAccountAddress(
         connection,
         transactionPda
       );
-
+    console.log(transactionInfo);
     // Ensure final vault transaction has 43 instructions
     assert.equal(transactionInfo.message.instructions.length, 43);
   });
@@ -358,23 +376,29 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       index: transactionIndex,
       programId,
     });
-
+    const transactionBufferMeta: AccountMeta = {
+      pubkey: transactionBuffer,
+      isWritable: true,
+      isSigner: false
+    }
 
     const createFromBufferIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
         {
           multisig: multisigPda,
-          transactionBuffer,
           transaction: transactionPda,
           creator: members.proposer.publicKey,
           rentPayer: members.proposer.publicKey,
           systemProgram: SystemProgram.programId,
+          anchorRemainingAccounts: [transactionBufferMeta]
         },
         {
           args: {
+            vaultIndex: 0,
             ephemeralSigners: 0,
+            transactionMessage: Buffer.from("123"),
             memo: null,
-          } as VaultTransactionCreateFromBufferArgs,
+          } as VaultTransactionCreateArgs,
         } as VaultTransactionCreateFromBufferInstructionArgs,
         programId
       );
