@@ -203,9 +203,7 @@ pub mod squads_multisig_program {
         ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreate<'info>>,
         args: VaultTransactionCreateArgs,
     ) -> Result<()> {
-        msg!("got here");
-        let create_args = VaultTransactionCreate::build_args_from_buffer_account(&ctx, &args)?;
-        VaultTransactionCreate::vault_transaction_create(ctx, create_args)
+        VaultTransactionCreate::vault_transaction_create_from_buffer(ctx, args)
     }
 
     /// Execute a vault transaction.

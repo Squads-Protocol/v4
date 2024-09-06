@@ -245,7 +245,7 @@ describe("Examples / Transaction Buffers", () => {
         {
           args: {
             vaultIndex: 0,
-            transactionMessage: Buffer.from("123"),
+            transactionMessage: new Uint8Array(6).fill(0),
             ephemeralSigners: 0,
             memo: null,
           } as VaultTransactionCreateArgs,

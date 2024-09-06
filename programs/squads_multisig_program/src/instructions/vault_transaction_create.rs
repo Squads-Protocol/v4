@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 
 use crate::errors::*;
 use crate::state::*;
@@ -130,13 +131,43 @@ impl<'info> VaultTransactionCreate<'info> {
         Ok(())
     }
 
-    pub fn build_args_from_buffer_account(
-        ctx: &Context<'_, '_, 'info, 'info, Self>,
-        args: &VaultTransactionCreateArgs,
-    ) -> Result<VaultTransactionCreateArgs> {
-        let multisig = &ctx.accounts.multisig;
-        let remaining_accounts = ctx.remaining_accounts;
+    pub fn validate_transaction_buffer(
+        ctx: &Context<Self>,
+        transaction_buffer_account: &Account<'info, TransactionBuffer>,
+        transaction_buffer_info: &AccountInfo<'info>,
+    ) -> Result<()> {
+        // Check that the buffer creator is the same as the transaction creator
+        require_keys_eq!(
+            transaction_buffer_account.creator,
+            ctx.accounts.creator.key(),
+            MultisigError::InvalidAccount
+        );
 
+        // Check that the buffer is writable
+        require!(
+            transaction_buffer_info.is_writable,
+            MultisigError::InvalidAccount
+        );
+        // Validate that the final hash matches the buffer
+        transaction_buffer_account.validate_hash()?;
+
+        // Validate that the final size is correct
+        transaction_buffer_account.validate_size()?;
+
+        Ok(())
+    }
+    pub fn vault_transaction_create_from_buffer(
+        ctx: Context<'_, '_, 'info, 'info, Self>,
+        args: VaultTransactionCreateArgs,
+    ) -> Result<()> {
+        // Mutable Accounts
+        let multisig = &ctx.accounts.multisig;
+        let vault_transaction_account = &mut ctx.accounts.transaction;
+        let vault_transaction_account_info = vault_transaction_account.to_account_info();
+        let rent_payer = &ctx.accounts.rent_payer;
+
+        // Readonly Accounts
+        let remaining_accounts = ctx.remaining_accounts;
         // Determine valid buffer account address
         let (transaction_buffer_address, _) = Pubkey::find_program_address(
             &[
@@ -157,32 +188,57 @@ impl<'info> VaultTransactionCreate<'info> {
             .iter()
             .find(|acc| acc.key == &transaction_buffer_address)
             .ok_or(MultisigError::MissingAccount)?;
+
         let transaction_buffer_account: Account<'info, TransactionBuffer> =
             Account::<TransactionBuffer>::try_from(transaction_buffer_info)?;
 
-        // Check that the buffer creator is the same as the transaction creator
-        require_keys_eq!(
-            transaction_buffer_account.creator,
-            ctx.accounts.creator.key(),
-            MultisigError::InvalidAccount
-        );
-        
-        // Check that the buffer is writable
+        // Validate the Transaction Buffer
+        VaultTransactionCreate::validate_transaction_buffer(
+            &ctx,
+            &transaction_buffer_account,
+            &transaction_buffer_info,
+        )?;
+
+        // Check that the transaction message is "empty"
         require!(
-            transaction_buffer_info.is_writable,
-            MultisigError::InvalidAccount
+            args.transaction_message == vec![0, 0, 0, 0, 0, 0],
+            MultisigError::InvalidInstructionArgs
         );
 
         // Close the buffer account
         transaction_buffer_account.close(ctx.accounts.creator.to_account_info())?;
 
-        // Build the args
-        Ok(VaultTransactionCreateArgs {
+        // Calculate the new required length of the vault transaction account
+        let new_len = VaultTransaction::size(
+            args.ephemeral_signers,
+            transaction_buffer_account.buffer.as_slice(),
+        )?;
+
+        // Calculate the rent exemption
+        let rent_exempt_lamports = Rent::get().unwrap().minimum_balance(new_len).max(1);
+
+        // Check the difference between the rent exemption and the current lamports
+        let top_up_lamports =
+            rent_exempt_lamports.saturating_sub(vault_transaction_account_info.lamports());
+
+        // Top up the rent payer account with the difference
+        **rent_payer.try_borrow_mut_lamports()? -= top_up_lamports;
+        **vault_transaction_account_info.try_borrow_mut_lamports()? += top_up_lamports;
+
+        // Reallocate the vault transaction account to the new length of the transaction message
+        AccountInfo::realloc(&vault_transaction_account_info, new_len, true)?;
+
+        // Build the args to overwrite the blank vault transaction account
+        let create_args = VaultTransactionCreateArgs {
             vault_index: transaction_buffer_account.vault_index,
             ephemeral_signers: args.ephemeral_signers,
             transaction_message: transaction_buffer_account.buffer.clone(),
             memo: None,
-        })
+        };
+        // Populate the vault Transaction with the new args
+        Self::vault_transaction_create(ctx, create_args)?;
+
+        Ok(())
     }
 }
 

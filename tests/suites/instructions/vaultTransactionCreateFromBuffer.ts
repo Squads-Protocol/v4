@@ -156,7 +156,6 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     const signature = await connection.sendTransaction(tx, {
       skipPreflight: true,
     });
-    console.log(signature);
 
     await connection.confirmTransaction(signature);
 
@@ -235,11 +234,31 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       programId,
     });
 
+    const transactionAccountInfo = await connection.getAccountInfo(transactionPda);
+
+
+
     const transactionBufferMeta: AccountMeta = {
       pubkey: transactionBuffer,
       isWritable: true,
       isSigner: false
     }
+    const mockTransferIx = SystemProgram.transfer({
+      fromPubkey: members.proposer.publicKey,
+      toPubkey: members.almighty.publicKey,
+      lamports: 100
+    });
+    // const mockTransferMessage = new TransactionMessage({
+    //   payerKey: vaultPda,
+    //   recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+    //   instructions: [mockTransferIx],
+    // });
+
+    // const bytes = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+    //   message: mockTransferMessage,
+    //   addressLookupTableAccounts: [],
+    //   vaultPda,
+    // });
 
     // Create final instruction.
     const thirdIx =
@@ -256,7 +275,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
           args: {
             vaultIndex: 0,
             ephemeralSigners: 0,
-            transactionMessage: Buffer.from("123"),
+            transactionMessage: new Uint8Array(6).fill(0),
             memo: null,
           } as VaultTransactionCreateArgs,
         } as VaultTransactionCreateFromBufferInstructionArgs,
@@ -281,8 +300,6 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       skipPreflight: true,
     });
 
-    console.log("Create Vault Tx:", thirdSignature);
-
     await connection.confirmTransaction({
       signature: thirdSignature,
       blockhash: blockhash.blockhash,
@@ -294,7 +311,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         connection,
         transactionPda
       );
-    console.log(transactionInfo);
+
     // Ensure final vault transaction has 43 instructions
     assert.equal(transactionInfo.message.instructions.length, 43);
   });
@@ -396,8 +413,9 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
           args: {
             vaultIndex: 0,
             ephemeralSigners: 0,
-            transactionMessage: Buffer.from("123"),
+            transactionMessage: new Uint8Array(6).fill(0),
             memo: null,
+            anchorRemainingAccounts: [transactionBufferMeta]
           } as VaultTransactionCreateArgs,
         } as VaultTransactionCreateFromBufferInstructionArgs,
         programId
