@@ -130,7 +130,6 @@ impl<'info> VaultTransactionCreate<'info> {
 
         Ok(())
     }
-
 }
 
 /// Unvalidated instruction data, must be treated as untrusted.

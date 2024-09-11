@@ -110,7 +110,7 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
 
         // Call the vault transaction create instruction
         VaultTransactionCreate::vault_transaction_create(context, create_args)?;
-        
+
         Ok(())
     }
 }
