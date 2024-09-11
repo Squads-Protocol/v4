@@ -1,8 +1,10 @@
 use anchor_lang::prelude::*;
-
 use anchor_spl::token::ID as TOKEN_PROGRAM_ID;
+use anchor_spl::token_2022::TransferChecked;
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use spl_token::instruction::TokenInstruction;
 
+use spl_token::solana_program::system_instruction::SystemInstruction;
 use squads_multisig_program::{
     Multisig, Proposal, ProposalStatus, VaultTransaction, SEED_PREFIX, SEED_PROPOSAL,
     SEED_TRANSACTION, SEED_VAULT,
@@ -19,12 +21,10 @@ pub struct SquadsHookSpendingLimitUseArgs {
 #[derive(Accounts)]
 #[instruction(args: SquadsHookSpendingLimitUseArgs)]
 pub struct SquadsHookSpendingLimitUse<'info> {
-    // Make sure the multisig belongs to the spending limit config
     #[account(
         address = spending_limit_config.multisig,
     )]
     pub multisig: Account<'info, Multisig>,
-    // Make sure the vault belongs to the multisig
     #[account(
         seeds = [
             SEED_PREFIX,
@@ -35,7 +35,6 @@ pub struct SquadsHookSpendingLimitUse<'info> {
         bump
     )]
     pub vault: Signer<'info>,
-    // Check that the proposal belongs to the transaction
     #[account(
         seeds = [
             SEED_PREFIX,
@@ -46,13 +45,10 @@ pub struct SquadsHookSpendingLimitUse<'info> {
             bump
         )]
     pub proposal: Account<'info, Proposal>,
-
-    // Check that the transaction belongs to the multisig
     #[account(
-            constraint = transaction.multisig == multisig.key(),
-        )]
+        constraint = transaction.multisig == multisig.key(),
+    )]
     pub transaction: Account<'info, VaultTransaction>,
-    // Make sure the spending limit config belongs to the multisig
     #[account(
         seeds = [
             SEED_HOOK,
@@ -75,16 +71,13 @@ impl SquadsHookSpendingLimitUse<'_> {
             transaction,
             ..
         } = self;
-        // Check that the proposal is active
+
         require!(
             matches!(proposal.status, ProposalStatus::Active { .. }),
             HookError::ProposalNotActive
         );
-        // Check that proposal has at lease one approval
         require!(proposal.approved.len() > 0, HookError::ProposalNotApproved);
 
-        // Check that the approval is from a member that is a part of the
-        // spending limit config
         let approvals: Vec<&Pubkey> = proposal.approved.iter().collect();
         let spending_limit_config_members = &spending_limit_config.members;
         let is_valid_member = approvals
@@ -92,23 +85,14 @@ impl SquadsHookSpendingLimitUse<'_> {
             .any(|approval| spending_limit_config_members.contains(approval));
 
         require!(is_valid_member, HookError::InvalidMember);
-        // Check that the proposal does not have a cancellation vote
         require!(
             proposal.cancelled.len() == 0,
             HookError::ProposalNotApproved
         );
 
-        // Check that each instruction invokes the token program with the
-        // correct mint and discriminator for a transfer
         let instructions = transaction.message.instructions.iter();
         let account_keys = &transaction.message.account_keys;
-        let token_program_index = account_keys
-            .iter()
-            .position(|key| key.eq(&TOKEN_PROGRAM_ID));
-        // If the token program is not in the account keys, then the transaction is invalid
-        require!(token_program_index.is_some(), HookError::InvalidTransaction);
 
-        // Get the remaining spending limit
         let mut remaining_spending_limit = spending_limit_config.remaining_amount;
         let current_timestamp = Clock::get()?.unix_timestamp;
         let last_limit_reset = spending_limit_config.last_reset;
@@ -119,22 +103,20 @@ impl SquadsHookSpendingLimitUse<'_> {
             .unwrap()
             < current_timestamp
         {
-            // Consider the spending limit reset (Actually resetting of the
-            // limit occurs in the handler function)
             remaining_spending_limit = spending_limit_config.amount;
         }
-        // Spending limit must be greater than 0
+
         require!(
             remaining_spending_limit > 0,
             HookError::SpendingLimitExhausted
         );
 
-        // Total transfer amounts in the transaction
         let mut total_transfer_amount: u64 = 0;
 
-        // Check that each instruction invokes the token program with a transfer
         for instruction in instructions {
-            if instruction.program_id_index as usize == token_program_index.unwrap() {
+            let program_id = account_keys[instruction.program_id_index as usize];
+
+            if program_id == TOKEN_PROGRAM_ID {
                 let instruction_data = &instruction.data;
                 let transfer_instruction =
                     TokenInstruction::unpack(instruction_data.as_slice()).unwrap();
@@ -142,7 +124,6 @@ impl SquadsHookSpendingLimitUse<'_> {
                     TokenInstruction::Transfer { amount } => {
                         total_transfer_amount = total_transfer_amount.checked_add(amount).unwrap();
 
-                        // Check that the destination is a valid address
                         let transfer_destination_index = instruction.account_indexes[1] as usize;
                         let transfer_destination_address = account_keys[transfer_destination_index];
 
@@ -157,10 +138,31 @@ impl SquadsHookSpendingLimitUse<'_> {
                         return err!(HookError::InvalidTransaction);
                     }
                 }
+            } else if program_id == System::id() {
+                // Handle native SOL transfer
+                let system_instruction = instruction.data[0];
+
+                if system_instruction == 2 {
+                    let lamports_as_bytes : [u8; 8] = instruction.data[1..9].try_into().unwrap();
+                    let lamports = u64::from_le_bytes(lamports_as_bytes);
+
+                    total_transfer_amount = total_transfer_amount.checked_add(lamports).unwrap();
+
+                    let transfer_destination_index = instruction.account_indexes[1] as usize;
+                    let transfer_destination_address = account_keys[transfer_destination_index];
+
+                    require!(
+                        spending_limit_config
+                            .destinations
+                            .contains(&transfer_destination_address),
+                        HookError::InvalidDestination
+                    );
+                }
+            } else {
+                return err!(HookError::InvalidTransaction);
             }
         }
-        // Check that the total transfer amount is equal to the remaining
-        // spending limit
+
         require!(
             total_transfer_amount <= remaining_spending_limit,
             HookError::AmountExceedsSpendingLimit
@@ -170,43 +172,39 @@ impl SquadsHookSpendingLimitUse<'_> {
     }
 
     #[access_control(ctx.accounts.validate())]
-    pub fn handler(ctx: Context<Self>) -> Result<()> {
-        // Mutable Accounts
-        let spending_limit_config = &mut ctx.accounts.spending_limit_config;
+pub fn handler(ctx: Context<Self>) -> Result<()> {
+    let spending_limit_config = &mut ctx.accounts.spending_limit_config;
+    let transaction = &ctx.accounts.transaction;
 
-        // Readonly Accounts
-        let transaction = &ctx.accounts.transaction;
+    let current_timestamp = Clock::get()?.unix_timestamp;
+    let mut new_reset_timestamp = spending_limit_config.last_reset;
 
-        // Data
-        let current_timestamp = Clock::get()?.unix_timestamp;
-        let mut new_reset_timestamp = spending_limit_config.last_reset;
+    let mut reset_needed = false;
+    if let Some(reset_period) = spending_limit_config.period.to_seconds() {
+        let time_since_last_reset = current_timestamp
+            .checked_sub(spending_limit_config.last_reset)
+            .unwrap();
 
-        // Check if reset is needed
-        let mut reset_needed = false;
-        if let Some(reset_period) = spending_limit_config.period.to_seconds() {
-            let time_since_last_reset = current_timestamp
-                .checked_sub(spending_limit_config.last_reset)
+        if time_since_last_reset >= reset_period {
+            reset_needed = true;
+            let periods_passed = time_since_last_reset.checked_div(reset_period).unwrap();
+            new_reset_timestamp = spending_limit_config
+                .last_reset
+                .checked_add(periods_passed.checked_mul(reset_period).unwrap())
                 .unwrap();
-
-            if time_since_last_reset >= reset_period {
-                reset_needed = true;
-                let periods_passed = time_since_last_reset.checked_div(reset_period).unwrap();
-                new_reset_timestamp = spending_limit_config
-                    .last_reset
-                    .checked_add(periods_passed.checked_mul(reset_period).unwrap())
-                    .unwrap();
-            }
         }
+    }
 
-        // Reset the spending limit if needed
-        if reset_needed {
-            spending_limit_config.remaining_amount = spending_limit_config.amount;
-            spending_limit_config.last_reset = new_reset_timestamp;
-        }
+    if reset_needed {
+        spending_limit_config.remaining_amount = spending_limit_config.amount;
+        spending_limit_config.last_reset = new_reset_timestamp;
+    }
 
-        // Get total transfer amounts in the transaction
-        let mut total_transfer_amount: u64 = 0;
-        for instruction in transaction.message.instructions.iter() {
+    let mut total_transfer_amount: u64 = 0;
+    for instruction in transaction.message.instructions.iter() {
+        let program_id = transaction.message.account_keys[instruction.program_id_index as usize];
+
+        if program_id == TOKEN_PROGRAM_ID {
             let instruction_data = &instruction.data;
             let transfer_instruction =
                 TokenInstruction::unpack(instruction_data.as_slice()).unwrap();
@@ -215,17 +213,28 @@ impl SquadsHookSpendingLimitUse<'_> {
                     total_transfer_amount = total_transfer_amount.checked_add(amount).unwrap();
                 }
                 _ => {
-                    // Should never happen since the transaction is validated in validate()
                     return err!(HookError::InvalidTransaction);
                 }
             }
-        }
+        } else if program_id == System::id() {
+            // Handle native SOL transfer
+            let system_instruction = instruction.data[0];
 
-        // Set the remaining spending limit
-        spending_limit_config.remaining_amount = spending_limit_config
-            .amount
-            .checked_sub(total_transfer_amount)
-            .unwrap();
-        Ok(())
+            if system_instruction == 2 {
+                let lamports_as_bytes : [u8; 8] = instruction.data[1..9].try_into().unwrap();
+                let lamports = u64::from_le_bytes(lamports_as_bytes);
+
+                total_transfer_amount = total_transfer_amount.checked_add(lamports).unwrap();
+            }
+        } else {
+            return err!(HookError::InvalidTransaction);
+        }
     }
+
+    spending_limit_config.remaining_amount = spending_limit_config
+        .amount
+        .checked_sub(total_transfer_amount)
+        .unwrap();
+    Ok(())
+}
 }
