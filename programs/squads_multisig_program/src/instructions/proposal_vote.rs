@@ -35,27 +35,8 @@ pub struct ProposalVote<'info> {
 
 #[derive(Accounts)]
 pub struct ProposalCancel<'info> {
-    #[account(
-        seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
-        bump = multisig.bump,
-    )]
-    pub multisig: Account<'info, Multisig>,
-
-    #[account(mut)]
-    pub member: Signer<'info>,
-
-    #[account(
-        mut,
-        seeds = [
-            SEED_PREFIX,
-            multisig.key().as_ref(),
-            SEED_TRANSACTION,
-            &proposal.transaction_index.to_le_bytes(),
-            SEED_PROPOSAL,
-        ],
-        bump = proposal.bump,
-    )]
-    pub proposal: Account<'info, Proposal>,
+    // The context needed for the ProposalVote instruction
+    pub proposal_vote: ProposalVote<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -150,56 +131,31 @@ impl ProposalVote<'_> {
     }
 }
 
-impl ProposalCancel<'_> {
-    fn validate(&self) -> Result<()> {
-        let Self {
-            multisig,
-            proposal,
-            member,
-            ..
-        } = self;
-
-        // member
-        require!(
-            multisig.is_member(member.key()).is_some(),
-            MultisigError::NotAMember
-        );
-        require!(
-            multisig.member_has_permission(member.key(), Permission::Vote),
-            MultisigError::Unauthorized
-        );
-
-        require!(
-            matches!(proposal.status, ProposalStatus::Approved { .. }),
-            MultisigError::InvalidProposalStatus
-        );
-        // CAN cancel a stale proposal.
-
-        Ok(())
-    }
+impl<'info> ProposalCancel<'info> {
 
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
-    #[access_control(ctx.accounts.validate())]
-    pub fn proposal_cancel(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
-        let multisig = &mut ctx.accounts.multisig;
-        let proposal = &mut ctx.accounts.proposal;
-        let member = &mut ctx.accounts.member;
-        let system_program = &ctx.accounts.system_program;
+    pub fn proposal_cancel(ctx: Context<'_, '_, 'info, 'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
+        // Readonly accounts
+        let multisig = &ctx.accounts.proposal_vote.multisig.clone();
 
-        // ensure that the cancel array contains no keys that are not currently members
-        proposal
-            .cancelled
-            .retain(|k| multisig.is_member(*k).is_some());
+        // Account infos necessary for reallocation
+        let proposal_account_info = &ctx.accounts.proposal_vote.proposal.to_account_info();
+        let member_account_info = &ctx.accounts.proposal_vote.member.to_account_info();
+        let system_program_account_info = &ctx.accounts.system_program.to_account_info();
 
-        proposal.cancel(member.key(), usize::from(multisig.threshold))?;
+        // Create context for cancel instruction
+        let cancel_context = Context::new(ctx.program_id, &mut ctx.accounts.proposal_vote, ctx.remaining_accounts, ctx.bumps.proposal_vote);
 
-        // reallocate the proposal size if needed
+        // Call cancel instruction
+        ProposalVote::proposal_cancel(cancel_context, _args)?;
+
+        // Reallocate the proposal size if needed
         Proposal::realloc_if_needed(
-            proposal.to_account_info(),
+            proposal_account_info.clone(),
             multisig.members.len(),
-            Some(member.to_account_info()),
-            Some(system_program.to_account_info()),
+            Some(member_account_info.clone()),
+            Some(system_program_account_info.clone()),
         )?;
         Ok(())
     }

@@ -203,7 +203,7 @@ pub mod squads_multisig_program {
         ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreateFromBuffer<'info>>,
         args: VaultTransactionCreateArgs,
     ) -> Result<()> {
-        VaultTransactionCreateFromBuffer::handler(ctx, args)
+        VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
     }
 
     /// Execute a vault transaction.
@@ -265,7 +265,7 @@ pub mod squads_multisig_program {
     /// accommodate the new amount of cancel votes.
     /// The previous implemenation still works if the proposal size is in line with the
     /// threshold size.
-    pub fn proposal_cancel_v2(ctx: Context<ProposalCancel>, args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_cancel_v2<'info>(ctx: Context<'_, '_, 'info, 'info, ProposalCancel<'info>>, args: ProposalVoteArgs) -> Result<()> {
         ProposalCancel::proposal_cancel(ctx, args)
     }
 

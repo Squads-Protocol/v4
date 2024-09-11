@@ -1302,19 +1302,24 @@
       ],
       "accounts": [
         {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "member",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "proposal",
-          "isMut": true,
-          "isSigner": false
+          "name": "proposalVote",
+          "accounts": [
+            {
+              "name": "multisig",
+              "isMut": false,
+              "isSigner": false
+            },
+            {
+              "name": "member",
+              "isMut": true,
+              "isSigner": true
+            },
+            {
+              "name": "proposal",
+              "isMut": true,
+              "isSigner": false
+            }
+          ]
         },
         {
           "name": "systemProgram",

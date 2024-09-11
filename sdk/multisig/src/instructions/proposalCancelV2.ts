@@ -1,6 +1,6 @@
-import { getProposalPda } from "../pda";
-import { createProposalCancelV2Instruction, PROGRAM_ID } from "../generated";
 import { PublicKey } from "@solana/web3.js";
+import { createProposalCancelV2Instruction, PROGRAM_ID } from "../generated";
+import { getProposalPda } from "../pda";
 
 export function proposalCancelV2({
   multisigPda,
@@ -22,7 +22,7 @@ export function proposalCancelV2({
   });
 
   return createProposalCancelV2Instruction(
-    { multisig: multisigPda, proposal: proposalPda, member },
+    { proposalVoteItemMultisig: multisigPda, proposalVoteItemProposal: proposalPda, proposalVoteItemMember: member },
     { args: { memo: memo ?? null } },
     programId
   );

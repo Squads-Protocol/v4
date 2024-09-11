@@ -39,17 +39,17 @@ export const proposalCancelV2Struct = new beet.FixableBeetArgsStruct<
 /**
  * Accounts required by the _proposalCancelV2_ instruction
  *
- * @property [] multisig
- * @property [_writable_, **signer**] member
- * @property [_writable_] proposal
+ * @property [] proposalVoteItemMultisig
+ * @property [_writable_, **signer**] proposalVoteItemMember
+ * @property [_writable_] proposalVoteItemProposal
  * @category Instructions
  * @category ProposalCancelV2
  * @category generated
  */
 export type ProposalCancelV2InstructionAccounts = {
-  multisig: web3.PublicKey
-  member: web3.PublicKey
-  proposal: web3.PublicKey
+  proposalVoteItemMultisig: web3.PublicKey
+  proposalVoteItemMember: web3.PublicKey
+  proposalVoteItemProposal: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -79,17 +79,17 @@ export function createProposalCancelV2Instruction(
   })
   const keys: web3.AccountMeta[] = [
     {
-      pubkey: accounts.multisig,
+      pubkey: accounts.proposalVoteItemMultisig,
       isWritable: false,
       isSigner: false,
     },
     {
-      pubkey: accounts.member,
+      pubkey: accounts.proposalVoteItemMember,
       isWritable: true,
       isSigner: true,
     },
     {
-      pubkey: accounts.proposal,
+      pubkey: accounts.proposalVoteItemProposal,
       isWritable: true,
       isSigner: false,
     },
