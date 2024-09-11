@@ -52,7 +52,7 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
         transaction_buffer_account.validate_size()?;
         Ok(())
     }
-    // Create a new vault transaction from a completed transaction buffer account.
+    /// Create a new vault transaction from a completed transaction buffer account.
     #[access_control(ctx.accounts.validate(&args))]
     pub fn vault_transaction_create_from_buffer(
         ctx: Context<'_, '_, 'info, 'info, Self>,
