@@ -19,7 +19,7 @@ pub use transaction_buffer_close::*;
 pub use transaction_buffer_create::*;
 pub use transaction_buffer_extend::*;
 pub use vault_transaction_create::*;
-
+pub use vault_transaction_create_from_buffer::*;
 pub use vault_transaction_execute::*;
 
 mod batch_add_transaction;
@@ -43,5 +43,5 @@ mod transaction_buffer_close;
 mod transaction_buffer_create;
 mod transaction_buffer_extend;
 mod vault_transaction_create;
-
+mod vault_transaction_create_from_buffer;
 mod vault_transaction_execute;

@@ -264,12 +264,13 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     const thirdIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
         {
-          multisig: multisigPda,
-          transaction: transactionPda,
+          vaultTransactionCreateItemMultisig: multisigPda,
+          vaultTransactionCreateItemTransaction: transactionPda,
+          vaultTransactionCreateItemCreator: members.proposer.publicKey,
+          vaultTransactionCreateItemRentPayer: members.proposer.publicKey,
+          vaultTransactionCreateItemSystemProgram: SystemProgram.programId,
           creator: members.proposer.publicKey,
-          rentPayer: members.proposer.publicKey,
-          systemProgram: SystemProgram.programId,
-          anchorRemainingAccounts: [transactionBufferMeta]
+          transactionBuffer: transactionBuffer,
         },
         {
           args: {
@@ -402,12 +403,13 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     const createFromBufferIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
         {
-          multisig: multisigPda,
-          transaction: transactionPda,
+          vaultTransactionCreateItemMultisig: multisigPda,
+          vaultTransactionCreateItemTransaction: transactionPda,
+          vaultTransactionCreateItemCreator: members.proposer.publicKey,
+          vaultTransactionCreateItemRentPayer: members.proposer.publicKey,
+          vaultTransactionCreateItemSystemProgram: SystemProgram.programId,
           creator: members.proposer.publicKey,
-          rentPayer: members.proposer.publicKey,
-          systemProgram: SystemProgram.programId,
-          anchorRemainingAccounts: [transactionBufferMeta]
+          transactionBuffer: transactionBuffer,
         },
         {
           args: {

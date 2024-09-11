@@ -235,12 +235,13 @@ describe("Examples / Transaction Buffers", () => {
     const thirdIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
         {
-          multisig: multisigPda,
-          transaction: transactionPda,
+          vaultTransactionCreateItemMultisig: multisigPda,
+          vaultTransactionCreateItemTransaction: transactionPda,
+          vaultTransactionCreateItemCreator: members.almighty.publicKey,
+          vaultTransactionCreateItemRentPayer: members.almighty.publicKey,
+          vaultTransactionCreateItemSystemProgram: SystemProgram.programId,
           creator: members.almighty.publicKey,
-          rentPayer: members.almighty.publicKey,
-          systemProgram: SystemProgram.programId,
-          anchorRemainingAccounts: [transactionBufferMeta]
+          transactionBuffer: transactionBuffer,
         },
         {
           args: {

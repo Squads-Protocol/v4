@@ -40,20 +40,25 @@ export const vaultTransactionCreateFromBufferStruct =
 /**
  * Accounts required by the _vaultTransactionCreateFromBuffer_ instruction
  *
- * @property [_writable_] multisig
- * @property [_writable_] transaction
- * @property [**signer**] creator
- * @property [_writable_, **signer**] rentPayer
+ * @property [_writable_] vaultTransactionCreateItemMultisig
+ * @property [_writable_] vaultTransactionCreateItemTransaction
+ * @property [**signer**] vaultTransactionCreateItemCreator
+ * @property [_writable_, **signer**] vaultTransactionCreateItemRentPayer
+ * @property [] vaultTransactionCreateItemSystemProgram
+ * @property [_writable_] transactionBuffer
+ * @property [_writable_, **signer**] creator
  * @category Instructions
  * @category VaultTransactionCreateFromBuffer
  * @category generated
  */
 export type VaultTransactionCreateFromBufferInstructionAccounts = {
-  multisig: web3.PublicKey
-  transaction: web3.PublicKey
+  vaultTransactionCreateItemMultisig: web3.PublicKey
+  vaultTransactionCreateItemTransaction: web3.PublicKey
+  vaultTransactionCreateItemCreator: web3.PublicKey
+  vaultTransactionCreateItemRentPayer: web3.PublicKey
+  vaultTransactionCreateItemSystemProgram: web3.PublicKey
+  transactionBuffer: web3.PublicKey
   creator: web3.PublicKey
-  rentPayer: web3.PublicKey
-  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
@@ -83,29 +88,39 @@ export function createVaultTransactionCreateFromBufferInstruction(
   })
   const keys: web3.AccountMeta[] = [
     {
-      pubkey: accounts.multisig,
+      pubkey: accounts.vaultTransactionCreateItemMultisig,
       isWritable: true,
       isSigner: false,
     },
     {
-      pubkey: accounts.transaction,
+      pubkey: accounts.vaultTransactionCreateItemTransaction,
+      isWritable: true,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.vaultTransactionCreateItemCreator,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.vaultTransactionCreateItemRentPayer,
+      isWritable: true,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.vaultTransactionCreateItemSystemProgram,
+      isWritable: false,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.transactionBuffer,
       isWritable: true,
       isSigner: false,
     },
     {
       pubkey: accounts.creator,
-      isWritable: false,
-      isSigner: true,
-    },
-    {
-      pubkey: accounts.rentPayer,
       isWritable: true,
       isSigner: true,
-    },
-    {
-      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
-      isWritable: false,
-      isSigner: false,
     },
   ]
 

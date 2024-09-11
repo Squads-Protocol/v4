@@ -871,35 +871,50 @@
       ],
       "accounts": [
         {
-          "name": "multisig",
-          "isMut": true,
-          "isSigner": false
+          "name": "vaultTransactionCreate",
+          "accounts": [
+            {
+              "name": "multisig",
+              "isMut": true,
+              "isSigner": false
+            },
+            {
+              "name": "transaction",
+              "isMut": true,
+              "isSigner": false
+            },
+            {
+              "name": "creator",
+              "isMut": false,
+              "isSigner": true,
+              "docs": [
+                "The member of the multisig that is creating the transaction."
+              ]
+            },
+            {
+              "name": "rentPayer",
+              "isMut": true,
+              "isSigner": true,
+              "docs": [
+                "The payer for the transaction account rent."
+              ]
+            },
+            {
+              "name": "systemProgram",
+              "isMut": false,
+              "isSigner": false
+            }
+          ]
         },
         {
-          "name": "transaction",
+          "name": "transactionBuffer",
           "isMut": true,
           "isSigner": false
         },
         {
           "name": "creator",
-          "isMut": false,
-          "isSigner": true,
-          "docs": [
-            "The member of the multisig that is creating the transaction."
-          ]
-        },
-        {
-          "name": "rentPayer",
           "isMut": true,
-          "isSigner": true,
-          "docs": [
-            "The payer for the transaction account rent."
-          ]
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
+          "isSigner": true
         }
       ],
       "args": [

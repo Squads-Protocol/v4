@@ -1,4 +1,4 @@
-// // The order of imports is the order the test suite will run in.
+// The order of imports is the order the test suite will run in.
 import "./suites/program-config-init"
 import "./suites/account-migrations";
 import "./suites/examples/batch-sol-transfer";
@@ -20,7 +20,7 @@ import "./suites/instructions/vaultBatchTransactionAccountClose";
 import "./suites/instructions/vaultTransactionAccountsClose";
 import "./suites/instructions/vaultTransactionCreateFromBuffer";
 import "./suites/multisig-sdk";
-import "./suites/program-config-init";
+
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";
 // import "./suites/examples/custom-heap";

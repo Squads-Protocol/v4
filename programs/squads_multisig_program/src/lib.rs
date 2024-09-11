@@ -200,10 +200,10 @@ pub mod squads_multisig_program {
     /// Create a new vault transaction from a completed transaction buffer.
     /// Finalized buffer hash must match `final_buffer_hash`
     pub fn vault_transaction_create_from_buffer<'info>(
-        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreate<'info>>,
+        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreateFromBuffer<'info>>,
         args: VaultTransactionCreateArgs,
     ) -> Result<()> {
-        VaultTransactionCreate::vault_transaction_create_from_buffer(ctx, args)
+        VaultTransactionCreateFromBuffer::handler(ctx, args)
     }
 
     /// Execute a vault transaction.
