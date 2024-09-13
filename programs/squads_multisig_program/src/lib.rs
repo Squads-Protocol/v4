@@ -320,4 +320,10 @@ pub mod squads_multisig_program {
     // pub fn heap_test(ctx: Context<HeapTest>, length: u64) -> Result<()> {
     //     HeapTest::handler(ctx, length)
     // }
+
+    pub fn vault_transaction_execute_with_hook(
+        ctx: Context<VaultTransactionExecuteWithHook>,
+    ) -> Result<()> {
+        VaultTransactionExecuteWithHook::vault_transaction_execute_with_hook(ctx)
+    }
 }

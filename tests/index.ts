@@ -3,7 +3,7 @@ import "./suites/program-config-init";
 // import "./suites/instructions/multisigCreate";
 // import "./suites/instructions/multisigCreateV2";
 // import "./suites/instructions/multisigSetRentCollector";
-import "./suites/instructions/configTransactionExecute";
+//import "./suites/instructions/configTransactionExecute";
 // import "./suites/instructions/configTransactionAccountsClose";
 // import "./suites/instructions/vaultBatchTransactionAccountClose";
 // import "./suites/instructions/batchAccountsClose";
@@ -23,4 +23,5 @@ import "./suites/instructions/configTransactionExecute";
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";
 // import "./suites/examples/custom-heap";
+import "./suites/instructions/vaultTransactionExecuteWithHook";
 

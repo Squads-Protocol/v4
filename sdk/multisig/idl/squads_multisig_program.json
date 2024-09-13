@@ -1610,6 +1610,56 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "vaultTransactionExecuteWithHook",
+      "accounts": [
+        {
+          "name": "multisig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "proposal",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "The proposal account associated with the transaction."
+          ]
+        },
+        {
+          "name": "transaction",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "The transaction to execute."
+          ]
+        },
+        {
+          "name": "member",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "hookConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "hookProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "hookAuthority",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "data in it, so we just need to check its seeds"
+          ]
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -3527,6 +3577,16 @@
       "code": 6042,
       "name": "FinalBufferSizeMismatch",
       "msg": "Final buffer size mismatch"
+    },
+    {
+      "code": 6043,
+      "name": "NoHookEnabled",
+      "msg": "Multisig has no hook enabled"
+    },
+    {
+      "code": 6044,
+      "name": "HookFailed",
+      "msg": "Hook did not pass"
     }
   ],
   "metadata": {

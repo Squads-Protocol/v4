@@ -26,3 +26,4 @@ export * from "./vaultBatchTransactionAccountClose.js";
 export * from "./vaultTransactionAccountsClose.js";
 export * from "./vaultTransactionCreate.js";
 export * from "./vaultTransactionExecute.js";
+export * from "./vaultTransactionExecuteWithHook.js";

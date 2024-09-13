@@ -88,4 +88,9 @@ pub enum MultisigError {
     FinalBufferSizeExceeded,
     #[msg("Final buffer size mismatch")]
     FinalBufferSizeMismatch,
+    // Hooks
+    #[msg("Multisig has no hook enabled")]
+    NoHookEnabled,
+    #[msg("Hook did not pass")]
+    HookFailed,
 }

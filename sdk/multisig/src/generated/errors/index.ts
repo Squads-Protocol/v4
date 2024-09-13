@@ -991,6 +991,46 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * NoHookEnabled: 'Multisig has no hook enabled'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NoHookEnabledError extends Error {
+  readonly code: number = 0x179b
+  readonly name: string = 'NoHookEnabled'
+  constructor() {
+    super('Multisig has no hook enabled')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NoHookEnabledError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x179b, () => new NoHookEnabledError())
+createErrorFromNameLookup.set('NoHookEnabled', () => new NoHookEnabledError())
+
+/**
+ * HookFailed: 'Hook did not pass'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class HookFailedError extends Error {
+  readonly code: number = 0x179c
+  readonly name: string = 'HookFailed'
+  constructor() {
+    super('Hook did not pass')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, HookFailedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x179c, () => new HookFailedError())
+createErrorFromNameLookup.set('HookFailed', () => new HookFailedError())
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated
