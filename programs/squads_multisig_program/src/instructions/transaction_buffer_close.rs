@@ -18,11 +18,13 @@ pub struct TransactionBufferClose<'info> {
         close = creator,
         // Only the creator can close the buffer
         constraint = transaction_buffer.creator == creator.key() @ MultisigError::Unauthorized,
+        // Account can be closed anytime by the creator, regardless of the
+        // current multisig transaction index
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION_BUFFER,
-            &multisig.transaction_index.checked_add(1).unwrap().to_le_bytes(),
+            &transaction_buffer.transaction_index.to_le_bytes(),
         ],
         bump
     )]
