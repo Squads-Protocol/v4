@@ -34,7 +34,7 @@ pub struct ProposalVote<'info> {
 }
 
 #[derive(Accounts)]
-pub struct ProposalCancel<'info> {
+pub struct ProposalCancelV2<'info> {
     // The context needed for the ProposalVote instruction
     pub proposal_vote: ProposalVote<'info>,
 
@@ -131,11 +131,11 @@ impl ProposalVote<'_> {
     }
 }
 
-impl<'info> ProposalCancel<'info> {
+impl<'info> ProposalCancelV2<'info> {
 
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
-    pub fn proposal_cancel(ctx: Context<'_, '_, 'info, 'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_cancel_v2(ctx: Context<'_, '_, 'info, 'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
         // Readonly accounts
         let multisig = &ctx.accounts.proposal_vote.multisig.clone();
 
