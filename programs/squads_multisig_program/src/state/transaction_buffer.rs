@@ -3,9 +3,6 @@ use anchor_lang::solana_program::hash::hash;
 
 use crate::errors::MultisigError;
 
-// Since VaultTransaction doesn't implement zero-copy, we are limited to
-// deserializing the account onto the Stack. This means we are limited to a
-// theoretical max size of 4KiB
 pub const MAX_BUFFER_SIZE: usize = 4000;
 
 #[account]
@@ -41,7 +38,8 @@ impl TransactionBuffer {
             8 +   // transaction_index
             32 +  // transaction_message_hash
             2 +  // final_buffer_size
-            final_message_buffer_size as usize, // transaction_message
+            4 + // vec length bytes
+            final_message_buffer_size as usize, // buffer
         )
     }
 
