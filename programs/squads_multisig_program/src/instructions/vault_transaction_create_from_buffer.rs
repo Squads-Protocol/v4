@@ -26,8 +26,8 @@ pub struct VaultTransactionCreateFromBuffer<'info> {
     )]
     pub transaction_buffer: Box<Account<'info, TransactionBuffer>>,
 
-    // Anchor doesn't allow us to use the creator inside
-    // vault_transaction_create, so we just re-pass it here with the constraint
+    // Anchor doesn't allow us to use the creator inside of
+    // vault_transaction_create, so we just re-pass it here with the same constraint
     #[account(
         mut,
         address = vault_transaction_create.creator.key(),
