@@ -199,9 +199,9 @@ pub mod squads_multisig_program {
 
     /// Create a new vault transaction from a completed transaction buffer.
     /// Finalized buffer hash must match `final_buffer_hash`
-    pub fn vault_transaction_create_from_buffer(
-        ctx: Context<VaultTransactionCreateFromBuffer>,
-        args: VaultTransactionCreateFromBufferArgs,
+    pub fn vault_transaction_create_from_buffer<'info>(
+        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreateFromBuffer<'info>>,
+        args: VaultTransactionCreateArgs,
     ) -> Result<()> {
         VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
     }
@@ -265,8 +265,8 @@ pub mod squads_multisig_program {
     /// accommodate the new amount of cancel votes.
     /// The previous implemenation still works if the proposal size is in line with the
     /// threshold size.
-    pub fn proposal_cancel_v2(ctx: Context<ProposalCancel>, args: ProposalVoteArgs) -> Result<()> {
-        ProposalCancel::proposal_cancel(ctx, args)
+    pub fn proposal_cancel_v2<'info>(ctx: Context<'_, '_, 'info, 'info, ProposalCancelV2<'info>>, args: ProposalVoteArgs) -> Result<()> {
+        ProposalCancelV2::proposal_cancel_v2(ctx, args)
     }
 
     /// Use a spending limit to transfer tokens from a multisig vault to a destination account.

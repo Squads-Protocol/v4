@@ -1,33 +1,33 @@
-import * as multisig from "@sqds/multisig";
-import * as crypto from "crypto";
-import assert from "assert";
-import { BN } from "bn.js";
 import {
+  AccountMeta,
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
-  TransactionMessage,
-  VersionedTransaction,
   SystemProgram,
   Transaction,
+  TransactionMessage,
+  VersionedTransaction
 } from "@solana/web3.js";
-import {
-  createAutonomousMultisigV2,
-  createLocalhostConnection,
-  createTestTransferInstruction,
-  generateMultisigMembers,
-  getLogs,
-  getTestProgramId,
-  TestMembers,
-} from "../../utils";
+import * as multisig from "@sqds/multisig";
 import {
   TransactionBufferCreateArgs,
   TransactionBufferCreateInstructionArgs,
   TransactionBufferExtendArgs,
   TransactionBufferExtendInstructionArgs,
-  VaultTransactionCreateFromBufferArgs,
+  VaultTransactionCreateArgs,
   VaultTransactionCreateFromBufferInstructionArgs,
 } from "@sqds/multisig/lib/generated";
+import assert from "assert";
+import { BN } from "bn.js";
+import * as crypto from "crypto";
+import {
+  TestMembers,
+  createAutonomousMultisigV2,
+  createLocalhostConnection,
+  createTestTransferInstruction,
+  generateMultisigMembers,
+  getTestProgramId
+} from "../../utils";
 
 const programId = getTestProgramId();
 
@@ -226,22 +226,30 @@ describe("Examples / Transaction Buffers", () => {
       programId,
     });
 
+    const transactionBufferMeta: AccountMeta = {
+      pubkey: transactionBuffer,
+      isWritable: true,
+      isSigner: false
+    }
     // Create final instruction.
     const thirdIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
         {
-          multisig: multisigPda,
-          transactionBuffer,
-          transaction: transactionPda,
+          vaultTransactionCreateItemMultisig: multisigPda,
+          vaultTransactionCreateItemTransaction: transactionPda,
+          vaultTransactionCreateItemCreator: members.almighty.publicKey,
+          vaultTransactionCreateItemRentPayer: members.almighty.publicKey,
+          vaultTransactionCreateItemSystemProgram: SystemProgram.programId,
           creator: members.almighty.publicKey,
-          rentPayer: members.almighty.publicKey,
-          systemProgram: SystemProgram.programId,
+          transactionBuffer: transactionBuffer,
         },
         {
           args: {
+            vaultIndex: 0,
+            transactionMessage: new Uint8Array(6).fill(0),
             ephemeralSigners: 0,
             memo: null,
-          } as VaultTransactionCreateFromBufferArgs,
+          } as VaultTransactionCreateArgs,
         } as VaultTransactionCreateFromBufferInstructionArgs,
         programId
       );

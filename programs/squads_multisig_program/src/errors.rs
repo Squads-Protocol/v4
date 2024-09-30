@@ -82,6 +82,8 @@ pub enum MultisigError {
     BatchNotEmpty,
     #[msg("Invalid SpendingLimit amount")]
     SpendingLimitInvalidAmount,
+    #[msg("Invalid Instruction Arguments")]
+    InvalidInstructionArgs,
     #[msg("Final message buffer hash doesnt match the expected hash")]
     FinalBufferHashMismatch,
     #[msg("Final buffer size cannot exceed 4000 bytes")]

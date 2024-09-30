@@ -922,13 +922,36 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * InvalidInstructionArgs: 'Invalid Instruction Arguments'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidInstructionArgsError extends Error {
+  readonly code: number = 0x1798
+  readonly name: string = 'InvalidInstructionArgs'
+  constructor() {
+    super('Invalid Instruction Arguments')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidInstructionArgsError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1798, () => new InvalidInstructionArgsError())
+createErrorFromNameLookup.set(
+  'InvalidInstructionArgs',
+  () => new InvalidInstructionArgsError()
+)
+
+/**
  * FinalBufferHashMismatch: 'Final message buffer hash doesnt match the expected hash'
  *
  * @category Errors
  * @category generated
  */
 export class FinalBufferHashMismatchError extends Error {
-  readonly code: number = 0x1798
+  readonly code: number = 0x1799
   readonly name: string = 'FinalBufferHashMismatch'
   constructor() {
     super('Final message buffer hash doesnt match the expected hash')
@@ -938,7 +961,7 @@ export class FinalBufferHashMismatchError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1798, () => new FinalBufferHashMismatchError())
+createErrorFromCodeLookup.set(0x1799, () => new FinalBufferHashMismatchError())
 createErrorFromNameLookup.set(
   'FinalBufferHashMismatch',
   () => new FinalBufferHashMismatchError()
@@ -951,7 +974,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class FinalBufferSizeExceededError extends Error {
-  readonly code: number = 0x1799
+  readonly code: number = 0x179a
   readonly name: string = 'FinalBufferSizeExceeded'
   constructor() {
     super('Final buffer size cannot exceed 4000 bytes')
@@ -961,7 +984,7 @@ export class FinalBufferSizeExceededError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x1799, () => new FinalBufferSizeExceededError())
+createErrorFromCodeLookup.set(0x179a, () => new FinalBufferSizeExceededError())
 createErrorFromNameLookup.set(
   'FinalBufferSizeExceeded',
   () => new FinalBufferSizeExceededError()
@@ -974,7 +997,7 @@ createErrorFromNameLookup.set(
  * @category generated
  */
 export class FinalBufferSizeMismatchError extends Error {
-  readonly code: number = 0x179a
+  readonly code: number = 0x179b
   readonly name: string = 'FinalBufferSizeMismatch'
   constructor() {
     super('Final buffer size mismatch')
@@ -984,7 +1007,7 @@ export class FinalBufferSizeMismatchError extends Error {
   }
 }
 
-createErrorFromCodeLookup.set(0x179a, () => new FinalBufferSizeMismatchError())
+createErrorFromCodeLookup.set(0x179b, () => new FinalBufferSizeMismatchError())
 createErrorFromNameLookup.set(
   'FinalBufferSizeMismatch',
   () => new FinalBufferSizeMismatchError()

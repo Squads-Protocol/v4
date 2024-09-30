@@ -1,159 +1,115 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
+use crate::instructions::*;
 use crate::state::*;
-use crate::TransactionMessage;
-
-#[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct VaultTransactionCreateFromBufferArgs {
-    /// Number of ephemeral signing PDAs required by the transaction.
-    pub ephemeral_signers: u8,
-    /// Optional Memo
-    pub memo: Option<String>,
-}
 
 #[derive(Accounts)]
-#[instruction(args: VaultTransactionCreateFromBufferArgs)]
 pub struct VaultTransactionCreateFromBuffer<'info> {
-    #[account(
-        mut,
-        seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
-        bump = multisig.bump,
-    )]
-    pub multisig: Account<'info, Multisig>,
+    // The context needed for the VaultTransactionCreate instruction
+    pub vault_transaction_create: VaultTransactionCreate<'info>,
 
     #[account(
         mut,
         close = creator,
-        // Only the creator of the buffer can create a VaultTransaction from it
-        constraint = transaction_buffer.creator == creator.key(),
-            seeds = [
+        seeds = [
             SEED_PREFIX,
-            multisig.key().as_ref(),
+            vault_transaction_create.multisig.key().as_ref(),
             SEED_TRANSACTION_BUFFER,
-            &multisig.transaction_index.checked_add(1).unwrap().to_le_bytes(),
+            &vault_transaction_create.multisig
+            .transaction_index
+            .checked_add(1)
+            .unwrap()
+            .to_le_bytes(),
         ],
         bump
     )]
     pub transaction_buffer: Box<Account<'info, TransactionBuffer>>,
 
+    // Anchor doesn't allow us to use the creator inside
+    // vault_transaction_create, so we just re-pass it here with the constraint
     #[account(
-        init,
-        payer = rent_payer,
-        space = VaultTransaction::size(args.ephemeral_signers, &transaction_buffer.buffer)?,
-        seeds = [
-            SEED_PREFIX,
-            multisig.key().as_ref(),
-            SEED_TRANSACTION,
-            &multisig.transaction_index.checked_add(1).unwrap().to_le_bytes(),
-        ],
-        bump
+        mut,
+        address = vault_transaction_create.creator.key(),
     )]
-    pub transaction: Account<'info, VaultTransaction>,
-
-    /// The member of the multisig that is creating the transaction.
     pub creator: Signer<'info>,
-
-    /// The payer for the transaction account rent.
-    #[account(mut)]
-    pub rent_payer: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
 }
 
-impl VaultTransactionCreateFromBuffer<'_> {
-    fn validate(&self) -> Result<()> {
-        let Self {
-            multisig,
-            creator,
-            transaction_buffer,
-            ..
-        } = self;
+impl<'info> VaultTransactionCreateFromBuffer<'info> {
+    pub fn validate(&self, args: &VaultTransactionCreateArgs) -> Result<()> {
+        let transaction_buffer_account = &self.transaction_buffer;
 
-        // creator
+        // Check that the transaction message is "empty"
         require!(
-            multisig.is_member(creator.key()).is_some(),
-            MultisigError::NotAMember
-        );
-        require!(
-            multisig.member_has_permission(creator.key(), Permission::Initiate),
-            MultisigError::Unauthorized
+            args.transaction_message == vec![0, 0, 0, 0, 0, 0],
+            MultisigError::InvalidInstructionArgs
         );
 
-        // Transaction buffer hash validation
-        transaction_buffer.validate_hash()?;
-        // Transaction buffer size validation
-        transaction_buffer.validate_size()?;
+        // Validate that the final hash matches the buffer
+        transaction_buffer_account.validate_hash()?;
 
+        // Validate that the final size is correct
+        transaction_buffer_account.validate_size()?;
         Ok(())
     }
-
-    /// Create a new vault transaction.
-    #[access_control(ctx.accounts.validate())]
+    /// Create a new vault transaction from a completed transaction buffer account.
+    #[access_control(ctx.accounts.validate(&args))]
     pub fn vault_transaction_create_from_buffer(
-        ctx: Context<Self>,
-        args: VaultTransactionCreateFromBufferArgs,
+        ctx: Context<'_, '_, 'info, 'info, Self>,
+        args: VaultTransactionCreateArgs,
     ) -> Result<()> {
-        // Mutable Accounts
-        let multisig = &mut ctx.accounts.multisig;
-        let transaction = &mut ctx.accounts.transaction;
-        let transaction_buffer = &mut ctx.accounts.transaction_buffer;
+        // Account infos necessary for reallocation
+        let vault_transaction_account_info = &ctx
+            .accounts
+            .vault_transaction_create
+            .transaction
+            .to_account_info();
+        let rent_payer_account_info = &ctx
+            .accounts
+            .vault_transaction_create
+            .rent_payer
+            .to_account_info();
 
-        // Readonly Accounts
-        let creator = &mut ctx.accounts.creator;
+        // Read-only accounts
+        let transaction_buffer = &ctx.accounts.transaction_buffer;
 
-        // Data
-        let vault_index = transaction_buffer.vault_index;
+        // Calculate the new required length of the vault transaction account,
+        // since it was initialized with an empty transaction message
+        let new_len =
+            VaultTransaction::size(args.ephemeral_signers, transaction_buffer.buffer.as_slice())?;
 
-        let transaction_message =
-            TransactionMessage::deserialize(&mut transaction_buffer.buffer.as_slice())?;
+        // Calculate the rent exemption for new length
+        let rent_exempt_lamports = Rent::get().unwrap().minimum_balance(new_len).max(1);
 
-        let multisig_key = multisig.key();
-        let transaction_key = transaction.key();
+        // Check the difference between the rent exemption and the current lamports
+        let top_up_lamports =
+            rent_exempt_lamports.saturating_sub(vault_transaction_account_info.lamports());
 
-        let vault_seeds = &[
-            SEED_PREFIX,
-            multisig_key.as_ref(),
-            SEED_VAULT,
-            &vault_index.to_le_bytes(),
-        ];
-        let (_, vault_bump) = Pubkey::find_program_address(vault_seeds, ctx.program_id);
+        // Top up the account with the difference, paid by the rent payer
+        **rent_payer_account_info.try_borrow_mut_lamports()? -= top_up_lamports;
+        **vault_transaction_account_info.try_borrow_mut_lamports()? += top_up_lamports;
 
-        let ephemeral_signer_bumps: Vec<u8> = (0..args.ephemeral_signers)
-            .map(|ephemeral_signer_index| {
-                let ephemeral_signer_seeds = &[
-                    SEED_PREFIX,
-                    transaction_key.as_ref(),
-                    SEED_EPHEMERAL_SIGNER,
-                    &ephemeral_signer_index.to_le_bytes(),
-                ];
+        // Reallocate the vault transaction account to the new length of the
+        // actual transaction message
+        AccountInfo::realloc(&vault_transaction_account_info, new_len, true)?;
 
-                let (_, bump) =
-                    Pubkey::find_program_address(ephemeral_signer_seeds, ctx.program_id);
-                bump
-            })
-            .collect();
+        // Create the args for the vault transaction create instruction
+        let create_args = VaultTransactionCreateArgs {
+            vault_index: args.vault_index,
+            ephemeral_signers: args.ephemeral_signers,
+            transaction_message: transaction_buffer.buffer.clone(),
+            memo: args.memo,
+        };
+        // Create the context for the vault transaction create instruction
+        let context = Context::new(
+            ctx.program_id,
+            &mut ctx.accounts.vault_transaction_create,
+            ctx.remaining_accounts,
+            ctx.bumps.vault_transaction_create,
+        );
 
-        // Increment the transaction index.
-        let transaction_index = multisig.transaction_index.checked_add(1).unwrap();
-
-        // Initialize the transaction fields.
-        transaction.multisig = multisig_key;
-        transaction.creator = creator.key();
-        transaction.index = transaction_index;
-        transaction.bump = ctx.bumps.transaction;
-        transaction.vault_index = vault_index;
-        transaction.vault_bump = vault_bump;
-        transaction.ephemeral_signer_bumps = ephemeral_signer_bumps;
-        transaction.message = transaction_message.try_into()?;
-
-        // Updated last transaction index in the multisig account.
-        multisig.transaction_index = transaction_index;
-
-        multisig.invariant()?;
-
-        // Logs for indexing.
-        msg!("transaction index: {}", transaction_index);
+        // Call the vault transaction create instruction
+        VaultTransactionCreate::vault_transaction_create(context, create_args)?;
 
         Ok(())
     }
