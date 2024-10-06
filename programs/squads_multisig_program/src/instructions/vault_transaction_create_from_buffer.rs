@@ -1,8 +1,7 @@
-use anchor_lang::prelude::*;
-
 use crate::errors::*;
 use crate::instructions::*;
 use crate::state::*;
+use anchor_lang::{prelude::*, system_program};
 
 #[derive(Accounts)]
 pub struct VaultTransactionCreateFromBuffer<'info> {
@@ -70,6 +69,8 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
             .rent_payer
             .to_account_info();
 
+        let system_program = &ctx.accounts.vault_transaction_create.system_program.to_account_info();
+
         // Read-only accounts
         let transaction_buffer = &ctx.accounts.transaction_buffer;
 
@@ -85,9 +86,15 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
         let top_up_lamports =
             rent_exempt_lamports.saturating_sub(vault_transaction_account_info.lamports());
 
-        // Top up the account with the difference, paid by the rent payer
-        **rent_payer_account_info.try_borrow_mut_lamports()? -= top_up_lamports;
-        **vault_transaction_account_info.try_borrow_mut_lamports()? += top_up_lamports;
+        // System Transfer the remaining difference to the vault transaction account
+        let transfer_context = CpiContext::new(
+            system_program.to_account_info(),
+            system_program::Transfer {
+                from: rent_payer_account_info.clone(),
+                to: vault_transaction_account_info.clone(),
+            },
+        );
+        system_program::transfer(transfer_context, top_up_lamports)?;
 
         // Reallocate the vault transaction account to the new length of the
         // actual transaction message
