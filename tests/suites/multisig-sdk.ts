@@ -843,7 +843,9 @@ describe("Multisig SDK", () => {
       );
     });
 
-    it("create a new Spending Limit for the controlled multisig", async () => {
+    it("create a new Spending Limit for the controlled multisig with member of the ms and non-member", async () => {
+      const nonMember = await generateFundedKeypair(connection);
+
       const signature = await multisig.rpc.multisigAddSpendingLimit({
         connection,
         feePayer: feePayer,
@@ -856,7 +858,7 @@ describe("Multisig SDK", () => {
         period: multisig.generated.Period.Day,
         mint: Keypair.generate().publicKey,
         destinations: [Keypair.generate().publicKey],
-        members: [members.almighty.publicKey],
+        members: [members.almighty.publicKey, nonMember.publicKey],
         vaultIndex: 1,
         signers: [feePayer, members.almighty],
         sendOptions: { skipPreflight: true },
@@ -2077,6 +2079,101 @@ describe("Multisig SDK", () => {
         multisig.types.isProposalStatusCancelled(proposalAccount.status)
       );
     });
+
+    it("proposal_cancel_v2", async () => {
+      // Create a config transaction.
+      const transactionIndex = 2n;
+      let newVotingMember = new Keypair();
+        
+      const [proposalPda] = multisig.getProposalPda({
+        multisigPda,
+        transactionIndex,
+        programId,
+      });
+
+      let signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda,
+        transactionIndex,
+        creator: members.proposer.publicKey,
+        actions: [{ __kind: "AddMember", newMember: {key: newVotingMember.publicKey, permissions: multisig.types.Permissions.all()} }],
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+  
+      // Create a proposal for the transaction.
+      signature = await multisig.rpc.proposalCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda,
+        transactionIndex,
+        creator: members.proposer,
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+
+      // Approve the proposal 1.
+      signature = await multisig.rpc.proposalApprove({
+          connection,
+          feePayer: members.voter,
+          multisigPda,
+          transactionIndex,
+          member: members.voter,
+          programId,
+        });
+        await connection.confirmTransaction(signature);
+    
+      // Approve the proposal 2.
+      signature = await multisig.rpc.proposalApprove({
+        connection,
+        feePayer: members.almighty,
+        multisigPda,
+        transactionIndex,
+        member: members.almighty,
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+
+      let proposalAccount = await Proposal.fromAccountAddress(
+        connection,
+        proposalPda
+      );
+      // Our threshold is 2, so after the first cancel, the proposal is still `Approved`.
+      assert.ok(
+        multisig.types.isProposalStatusApproved(proposalAccount.status)
+      );
+
+      // Proposal is now ready to execute, cast the 2 cancels using the new functionality.
+      signature = await multisig.rpc.proposalCancelV2({
+        connection,
+        feePayer: members.voter,
+        member: members.voter,
+        multisigPda,
+        transactionIndex,
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+  
+      // Proposal is now ready to execute, cast the 2 cancels using the new functionality.
+      signature = await multisig.rpc.proposalCancelV2({
+        connection,
+        feePayer: members.almighty,
+        member: members.almighty,
+        multisigPda,
+        transactionIndex,
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+  
+      // Proposal status must be "Cancelled".
+      proposalAccount = await Proposal.fromAccountAddress(
+        connection,
+        proposalPda
+      );
+      assert.ok(multisig.types.isProposalStatusCancelled(proposalAccount.status));
+    });
+  
   });
 
   describe("vault_transaction_execute", () => {

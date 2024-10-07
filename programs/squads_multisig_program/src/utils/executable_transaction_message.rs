@@ -13,7 +13,7 @@ use crate::state::*;
 /// Sanitized and validated combination of a `MsTransactionMessage` and `AccountInfo`s it references.
 pub struct ExecutableTransactionMessage<'a, 'info> {
     /// Message which loaded a collection of lookup table addresses.
-    message: &'a VaultTransactionMessage,
+    message: VaultTransactionMessage,
     /// Resolved `account_keys` of the message.
     static_accounts: Vec<&'a AccountInfo<'info>>,
     /// Concatenated vector of resolved `writable_indexes` from all address lookups.
@@ -29,7 +29,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     /// `address_lookup_table_account_infos` - AccountInfo's that are expected to correspond to the lookup tables mentioned in `message.address_table_lookups`.
     /// `vault_pubkey` - The vault PDA that is expected to sign the message.
     pub fn new_validated(
-        message: &'a VaultTransactionMessage,
+        message: VaultTransactionMessage,
         message_account_infos: &'a [AccountInfo<'info>],
         address_lookup_table_account_infos: &'a [AccountInfo<'info>],
         vault_pubkey: &'a Pubkey,
@@ -178,11 +178,28 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
     /// * `ephemeral_signer_seeds` - Seeds for the ephemeral signer PDAs.
     /// * `protected_accounts` - Accounts that must not be passed as writable to the CPI calls to prevent potential reentrancy attacks.
     pub fn execute_message(
-        &self,
-        vault_seeds: &[Vec<u8>],
+        self,
+        vault_seeds: &[&[u8]],
         ephemeral_signer_seeds: &[Vec<Vec<u8>>],
         protected_accounts: &[Pubkey],
     ) -> Result<()> {
+        // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
+        let ephemeral_signer_seeds = &ephemeral_signer_seeds
+            .iter()
+            .map(|seeds| seeds.iter().map(Vec::as_slice).collect::<Vec<&[u8]>>())
+            .collect::<Vec<Vec<&[u8]>>>();
+        // Second round of type conversion; from Vec<Vec<&[u8]>> to Vec<&[&[u8]]>.
+        let mut signer_seeds = ephemeral_signer_seeds
+            .iter()
+            .map(Vec::as_slice)
+            .collect::<Vec<&[&[u8]]>>();
+        // Add the vault seeds.
+        signer_seeds.push(&vault_seeds);
+
+        // NOTE: `self.to_instructions_and_accounts()` calls `take()` on
+        // `self.message.instructions`, therefore after this point no more
+        // references or usages of `self.message` should be made to avoid
+        // faulty behavior.
         for (ix, account_infos) in self.to_instructions_and_accounts().iter() {
             // Make sure we don't pass protected accounts as writable to CPI calls.
             for account_meta in ix.accounts.iter().filter(|m| m.is_writable) {
@@ -191,27 +208,8 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::ProtectedAccount
                 );
             }
-
-            // Convert vault_seeds to Vec<&[u8]>.
-            let vault_seeds = vault_seeds.iter().map(Vec::as_slice).collect::<Vec<_>>();
-
-            // First round of type conversion; from Vec<Vec<Vec<u8>>> to Vec<Vec<&[u8]>>.
-            let ephemeral_signer_seeds = &ephemeral_signer_seeds
-                .iter()
-                .map(|seeds| seeds.iter().map(Vec::as_slice).collect::<Vec<&[u8]>>())
-                .collect::<Vec<Vec<&[u8]>>>();
-            // Second round of type conversion; from Vec<Vec<&[u8]>> to Vec<&[&[u8]]>.
-            let mut signer_seeds = ephemeral_signer_seeds
-                .iter()
-                .map(Vec::as_slice)
-                .collect::<Vec<&[&[u8]]>>();
-
-            // Add the vault seeds.
-            signer_seeds.push(&vault_seeds);
-
-            invoke_signed(ix, account_infos, &signer_seeds)?;
+            invoke_signed(&ix, &account_infos, &signer_seeds)?;
         }
-
         Ok(())
     }
 
@@ -254,10 +252,10 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         index < self.loaded_writable_accounts.len()
     }
 
-    pub fn to_instructions_and_accounts(&self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {
+    pub fn to_instructions_and_accounts(mut self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {
         let mut executable_instructions = vec![];
 
-        for ms_compiled_instruction in self.message.instructions.iter() {
+        for ms_compiled_instruction in core::mem::take(&mut self.message.instructions) {
             let ix_accounts: Vec<(AccountInfo<'info>, AccountMeta)> = ms_compiled_instruction
                 .account_indexes
                 .iter()
@@ -289,7 +287,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     .iter()
                     .map(|(_, account_meta)| account_meta.clone())
                     .collect(),
-                data: ms_compiled_instruction.data.clone(),
+                data: ms_compiled_instruction.data,
             };
 
             let mut account_infos: Vec<AccountInfo> = ix_accounts

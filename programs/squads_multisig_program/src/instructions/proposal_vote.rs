@@ -33,6 +33,14 @@ pub struct ProposalVote<'info> {
     pub proposal: Account<'info, Proposal>,
 }
 
+#[derive(Accounts)]
+pub struct ProposalCancelV2<'info> {
+    // The context needed for the ProposalVote instruction
+    pub proposal_vote: ProposalVote<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
 impl ProposalVote<'_> {
     fn validate(&self, vote: Vote) -> Result<()> {
         let Self {
@@ -113,8 +121,42 @@ impl ProposalVote<'_> {
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
 
+        proposal
+            .cancelled
+            .retain(|k| multisig.is_member(*k).is_some());
+
         proposal.cancel(member.key(), usize::from(multisig.threshold))?;
 
+        Ok(())
+    }
+}
+
+impl<'info> ProposalCancelV2<'info> {
+
+    /// Cancel a multisig proposal on behalf of the `member`.
+    /// The proposal must be `Approved`.
+    pub fn proposal_cancel_v2(ctx: Context<'_, '_, 'info, 'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
+        // Readonly accounts
+        let multisig = &ctx.accounts.proposal_vote.multisig.clone();
+
+        // Account infos necessary for reallocation
+        let proposal_account_info = &ctx.accounts.proposal_vote.proposal.to_account_info();
+        let member_account_info = &ctx.accounts.proposal_vote.member.to_account_info();
+        let system_program_account_info = &ctx.accounts.system_program.to_account_info();
+
+        // Create context for cancel instruction
+        let cancel_context = Context::new(ctx.program_id, &mut ctx.accounts.proposal_vote, ctx.remaining_accounts, ctx.bumps.proposal_vote);
+
+        // Call cancel instruction
+        ProposalVote::proposal_cancel(cancel_context, _args)?;
+
+        // Reallocate the proposal size if needed
+        Proposal::realloc_if_needed(
+            proposal_account_info.clone(),
+            multisig.members.len(),
+            Some(member_account_info.clone()),
+            Some(system_program_account_info.clone()),
+        )?;
         Ok(())
     }
 }
