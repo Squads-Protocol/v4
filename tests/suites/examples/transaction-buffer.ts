@@ -18,7 +18,6 @@ import {
   VaultTransactionCreateFromBufferInstructionArgs,
 } from "@sqds/multisig/lib/generated";
 import assert from "assert";
-import { BN } from "bn.js";
 import * as crypto from "crypto";
 import {
   TestMembers,
@@ -74,6 +73,7 @@ describe("Examples / Transaction Buffers", () => {
 
   it("set buffer, extend, and create", async () => {
     const transactionIndex = 1n;
+    const bufferIndex = 0;
 
     const testIx = createTestTransferInstruction(vaultPda, vaultPda, 1);
 
@@ -103,7 +103,7 @@ describe("Examples / Transaction Buffers", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
-        new BN(Number(transactionIndex)).toBuffer("le", 8),
+        Buffer.from([bufferIndex])
       ],
       programId
     );
@@ -122,10 +122,10 @@ describe("Examples / Transaction Buffers", () => {
         transactionBuffer,
         creator: members.almighty.publicKey,
         rentPayer: members.almighty.publicKey,
-        systemProgram: SystemProgram.programId,
       },
       {
         args: {
+          bufferIndex: bufferIndex,
           vaultIndex: 0,
           // Must be a SHA256 hash of the message buffer.
           finalBufferHash: Array.from(messageHash),

@@ -6,6 +6,8 @@ use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct TransactionBufferCreateArgs {
+    /// Index of the buffer account to seed the account derivation
+    pub buffer_index: u8,
     /// Index of the vault this transaction belongs to.
     pub vault_index: u8,
     /// Hash of the final assembled transaction message.
@@ -34,7 +36,7 @@ pub struct TransactionBufferCreate<'info> {
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION_BUFFER,
-            &multisig.transaction_index.checked_add(1).unwrap().to_le_bytes(),
+            &args.buffer_index.to_le_bytes(),
         ],
         bump
     )]
@@ -88,14 +90,14 @@ impl TransactionBufferCreate<'_> {
         let multisig = &ctx.accounts.multisig;
         let creator = &mut ctx.accounts.creator;
 
-        // Get the transaction index.
-        let transaction_index = multisig.transaction_index.checked_add(1).unwrap();
+        // Get the buffer index.
+        let buffer_index = args.buffer_index;
 
         // Initialize the transaction fields.
         transaction_buffer.multisig = multisig.key();
         transaction_buffer.creator = creator.key();
         transaction_buffer.vault_index = args.vault_index;
-        transaction_buffer.transaction_index = transaction_index;
+        transaction_buffer.buffer_index = buffer_index;
         transaction_buffer.final_buffer_hash = args.final_buffer_hash;
         transaction_buffer.final_buffer_size = args.final_buffer_size;
         transaction_buffer.buffer = args.buffer;

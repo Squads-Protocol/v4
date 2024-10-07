@@ -14,7 +14,6 @@ import {
   TransactionBufferExtendInstructionArgs,
 } from "@sqds/multisig/lib/generated";
 import assert from "assert";
-import { BN } from "bn.js";
 import * as crypto from "crypto";
 import {
   TestMembers,
@@ -75,7 +74,7 @@ describe("Instructions / transaction_buffer_extend", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
-        new BN(Number(transactionIndex)).toBuffer("le", 8),
+        Buffer.from([Number(transactionIndex)])
       ],
       programId
     );
@@ -110,6 +109,7 @@ describe("Instructions / transaction_buffer_extend", () => {
       },
       {
         args: {
+          bufferIndex: Number(transactionIndex),
           vaultIndex: 0,
           finalBufferHash: Array.from(messageHash),
           finalBufferSize: messageBuffer.length,
@@ -194,7 +194,7 @@ describe("Instructions / transaction_buffer_extend", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
-        new BN(Number(transactionIndex)).toBuffer("le", 8),
+        Buffer.from([Number(transactionIndex)])
       ],
       programId
     );
@@ -217,6 +217,7 @@ describe("Instructions / transaction_buffer_extend", () => {
       },
       {
         args: {
+          bufferIndex: Number(transactionIndex),
           vaultIndex: 0,
           // Must be a SHA256 hash of the message buffer.
           finalBufferHash: Array.from(messageHash),
@@ -241,6 +242,7 @@ describe("Instructions / transaction_buffer_extend", () => {
     const signature = await connection.sendTransaction(tx, {
       skipPreflight: true,
     });
+
     await connection.confirmTransaction(signature);
 
     const transactionBufferAccount = await connection.getAccountInfo(

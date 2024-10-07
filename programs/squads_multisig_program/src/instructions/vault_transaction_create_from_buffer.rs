@@ -15,11 +15,7 @@ pub struct VaultTransactionCreateFromBuffer<'info> {
             SEED_PREFIX,
             vault_transaction_create.multisig.key().as_ref(),
             SEED_TRANSACTION_BUFFER,
-            &vault_transaction_create.multisig
-            .transaction_index
-            .checked_add(1)
-            .unwrap()
-            .to_le_bytes(),
+            &transaction_buffer.buffer_index.to_le_bytes(),
         ],
         bump
     )]

@@ -24,7 +24,7 @@ pub struct TransactionBufferClose<'info> {
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION_BUFFER,
-            &transaction_buffer.transaction_index.to_le_bytes(),
+            &transaction_buffer.buffer_index.to_le_bytes()
         ],
         bump
     )]

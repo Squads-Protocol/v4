@@ -6,8 +6,8 @@
  */
 
 import * as web3 from '@solana/web3.js'
-import * as beet from '@metaplex-foundation/beet'
 import * as beetSolana from '@metaplex-foundation/beet-solana'
+import * as beet from '@metaplex-foundation/beet'
 
 /**
  * Arguments used to create {@link TransactionBuffer}
@@ -17,8 +17,8 @@ import * as beetSolana from '@metaplex-foundation/beet-solana'
 export type TransactionBufferArgs = {
   multisig: web3.PublicKey
   creator: web3.PublicKey
+  bufferIndex: number
   vaultIndex: number
-  transactionIndex: beet.bignum
   finalBufferHash: number[] /* size: 32 */
   finalBufferSize: number
   buffer: Uint8Array
@@ -38,8 +38,8 @@ export class TransactionBuffer implements TransactionBufferArgs {
   private constructor(
     readonly multisig: web3.PublicKey,
     readonly creator: web3.PublicKey,
+    readonly bufferIndex: number,
     readonly vaultIndex: number,
-    readonly transactionIndex: beet.bignum,
     readonly finalBufferHash: number[] /* size: 32 */,
     readonly finalBufferSize: number,
     readonly buffer: Uint8Array
@@ -52,8 +52,8 @@ export class TransactionBuffer implements TransactionBufferArgs {
     return new TransactionBuffer(
       args.multisig,
       args.creator,
+      args.bufferIndex,
       args.vaultIndex,
-      args.transactionIndex,
       args.finalBufferHash,
       args.finalBufferSize,
       args.buffer
@@ -167,18 +167,8 @@ export class TransactionBuffer implements TransactionBufferArgs {
     return {
       multisig: this.multisig.toBase58(),
       creator: this.creator.toBase58(),
+      bufferIndex: this.bufferIndex,
       vaultIndex: this.vaultIndex,
-      transactionIndex: (() => {
-        const x = <{ toNumber: () => number }>this.transactionIndex
-        if (typeof x.toNumber === 'function') {
-          try {
-            return x.toNumber()
-          } catch (_) {
-            return x
-          }
-        }
-        return x
-      })(),
       finalBufferHash: this.finalBufferHash,
       finalBufferSize: this.finalBufferSize,
       buffer: this.buffer,
@@ -200,8 +190,8 @@ export const transactionBufferBeet = new beet.FixableBeetStruct<
     ['accountDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
     ['multisig', beetSolana.publicKey],
     ['creator', beetSolana.publicKey],
+    ['bufferIndex', beet.u8],
     ['vaultIndex', beet.u8],
-    ['transactionIndex', beet.u64],
     ['finalBufferHash', beet.uniformFixedSizeArray(beet.u8, 32)],
     ['finalBufferSize', beet.u16],
     ['buffer', beet.bytes],

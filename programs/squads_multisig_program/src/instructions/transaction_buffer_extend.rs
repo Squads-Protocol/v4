@@ -23,13 +23,11 @@ pub struct TransactionBufferExtend<'info> {
         mut,
         // Only the creator can extend the buffer
         constraint = transaction_buffer.creator == creator.key() @ MultisigError::Unauthorized,
-        // Extending the buffer only work if it still represents the next
-        // transaction index in the multisig
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
             SEED_TRANSACTION_BUFFER,
-            &multisig.transaction_index.checked_add(1).unwrap().to_le_bytes(),
+            &transaction_buffer.buffer_index.to_le_bytes()
         ],
         bump
     )]

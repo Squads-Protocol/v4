@@ -7,6 +7,7 @@
 
 import * as beet from '@metaplex-foundation/beet'
 export type TransactionBufferCreateArgs = {
+  bufferIndex: number
   vaultIndex: number
   finalBufferHash: number[] /* size: 32 */
   finalBufferSize: number
@@ -20,6 +21,7 @@ export type TransactionBufferCreateArgs = {
 export const transactionBufferCreateArgsBeet =
   new beet.FixableBeetArgsStruct<TransactionBufferCreateArgs>(
     [
+      ['bufferIndex', beet.u8],
       ['vaultIndex', beet.u8],
       ['finalBufferHash', beet.uniformFixedSizeArray(beet.u8, 32)],
       ['finalBufferSize', beet.u16],
