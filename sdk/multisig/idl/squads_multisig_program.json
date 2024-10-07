@@ -2113,18 +2113,18 @@
             "type": "publicKey"
           },
           {
+            "name": "bufferIndex",
+            "docs": [
+              "Index to seed address derivation"
+            ],
+            "type": "u8"
+          },
+          {
             "name": "vaultIndex",
             "docs": [
               "Vault index of the transaction this buffer belongs to."
             ],
             "type": "u8"
-          },
-          {
-            "name": "transactionIndex",
-            "docs": [
-              "Index of the transaction this buffer belongs to."
-            ],
-            "type": "u64"
           },
           {
             "name": "finalBufferHash",
@@ -2771,6 +2771,13 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "bufferIndex",
+            "docs": [
+              "Index of the buffer account to seed the account derivation"
+            ],
+            "type": "u8"
+          },
           {
             "name": "vaultIndex",
             "docs": [

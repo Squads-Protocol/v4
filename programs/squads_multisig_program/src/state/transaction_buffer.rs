@@ -12,10 +12,10 @@ pub struct TransactionBuffer {
     pub multisig: Pubkey,
     /// Member of the Multisig who created the TransactionBuffer.
     pub creator: Pubkey,
+    /// Index to seed address derivation
+    pub buffer_index: u8,
     /// Vault index of the transaction this buffer belongs to.
     pub vault_index: u8,
-    /// Index of the transaction this buffer belongs to.
-    pub transaction_index: u64,
     /// Hash of the final assembled transaction message.
     pub final_buffer_hash: [u8; 32],
     /// The size of the final assembled transaction message.
@@ -34,8 +34,8 @@ impl TransactionBuffer {
             8 +   // anchor account discriminator
             32 +  // multisig
             32 +  // creator
+            8 + //  buffer_index
             8 +   // vault_index
-            8 +   // transaction_index
             32 +  // transaction_message_hash
             2 +  // final_buffer_size
             4 + // vec length bytes

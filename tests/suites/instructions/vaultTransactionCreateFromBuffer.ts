@@ -74,9 +74,10 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
 
   it("set buffer, extend, and create", async () => {
     const transactionIndex = 1n;
+    const bufferIndex = 0;
 
     const testPayee = Keypair.generate();
-    const testIx = await createTestTransferInstruction(
+    const testIx = createTestTransferInstruction(
       vaultPda,
       testPayee.publicKey,
       1 * LAMPORTS_PER_SOL
@@ -109,7 +110,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
-        new BN(Number(transactionIndex)).toBuffer("le", 8),
+        Uint8Array.from([bufferIndex]),
       ],
       programId
     );
@@ -132,6 +133,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       },
       {
         args: {
+          bufferIndex: bufferIndex,
           vaultIndex: 0,
           // Must be a SHA256 hash of the message buffer.
           finalBufferHash: Array.from(messageHash),
@@ -156,7 +158,6 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     const signature = await connection.sendTransaction(tx, {
       skipPreflight: true,
     });
-
     await connection.confirmTransaction(signature);
 
     const transactionBufferAccount = await connection.getAccountInfo(
@@ -248,17 +249,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
       toPubkey: members.almighty.publicKey,
       lamports: 100
     });
-    // const mockTransferMessage = new TransactionMessage({
-    //   payerKey: vaultPda,
-    //   recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    //   instructions: [mockTransferIx],
-    // });
 
-    // const bytes = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
-    //   message: mockTransferMessage,
-    //   addressLookupTableAccounts: [],
-    //   vaultPda,
-    // });
 
     // Create final instruction.
     const thirdIx =
@@ -319,6 +310,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
 
   it("error: create from buffer with mismatched hash", async () => {
     const transactionIndex = 2n;
+    const bufferIndex = 0;
 
     // Create a simple transfer instruction
     const testIx = await createTestTransferInstruction(
@@ -346,7 +338,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
-        new BN(Number(transactionIndex)).toBuffer("le", 8),
+        Uint8Array.from([bufferIndex]),
       ],
       programId
     );
@@ -365,6 +357,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         },
         {
           args: {
+            bufferIndex,
             vaultIndex: 0,
             finalBufferHash: Array.from(dummyHash),
             finalBufferSize: messageBuffer.length,

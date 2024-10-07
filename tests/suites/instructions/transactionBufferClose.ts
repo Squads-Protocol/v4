@@ -32,11 +32,11 @@ describe("Instructions / transaction_buffer_close", () => {
     let vaultPda: PublicKey;
     let transactionBuffer: PublicKey;
 
-    const createKey = Keypair.generate();
 
     before(async () => {
         members = await generateMultisigMembers(connection);
 
+        const createKey = Keypair.generate();
         multisigPda = (await createAutonomousMultisigV2({
             connection,
             createKey,
@@ -59,7 +59,7 @@ describe("Instructions / transaction_buffer_close", () => {
         );
         await connection.confirmTransaction(signature);
 
-        const transactionIndex = 1n;
+        const bufferIndex = 0;
         const testIx = await createTestTransferInstruction(
             vaultPda,
             Keypair.generate().publicKey,
@@ -78,16 +78,15 @@ describe("Instructions / transaction_buffer_close", () => {
             vaultPda,
         });
 
-        [transactionBuffer] = await PublicKey.findProgramAddressSync(
+        [transactionBuffer] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("multisig"),
                 multisigPda.toBuffer(),
                 Buffer.from("transaction_buffer"),
-                new BN(Number(transactionIndex)).toBuffer("le", 8),
+                Uint8Array.from([bufferIndex])
             ],
             programId
         );
-
         const messageHash = crypto
             .createHash("sha256")
             .update(messageBuffer)
@@ -103,6 +102,7 @@ describe("Instructions / transaction_buffer_close", () => {
             },
             {
                 args: {
+                    bufferIndex: Number(bufferIndex),
                     vaultIndex: 0,
                     finalBufferHash: Array.from(messageHash),
                     finalBufferSize: messageBuffer.length,
@@ -121,7 +121,7 @@ describe("Instructions / transaction_buffer_close", () => {
         const createTx = new VersionedTransaction(createMessage);
         createTx.sign([members.proposer]);
 
-        const createSig = await connection.sendTransaction(createTx, { skipPreflight: true });
+        const createSig = await connection.sendRawTransaction(createTx.serialize(), { skipPreflight: true });
         await connection.confirmTransaction(createSig);
     });
 
