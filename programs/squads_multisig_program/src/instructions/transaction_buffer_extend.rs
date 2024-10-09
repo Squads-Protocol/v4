@@ -13,7 +13,6 @@ pub struct TransactionBufferExtendArgs {
 #[instruction(args: TransactionBufferExtendArgs)]
 pub struct TransactionBufferExtend<'info> {
     #[account(
-        mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]

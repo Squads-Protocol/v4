@@ -6,7 +6,6 @@ use crate::state::*;
 #[derive(Accounts)]
 pub struct TransactionBufferClose<'info> {
     #[account(
-        mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]

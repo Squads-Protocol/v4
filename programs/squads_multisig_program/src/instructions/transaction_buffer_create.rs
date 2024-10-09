@@ -22,7 +22,6 @@ pub struct TransactionBufferCreateArgs {
 #[instruction(args: TransactionBufferCreateArgs)]
 pub struct TransactionBufferCreate<'info> {
     #[account(
-        mut,
         seeds = [SEED_PREFIX, SEED_MULTISIG, multisig.create_key.as_ref()],
         bump = multisig.bump,
     )]
