@@ -22,7 +22,7 @@ export const transactionBufferCloseStruct = new beet.BeetArgsStruct<{
 /**
  * Accounts required by the _transactionBufferClose_ instruction
  *
- * @property [_writable_] multisig
+ * @property [] multisig
  * @property [_writable_] transactionBuffer
  * @property [**signer**] creator
  * @category Instructions
@@ -58,7 +58,7 @@ export function createTransactionBufferCloseInstruction(
   const keys: web3.AccountMeta[] = [
     {
       pubkey: accounts.multisig,
-      isWritable: true,
+      isWritable: false,
       isSigner: false,
     },
     {

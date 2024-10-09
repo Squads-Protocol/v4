@@ -83,6 +83,7 @@ describe("Instructions / transaction_buffer_close", () => {
                 Buffer.from("multisig"),
                 multisigPda.toBuffer(),
                 Buffer.from("transaction_buffer"),
+                members.proposer.publicKey.toBuffer(),
                 Uint8Array.from([bufferIndex])
             ],
             programId
@@ -149,7 +150,7 @@ describe("Instructions / transaction_buffer_close", () => {
                 connection
                     .sendTransaction(closeTx)
                     .catch(multisig.errors.translateAndThrowAnchorError),
-            /Unauthorized/
+            /(Unauthorized|ConstraintSeeds)/
         );
     });
 
