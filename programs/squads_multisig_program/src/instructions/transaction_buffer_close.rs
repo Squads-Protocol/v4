@@ -37,16 +37,6 @@ pub struct TransactionBufferClose<'info> {
 
 impl TransactionBufferClose<'_> {
     fn validate(&self) -> Result<()> {
-        let Self {
-            multisig, creator, ..
-        } = self;
-
-        // creator is still a member in the multisig
-        require!(
-            multisig.is_member(creator.key()).is_some(),
-            MultisigError::NotAMember
-        );
-
         Ok(())
     }
 
