@@ -66,7 +66,7 @@ impl TransactionBuffer {
             MultisigError::FinalBufferSizeExceeded
         );
         require!(
-            self.buffer.len() < MAX_BUFFER_SIZE,
+            self.buffer.len() <= MAX_BUFFER_SIZE,
             MultisigError::FinalBufferSizeExceeded
         );
         require!(

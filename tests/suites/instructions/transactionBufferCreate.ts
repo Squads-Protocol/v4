@@ -96,6 +96,7 @@ describe("Instructions / transaction_buffer_create", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex])
       ],
       programId
@@ -165,6 +166,7 @@ describe("Instructions / transaction_buffer_create", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex])
       ],
       programId
@@ -233,6 +235,7 @@ describe("Instructions / transaction_buffer_create", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex])
       ],
       programId
@@ -365,6 +368,7 @@ describe("Instructions / transaction_buffer_create", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        nonMember.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex]),
       ],
       programId
@@ -452,6 +456,7 @@ describe("Instructions / transaction_buffer_create", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        memberWithoutInitiatePermissions.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex]),
       ],
       programId
@@ -538,6 +543,7 @@ describe("Instructions / transaction_buffer_create", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Buffer.from(invalidBufferIndex),
       ],
       programId
@@ -604,6 +610,7 @@ describe("Instructions / transaction_buffer_create", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex]),
       ],
       programId

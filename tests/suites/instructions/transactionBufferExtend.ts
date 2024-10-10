@@ -74,6 +74,7 @@ describe("Instructions / transaction_buffer_extend", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        creator.publicKey.toBuffer(),
         Buffer.from([Number(transactionIndex)])
       ],
       programId
@@ -194,6 +195,7 @@ describe("Instructions / transaction_buffer_extend", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Buffer.from([Number(transactionIndex)])
       ],
       programId
@@ -353,7 +355,7 @@ describe("Instructions / transaction_buffer_extend", () => {
 
     await assert.rejects(
       () => connection.sendTransaction(tx).catch(multisig.errors.translateAndThrowAnchorError),
-      /Unauthorized/
+      /(Unauthorized|ConstraintSeeds)/
     );
 
     await closeTransactionBuffer(members.almighty, transactionBuffer);
@@ -429,7 +431,7 @@ describe("Instructions / transaction_buffer_extend", () => {
 
     await assert.rejects(
       () => connection.sendTransaction(extendTx).catch(multisig.errors.translateAndThrowAnchorError),
-      /Unauthorized/
+      /(Unauthorized|ConstraintSeeds)/
     );
 
 
