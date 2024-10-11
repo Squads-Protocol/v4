@@ -11,10 +11,14 @@ pub struct VaultTransactionCreateFromBuffer<'info> {
     #[account(
         mut,
         close = creator,
+        // Only the creator can turn the buffer into a transaction and reclaim
+        // the rent
+        constraint = transaction_buffer.creator == creator.key() @ MultisigError::Unauthorized,
         seeds = [
             SEED_PREFIX,
             vault_transaction_create.multisig.key().as_ref(),
             SEED_TRANSACTION_BUFFER,
+            creator.key().as_ref(),
             &transaction_buffer.buffer_index.to_le_bytes(),
         ],
         bump

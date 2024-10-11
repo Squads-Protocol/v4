@@ -103,6 +103,7 @@ describe("Examples / Transaction Buffers", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.almighty.publicKey.toBuffer(),
         Buffer.from([bufferIndex])
       ],
       programId
