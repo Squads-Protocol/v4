@@ -57,7 +57,7 @@ export async function multisigCreate({
   tx.sign([creator, createKey]);
 
   try {
-    return await connection.sendRawTransaction(tx.serialize(), sendOptions);
+    return await connection.sendTransaction(tx, sendOptions);
   } catch (err) {
     translateAndThrowAnchorError(err);
   }
