@@ -3405,6 +3405,11 @@
       "code": 6043,
       "name": "FinalBufferSizeMismatch",
       "msg": "Final buffer size mismatch"
+    },
+    {
+      "code": 6044,
+      "name": "MultisigCreateDeprecated",
+      "msg": "multisig_create has been deprecated. Use multisig_create_v2 instead."
     }
   ],
   "metadata": {
