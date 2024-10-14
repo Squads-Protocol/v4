@@ -40,6 +40,8 @@ declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
 
 #[program]
 pub mod squads_multisig_program {
+    use errors::MultisigError;
+
     use super::*;
 
     /// Initialize the program config.
@@ -76,8 +78,8 @@ pub mod squads_multisig_program {
 
     /// Create a multisig.
     pub fn multisig_create(_ctx: Context<Deprecated>) -> Result<()> {
-        msg!("WARNING: multisig_create has been deprecated. Please use multisig_create_V2 instead.");
-        Err(ErrorCode::Deprecated.into())
+        msg!("multisig_create has been deprecated. Use multisig_create_v2 instead.");
+        Err(MultisigError::MultisigCreateDeprecated.into())
     }
 
     /// Create a multisig.
