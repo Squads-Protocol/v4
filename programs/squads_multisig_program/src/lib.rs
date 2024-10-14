@@ -75,9 +75,9 @@ pub mod squads_multisig_program {
     }
 
     /// Create a multisig.
-    #[allow(deprecated)]
-    pub fn multisig_create(ctx: Context<MultisigCreate>, args: MultisigCreateArgs) -> Result<()> {
-        MultisigCreate::multisig_create(ctx, args)
+    pub fn multisig_create(_ctx: Context<Deprecated>) -> Result<()> {
+        msg!("WARNING: multisig_create has been deprecated. Please use multisig_create_V2 instead.");
+        Err(ErrorCode::Deprecated.into())
     }
 
     /// Create a multisig.
