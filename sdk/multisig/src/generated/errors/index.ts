@@ -1014,6 +1014,31 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * MultisigCreateDeprecated: 'multisig_create has been deprecated. Use multisig_create_v2 instead.'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class MultisigCreateDeprecatedError extends Error {
+  readonly code: number = 0x179c
+  readonly name: string = 'MultisigCreateDeprecated'
+  constructor() {
+    super(
+      'multisig_create has been deprecated. Use multisig_create_v2 instead.'
+    )
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, MultisigCreateDeprecatedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x179c, () => new MultisigCreateDeprecatedError())
+createErrorFromNameLookup.set(
+  'MultisigCreateDeprecated',
+  () => new MultisigCreateDeprecatedError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

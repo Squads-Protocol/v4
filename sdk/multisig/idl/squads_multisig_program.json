@@ -121,41 +121,12 @@
       ],
       "accounts": [
         {
-          "name": "multisig",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "createKey",
-          "isMut": false,
-          "isSigner": true,
-          "docs": [
-            "An ephemeral signer that is used as a seed for the Multisig PDA.",
-            "Must be a signer to prevent front-running attack by someone else but the original creator."
-          ]
-        },
-        {
-          "name": "creator",
-          "isMut": true,
-          "isSigner": true,
-          "docs": [
-            "The creator of the multisig."
-          ]
-        },
-        {
-          "name": "systemProgram",
+          "name": "null",
           "isMut": false,
           "isSigner": false
         }
       ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": "MultisigCreateArgs"
-          }
-        }
-      ]
+      "args": []
     },
     {
       "name": "multisigCreateV2",
@@ -2504,58 +2475,6 @@
       }
     },
     {
-      "name": "MultisigCreateArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "configAuthority",
-            "docs": [
-              "The authority that can configure the multisig: add/remove members, change the threshold, etc.",
-              "Should be set to `None` for autonomous multisigs."
-            ],
-            "type": {
-              "option": "publicKey"
-            }
-          },
-          {
-            "name": "threshold",
-            "docs": [
-              "The number of signatures required to execute a transaction."
-            ],
-            "type": "u16"
-          },
-          {
-            "name": "members",
-            "docs": [
-              "The members of the multisig."
-            ],
-            "type": {
-              "vec": {
-                "defined": "Member"
-              }
-            }
-          },
-          {
-            "name": "timeLock",
-            "docs": [
-              "How many seconds must pass between transaction voting, settlement, and execution."
-            ],
-            "type": "u32"
-          },
-          {
-            "name": "memo",
-            "docs": [
-              "Memo is used for indexing only."
-            ],
-            "type": {
-              "option": "string"
-            }
-          }
-        ]
-      }
-    },
-    {
       "name": "MultisigCreateArgsV2",
       "type": {
         "kind": "struct",
@@ -3486,6 +3405,11 @@
       "code": 6043,
       "name": "FinalBufferSizeMismatch",
       "msg": "Final buffer size mismatch"
+    },
+    {
+      "code": 6044,
+      "name": "MultisigCreateDeprecated",
+      "msg": "multisig_create has been deprecated. Use multisig_create_v2 instead."
     }
   ],
   "metadata": {

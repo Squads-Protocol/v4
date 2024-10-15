@@ -90,4 +90,6 @@ pub enum MultisigError {
     FinalBufferSizeExceeded,
     #[msg("Final buffer size mismatch")]
     FinalBufferSizeMismatch,
+    #[msg("multisig_create has been deprecated. Use multisig_create_v2 instead.")]
+    MultisigCreateDeprecated,
 }

@@ -110,6 +110,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex]),
       ],
       programId
@@ -338,6 +339,7 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
         Buffer.from("multisig"),
         multisigPda.toBuffer(),
         Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
         Uint8Array.from([bufferIndex]),
       ],
       programId
