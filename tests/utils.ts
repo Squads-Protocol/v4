@@ -1,3 +1,4 @@
+import { createMemoInstruction } from "@solana/spl-memo";
 import {
   Connection,
   Keypair,
@@ -8,10 +9,9 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
+import assert from "assert";
 import { readFileSync } from "fs";
 import path from "path";
-import { createMemoInstruction } from "@solana/spl-memo";
-import assert from "assert";
 
 const { Permission, Permissions } = multisig.types;
 const { Proposal } = multisig.accounts;
@@ -127,8 +127,8 @@ export function createLocalhostConnection() {
 
 export const getLogs = async (connection: Connection, signature: string): Promise<string[]> => {
   const tx = await connection.getTransaction(
-      signature,
-      { commitment: "confirmed" }
+    signature,
+    { commitment: "confirmed" }
   )
   return tx!.meta!.logMessages || []
 }
@@ -148,41 +148,21 @@ export async function createAutonomousMultisig({
   connection: Connection;
   programId: PublicKey;
 }) {
-  const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
     createKey: createKey.publicKey,
     programId,
   });
 
-  const signature = await multisig.rpc.multisigCreate({
+  await createAutonomousMultisigV2({
     connection,
-    creator,
-    multisigPda,
-    configAuthority: null,
-    timeLock,
+    createKey,
+    members,
     threshold,
-    members: [
-      { key: members.almighty.publicKey, permissions: Permissions.all() },
-      {
-        key: members.proposer.publicKey,
-        permissions: Permissions.fromPermissions([Permission.Initiate]),
-      },
-      {
-        key: members.voter.publicKey,
-        permissions: Permissions.fromPermissions([Permission.Vote]),
-      },
-      {
-        key: members.executor.publicKey,
-        permissions: Permissions.fromPermissions([Permission.Execute]),
-      },
-    ],
-    createKey: createKey,
-    sendOptions: { skipPreflight: true },
+    timeLock,
+    rentCollector: null,
     programId,
   });
-
-  await connection.confirmTransaction(signature);
 
   return [multisigPda, multisigBump] as const;
 }
@@ -269,41 +249,22 @@ export async function createControlledMultisig({
   connection: Connection;
   programId: PublicKey;
 }) {
-  const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
     createKey: createKey.publicKey,
     programId,
   });
 
-  const signature = await multisig.rpc.multisigCreate({
+  await createControlledMultisigV2({
     connection,
-    creator,
-    multisigPda,
-    configAuthority,
-    timeLock,
+    createKey,
+    members,
+    rentCollector: null,
     threshold,
-    members: [
-      { key: members.almighty.publicKey, permissions: Permissions.all() },
-      {
-        key: members.proposer.publicKey,
-        permissions: Permissions.fromPermissions([Permission.Initiate]),
-      },
-      {
-        key: members.voter.publicKey,
-        permissions: Permissions.fromPermissions([Permission.Vote]),
-      },
-      {
-        key: members.executor.publicKey,
-        permissions: Permissions.fromPermissions([Permission.Execute]),
-      },
-    ],
-    createKey: createKey,
-    sendOptions: { skipPreflight: true },
-    programId,
+    configAuthority: configAuthority,
+    timeLock,
+    programId
   });
-
-  await connection.confirmTransaction(signature);
 
   return [multisigPda, multisigBump] as const;
 }
@@ -1247,7 +1208,7 @@ export async function processBufferInChunks(
     const ix = multisig.generated.createTransactionBufferExtendInstruction(
       {
         multisig: multisigPda,
-        transactionBuffer:bufferAccount,
+        transactionBuffer: bufferAccount,
         creator: member.publicKey,
       },
       {

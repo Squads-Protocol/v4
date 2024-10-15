@@ -2084,7 +2084,7 @@ describe("Multisig SDK", () => {
       // Create a config transaction.
       const transactionIndex = 2n;
       let newVotingMember = new Keypair();
-        
+
       const [proposalPda] = multisig.getProposalPda({
         multisigPda,
         transactionIndex,
@@ -2101,7 +2101,7 @@ describe("Multisig SDK", () => {
         programId,
       });
       await connection.confirmTransaction(signature);
-  
+
       // Create a proposal for the transaction.
       signature = await multisig.rpc.proposalCreate({
         connection,
@@ -2123,7 +2123,7 @@ describe("Multisig SDK", () => {
           programId,
         });
         await connection.confirmTransaction(signature);
-    
+
       // Approve the proposal 2.
       signature = await multisig.rpc.proposalApprove({
         connection,
@@ -2154,7 +2154,7 @@ describe("Multisig SDK", () => {
         programId,
       });
       await connection.confirmTransaction(signature);
-  
+
       // Proposal is now ready to execute, cast the 2 cancels using the new functionality.
       signature = await multisig.rpc.proposalCancelV2({
         connection,
@@ -2165,7 +2165,7 @@ describe("Multisig SDK", () => {
         programId,
       });
       await connection.confirmTransaction(signature);
-  
+
       // Proposal status must be "Cancelled".
       proposalAccount = await Proposal.fromAccountAddress(
         connection,
@@ -2173,7 +2173,7 @@ describe("Multisig SDK", () => {
       );
       assert.ok(multisig.types.isProposalStatusCancelled(proposalAccount.status));
     });
-  
+
   });
 
   describe("vault_transaction_execute", () => {
@@ -2353,13 +2353,20 @@ describe("Multisig SDK", () => {
           index: 0,
           programId,
         });
-
+        const programConfigPda = multisig.getProgramConfigPda({ programId })[0];
+        const programConfig = await multisig.accounts.ProgramConfig.fromAccountAddress(
+          connection,
+          programConfigPda
+        );
+        const treasury = programConfig.treasury;
         const multisigCreateArgs: Parameters<
-          typeof multisig.transactions.multisigCreate
+          typeof multisig.transactions.multisigCreateV2
         >[0] = {
           blockhash: (await connection.getLatestBlockhash()).blockhash,
           createKey: createKey.publicKey,
           creator: multisigCreator.publicKey,
+          treasury: treasury,
+          rentCollector: null,
           multisigPda,
           configAuthority,
           timeLock: 0,
@@ -2374,7 +2381,7 @@ describe("Multisig SDK", () => {
         };
 
         const createMultisigTxWithoutMemo =
-          multisig.transactions.multisigCreate(multisigCreateArgs);
+          multisig.transactions.multisigCreateV2(multisigCreateArgs);
 
         const availableMemoSize = multisig.utils.getAvailableMemoSize(
           createMultisigTxWithoutMemo
@@ -2382,7 +2389,7 @@ describe("Multisig SDK", () => {
 
         const memo = "a".repeat(availableMemoSize);
 
-        const createMultisigTxWithMemo = multisig.transactions.multisigCreate({
+        const createMultisigTxWithMemo = multisig.transactions.multisigCreateV2({
           ...multisigCreateArgs,
           memo,
         });
