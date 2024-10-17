@@ -22,7 +22,7 @@ export async function transactionBufferClose({
   connection: Connection;
   feePayer: Signer;
   multisigPda: PublicKey;
-  /* Transaction index of the buffer account to extend. */
+  /* Transaction index of the buffer account to close. */
   bufferIndex: number;
   creator: PublicKey;
   signers?: Signer[];

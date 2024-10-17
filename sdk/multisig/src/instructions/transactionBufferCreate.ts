@@ -11,6 +11,7 @@ import * as crypto from "crypto";
 import { getTransactionBufferPda, getVaultPda } from "../pda";
 import { transactionMessageToMultisigTransactionMessageBytes } from "../utils";
 
+/* Creates a new transaction buffer. */
 export function transactionBufferCreate({
   multisigPda,
   bufferIndex,
@@ -22,6 +23,7 @@ export function transactionBufferCreate({
   programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
+  /* Transaction index of the buffer account to create. */
   bufferIndex: number;
   creator: PublicKey;
   rentPayer?: PublicKey;

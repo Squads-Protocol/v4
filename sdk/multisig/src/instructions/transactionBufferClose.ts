@@ -12,6 +12,7 @@ export function transactionBufferClose({
   programId = PROGRAM_ID,
 }: {
   multisigPda: PublicKey;
+  /* Transaction index of the buffer account to close. */
   bufferIndex: number;
   creator: PublicKey;
   programId?: PublicKey;

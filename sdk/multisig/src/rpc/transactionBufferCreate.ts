@@ -10,7 +10,7 @@ import {
 import * as transactions from "../transactions";
 import { translateAndThrowAnchorError } from "../errors";
 
-/** Create a new transaction buffer. */
+/** Creates a new transaction buffer. */
 export async function transactionBufferCreate({
   connection,
   feePayer,

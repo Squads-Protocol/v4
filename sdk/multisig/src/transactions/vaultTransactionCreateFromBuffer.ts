@@ -5,6 +5,7 @@ import {
 } from "@solana/web3.js";
 import * as instructions from "../instructions/index.js";
 
+/** Convert the final buffer contents into a VaultTransaction. */
 export function vaultTransactionCreateFromBuffer({
   blockhash,
   feePayer,
@@ -17,6 +18,7 @@ export function vaultTransactionCreateFromBuffer({
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
+  /* Transaction index of the buffer account to convert. */
   bufferIndex: number;
   creator: PublicKey;
   memo?: string;

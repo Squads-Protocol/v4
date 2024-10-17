@@ -5,6 +5,7 @@ import {
 } from "@solana/web3.js";
 import * as instructions from "../instructions/index.js";
 
+/* Closes a transaction buffer. */
 export function transactionBufferClose({
   blockhash,
   feePayer,
@@ -16,6 +17,7 @@ export function transactionBufferClose({
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
+  /* Transaction index of the buffer account to close. */
   bufferIndex: number;
   creator: PublicKey;
   programId?: PublicKey;

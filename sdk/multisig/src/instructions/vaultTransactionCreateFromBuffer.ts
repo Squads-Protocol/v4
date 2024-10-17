@@ -5,6 +5,7 @@ import {
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { getTransactionBufferPda } from "../pda";
 
+/** Convert the final buffer contents into a VaultTransaction. */
 export function vaultTransactionCreateFromBuffer({
   multisigPda,
   bufferIndex,
@@ -13,6 +14,7 @@ export function vaultTransactionCreateFromBuffer({
   memo,
 }: {
   multisigPda: PublicKey;
+  /* Transaction index of the buffer account to convert. */
   bufferIndex: number;
   creator: PublicKey;
   memo?: string;

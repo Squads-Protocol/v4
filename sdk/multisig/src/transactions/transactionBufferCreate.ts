@@ -6,6 +6,7 @@ import {
 } from "@solana/web3.js";
 import * as instructions from "../instructions/index.js";
 
+/* Creates a new transaction buffer. */
 export function transactionBufferCreate({
   blockhash,
   feePayer,
@@ -21,6 +22,7 @@ export function transactionBufferCreate({
   blockhash: string;
   feePayer: PublicKey;
   multisigPda: PublicKey;
+  /* Transaction index of the buffer account to create. */
   bufferIndex: number;
   creator: PublicKey;
   rentPayer?: PublicKey;
