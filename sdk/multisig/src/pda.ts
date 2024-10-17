@@ -113,6 +113,22 @@ export function getProposalPda({
   );
 }
 
+export function getBatchPda({
+  multisigPda,
+  index,
+  programId = PROGRAM_ID,
+}: {
+  multisigPda: PublicKey;
+  /** Transaction index targeting a valid batch. */
+  index: number;
+  programId?: PublicKey;
+}) {
+  return PublicKey.findProgramAddressSync(
+    [SEED_PREFIX, multisigPda.toBytes(), SEED_TRANSACTION, toU32Bytes(index)],
+    programId
+  );
+}
+
 export function getBatchTransactionPda({
   multisigPda,
   batchIndex,
@@ -152,6 +168,29 @@ export function getSpendingLimitPda({
       multisigPda.toBytes(),
       SEED_SPENDING_LIMIT,
       createKey.toBytes(),
+    ],
+    programId
+  );
+}
+
+export function getTransactionBufferPda({
+  multisigPda,
+  creator,
+  bufferIndex,
+  programId = PROGRAM_ID,
+}: {
+  multisigPda: PublicKey;
+  creator: PublicKey;
+  bufferIndex: number;
+  programId?: PublicKey;
+}): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("multisig"),
+      multisigPda.toBuffer(),
+      Buffer.from("transaction_buffer"),
+      creator.toBuffer(),
+      Uint8Array.from([bufferIndex]),
     ],
     programId
   );
