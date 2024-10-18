@@ -5,14 +5,15 @@ import {
   TransactionMessage,
   AddressLookupTableAccount,
 } from "@solana/web3.js";
-import { instructions, accounts, getTransactionPda } from "..";
+import { instructions, accounts } from "..";
 import { PROGRAM_ID, VaultTransaction } from "../generated";
 import {
-  BaseBuilder,
   createApprovalCore,
   createRejectionCore,
   createProposalCore,
+  BaseTransactionBuilder,
 } from "./common";
+import { Methods } from "./actionTypes";
 
 interface CreateVaultTransactionActionArgs {
   /** The connection to an SVM network cluster */
@@ -107,18 +108,19 @@ export function createVaultTransaction(
   return new VaultTransactionBuilder(args);
 }
 
-class VaultTransactionBuilder extends BaseBuilder<
+class VaultTransactionBuilder extends BaseTransactionBuilder<
   CreateVaultTransactionResult,
   CreateVaultTransactionActionArgs
 > {
   public instructions: TransactionInstruction[] = [];
+  public addressLookupTableAccounts: AddressLookupTableAccount[] = [];
   public index: number = 1;
 
   constructor(args: CreateVaultTransactionActionArgs) {
     super(args);
   }
 
-  async build() {
+  protected async build() {
     const {
       multisig,
       message,
@@ -142,36 +144,7 @@ class VaultTransactionBuilder extends BaseBuilder<
 
     this.instructions = [...result.instructions];
     this.index = result.index;
-    return this;
-  }
-
-  getInstructions(): TransactionInstruction[] {
-    return this.instructions;
-  }
-
-  getIndex(): number {
-    return this.index;
-  }
-
-  getTransactionKey(): PublicKey | null {
-    const index = this.index;
-    const [transactionPda] = getTransactionPda({
-      multisigPda: this.args.multisig,
-      index: BigInt(index ?? 1),
-    });
-
-    return transactionPda;
-  }
-
-  async getTransactionAccount(key: PublicKey) {
-    return this.buildPromise.then(async () => {
-      const txAccount = await VaultTransaction.fromAccountAddress(
-        this.connection,
-        key
-      );
-
-      return txAccount;
-    });
+    return this as VaultTransactionBuilder;
   }
 
   /**
@@ -179,8 +152,10 @@ class VaultTransactionBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withProposal(isDraft?: boolean) {
-    const { instruction } = await createProposalCore({
+  withProposal(
+    isDraft?: boolean
+  ): Pick<VaultTransactionBuilder, Methods<"withProposal">> {
+    const { instruction } = createProposalCore({
       multisig: this.args.multisig,
       creator: this.creator,
       transactionIndex: this.index,
@@ -188,10 +163,9 @@ class VaultTransactionBuilder extends BaseBuilder<
       isDraft,
     });
 
-    return {
-      index: this.index,
-      instruction: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -199,18 +173,19 @@ class VaultTransactionBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withApproval(member?: PublicKey) {
-    const { instruction } = await createApprovalCore({
+  withApproval(
+    member?: PublicKey
+  ): Pick<VaultTransactionBuilder, Methods<"withApproval">> {
+    const { instruction } = createApprovalCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
       transactionIndex: this.index,
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -218,18 +193,19 @@ class VaultTransactionBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withRejection(member?: PublicKey) {
-    const { instruction } = await createRejectionCore({
+  withRejection(
+    member?: PublicKey
+  ): Pick<VaultTransactionBuilder, Methods<"withRejection">> {
+    const { instruction } = createRejectionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
       transactionIndex: this.index,
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -237,19 +213,22 @@ class VaultTransactionBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async execute(member?: PublicKey) {
-    const { instruction } = await executeVaultTransactionCore({
-      connection: this.connection,
-      multisig: this.args.multisig,
-      member: member ?? this.creator,
-      index: this.index,
-      programId: this.args.programId,
-    });
+  async withExecute(
+    member?: PublicKey
+  ): Promise<Pick<VaultTransactionBuilder, Methods<"withExecute">>> {
+    const { instruction, lookupTableAccounts } =
+      await executeVaultTransactionCore({
+        connection: this.connection,
+        multisig: this.args.multisig,
+        member: member ?? this.creator,
+        index: this.index,
+        programId: this.args.programId,
+      });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+    this.addressLookupTableAccounts.push(...lookupTableAccounts);
+
+    return this;
   }
 }
 
@@ -307,7 +286,7 @@ async function executeVaultTransactionCore(
   args: ExecuteVaultTransactionActionArgs
 ): Promise<ExecuteVaultTransactionResult> {
   const { connection, multisig, index, member, programId = PROGRAM_ID } = args;
-  const ix = instructions.vaultTransactionExecute({
+  const ix = await instructions.vaultTransactionExecute({
     connection,
     multisigPda: multisig,
     member: member,
@@ -315,5 +294,60 @@ async function executeVaultTransactionCore(
     programId: programId,
   });
 
-  return { ...ix };
+  return {
+    ...ix,
+  };
 }
+
+/*
+async function Example() {
+  const connection = new Connection("https://api.mainnet-beta.solana.com");
+  const feePayer = Keypair.generate();
+  const txBuilder = createVaultTransaction({
+    connection,
+    creator: PublicKey.default,
+    message: new TransactionMessage({
+      payerKey: PublicKey.default,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 200_000,
+        }),
+      ],
+    }),
+    multisig: PublicKey.default,
+    vaultIndex: 0,
+    ephemeralSigners: 0,
+    memo: "Transfer 2 SOL to a test account",
+    programId: PROGRAM_ID,
+  });
+
+  txBuilder.withProposal().withApproval()
+  const proposalKey = txBuilder.getProposalKey();
+  await txBuilder.withProposal();
+
+  const signature = await txBuilder.customSend(
+    async (msg) => await customSender(msg, connection)
+  );
+  /*
+    .sendAndConfirm({
+      preInstructions: [
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 200_000,
+        }),
+      ],
+      options: { skipPreflight: true },
+    });
+}
+
+const customSender = async (
+  msg: TransactionMessage,
+  connection: Connection
+) => {
+  const transaction = new VersionedTransaction(msg.compileToV0Message());
+  const signature = await connection.sendTransaction(transaction);
+  await connection.getSignatureStatuses([signature]);
+
+  return signature;
+};
+*/

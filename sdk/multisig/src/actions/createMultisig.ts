@@ -1,19 +1,9 @@
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  TransactionInstruction,
-} from "@solana/web3.js";
+import { Keypair, PublicKey, TransactionInstruction } from "@solana/web3.js";
 import { Member, Multisig, PROGRAM_ID, ProgramConfig } from "../generated";
 import { getMultisigPda, getProgramConfigPda, instructions } from "..";
-import { BaseBuilder } from "./common";
-import { SquadPermissions, createMembers } from "./members";
+import { BaseBuilder, BaseBuilderArgs, BuildResult } from "./common";
 
-interface CreateMultisigActionArgs {
-  /** The connection to an SVM network cluster */
-  connection: Connection;
-  /** The public key of the creator */
-  creator: PublicKey;
+interface CreateMultisigActionArgs extends BaseBuilderArgs {
   /** The number of approvals required to approve transactions */
   threshold: number;
   /** The list of members in the multisig, with their associated permissions */
@@ -28,9 +18,7 @@ interface CreateMultisigActionArgs {
   programId?: PublicKey;
 }
 
-interface CreateMultisigResult {
-  /** `multisigCreateV2` instruction */
-  instructions: TransactionInstruction[];
+interface CreateMultisigResult extends BuildResult {
   /** Keypair seed that is required to sign the transaction */
   createKey: Keypair;
 }
@@ -44,14 +32,17 @@ interface CreateMultisigResult {
  *
  * @example
  * // Basic usage (no chaining):
- * const result = await createMultisig({
+ * const builder = await createMultisig({
  *   connection,
  *   creator: creatorPublicKey,
  *   threshold: 2,
  *   members: membersList,
  * });
- * console.log(result.instruction);
- * console.log(result.createKey);
+ *
+ * const instructions = result.instructions;
+ * const createKey = result.createKey;
+ *
+ * const signature = await builder.sendAndConfirm();
  *
  * @example
  * // Using the transaction() method:
@@ -60,7 +51,7 @@ interface CreateMultisigResult {
  * }).transaction();
  *
  * @example
- * // Using the rpc() method:
+ * // Using the send() method:
  * const signature = await createMultisig({
  *   // ... args
  * }).send();
@@ -86,7 +77,7 @@ class MultisigBuilder extends BaseBuilder<
     super(args);
   }
 
-  async build() {
+  protected async build(): Promise<MultisigBuilder> {
     const {
       threshold,
       members,
@@ -108,11 +99,7 @@ class MultisigBuilder extends BaseBuilder<
 
     this.instructions = [...result.instructions];
     this.createKey = result.createKey;
-    return this;
-  }
-
-  getInstructions(): TransactionInstruction[] {
-    return this.instructions;
+    return this as MultisigBuilder;
   }
 
   getCreateKey(): Keypair {

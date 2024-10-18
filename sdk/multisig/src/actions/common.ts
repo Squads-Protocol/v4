@@ -8,10 +8,18 @@ import {
   TransactionSignature,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { PROGRAM_ID, instructions } from "..";
+import {
+  PROGRAM_ID,
+  getProposalPda,
+  getTransactionPda,
+  instructions,
+} from "..";
+import { Proposal, VaultTransaction } from "../accounts";
 
 export interface BaseBuilderArgs {
+  /** The connection to an SVM network cluster */
   connection: Connection;
+  /** The public key of the creator */
   creator: PublicKey;
 }
 
@@ -43,10 +51,29 @@ export abstract class BaseBuilder<
 
   protected abstract build(): Promise<T>;
 
+  getInstructions(): TransactionInstruction[] {
+    return this.instructions;
+  }
+
   /**
    * Creates a transaction containing the corresponding instruction(s).
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction`.
+   *
+   * @args `feePayer` - Optional signer to pay the transaction fee.
+   * @returns `VersionedTransaction`
+   *
+   * @example
+   * // Get pre-built transaction from builder instance.
+   * const builder = createMultisig({
+   *   // ... args
+   * });
+   * const transaction = await builder.transaction();
+   * @example
+   * // Run chained async method to return the
+   * // transaction all in one go.
+   * const transaction = await createMultisig({
+   *   // ... args
+   * }).transaction();
+   *
    */
   async transaction(feePayer?: Signer): Promise<VersionedTransaction> {
     return this.buildPromise.then(async () => {
@@ -66,60 +93,211 @@ export abstract class BaseBuilder<
 
   /**
    * Builds a transaction with the corresponding instruction(s), and sends it.
-   * @args feePayer - Optional signer to pay the transaction fee.
+   *
+   * **NOTE: Not wallet-adapter compatible.**
+   *
+   * @args `settings` - Optional pre/post instructions, fee payer keypair, and send options.
    * @returns `TransactionSignature`
    */
-  async send(
-    feePayer?: Signer,
-    options?: SendOptions
-  ): Promise<TransactionSignature> {
+  async send(settings?: {
+    preInstructions?: TransactionInstruction[];
+    postInstructions?: TransactionInstruction[];
+    feePayer?: Signer;
+    options?: SendOptions;
+  }): Promise<TransactionSignature> {
     return this.buildPromise.then(async () => {
+      const instructions = [...this.instructions];
+      if (settings?.preInstructions) {
+        instructions.unshift(...settings.preInstructions);
+      }
+      if (settings?.postInstructions) {
+        instructions.push(...settings.postInstructions);
+      }
       const message = new TransactionMessage({
-        payerKey: feePayer?.publicKey ?? this.creator!,
+        payerKey: settings?.feePayer?.publicKey ?? this.creator,
         recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-        instructions: [...this.instructions],
+        instructions: [...instructions],
       }).compileToV0Message();
 
       const tx = new VersionedTransaction(message);
-      if (feePayer) {
-        tx.sign([feePayer]);
+      if (settings?.feePayer) {
+        tx.sign([settings.feePayer]);
       }
-      const signature = await this.connection.sendTransaction(tx, options);
+      const signature = await this.connection.sendTransaction(
+        tx,
+        settings?.options
+      );
       return signature;
     });
   }
 
   /**
    * Builds a transaction with the corresponding instruction(s), sends it, and confirms the transaction.
-   * @args feePayer - Optional signer to pay the transaction fee.
+   *
+   * **NOTE: Not wallet-adapter compatible.**
+   *
+   * @args `settings` - Optional pre/post instructions, fee payer keypair, and send options.
    * @returns `TransactionSignature`
    */
-  async sendAndConfirm(
-    feePayer?: Signer,
-    options?: SendOptions
-  ): Promise<TransactionSignature> {
+  async sendAndConfirm(settings?: {
+    preInstructions?: TransactionInstruction[];
+    postInstructions?: TransactionInstruction[];
+    feePayer?: Signer;
+    options?: SendOptions;
+  }): Promise<TransactionSignature> {
     return this.buildPromise.then(async () => {
+      const instructions = [...this.instructions];
+      if (settings?.preInstructions) {
+        instructions.unshift(...settings.preInstructions);
+      }
+      if (settings?.postInstructions) {
+        instructions.push(...settings.postInstructions);
+      }
       const message = new TransactionMessage({
-        payerKey: feePayer?.publicKey ?? this.creator!,
+        payerKey: settings?.feePayer?.publicKey ?? this.creator,
         recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-        instructions: [...this.instructions],
+        instructions: [...instructions],
       }).compileToV0Message();
 
       const tx = new VersionedTransaction(message);
-      if (feePayer) {
-        tx.sign([feePayer]);
+      if (settings?.feePayer) {
+        tx.sign([settings.feePayer]);
       }
-      const signature = await this.connection.sendTransaction(tx, options);
+      const signature = await this.connection.sendTransaction(
+        tx,
+        settings?.options
+      );
       await this.connection.getSignatureStatuses([signature]);
       return signature;
     });
   }
 
-  then<TResult1 = T, TResult2 = never>(
+  /**
+   * We build a message with the corresponding instruction(s), you give us a callback
+   * for post-processing, sending, and confirming.
+   *
+   * @args `callback` - Async function with `TransactionMessage` as argument, and `TransactionSignature` as return value.
+   * @returns `TransactionSignature`
+   *
+   * @example
+   * const txBuilder = createVaultTransaction({
+   *     connection,
+   *     creator: creator,
+   *     message: message
+   *     multisig: multisig,
+   *     vaultIndex: 0,
+   * });
+   *
+   * await txBuilder
+   *     .withProposal()
+   *     .withApproval()
+   *     .withExecute();
+   *
+   * const signature = await txBuilder.customSend(
+   *     // Callback with transaction message, and your function.
+   *     async (msg) => await customSender(msg, connection)
+   * );
+   */
+  async customSend(
+    callback: (args: TransactionMessage) => Promise<TransactionSignature>
+  ): Promise<TransactionSignature> {
+    return this.buildPromise.then(async () => {
+      const message = new TransactionMessage({
+        payerKey: this.creator,
+        recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+        instructions: [...this.instructions],
+      });
+
+      const signature = await callback(message);
+      return signature;
+    });
+  }
+
+  protected then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
     return this.buildPromise.then(onfulfilled, onrejected);
+  }
+}
+
+export interface TransactionBuilderArgs extends BaseBuilderArgs {
+  multisig: PublicKey;
+}
+
+export interface TransactionBuildResult extends BuildResult {
+  index: number;
+}
+
+export abstract class BaseTransactionBuilder<
+  T extends TransactionBuildResult,
+  U extends TransactionBuilderArgs
+> extends BaseBuilder<T, U> {
+  public index: number = 1;
+
+  constructor(args: U) {
+    super(args);
+  }
+
+  getIndex(): number {
+    return this.index;
+  }
+
+  /**
+   * Fetches the `PublicKey` of the corresponding account for the transaction being built.
+   *
+   * @returns `PublicKey`
+   */
+  getTransactionKey(): PublicKey {
+    const index = this.index;
+    const [transactionPda] = getTransactionPda({
+      multisigPda: this.args.multisig,
+      index: BigInt(index ?? 1),
+    });
+
+    return transactionPda;
+  }
+
+  /**
+   * Fetches the `PublicKey` of the corresponding proposal account for the transaction being built.
+   *
+   * @returns `PublicKey`
+   */
+  getProposalKey(): PublicKey {
+    const index = this.index;
+    const [proposalPda] = getProposalPda({
+      multisigPda: this.args.multisig,
+      transactionIndex: BigInt(index ?? 1),
+    });
+
+    return proposalPda;
+  }
+
+  /**
+   * Fetches the `PublicKey` of the corresponding proposal account for the transaction being built.
+   *
+   * @returns `PublicKey`
+   */
+  async getTransactionAccount(key: PublicKey) {
+    return this.buildPromise.then(async () => {
+      const txAccount = await VaultTransaction.fromAccountAddress(
+        this.connection,
+        key
+      );
+
+      return txAccount;
+    });
+  }
+
+  async getProposalAccount(key: PublicKey) {
+    return this.buildPromise.then(async () => {
+      const propAccount = await Proposal.fromAccountAddress(
+        this.connection,
+        key
+      );
+
+      return propAccount;
+    });
   }
 }
 
@@ -154,9 +332,9 @@ export interface ProposalResult {
   instruction: TransactionInstruction;
 }
 
-export async function createProposalCore(
+export function createProposalCore(
   args: CreateProposalActionArgs
-): Promise<ProposalResult> {
+): ProposalResult {
   const {
     multisig,
     creator,
@@ -180,9 +358,7 @@ export async function createProposalCore(
   };
 }
 
-export async function createApprovalCore(
-  args: VoteActionArgs
-): Promise<ProposalResult> {
+export function createApprovalCore(args: VoteActionArgs): ProposalResult {
   const { multisig, member, transactionIndex, programId = PROGRAM_ID } = args;
 
   const ix = instructions.proposalApprove({
@@ -197,9 +373,7 @@ export async function createApprovalCore(
   };
 }
 
-export async function createRejectionCore(
-  args: VoteActionArgs
-): Promise<ProposalResult> {
+export function createRejectionCore(args: VoteActionArgs): ProposalResult {
   const { multisig, member, transactionIndex, programId = PROGRAM_ID } = args;
 
   const ix = instructions.proposalReject({

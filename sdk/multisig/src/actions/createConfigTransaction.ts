@@ -1,12 +1,13 @@
 import { Connection, PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { instructions, accounts, getTransactionPda } from "..";
+import { instructions, accounts } from "..";
 import { ConfigAction, ConfigTransaction, PROGRAM_ID } from "../generated";
 import {
-  BaseBuilder,
+  BaseTransactionBuilder,
   createApprovalCore,
   createProposalCore,
   createRejectionCore,
 } from "./common";
+import { Methods } from "./actionTypes";
 
 interface CreateConfigTransactionActionArgs {
   /** The connection to an SVM network cluster */
@@ -91,7 +92,7 @@ export function createConfigTransaction(
   return new ConfigTransactionBuilder(args);
 }
 
-class ConfigTransactionBuilder extends BaseBuilder<
+class ConfigTransactionBuilder extends BaseTransactionBuilder<
   CreateConfigTransactionResult,
   CreateConfigTransactionActionArgs
 > {
@@ -102,7 +103,7 @@ class ConfigTransactionBuilder extends BaseBuilder<
     super(args);
   }
 
-  async build() {
+  protected async build() {
     const { multisig, actions, rentPayer, memo, programId } = this.args;
     const result = await createConfigTransactionCore({
       connection: this.connection,
@@ -119,43 +120,15 @@ class ConfigTransactionBuilder extends BaseBuilder<
     return this;
   }
 
-  getInstructions(): TransactionInstruction[] {
-    return this.instructions;
-  }
-
-  getIndex(): number | null {
-    return this.index;
-  }
-
-  getTransactionKey(): PublicKey {
-    const index = this.index;
-    const [transactionPda] = getTransactionPda({
-      multisigPda: this.args.multisig,
-      index: BigInt(index ?? 1),
-      programId: this.args.programId,
-    });
-
-    return transactionPda;
-  }
-
-  async getTransactionAccount(key: PublicKey) {
-    return this.buildPromise.then(async () => {
-      const txAccount = await ConfigTransaction.fromAccountAddress(
-        this.connection,
-        key
-      );
-
-      return txAccount;
-    });
-  }
-
   /**
    * Creates a transaction containing the ConfigTransaction creation instruction.
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withProposal(isDraft?: boolean) {
-    const { instruction } = await createProposalCore({
+  withProposal(
+    isDraft?: boolean
+  ): Pick<ConfigTransactionBuilder, Methods<"withProposal">> {
+    const { instruction } = createProposalCore({
       multisig: this.args.multisig,
       creator: this.creator,
       transactionIndex: this.index,
@@ -163,10 +136,9 @@ class ConfigTransactionBuilder extends BaseBuilder<
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instruction: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -174,18 +146,19 @@ class ConfigTransactionBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withApproval(member?: PublicKey) {
-    const { instruction } = await createApprovalCore({
+  withApproval(
+    member?: PublicKey
+  ): Pick<ConfigTransactionBuilder, Methods<"withApproval">> {
+    const { instruction } = createApprovalCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
       transactionIndex: this.index,
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -193,18 +166,19 @@ class ConfigTransactionBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withRejection(member?: PublicKey) {
-    const { instruction } = await createRejectionCore({
+  withRejection(
+    member?: PublicKey
+  ): Pick<ConfigTransactionBuilder, Methods<"withRejection">> {
+    const { instruction } = createRejectionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
       transactionIndex: this.index,
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -212,7 +186,9 @@ class ConfigTransactionBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async execute(member?: PublicKey) {
+  async withExecute(
+    member?: PublicKey
+  ): Promise<Pick<ConfigTransactionBuilder, Methods<"withExecute">>> {
     const { instruction } = await executeConfigTransactionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
@@ -220,10 +196,9 @@ class ConfigTransactionBuilder extends BaseBuilder<
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 }
 

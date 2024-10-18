@@ -17,15 +17,14 @@ import {
   createApprovalCore,
   createRejectionCore,
   createProposalCore,
+  BaseBuilderArgs,
+  BuildResult,
 } from "./common";
+import { BatchMethods } from "./actionTypes";
 
-interface CreateBatchActionArgs {
-  /** The connection to an SVM network cluster */
-  connection: Connection;
+interface CreateBatchActionArgs extends BaseBuilderArgs {
   /** The public key of the multisig config account */
   multisig: PublicKey;
-  /** The public key of the creator */
-  creator: PublicKey;
   /** Index of the vault to target. Defaults to 0 */
   vaultIndex?: number;
   /** The public key of the fee payer, defaults to the creator */
@@ -36,9 +35,7 @@ interface CreateBatchActionArgs {
   programId?: PublicKey;
 }
 
-interface CreateBatchResult {
-  /** `vaultTransactionCreate` instruction */
-  instructions: TransactionInstruction[];
+interface CreateBatchResult extends BuildResult {
   /** Transaction index of the resulting VaultTransaction */
   index: number;
 }
@@ -212,7 +209,9 @@ class BatchBuilder extends BaseBuilder<
     return transactions;
   }
 
-  async getBatchAccount(key: PublicKey) {
+  async getBatchAccount(
+    key: PublicKey
+  ): Promise<Pick<BatchBuilder, BatchMethods<"getBatchAccount">>> {
     return this.buildPromise.then(async () => {
       const batchAccount = await Batch.fromAccountAddress(this.connection, key);
 
@@ -225,7 +224,10 @@ class BatchBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async addTransaction(message: TransactionMessage, member?: PublicKey) {
+  async addTransaction(
+    message: TransactionMessage,
+    member?: PublicKey
+  ): Promise<Pick<BatchBuilder, BatchMethods<"addTransaction">>> {
     this.innerIndex++;
     const { instruction } = await addBatchTransactionCore({
       multisig: this.args.multisig,
@@ -238,10 +240,9 @@ class BatchBuilder extends BaseBuilder<
       programId: this.args.programId,
     });
 
-    return {
-      innerIndex: this.innerIndex,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -249,8 +250,10 @@ class BatchBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withProposal(isDraft?: boolean) {
-    const { instruction } = await createProposalCore({
+  withProposal(
+    isDraft?: boolean
+  ): Pick<BatchBuilder, BatchMethods<"withProposal">> {
+    const { instruction } = createProposalCore({
       multisig: this.args.multisig,
       creator: this.creator,
       transactionIndex: this.index,
@@ -258,10 +261,9 @@ class BatchBuilder extends BaseBuilder<
       isDraft,
     });
 
-    return {
-      index: this.index,
-      instruction: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -269,18 +271,19 @@ class BatchBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withApproval(member?: PublicKey) {
-    const { instruction } = await createApprovalCore({
+  withApproval(
+    member?: PublicKey
+  ): Pick<BatchBuilder, BatchMethods<"withApproval">> {
+    const { instruction } = createApprovalCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
       transactionIndex: this.index,
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -288,18 +291,19 @@ class BatchBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async withRejection(member?: PublicKey) {
-    const { instruction } = await createRejectionCore({
+  withRejection(
+    member?: PublicKey
+  ): Pick<BatchBuilder, BatchMethods<"withRejection">> {
+    const { instruction } = createRejectionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
       transactionIndex: this.index,
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 
   /**
@@ -307,7 +311,9 @@ class BatchBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async execute(member?: PublicKey) {
+  async withExecute(
+    member?: PublicKey
+  ): Promise<Pick<BatchBuilder, BatchMethods<"withExecute">>> {
     const { instruction } = await executeBatchTransactionCore({
       connection: this.connection,
       multisig: this.args.multisig,
@@ -316,10 +322,9 @@ class BatchBuilder extends BaseBuilder<
       programId: this.args.programId,
     });
 
-    return {
-      index: this.index,
-      instructions: [...this.instructions, instruction],
-    };
+    this.instructions.push(instruction);
+
+    return this;
   }
 }
 
