@@ -1,11 +1,8 @@
 import {
   Connection,
-  Signer,
   Keypair,
   PublicKey,
   TransactionInstruction,
-  TransactionMessage,
-  VersionedTransaction,
 } from "@solana/web3.js";
 import { Member, Multisig, PROGRAM_ID, ProgramConfig } from "../generated";
 import { getMultisigPda, getProgramConfigPda, instructions } from "..";
@@ -187,20 +184,17 @@ export async function createMultisigCore(
   };
 }
 
+/*
 async function Example() {
   const connection = new Connection("https://api.mainnet-beta.solana.com");
-  const multisig = createMultisig({
+  const feePayer = Keypair.generate();
+  const signature = await createMultisig({
     connection,
     members: createMembers([
       { key: PublicKey.default, permissions: SquadPermissions.All },
     ]),
     creator: PublicKey.default,
     threshold: 2,
-  });
-
-  const a = await multisig.getInstructions();
-  const b = multisig.getMultisigKey();
-  const c = await multisig.getMultisigAccount(b!);
-
-  console.log(c.members);
+  }).sendAndConfirm(feePayer);
 }
+*/
