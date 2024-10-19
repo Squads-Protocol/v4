@@ -135,13 +135,13 @@ class BatchBuilder extends BaseBuilder<
 > {
   public instructions: TransactionInstruction[] = [];
   public index: number = 1;
-  public innerIndex: number = 0;
+  public innerIndex: number = 1;
 
   constructor(args: CreateBatchActionArgs) {
     super(args);
   }
 
-  async build() {
+  protected async build() {
     const {
       multisig,
       vaultIndex = 0,
@@ -161,18 +161,10 @@ class BatchBuilder extends BaseBuilder<
 
     this.instructions = [...result.instructions];
     this.index = result.index;
-    return this;
   }
 
-  getInstructions(): TransactionInstruction[] {
-    return this.instructions;
-  }
-
-  getIndex(): number {
-    return this.index;
-  }
-
-  getBatchKey(): PublicKey | null {
+  async getBatchKey(): Promise<PublicKey> {
+    this.ensureBuilt();
     const index = this.index;
     const [batchPda] = getTransactionPda({
       multisigPda: this.args.multisig,
@@ -182,21 +174,23 @@ class BatchBuilder extends BaseBuilder<
     return batchPda;
   }
 
-  getBatchTransactionKey(innerIndex: number): PublicKey | null {
+  async getBatchTransactionKey(innerIndex?: number): Promise<PublicKey> {
+    this.ensureBuilt();
     const index = this.index;
     const [batchPda] = getBatchTransactionPda({
       multisigPda: this.args.multisig,
       batchIndex: BigInt(index ?? 1),
-      transactionIndex: this.innerIndex ?? 1,
+      transactionIndex: innerIndex ?? this.innerIndex,
     });
 
     return batchPda;
   }
 
-  getAllBatchTransactionKeys(localIndex: number): PublicKey[] | null {
+  async getAllBatchTransactionKeys(): Promise<PublicKey[]> {
+    this.ensureBuilt();
     const index = this.index;
     const transactions = [];
-    for (let i = 1; i <= localIndex; i++) {
+    for (let i = 1; i <= this.innerIndex; i++) {
       const [batchPda] = getBatchTransactionPda({
         multisigPda: this.args.multisig,
         batchIndex: BigInt(index ?? 1),
@@ -212,11 +206,10 @@ class BatchBuilder extends BaseBuilder<
   async getBatchAccount(
     key: PublicKey
   ): Promise<Pick<BatchBuilder, BatchMethods<"getBatchAccount">>> {
-    return this.buildPromise.then(async () => {
-      const batchAccount = await Batch.fromAccountAddress(this.connection, key);
+    this.ensureBuilt();
+    const batchAccount = await Batch.fromAccountAddress(this.connection, key);
 
-      return batchAccount;
-    });
+    return batchAccount;
   }
 
   /**
@@ -228,7 +221,7 @@ class BatchBuilder extends BaseBuilder<
     message: TransactionMessage,
     member?: PublicKey
   ): Promise<Pick<BatchBuilder, BatchMethods<"addTransaction">>> {
-    this.innerIndex++;
+    this.ensureBuilt();
     const { instruction } = await addBatchTransactionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
@@ -242,6 +235,8 @@ class BatchBuilder extends BaseBuilder<
 
     this.instructions.push(instruction);
 
+    this.innerIndex++;
+
     return this;
   }
 
@@ -250,9 +245,10 @@ class BatchBuilder extends BaseBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  withProposal(
+  async withProposal(
     isDraft?: boolean
-  ): Pick<BatchBuilder, BatchMethods<"withProposal">> {
+  ): Promise<Pick<BatchBuilder, BatchMethods<"withProposal">>> {
+    this.ensureBuilt();
     const { instruction } = createProposalCore({
       multisig: this.args.multisig,
       creator: this.creator,
@@ -314,6 +310,7 @@ class BatchBuilder extends BaseBuilder<
   async withExecute(
     member?: PublicKey
   ): Promise<Pick<BatchBuilder, BatchMethods<"withExecute">>> {
+    await this.ensureBuilt();
     const { instruction } = await executeBatchTransactionCore({
       connection: this.connection,
       multisig: this.args.multisig,

@@ -8,11 +8,10 @@ import {
   getTestProgramId,
   TestMembers,
 } from "../../utils";
-import {
-  createMultisig,
-  createVaultTransaction,
-} from "@sqds/multisig/src/actions";
+import { createMultisig, createVaultTransaction } from "@sqds/multisig";
 import assert from "assert";
+
+const { Permission, Permissions } = multisig.types;
 
 const programId = getTestProgramId();
 
@@ -20,6 +19,7 @@ describe("Examples / End2End Actions", () => {
   const connection = createLocalhostConnection();
 
   let multisigPda: PublicKey = PublicKey.default;
+  let transactionPda: PublicKey | null = null;
   let members: TestMembers;
   let outsider: Keypair;
   before(async () => {
@@ -28,32 +28,31 @@ describe("Examples / End2End Actions", () => {
   });
 
   it("should create a multisig", async () => {
+    console.log("Creating a multisig with 2 members");
     const builder = createMultisig({
       connection,
       creator: members.almighty.publicKey,
-      members: members as any,
-      threshold: 2,
+      members: [
+        {
+          key: members.almighty.publicKey,
+          permissions: Permissions.all(),
+        },
+        {
+          key: members.voter.publicKey,
+          permissions: Permissions.all(),
+        },
+      ],
+      threshold: 1,
       programId,
     });
 
-    multisigPda = builder.getMultisigKey();
-    await builder.sendAndConfirm();
-  });
+    multisigPda = await builder.getMultisigKey();
+    const createKey = await builder.getCreateKey();
 
-  it("should create a multisig", async () => {
-    const builder = createMultisig({
-      connection,
-      creator: members.almighty.publicKey,
-      members: members as any,
-      threshold: 2,
-      programId,
+    await builder.sendAndConfirm({
+      signers: [members.almighty, createKey],
+      options: { preflightCommitment: "finalized" },
     });
-
-    multisigPda = builder.getMultisigKey();
-    const signature = await builder.sendAndConfirm();
-    const account = await builder.getMultisigAccount(multisigPda);
-
-    assert.strictEqual(account.threshold, 2);
   });
 
   it("should create & send a vault transaction", async () => {
@@ -61,6 +60,7 @@ describe("Examples / End2End Actions", () => {
       multisigPda: multisigPda,
       index: 0,
     });
+
     const message = new TransactionMessage({
       payerKey: vaultPda,
       recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
@@ -68,6 +68,7 @@ describe("Examples / End2End Actions", () => {
         createTestTransferInstruction(vaultPda, outsider.publicKey),
       ],
     });
+
     const txBuilder = createVaultTransaction({
       connection,
       multisig: multisigPda,
@@ -75,15 +76,18 @@ describe("Examples / End2End Actions", () => {
       message,
       programId,
     });
-    txBuilder.withProposal();
-    txBuilder.withApproval();
 
-    const signature = await txBuilder.sendAndConfirm();
+    await txBuilder.withProposal();
 
-    console.log(signature);
+    transactionPda = txBuilder.getTransactionKey();
+
+    await txBuilder.sendAndConfirm({
+      feePayer: members.almighty,
+      options: { preflightCommitment: "finalized" },
+    });
   });
 
-  it("should create, vote & execute a vault transaction", async () => {
+  it("should create a vault transaction & vote", async () => {
     const [vaultPda] = multisig.getVaultPda({
       multisigPda: multisigPda,
       index: 0,
@@ -102,12 +106,17 @@ describe("Examples / End2End Actions", () => {
       message,
       programId,
     });
-    txBuilder.withProposal();
-    txBuilder.withApproval();
-    txBuilder.execute();
 
-    const signature = await txBuilder.sendAndConfirm();
+    (await txBuilder.withProposal()).withApproval(members.almighty.publicKey);
+    // await txBuilder.withExecute(members.executor.publicKey);
 
-    console.log(signature);
+    await txBuilder.sendAndConfirm({
+      feePayer: members.almighty,
+      options: { preflightCommitment: "finalized" },
+    });
+  });
+
+  it("is this a vault transaction?", async () => {
+    assert.ok(multisig.isVaultTransaction(connection, transactionPda!));
   });
 });

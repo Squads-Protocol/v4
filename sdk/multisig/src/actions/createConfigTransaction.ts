@@ -117,7 +117,6 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
 
     this.instructions = [...result.instructions];
     this.index = result.index;
-    return this;
   }
 
   /**
@@ -125,9 +124,10 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  withProposal(
+  async withProposal(
     isDraft?: boolean
-  ): Pick<ConfigTransactionBuilder, Methods<"withProposal">> {
+  ): Promise<Pick<ConfigTransactionBuilder, Methods<"withProposal">>> {
+    await this.ensureBuilt();
     const { instruction } = createProposalCore({
       multisig: this.args.multisig,
       creator: this.creator,

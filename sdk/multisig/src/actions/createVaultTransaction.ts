@@ -144,7 +144,6 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
 
     this.instructions = [...result.instructions];
     this.index = result.index;
-    return this as VaultTransactionBuilder;
   }
 
   /**
@@ -152,9 +151,10 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  withProposal(
+  async withProposal(
     isDraft?: boolean
-  ): Pick<VaultTransactionBuilder, Methods<"withProposal">> {
+  ): Promise<Pick<VaultTransactionBuilder, Methods<"withProposal">>> {
+    await this.ensureBuilt();
     const { instruction } = createProposalCore({
       multisig: this.args.multisig,
       creator: this.creator,
@@ -216,6 +216,7 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
   async withExecute(
     member?: PublicKey
   ): Promise<Pick<VaultTransactionBuilder, Methods<"withExecute">>> {
+    await this.ensureBuilt();
     const { instruction, lookupTableAccounts } =
       await executeVaultTransactionCore({
         connection: this.connection,

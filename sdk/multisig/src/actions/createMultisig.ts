@@ -1,7 +1,15 @@
-import { Keypair, PublicKey, TransactionInstruction } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  SendOptions,
+  Signer,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import { Member, Multisig, PROGRAM_ID, ProgramConfig } from "../generated";
 import { getMultisigPda, getProgramConfigPda, instructions } from "..";
 import { BaseBuilder, BaseBuilderArgs, BuildResult } from "./common";
+import { SquadPermissions, createMembers } from "./members";
 
 interface CreateMultisigActionArgs extends BaseBuilderArgs {
   /** The number of approvals required to approve transactions */
@@ -19,8 +27,7 @@ interface CreateMultisigActionArgs extends BaseBuilderArgs {
 }
 
 interface CreateMultisigResult extends BuildResult {
-  /** Keypair seed that is required to sign the transaction */
-  createKey: Keypair;
+  multisigKey: PublicKey;
 }
 
 /**
@@ -71,13 +78,13 @@ class MultisigBuilder extends BaseBuilder<
   CreateMultisigActionArgs
 > {
   public instructions: TransactionInstruction[] = [];
-  public createKey: Keypair = Keypair.generate();
+  public multisigKey: PublicKey = PublicKey.default;
 
   constructor(args: CreateMultisigActionArgs) {
     super(args);
   }
 
-  protected async build(): Promise<MultisigBuilder> {
+  protected async build(): Promise<void> {
     const {
       threshold,
       members,
@@ -86,48 +93,67 @@ class MultisigBuilder extends BaseBuilder<
       rentCollector,
       programId = PROGRAM_ID,
     } = this.args;
-    const result = await createMultisigCore({
-      connection: this.connection,
-      creator: this.creator,
-      threshold,
-      members,
-      timeLock,
-      configAuthority,
-      rentCollector,
-      programId,
-    });
+    const result = await createMultisigCore(
+      {
+        connection: this.connection,
+        creator: this.creator,
+        threshold,
+        members,
+        timeLock,
+        configAuthority,
+        rentCollector,
+        programId,
+      },
+      this.createKey
+    );
 
     this.instructions = [...result.instructions];
-    this.createKey = result.createKey;
-    return this as MultisigBuilder;
+    this.multisigKey = result.multisigKey;
   }
 
-  getCreateKey(): Keypair {
+  async getCreateKey(): Promise<Keypair> {
+    await this.ensureBuilt();
     return this.createKey;
   }
 
-  getMultisigKey(): PublicKey {
-    const [multisigPda] = getMultisigPda({
-      createKey: this.createKey.publicKey,
-    });
-
-    return multisigPda;
+  async getMultisigKey(): Promise<PublicKey> {
+    await this.ensureBuilt();
+    return this.multisigKey;
   }
 
-  getMultisigAccount(key: PublicKey) {
-    return this.buildPromise.then(async () => {
-      const multisigAccount = await Multisig.fromAccountAddress(
-        this.connection,
-        key
-      );
+  async getMultisigAccount(key: PublicKey) {
+    await this.ensureBuilt();
+    const multisigAccount = await Multisig.fromAccountAddress(
+      this.connection,
+      key
+    );
 
-      return multisigAccount;
-    });
+    return multisigAccount;
+  }
+
+  async sendAndConfirm(settings?: {
+    preInstructions?: TransactionInstruction[] | undefined;
+    postInstructions?: TransactionInstruction[] | undefined;
+    feePayer?: Signer | undefined;
+    signers?: Signer[] | undefined;
+    options?: SendOptions | undefined;
+  }): Promise<string> {
+    await this.ensureBuilt();
+    if (settings?.signers) {
+      settings.signers.push(this.createKey);
+    } else {
+      settings = {
+        signers: [this.createKey],
+        ...settings,
+      };
+    }
+    return await super.sendAndConfirm(settings);
   }
 }
 
 export async function createMultisigCore(
-  args: CreateMultisigActionArgs
+  args: CreateMultisigActionArgs,
+  createKey: Keypair
 ): Promise<CreateMultisigResult> {
   const {
     connection,
@@ -140,7 +166,6 @@ export async function createMultisigCore(
     programId = PROGRAM_ID,
   } = args;
 
-  const createKey = Keypair.generate();
   const [multisigPda] = getMultisigPda({
     createKey: createKey.publicKey,
     programId,
@@ -167,21 +192,19 @@ export async function createMultisigCore(
 
   return {
     instructions: [ix],
-    createKey: createKey,
+    multisigKey: multisigPda,
   };
 }
 
-/*
 async function Example() {
   const connection = new Connection("https://api.mainnet-beta.solana.com");
   const feePayer = Keypair.generate();
-  const signature = await createMultisig({
+  const signature = createMultisig({
     connection,
     members: createMembers([
       { key: PublicKey.default, permissions: SquadPermissions.All },
     ]),
     creator: PublicKey.default,
     threshold: 2,
-  }).sendAndConfirm(feePayer);
+  });
 }
-*/

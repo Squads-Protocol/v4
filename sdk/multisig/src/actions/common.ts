@@ -1,5 +1,6 @@
 import {
   Connection,
+  Keypair,
   PublicKey,
   SendOptions,
   Signer,
@@ -31,17 +32,31 @@ export abstract class BaseBuilder<
   T extends BuildResult,
   U extends BaseBuilderArgs = BaseBuilderArgs
 > {
+  public createKey: Keypair;
   protected connection: Connection;
   protected instructions: TransactionInstruction[] = [];
   protected creator: PublicKey = PublicKey.default;
-  protected buildPromise: Promise<T>;
+  protected buildPromise: Promise<void>;
   protected args: Omit<U, keyof BaseBuilderArgs>;
+  private built: boolean = false;
 
   constructor(args: U) {
     this.connection = args.connection;
     this.creator = args.creator;
     this.args = this.extractAdditionalArgs(args);
-    this.buildPromise = this.build();
+    this.createKey = Keypair.generate();
+    this.buildPromise = this.initializeBuild();
+  }
+
+  private async initializeBuild(): Promise<void> {
+    await this.build();
+    this.built = true;
+  }
+
+  protected async ensureBuilt(): Promise<void> {
+    if (!this.built) {
+      await this.buildPromise;
+    }
   }
 
   private extractAdditionalArgs(args: U): Omit<U, keyof BaseBuilderArgs> {
@@ -49,7 +64,7 @@ export abstract class BaseBuilder<
     return additionalArgs;
   }
 
-  protected abstract build(): Promise<T>;
+  protected abstract build(): Promise<void>;
 
   getInstructions(): TransactionInstruction[] {
     return this.instructions;
@@ -76,19 +91,18 @@ export abstract class BaseBuilder<
    *
    */
   async transaction(feePayer?: Signer): Promise<VersionedTransaction> {
-    return this.buildPromise.then(async () => {
-      const message = new TransactionMessage({
-        payerKey: feePayer?.publicKey ?? this.creator!,
-        recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-        instructions: [...this.instructions!],
-      }).compileToV0Message();
+    await this.ensureBuilt();
+    const message = new TransactionMessage({
+      payerKey: feePayer?.publicKey ?? this.creator,
+      recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+      instructions: [...this.instructions],
+    }).compileToV0Message();
 
-      const tx = new VersionedTransaction(message);
-      if (feePayer) {
-        tx.sign([feePayer]);
-      }
-      return tx;
-    });
+    const tx = new VersionedTransaction(message);
+    if (feePayer) {
+      tx.sign([feePayer]);
+    }
+    return tx;
   }
 
   /**
@@ -103,32 +117,35 @@ export abstract class BaseBuilder<
     preInstructions?: TransactionInstruction[];
     postInstructions?: TransactionInstruction[];
     feePayer?: Signer;
+    signers?: Signer[];
     options?: SendOptions;
   }): Promise<TransactionSignature> {
-    return this.buildPromise.then(async () => {
-      const instructions = [...this.instructions];
-      if (settings?.preInstructions) {
-        instructions.unshift(...settings.preInstructions);
-      }
-      if (settings?.postInstructions) {
-        instructions.push(...settings.postInstructions);
-      }
-      const message = new TransactionMessage({
-        payerKey: settings?.feePayer?.publicKey ?? this.creator,
-        recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-        instructions: [...instructions],
-      }).compileToV0Message();
+    await this.ensureBuilt();
+    const instructions = [...this.instructions];
+    if (settings?.preInstructions) {
+      instructions.unshift(...settings.preInstructions);
+    }
+    if (settings?.postInstructions) {
+      instructions.push(...settings.postInstructions);
+    }
+    const message = new TransactionMessage({
+      payerKey: settings?.feePayer?.publicKey ?? this.creator,
+      recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+      instructions: [...instructions],
+    }).compileToV0Message();
 
-      const tx = new VersionedTransaction(message);
-      if (settings?.feePayer) {
-        tx.sign([settings.feePayer]);
-      }
-      const signature = await this.connection.sendTransaction(
-        tx,
-        settings?.options
-      );
-      return signature;
-    });
+    const tx = new VersionedTransaction(message);
+    if (settings?.feePayer) {
+      tx.sign([settings.feePayer]);
+    }
+    if (settings?.signers) {
+      tx.sign([...settings.signers]);
+    }
+    const signature = await this.connection.sendTransaction(
+      tx,
+      settings?.options
+    );
+    return signature;
   }
 
   /**
@@ -143,33 +160,50 @@ export abstract class BaseBuilder<
     preInstructions?: TransactionInstruction[];
     postInstructions?: TransactionInstruction[];
     feePayer?: Signer;
+    signers?: Signer[];
     options?: SendOptions;
   }): Promise<TransactionSignature> {
-    return this.buildPromise.then(async () => {
-      const instructions = [...this.instructions];
-      if (settings?.preInstructions) {
-        instructions.unshift(...settings.preInstructions);
-      }
-      if (settings?.postInstructions) {
-        instructions.push(...settings.postInstructions);
-      }
-      const message = new TransactionMessage({
-        payerKey: settings?.feePayer?.publicKey ?? this.creator,
-        recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-        instructions: [...instructions],
-      }).compileToV0Message();
+    await this.ensureBuilt();
+    const instructions = [...this.instructions];
+    if (settings?.preInstructions) {
+      instructions.unshift(...settings.preInstructions);
+    }
+    if (settings?.postInstructions) {
+      instructions.push(...settings.postInstructions);
+    }
+    const message = new TransactionMessage({
+      payerKey: settings?.feePayer?.publicKey ?? this.creator,
+      recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+      instructions: [...instructions],
+    }).compileToV0Message();
 
-      const tx = new VersionedTransaction(message);
-      if (settings?.feePayer) {
-        tx.sign([settings.feePayer]);
+    const tx = new VersionedTransaction(message);
+    if (settings?.feePayer) {
+      tx.sign([settings.feePayer]);
+    }
+    if (settings?.signers) {
+      tx.sign([...settings.signers]);
+    }
+    const signature = await this.connection.sendTransaction(
+      tx,
+      settings?.options
+    );
+
+    let commitment = settings?.options?.preflightCommitment;
+
+    let sent = false;
+    while (sent === false) {
+      const status = await this.connection.getSignatureStatuses([signature]);
+      if (
+        commitment
+          ? status.value[0]?.confirmationStatus === commitment
+          : status.value[0]?.confirmationStatus === "finalized"
+      ) {
+        sent = true;
       }
-      const signature = await this.connection.sendTransaction(
-        tx,
-        settings?.options
-      );
-      await this.connection.getSignatureStatuses([signature]);
-      return signature;
-    });
+    }
+
+    return signature;
   }
 
   /**
@@ -201,24 +235,25 @@ export abstract class BaseBuilder<
   async customSend(
     callback: (args: TransactionMessage) => Promise<TransactionSignature>
   ): Promise<TransactionSignature> {
-    return this.buildPromise.then(async () => {
-      const message = new TransactionMessage({
-        payerKey: this.creator,
-        recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-        instructions: [...this.instructions],
-      });
-
-      const signature = await callback(message);
-      return signature;
+    await this.ensureBuilt();
+    const message = new TransactionMessage({
+      payerKey: this.creator,
+      recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+      instructions: [...this.instructions],
     });
+
+    const signature = await callback(message);
+    return signature;
   }
 
+  /*
   protected then<TResult1 = T, TResult2 = never>(
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
     return this.buildPromise.then(onfulfilled, onrejected);
   }
+  */
 }
 
 export interface TransactionBuilderArgs extends BaseBuilderArgs {
