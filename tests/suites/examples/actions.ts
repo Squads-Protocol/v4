@@ -8,8 +8,16 @@ import {
   getTestProgramId,
   TestMembers,
 } from "../../utils";
-import { createMultisig, createVaultTransaction } from "@sqds/multisig";
+import {
+  createMultisig,
+  createVaultTransaction,
+  createConfigTransaction,
+  isConfigTransaction,
+  ConfigActions,
+} from "@sqds/multisig";
 import assert from "assert";
+import { SquadPermissions } from "@sqds/multisig";
+import { ConfigAction } from "@sqds/multisig/lib/generated";
 
 const { Permission, Permissions } = multisig.types;
 
@@ -20,15 +28,16 @@ describe("Examples / End2End Actions", () => {
 
   let multisigPda: PublicKey = PublicKey.default;
   let transactionPda: PublicKey | null = null;
+  let configTransactionPda: PublicKey | null = null;
   let members: TestMembers;
   let outsider: Keypair;
+
   before(async () => {
     outsider = await generateFundedKeypair(connection);
     members = await generateMultisigMembers(connection);
   });
 
   it("should create a multisig", async () => {
-    console.log("Creating a multisig with 2 members");
     const builder = createMultisig({
       connection,
       creator: members.almighty.publicKey,
@@ -55,7 +64,7 @@ describe("Examples / End2End Actions", () => {
     });
   });
 
-  it("should create & send a vault transaction", async () => {
+  it("should create a vault transaction", async () => {
     const [vaultPda] = multisig.getVaultPda({
       multisigPda: multisigPda,
       index: 0,
@@ -99,6 +108,7 @@ describe("Examples / End2End Actions", () => {
         createTestTransferInstruction(vaultPda, outsider.publicKey),
       ],
     });
+
     const txBuilder = createVaultTransaction({
       connection,
       multisig: multisigPda,
@@ -107,8 +117,8 @@ describe("Examples / End2End Actions", () => {
       programId,
     });
 
-    (await txBuilder.withProposal()).withApproval(members.almighty.publicKey);
-    // await txBuilder.withExecute(members.executor.publicKey);
+    await txBuilder.withProposal();
+    txBuilder.withApproval(members.almighty.publicKey);
 
     await txBuilder.sendAndConfirm({
       feePayer: members.almighty,
@@ -118,5 +128,28 @@ describe("Examples / End2End Actions", () => {
 
   it("is this a vault transaction?", async () => {
     assert.ok(multisig.isVaultTransaction(connection, transactionPda!));
+  });
+
+  it("should create a config transaction", async () => {
+    const configBuilder = createConfigTransaction({
+      connection,
+      multisig: multisigPda,
+      creator: members.proposer.publicKey,
+      actions: [
+        ConfigActions.SetTimeLock(300),
+        ConfigActions.SetRentCollector(members.almighty.publicKey),
+      ],
+      programId,
+    });
+
+    await configBuilder.withProposal();
+    configBuilder.withApproval(members.almighty.publicKey);
+
+    configTransactionPda = configBuilder.getTransactionKey();
+
+    await configBuilder.sendAndConfirm({
+      feePayer: members.proposer,
+      options: { preflightCommitment: "finalized" },
+    });
   });
 });

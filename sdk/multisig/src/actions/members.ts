@@ -1,5 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
-import { Permissions } from "../types";
+import { Member, Permissions } from "../types";
 
 export enum SquadPermissions {
   Proposer = 1,
@@ -11,6 +11,13 @@ export enum SquadPermissions {
   All = 7,
 }
 
+export function createMember(member: { key: PublicKey; permissions: number }) {
+  return {
+    key: member.key,
+    permissions: Permissions.fromMask(member.permissions),
+  } as Member;
+}
+
 export function createMembers(
   members: { key: PublicKey; permissions: number }[]
 ) {
@@ -19,5 +26,5 @@ export function createMembers(
       key: member.key,
       permissions: Permissions.fromMask(member.permissions),
     };
-  });
+  }) as Member[];
 }

@@ -39,6 +39,8 @@ export abstract class BaseBuilder<
   protected buildPromise: Promise<void>;
   protected args: Omit<U, keyof BaseBuilderArgs>;
   private built: boolean = false;
+  // Use this as an indicator to clear all instructions?
+  private sent: boolean = false;
 
   constructor(args: U) {
     this.connection = args.connection;
@@ -145,6 +147,8 @@ export abstract class BaseBuilder<
       tx,
       settings?.options
     );
+    this.sent = true;
+
     return signature;
   }
 
@@ -202,6 +206,7 @@ export abstract class BaseBuilder<
         sent = true;
       }
     }
+    this.sent = true;
 
     return signature;
   }
@@ -243,6 +248,8 @@ export abstract class BaseBuilder<
     });
 
     const signature = await callback(message);
+    this.sent = true;
+
     return signature;
   }
 

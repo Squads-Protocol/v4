@@ -15,11 +15,12 @@ type BaseMethodKeys =
   | "sendAndConfirm"
   | "customSend";
 
-type BaseGetKeys = "getInstructions";
 type BaseSendKeys = "send" | "sendAndConfirm" | "customSend";
 
+// TODO: Split between sync and async getters.
 type TransactionGetKeys =
   | "getIndex"
+  | "getInstructions"
   | "getTransactionKey"
   | "getProposalKey"
   | "getTransactionAccount"
@@ -31,7 +32,9 @@ type TransactionActionKeys =
   | "withRejection"
   | "withExecute";
 
+// TODO: Split between sync and async getters.
 type BatchGetKeys =
+  | "getInstructions"
   | "getBatchKey"
   | "getBatchTransactionKey"
   | "getAllBatchTransactionKeys"
@@ -61,6 +64,7 @@ type MethodProgression = {
     | BaseSendKeys
     | TransactionGetKeys;
   withExecute: BaseSendKeys | TransactionGetKeys;
+  reclaimRent: BaseSendKeys | TransactionGetKeys;
   // Synchronous Getters
   getInstructions: BaseMethodKeys | BaseSendKeys;
   getIndex:

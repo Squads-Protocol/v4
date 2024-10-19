@@ -8,6 +8,7 @@ import {
   createRejectionCore,
 } from "./common";
 import { Methods } from "./actionTypes";
+import { Member } from "../types";
 
 interface CreateConfigTransactionActionArgs {
   /** The connection to an SVM network cluster */
@@ -120,6 +121,21 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
   }
 
   /**
+   * Fetches deserialized account data for the corresponding `ConfigTransaction` account after it is built and sent.
+   *
+   * @returns `ConfigTransaction`
+   */
+  async getTransactionAccount(key: PublicKey) {
+    this.ensureBuilt();
+    const txAccount = await ConfigTransaction.fromAccountAddress(
+      this.connection,
+      key
+    );
+
+    return txAccount;
+  }
+
+  /**
    * Creates a transaction containing the ConfigTransaction creation instruction.
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
@@ -200,6 +216,10 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
 
     return this;
   }
+
+  async reclaimRent() {
+    // TODO
+  }
 }
 
 export async function isConfigTransaction(
@@ -215,48 +235,48 @@ export async function isConfigTransaction(
 }
 
 export const ConfigActions = {
-  AddMember: (newMember: PublicKey) => [
+  AddMember: (newMember: Member) => [
     {
       __kind: "AddMember",
       newMember,
     },
   ],
-  RemoveMember: (oldMember: PublicKey) => [
-    {
+  RemoveMember: (oldMember: PublicKey) => {
+    return {
       __kind: "RemoveMember",
       oldMember,
-    },
-  ],
-  ChangeThreshold: (newThreshold: number) => [
-    {
+    } as ConfigAction;
+  },
+  ChangeThreshold: (newThreshold: number) => {
+    return {
       __kind: "ChangeThreshold",
       newThreshold,
-    },
-  ],
-  SetTimeLock: (newTimeLock: number) => [
-    {
+    } as ConfigAction;
+  },
+  SetTimeLock: (newTimeLock: number) => {
+    return {
       __kind: "SetTimeLock",
       newTimeLock,
-    },
-  ],
-  AddSpendingLimit: (spendingLimit: SpendingLimit) => [
-    {
+    } as ConfigAction;
+  },
+  AddSpendingLimit: (spendingLimit: SpendingLimit) => {
+    return {
       __kind: "AddSpendingLimit",
       ...spendingLimit,
-    },
-  ],
-  RemoveSpendingLimit: (spendingLimit: PublicKey) => [
-    {
+    } as ConfigAction;
+  },
+  RemoveSpendingLimit: (spendingLimit: PublicKey) => {
+    return {
       __kind: "RemoveSpendingLimit",
       spendingLimit,
-    },
-  ],
-  SetRentCollector: (rentCollector: PublicKey) => [
-    {
+    } as ConfigAction;
+  },
+  SetRentCollector: (rentCollector: PublicKey) => {
+    return {
       __kind: "SetRentCollector",
       newRentCollector: rentCollector,
-    },
-  ],
+    } as ConfigAction;
+  },
 } as const;
 
 export interface SpendingLimit {

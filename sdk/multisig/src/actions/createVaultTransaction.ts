@@ -4,14 +4,22 @@ import {
   TransactionInstruction,
   TransactionMessage,
   AddressLookupTableAccount,
+  Message,
 } from "@solana/web3.js";
 import { instructions, accounts } from "..";
-import { PROGRAM_ID, VaultTransaction } from "../generated";
+import {
+  PROGRAM_ID,
+  VaultTransaction,
+  multisigCompiledInstructionBeet,
+  vaultTransactionMessageBeet,
+} from "../generated";
 import {
   createApprovalCore,
   createRejectionCore,
   createProposalCore,
   BaseTransactionBuilder,
+  BuildResult,
+  ProposalResult,
 } from "./common";
 import { Methods } from "./actionTypes";
 
@@ -24,23 +32,23 @@ interface CreateVaultTransactionActionArgs {
   creator: PublicKey;
   /** Transaction message containing the instructions to execute */
   message: TransactionMessage;
-  /** Index of the vault to target. Defaults to 0 */
+  /** (Optional) Index of the transaction to build. If omitted, this will be fetched from the multisig account. */
+  transactionIndex?: number;
+  /** (Optional) Index of the vault to target. Defaults to 0 */
   vaultIndex?: number;
-  /** Specify a number of ephemeral signers to include.
+  /** (Optional) Specify a number of ephemeral signers to include.
    * Useful if the underlying transaction requires more than one signer.
    */
   ephemeralSigners?: number;
-  /** The public key of the fee payer, defaults to the creator */
+  /** (Optional) The public key of the fee payer, defaults to the creator */
   rentPayer?: PublicKey;
-  /** Optional memo for indexing purposes */
+  /** (Optional) UTF-8 Memo for indexing purposes */
   memo?: string;
-  /** Optional program ID (defaults to Solana mainnet-beta/devnet Program ID) */
+  /** (Optional) Squads Program ID (defaults to Solana mainnet-beta/devnet Program ID) */
   programId?: PublicKey;
 }
 
-interface CreateVaultTransactionResult {
-  /** `vaultTransactionCreate` instruction */
-  instructions: TransactionInstruction[];
+interface CreateVaultTransactionResult extends BuildResult {
   /** Transaction index of the resulting VaultTransaction */
   index: number;
 }
@@ -65,6 +73,19 @@ interface ExecuteVaultTransactionResult {
   instruction: TransactionInstruction;
   /** AddressLookupTableAccounts for the transaction */
   lookupTableAccounts: AddressLookupTableAccount[];
+}
+
+interface ReclaimRentActionArgs {
+  /** The connection to an SVM network cluster */
+  connection: Connection;
+  /** The public key of the multisig config account */
+  multisig: PublicKey;
+  /** Transaction index of the VaultTransaction to execute */
+  index: number;
+  /** Optional memo for indexing purposes */
+  memo?: string;
+  /** Optional program ID (defaults to Solana mainnet-beta/devnet Program ID) */
+  programId?: PublicKey;
 }
 
 /**
@@ -144,6 +165,21 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
 
     this.instructions = [...result.instructions];
     this.index = result.index;
+  }
+
+  /**
+   * Fetches deserialized account data for the corresponding `VaultTransaction` account after it is built and sent.
+   *
+   * @returns `VaultTransaction`
+   */
+  async getTransactionAccount(key: PublicKey) {
+    this.ensureBuilt();
+    const txAccount = await VaultTransaction.fromAccountAddress(
+      this.connection,
+      key
+    );
+
+    return txAccount;
   }
 
   /**
@@ -231,6 +267,56 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
 
     return this;
   }
+
+  async reclaimRent(): Promise<
+    Pick<VaultTransactionBuilder, Methods<"reclaimRent">>
+  > {
+    const { instruction } = await reclaimRentCore({
+      connection: this.connection,
+      multisig: this.args.multisig,
+      index: this.index,
+      programId: this.args.programId,
+    });
+
+    this.instructions.push(instruction);
+    return this;
+  }
+}
+
+/**
+ * Creates a transaction builder instance from an existing `VaultTransaction` account key.
+ * @args `{ connection: Connection, transaction: PublicKey, programId?: PublicKey }`
+ * @returns `VaultTransactionBuilder`
+ */
+export async function buildFromVaultTransaction({
+  connection,
+  transaction,
+  programId,
+}: {
+  connection: Connection;
+  transaction: PublicKey;
+  programId?: PublicKey;
+}) {
+  const txAccount = await VaultTransaction.fromAccountAddress(
+    connection,
+    transaction
+  );
+
+  const compiledMessage = Message.from(
+    vaultTransactionMessageBeet.serialize(txAccount.message)[0]
+  );
+
+  const message = TransactionMessage.decompile(compiledMessage);
+
+  const builder = createVaultTransaction({
+    connection,
+    multisig: txAccount.multisig,
+    creator: txAccount.creator,
+    message: message,
+    programId: programId,
+  });
+
+  return builder;
 }
 
 export async function isVaultTransaction(
@@ -297,6 +383,31 @@ async function executeVaultTransactionCore(
 
   return {
     ...ix,
+  };
+}
+
+async function reclaimRentCore(
+  args: ReclaimRentActionArgs
+): Promise<ProposalResult> {
+  const { connection, multisig, index, programId = PROGRAM_ID } = args;
+  const multisigInfo = await accounts.Multisig.fromAccountAddress(
+    connection,
+    multisig
+  );
+
+  if (!multisigInfo.rentCollector) {
+    throw new Error("No rent collector found in Multisig config.");
+  }
+
+  const ix = instructions.vaultTransactionAccountsClose({
+    multisigPda: multisig,
+    rentCollector: multisigInfo.rentCollector,
+    transactionIndex: BigInt(index),
+    programId: programId,
+  });
+
+  return {
+    instruction: ix,
   };
 }
 
