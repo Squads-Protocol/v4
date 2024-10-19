@@ -6,11 +6,9 @@ import {
   AddressLookupTableAccount,
   Message,
 } from "@solana/web3.js";
-import { instructions, accounts } from "..";
 import {
   PROGRAM_ID,
   VaultTransaction,
-  multisigCompiledInstructionBeet,
   vaultTransactionMessageBeet,
 } from "../generated";
 import {
@@ -21,6 +19,7 @@ import {
   BuildResult,
   ProposalResult,
 } from "./common";
+import { instructions, accounts } from "..";
 import { Methods } from "./actionTypes";
 
 interface CreateVaultTransactionActionArgs {
@@ -176,7 +175,8 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
     this.ensureBuilt();
     const txAccount = await VaultTransaction.fromAccountAddress(
       this.connection,
-      key
+      key,
+      "finalized"
     );
 
     return txAccount;
@@ -284,7 +284,7 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
 }
 
 /**
- * Creates a transaction builder instance from an existing `VaultTransaction` account key.
+ * WIP: Creates a transaction builder instance from an existing `VaultTransaction` account key.
  * @args `{ connection: Connection, transaction: PublicKey, programId?: PublicKey }`
  * @returns `VaultTransactionBuilder`
  */
@@ -324,7 +324,7 @@ export async function isVaultTransaction(
   key: PublicKey
 ) {
   try {
-    await VaultTransaction.fromAccountAddress(connection, key);
+    await VaultTransaction.fromAccountAddress(connection, key, "finalized");
     return true;
   } catch (err) {
     return false;

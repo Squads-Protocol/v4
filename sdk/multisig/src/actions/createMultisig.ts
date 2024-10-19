@@ -196,6 +196,15 @@ export async function createMultisigCore(
   };
 }
 
+export async function isMultisig(connection: Connection, key: PublicKey) {
+  try {
+    await Multisig.fromAccountAddress(connection, key);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
 async function Example() {
   const connection = new Connection("https://api.mainnet-beta.solana.com");
   const feePayer = Keypair.generate();

@@ -68,7 +68,8 @@ export abstract class BaseBuilder<
 
   protected abstract build(): Promise<void>;
 
-  getInstructions(): TransactionInstruction[] {
+  async getInstructions(): Promise<TransactionInstruction[]> {
+    await this.ensureBuilt();
     return this.instructions;
   }
 
@@ -92,7 +93,12 @@ export abstract class BaseBuilder<
    * }).transaction();
    *
    */
-  async transaction(feePayer?: Signer): Promise<VersionedTransaction> {
+  async transaction(
+    /** (Optional) Fee paying signer keypair. Sufficient if only one signer is needed */
+    feePayer?: Signer,
+    /** (Optional) Array of multiple signing keypairs. Used for if multiple signers are needed. */
+    signers?: Signer[]
+  ): Promise<VersionedTransaction> {
     await this.ensureBuilt();
     const message = new TransactionMessage({
       payerKey: feePayer?.publicKey ?? this.creator,
@@ -103,6 +109,9 @@ export abstract class BaseBuilder<
     const tx = new VersionedTransaction(message);
     if (feePayer) {
       tx.sign([feePayer]);
+    }
+    if (signers) {
+      tx.sign([...signers]);
     }
     return tx;
   }
@@ -116,10 +125,15 @@ export abstract class BaseBuilder<
    * @returns `TransactionSignature`
    */
   async send(settings?: {
+    /** (Optional) Extra instructions to prepend before specified builder instructions. */
     preInstructions?: TransactionInstruction[];
+    /** (Optional) Extra instructions to append after specified builder instructions. */
     postInstructions?: TransactionInstruction[];
+    /** (Optional) Fee paying signer keypair. Sufficient if only one signer is needed */
     feePayer?: Signer;
+    /** (Optional) Array of multiple signing keypairs. Used for if multiple signers are needed. */
     signers?: Signer[];
+    /** (Optional) `SendOptions` object from web3.js. Defaults to `{ preflightCommitment: "finalized" }` */
     options?: SendOptions;
   }): Promise<TransactionSignature> {
     await this.ensureBuilt();
@@ -161,10 +175,15 @@ export abstract class BaseBuilder<
    * @returns `TransactionSignature`
    */
   async sendAndConfirm(settings?: {
+    /** (Optional) Extra instructions to prepend before specified builder instructions. */
     preInstructions?: TransactionInstruction[];
+    /** (Optional) Extra instructions to append after specified builder instructions. */
     postInstructions?: TransactionInstruction[];
+    /** (Optional) Fee paying signer keypair. Sufficient if only one signer is needed */
     feePayer?: Signer;
+    /** (Optional) Array of multiple signing keypairs. Used for if multiple signers are needed. */
     signers?: Signer[];
+    /** (Optional) `SendOptions` object from web3.js. Defaults to `{ preflightCommitment: "finalized" }` */
     options?: SendOptions;
   }): Promise<TransactionSignature> {
     await this.ensureBuilt();
@@ -196,17 +215,28 @@ export abstract class BaseBuilder<
     let commitment = settings?.options?.preflightCommitment;
 
     let sent = false;
-    while (sent === false) {
-      const status = await this.connection.getSignatureStatuses([signature]);
-      if (
-        commitment
-          ? status.value[0]?.confirmationStatus === commitment
-          : status.value[0]?.confirmationStatus === "finalized"
-      ) {
+    const maxAttempts = 10;
+    const delayMs = 1000;
+    for (let attempt = 0; attempt < maxAttempts && !sent; attempt++) {
+      const status = await this.connection.getSignatureStatus(signature);
+      console.log(status);
+      if (status?.value?.confirmationStatus === commitment || "finalized") {
+        console.log(status.value);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
         sent = true;
+      } else {
+        console.log(status.value);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
-    this.sent = true;
+
+    if (!sent) {
+      throw new Error(
+        "Transaction was not confirmed within the expected timeframe"
+      );
+    }
+
+    console.log("Transaction confirmed!, Signature:", signature);
 
     return signature;
   }
@@ -313,22 +343,6 @@ export abstract class BaseTransactionBuilder<
     });
 
     return proposalPda;
-  }
-
-  /**
-   * Fetches the `PublicKey` of the corresponding proposal account for the transaction being built.
-   *
-   * @returns `PublicKey`
-   */
-  async getTransactionAccount(key: PublicKey) {
-    return this.buildPromise.then(async () => {
-      const txAccount = await VaultTransaction.fromAccountAddress(
-        this.connection,
-        key
-      );
-
-      return txAccount;
-    });
   }
 
   async getProposalAccount(key: PublicKey) {

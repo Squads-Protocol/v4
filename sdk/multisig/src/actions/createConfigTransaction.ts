@@ -125,7 +125,7 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
    *
    * @returns `ConfigTransaction`
    */
-  async getTransactionAccount(key: PublicKey) {
+  async getTransactionAccount(key: PublicKey): Promise<ConfigTransaction> {
     this.ensureBuilt();
     const txAccount = await ConfigTransaction.fromAccountAddress(
       this.connection,
