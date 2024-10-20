@@ -169,6 +169,7 @@ class BatchBuilder extends BaseBuilder<
     const [batchPda] = getTransactionPda({
       multisigPda: this.args.multisig,
       index: BigInt(index ?? 1),
+      programId: this.args.programId ?? PROGRAM_ID,
     });
 
     return batchPda;
@@ -181,6 +182,7 @@ class BatchBuilder extends BaseBuilder<
       multisigPda: this.args.multisig,
       batchIndex: BigInt(index ?? 1),
       transactionIndex: innerIndex ?? this.innerIndex,
+      programId: this.args.programId ?? PROGRAM_ID,
     });
 
     return batchPda;
@@ -195,6 +197,7 @@ class BatchBuilder extends BaseBuilder<
         multisigPda: this.args.multisig,
         batchIndex: BigInt(index ?? 1),
         transactionIndex: i,
+        programId: this.args.programId ?? PROGRAM_ID,
       });
 
       transactions.push(batchPda);

@@ -1,4 +1,5 @@
 import {
+  AddressLookupTableAccount,
   Connection,
   Keypair,
   PublicKey,
@@ -94,6 +95,8 @@ export abstract class BaseBuilder<
    *
    */
   async transaction(
+    /** (Optional) Any address lookup table accounts to be added to the transaction. */
+    addressLookupTableAccounts?: AddressLookupTableAccount[],
     /** (Optional) Fee paying signer keypair. Sufficient if only one signer is needed */
     feePayer?: Signer,
     /** (Optional) Array of multiple signing keypairs. Used for if multiple signers are needed. */
@@ -104,7 +107,7 @@ export abstract class BaseBuilder<
       payerKey: feePayer?.publicKey ?? this.creator,
       recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
       instructions: [...this.instructions],
-    }).compileToV0Message();
+    }).compileToV0Message(addressLookupTableAccounts);
 
     const tx = new VersionedTransaction(message);
     if (feePayer) {
@@ -125,10 +128,14 @@ export abstract class BaseBuilder<
    * @returns `TransactionSignature`
    */
   async send(settings?: {
+    /** (Optional) Clear all current instructions after sending, so subsequent actions can be done with the same builder. */
+    clearInstructions?: boolean;
     /** (Optional) Extra instructions to prepend before specified builder instructions. */
     preInstructions?: TransactionInstruction[];
     /** (Optional) Extra instructions to append after specified builder instructions. */
     postInstructions?: TransactionInstruction[];
+    /** (Optional) Any address lookup table accounts to be added to the transaction. */
+    addressLookupTableAccounts?: AddressLookupTableAccount[];
     /** (Optional) Fee paying signer keypair. Sufficient if only one signer is needed */
     feePayer?: Signer;
     /** (Optional) Array of multiple signing keypairs. Used for if multiple signers are needed. */
@@ -148,7 +155,7 @@ export abstract class BaseBuilder<
       payerKey: settings?.feePayer?.publicKey ?? this.creator,
       recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
       instructions: [...instructions],
-    }).compileToV0Message();
+    }).compileToV0Message(settings?.addressLookupTableAccounts);
 
     const tx = new VersionedTransaction(message);
     if (settings?.feePayer) {
@@ -163,6 +170,10 @@ export abstract class BaseBuilder<
     );
     this.sent = true;
 
+    if (settings?.clearInstructions) {
+      this.instructions = [];
+    }
+
     return signature;
   }
 
@@ -175,10 +186,14 @@ export abstract class BaseBuilder<
    * @returns `TransactionSignature`
    */
   async sendAndConfirm(settings?: {
+    /** (Optional) Clear all current instructions after sending, so subsequent actions can be done with the same builder. */
+    clearInstructions?: boolean;
     /** (Optional) Extra instructions to prepend before specified builder instructions. */
     preInstructions?: TransactionInstruction[];
     /** (Optional) Extra instructions to append after specified builder instructions. */
     postInstructions?: TransactionInstruction[];
+    /** (Optional) Any address lookup table accounts to be added to the transaction. */
+    addressLookupTableAccounts?: AddressLookupTableAccount[];
     /** (Optional) Fee paying signer keypair. Sufficient if only one signer is needed */
     feePayer?: Signer;
     /** (Optional) Array of multiple signing keypairs. Used for if multiple signers are needed. */
@@ -198,7 +213,7 @@ export abstract class BaseBuilder<
       payerKey: settings?.feePayer?.publicKey ?? this.creator,
       recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
       instructions: [...instructions],
-    }).compileToV0Message();
+    }).compileToV0Message(settings?.addressLookupTableAccounts);
 
     const tx = new VersionedTransaction(message);
     if (settings?.feePayer) {
@@ -219,13 +234,10 @@ export abstract class BaseBuilder<
     const delayMs = 1000;
     for (let attempt = 0; attempt < maxAttempts && !sent; attempt++) {
       const status = await this.connection.getSignatureStatus(signature);
-      console.log(status);
-      if (status?.value?.confirmationStatus === commitment || "finalized") {
-        console.log(status.value);
+      if (status?.value?.confirmationStatus === commitment || "confirmed") {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         sent = true;
       } else {
-        console.log(status.value);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
@@ -236,7 +248,9 @@ export abstract class BaseBuilder<
       );
     }
 
-    console.log("Transaction confirmed!, Signature:", signature);
+    if (settings?.clearInstructions) {
+      this.instructions = [];
+    }
 
     return signature;
   }
@@ -282,19 +296,11 @@ export abstract class BaseBuilder<
 
     return signature;
   }
-
-  /*
-  protected then<TResult1 = T, TResult2 = never>(
-    onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-  ): Promise<TResult1 | TResult2> {
-    return this.buildPromise.then(onfulfilled, onrejected);
-  }
-  */
 }
 
 export interface TransactionBuilderArgs extends BaseBuilderArgs {
   multisig: PublicKey;
+  programId?: PublicKey;
 }
 
 export interface TransactionBuildResult extends BuildResult {
@@ -325,6 +331,7 @@ export abstract class BaseTransactionBuilder<
     const [transactionPda] = getTransactionPda({
       multisigPda: this.args.multisig,
       index: BigInt(index ?? 1),
+      programId: this.args.programId ?? PROGRAM_ID,
     });
 
     return transactionPda;
@@ -340,6 +347,7 @@ export abstract class BaseTransactionBuilder<
     const [proposalPda] = getProposalPda({
       multisigPda: this.args.multisig,
       transactionIndex: BigInt(index ?? 1),
+      programId: this.args.programId ?? PROGRAM_ID,
     });
 
     return proposalPda;

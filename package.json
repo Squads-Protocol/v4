@@ -6,7 +6,7 @@
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run build && anchor test -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
-    "test:detached": "turbo run build && anchor test --skip-local-validator -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
+    "test:detached": "turbo run build && anchor test --detach -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
     "pretest": "mkdir -p target/deploy && cp ./test-program-keypair.json ./target/deploy/squads_multisig_program-keypair.json",
     "ts": "turbo run ts && yarn tsc --noEmit"
   },

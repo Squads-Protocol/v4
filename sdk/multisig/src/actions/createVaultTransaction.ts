@@ -134,7 +134,7 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
 > {
   public instructions: TransactionInstruction[] = [];
   public addressLookupTableAccounts: AddressLookupTableAccount[] = [];
-  public index: number = 1;
+  static index: number;
 
   constructor(args: CreateVaultTransactionActionArgs) {
     super(args);
@@ -150,17 +150,20 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
       memo,
       programId = PROGRAM_ID,
     } = this.args;
-    const result = await createVaultTransactionCore({
-      connection: this.connection,
-      multisig,
-      creator: this.creator,
-      message,
-      vaultIndex,
-      ephemeralSigners,
-      rentPayer,
-      memo,
-      programId,
-    });
+    const result = await createVaultTransactionCore(
+      {
+        connection: this.connection,
+        multisig,
+        creator: this.creator,
+        message,
+        vaultIndex,
+        ephemeralSigners,
+        rentPayer,
+        memo,
+        programId,
+      },
+      this.index
+    );
 
     this.instructions = [...result.instructions];
     this.index = result.index;
@@ -175,8 +178,7 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
     this.ensureBuilt();
     const txAccount = await VaultTransaction.fromAccountAddress(
       this.connection,
-      key,
-      "finalized"
+      key
     );
 
     return txAccount;
@@ -288,6 +290,7 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
  * @args `{ connection: Connection, transaction: PublicKey, programId?: PublicKey }`
  * @returns `VaultTransactionBuilder`
  */
+/*
 export async function buildFromVaultTransaction({
   connection,
   transaction,
@@ -318,13 +321,14 @@ export async function buildFromVaultTransaction({
 
   return builder;
 }
+*/
 
 export async function isVaultTransaction(
   connection: Connection,
   key: PublicKey
 ) {
   try {
-    await VaultTransaction.fromAccountAddress(connection, key, "finalized");
+    await VaultTransaction.fromAccountAddress(connection, key);
     return true;
   } catch (err) {
     return false;
@@ -332,7 +336,8 @@ export async function isVaultTransaction(
 }
 
 async function createVaultTransactionCore(
-  args: CreateVaultTransactionActionArgs
+  args: CreateVaultTransactionActionArgs,
+  transactionIndex?: number
 ): Promise<CreateVaultTransactionResult> {
   const {
     connection,
@@ -350,9 +355,13 @@ async function createVaultTransactionCore(
     connection,
     multisig
   );
-
-  const currentTransactionIndex = Number(multisigInfo.transactionIndex);
-  const index = BigInt(currentTransactionIndex + 1);
+  let index;
+  if (transactionIndex) {
+    index = BigInt(transactionIndex);
+  } else {
+    const currentTransactionIndex = Number(multisigInfo.transactionIndex);
+    index = BigInt(currentTransactionIndex + 1);
+  }
 
   const ix = instructions.vaultTransactionCreate({
     multisigPda: multisig,

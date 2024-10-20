@@ -4,6 +4,8 @@ import {
   TransactionMessage,
   Keypair,
   Connection,
+  LAMPORTS_PER_SOL,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import {
   createLocalhostConnection,
@@ -19,14 +21,12 @@ import {
   createConfigTransaction,
   ConfigActions,
   createMembers,
-  buildFromVaultTransaction,
   isVaultTransaction,
+  isConfigTransaction,
   isMultisig,
 } from "@sqds/multisig";
 import assert from "assert";
 import { SquadPermissions } from "@sqds/multisig";
-
-const { Permission, Permissions } = multisig.types;
 
 const programId = getTestProgramId();
 
@@ -66,6 +66,10 @@ describe("Examples / End2End Actions", () => {
           permissions: SquadPermissions.Proposer,
         },
         { key: members.voter.publicKey, permissions: SquadPermissions.Voter },
+        {
+          key: members.executor.publicKey,
+          permissions: SquadPermissions.Executor,
+        },
       ]),
       threshold: 1,
       programId,
@@ -76,12 +80,15 @@ describe("Examples / End2End Actions", () => {
 
     const signature = await builder.sendAndConfirm({
       signers: [members.almighty, createKey],
-      options: { skipPreflight: true, preflightCommitment: "finalized" },
     });
 
-    const logs = await getLogs(connection, signature);
+    const [vaultPda] = multisig.getVaultPda({
+      multisigPda: multisigPda,
+      index: 0,
+    });
+    await connection.requestAirdrop(vaultPda, 10 * LAMPORTS_PER_SOL);
 
-    console.log(logs);
+    assert.ok(signature);
   });
 
   it("should create a vault transaction", async () => {
@@ -112,72 +119,9 @@ describe("Examples / End2End Actions", () => {
 
     const signature = await txBuilder.sendAndConfirm({
       feePayer: members.almighty,
-      options: { skipPreflight: true, preflightCommitment: "finalized" },
     });
 
-    const logs = await getLogs(connection, signature);
-
-    console.log(logs);
-  });
-
-  it("should create a vault transaction & vote", async () => {
-    const [vaultPda] = multisig.getVaultPda({
-      multisigPda: multisigPda,
-      index: 0,
-    });
-    const message = new TransactionMessage({
-      payerKey: vaultPda,
-      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-      instructions: [
-        createTestTransferInstruction(vaultPda, outsider.publicKey),
-      ],
-    });
-
-    const txBuilder = createVaultTransaction({
-      connection,
-      multisig: multisigPda,
-      creator: members.almighty.publicKey,
-      message,
-      programId,
-    });
-
-    await txBuilder.withProposal();
-    txBuilder.withApproval(members.almighty.publicKey);
-
-    await txBuilder.sendAndConfirm({
-      feePayer: members.almighty,
-      options: { skipPreflight: true, preflightCommitment: "finalized" },
-    });
-  });
-
-  it("is this a multisig?", async () => {
-    async function retryCheck(maxAttempts = 10, delayMs = 1000) {
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const get = await isMultisig(connection, multisigPda);
-        if (get) return true;
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-      return false;
-    }
-
-    const get = await retryCheck();
-
-    assert.ok(get);
-  });
-
-  it("is this a vault transaction?", async () => {
-    async function retryCheck(maxAttempts = 10, delayMs = 1000) {
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const get = await isVaultTransaction(connection, transactionPda);
-        if (get) return true;
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-      return false;
-    }
-
-    const get = await retryCheck();
-
-    assert.ok(get);
+    assert.ok(signature);
   });
 
   it("should create a config transaction", async () => {
@@ -192,34 +136,83 @@ describe("Examples / End2End Actions", () => {
       programId,
     });
 
+    await configBuilder.withProposal();
+
     configTransactionPda = configBuilder.getTransactionKey();
 
-    await configBuilder.withProposal();
-    configBuilder.withApproval(members.almighty.publicKey);
-
-    await configBuilder.sendAndConfirm({
-      signers: [members.almighty, members.proposer],
-      options: { preflightCommitment: "finalized" },
+    const signature = await configBuilder.sendAndConfirm({
+      signers: [members.proposer],
     });
+
+    assert.ok(signature);
   });
 
-  it("should create a vault transaction builder from key", async () => {
+  it("is this a multisig?", async () => {
+    const get = await isMultisig(connection, multisigPda);
+
+    assert.ok(get);
+  });
+
+  it("is this a vault transaction?", async () => {
     const get = await isVaultTransaction(connection, transactionPda);
 
     assert.ok(get);
+  });
 
-    const builder = await buildFromVaultTransaction({
+  it("is this a config transaction?", async () => {
+    const get = await isConfigTransaction(connection, configTransactionPda);
+
+    assert.ok(get);
+  });
+
+  it("should create, vote on & execute a vault transaction", async () => {
+    const message = new TransactionMessage({
+      payerKey: members.almighty.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [
+        new TransactionInstruction({
+          keys: [
+            {
+              pubkey: members.almighty.publicKey,
+              isSigner: true,
+              isWritable: true,
+            },
+          ],
+          data: Buffer.from("Hello from the action builder!", "utf-8"),
+          programId: new PublicKey(
+            "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+          ),
+        }),
+      ],
+    });
+
+    const txBuilder = createVaultTransaction({
       connection,
-      transaction: transactionPda,
+      multisig: multisigPda,
+      creator: members.almighty.publicKey,
+      message,
       programId,
     });
 
-    await builder.withProposal();
-    builder.withApproval(members.almighty.publicKey);
+    await txBuilder.withProposal();
+    txBuilder.withApproval(members.almighty.publicKey);
 
-    const signature = await builder.sendAndConfirm({
-      feePayer: members.almighty,
+    const signature = await txBuilder.sendAndConfirm({
+      signers: [members.almighty],
+      clearInstructions: true,
       options: { preflightCommitment: "finalized" },
     });
+
+    assert.ok(signature);
+
+    await txBuilder.withExecute(members.almighty.publicKey);
+
+    const signature2 = await txBuilder.sendAndConfirm({
+      signers: [members.almighty],
+      addressLookupTableAccounts: txBuilder.addressLookupTableAccounts,
+      options: { skipPreflight: true },
+    });
+
+    assert.ok(signature2);
   });
 });
