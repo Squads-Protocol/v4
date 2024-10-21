@@ -66,7 +66,7 @@ impl SpendingLimit {
     }
 
     pub fn invariant(&self) -> Result<()> {
-        // Amount must be positive.
+        // Amount must be a non-zero value.
         require_neq!(self.amount, 0, MultisigError::SpendingLimitInvalidAmount);
 
         require!(!self.members.is_empty(), MultisigError::EmptyMembers);
