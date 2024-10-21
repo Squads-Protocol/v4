@@ -1,6 +1,6 @@
 [package]
 name = "squads-multisig-program"
-version = "2.0.0"
+version = "2.1.0"
 description = "Squads Multisig Program V4"
 edition = "2021"
 license-file = "../../LICENSE"
