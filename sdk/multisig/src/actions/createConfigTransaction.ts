@@ -1,56 +1,20 @@
 import { Connection, PublicKey, TransactionInstruction } from "@solana/web3.js";
-import { instructions, accounts } from "..";
-import { ConfigAction, ConfigTransaction, PROGRAM_ID } from "../generated";
+import { ConfigTransaction } from "../generated";
 import {
-  BaseTransactionBuilder,
+  createConfigTransactionCore,
+  executeConfigTransactionCore,
+} from "./common/transaction";
+import { BaseTransactionBuilder } from "./common/baseTransaction";
+import {
+  CreateConfigTransactionActionArgs,
+  CreateConfigTransactionResult,
+  Methods,
+} from "./common/types";
+import {
   createApprovalCore,
   createProposalCore,
   createRejectionCore,
-} from "./common";
-import { Methods } from "./actionTypes";
-import { Member } from "../types";
-
-interface CreateConfigTransactionActionArgs {
-  /** The connection to an SVM network cluster */
-  connection: Connection;
-  /** The public key of the multisig config account */
-  multisig: PublicKey;
-  /** The public key of the creator */
-  creator: PublicKey;
-  /** Transaction message containing the instructions to execute */
-  actions: ConfigAction[];
-  /** The public key of the fee payer, defaults to the creator */
-  rentPayer?: PublicKey;
-  /** Optional memo for indexing purposes */
-  memo?: string;
-  /** Optional program ID (defaults to Solana mainnet-beta/devnet Program ID) */
-  programId?: PublicKey;
-}
-
-interface CreateConfigTransactionResult {
-  /** `configTransactionCreate` instruction */
-  instructions: TransactionInstruction[];
-  /** Transaction index of the resulting ConfigTransaction */
-  index: number;
-}
-
-interface ExecuteConfigTransactionActionArgs {
-  /** The public key of the multisig config account */
-  multisig: PublicKey;
-  /** Member who is executing the transaction */
-  member: PublicKey;
-  /** Transaction index of the ConfigTransaction to execute */
-  index: number;
-  /** Optional memo for indexing purposes */
-  memo?: string;
-  /** Optional program ID (defaults to Solana mainnet-beta/devnet Program ID) */
-  programId?: PublicKey;
-}
-
-interface ExecuteConfigTransactionResult {
-  /** `configTransactionExecute` instruction */
-  instruction: TransactionInstruction;
-}
+} from "./common/proposal";
 
 /**
  * Builds an instruction to create a new ConfigTransaction and returns the instruction with the corresponding transaction index.
@@ -136,13 +100,12 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Creates a transaction containing the ConfigTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `proposalCreate` instruction to the builder.
+   * @args `isDraft` - **(Optional)** Whether the proposal is a draft or not, defaults to `false`.
    */
-  async withProposal(
-    isDraft?: boolean
-  ): Promise<Pick<ConfigTransactionBuilder, Methods<"withProposal">>> {
+  async withProposal({ isDraft }: { isDraft?: boolean } = {}): Promise<
+    Pick<ConfigTransactionBuilder, Methods<"withProposal">>
+  > {
     await this.ensureBuilt();
     const { instruction } = createProposalCore({
       multisig: this.args.multisig,
@@ -158,13 +121,13 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Creates a transaction containing the ConfigTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `proposalApprove` instruction to the builder.
+   * @args `member` - **(Optional)** Specify the approving member, will default to the creator.
    */
-  withApproval(
-    member?: PublicKey
-  ): Pick<ConfigTransactionBuilder, Methods<"withApproval">> {
+  withApproval({ member }: { member?: PublicKey } = {}): Pick<
+    ConfigTransactionBuilder,
+    Methods<"withApproval">
+  > {
     const { instruction } = createApprovalCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
@@ -178,13 +141,13 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Creates a transaction containing the ConfigTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `proposalReject` instruction to the builder.
+   * @args `member` - **(Optional)** Specify the rejecting member, will default to the creator.
    */
-  withRejection(
-    member?: PublicKey
-  ): Pick<ConfigTransactionBuilder, Methods<"withRejection">> {
+  withRejection({ member }: { member?: PublicKey } = {}): Pick<
+    ConfigTransactionBuilder,
+    Methods<"withRejection">
+  > {
     const { instruction } = createRejectionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
@@ -198,13 +161,12 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Creates a transaction containing the ConfigTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `vaultTransactionExecute` instruction to the builder.
+   * @args `member` - **(Optional)** Specify the executing member, will default to the creator.
    */
-  async withExecute(
-    member?: PublicKey
-  ): Promise<Pick<ConfigTransactionBuilder, Methods<"withExecute">>> {
+  async withExecute({ member }: { member?: PublicKey } = {}): Promise<
+    Pick<ConfigTransactionBuilder, Methods<"withExecute">>
+  > {
     const { instruction } = await executeConfigTransactionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
@@ -232,107 +194,4 @@ export async function isConfigTransaction(
   } catch (err) {
     return false;
   }
-}
-
-export const ConfigActions = {
-  AddMember: (newMember: Member) => [
-    {
-      __kind: "AddMember",
-      newMember,
-    },
-  ],
-  RemoveMember: (oldMember: PublicKey) => {
-    return {
-      __kind: "RemoveMember",
-      oldMember,
-    } as ConfigAction;
-  },
-  ChangeThreshold: (newThreshold: number) => {
-    return {
-      __kind: "ChangeThreshold",
-      newThreshold,
-    } as ConfigAction;
-  },
-  SetTimeLock: (newTimeLock: number) => {
-    return {
-      __kind: "SetTimeLock",
-      newTimeLock,
-    } as ConfigAction;
-  },
-  AddSpendingLimit: (spendingLimit: SpendingLimit) => {
-    return {
-      __kind: "AddSpendingLimit",
-      ...spendingLimit,
-    } as ConfigAction;
-  },
-  RemoveSpendingLimit: (spendingLimit: PublicKey) => {
-    return {
-      __kind: "RemoveSpendingLimit",
-      spendingLimit,
-    } as ConfigAction;
-  },
-  SetRentCollector: (rentCollector: PublicKey) => {
-    return {
-      __kind: "SetRentCollector",
-      newRentCollector: rentCollector,
-    } as ConfigAction;
-  },
-} as const;
-
-export interface SpendingLimit {
-  createKey: PublicKey;
-  vaultIndex: number;
-  mint: PublicKey;
-  amount: number;
-  period: number;
-  members: PublicKey[];
-  destinations: PublicKey[];
-}
-
-async function createConfigTransactionCore(
-  args: CreateConfigTransactionActionArgs
-): Promise<CreateConfigTransactionResult> {
-  const {
-    connection,
-    multisig,
-    creator,
-    actions,
-    rentPayer = creator,
-    memo,
-    programId = PROGRAM_ID,
-  } = args;
-
-  const multisigInfo = await accounts.Multisig.fromAccountAddress(
-    connection,
-    multisig
-  );
-
-  const currentTransactionIndex = Number(multisigInfo.transactionIndex);
-  const index = BigInt(currentTransactionIndex + 1);
-
-  const ix = instructions.configTransactionCreate({
-    multisigPda: multisig,
-    transactionIndex: index,
-    creator: creator,
-    actions,
-    memo: memo,
-    rentPayer,
-    programId: programId,
-  });
-
-  return { instructions: [ix], index: Number(index) };
-}
-
-async function executeConfigTransactionCore(
-  args: ExecuteConfigTransactionActionArgs
-): Promise<ExecuteConfigTransactionResult> {
-  const { multisig, index, member, programId = PROGRAM_ID } = args;
-  const ix = instructions.configTransactionExecute({
-    multisigPda: multisig,
-    member: member,
-    transactionIndex: BigInt(index),
-    programId: programId,
-  });
-
-  return { instruction: ix };
 }

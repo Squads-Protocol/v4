@@ -3,98 +3,32 @@ import {
   PublicKey,
   TransactionInstruction,
   TransactionMessage,
-  AddressLookupTableAccount,
 } from "@solana/web3.js";
-import {
-  instructions,
-  accounts,
-  getBatchTransactionPda,
-  getTransactionPda,
-} from "..";
+import { getBatchTransactionPda, getTransactionPda } from "..";
 import { Batch, PROGRAM_ID, VaultBatchTransaction } from "../generated";
 import {
-  BaseBuilder,
+  addBatchTransactionCore,
+  createBatchCore,
+  executeBatchTransactionCore,
+} from "./common/transaction";
+import {
+  BatchMethods,
+  CreateBatchActionArgs,
+  CreateBatchResult,
+} from "./common/types";
+import { BaseTransactionBuilder } from "./common/baseTransaction";
+import {
   createApprovalCore,
-  createRejectionCore,
   createProposalCore,
-  BaseBuilderArgs,
-  BuildResult,
-} from "./common";
-import { BatchMethods } from "./actionTypes";
-
-interface CreateBatchActionArgs extends BaseBuilderArgs {
-  /** The public key of the multisig config account */
-  multisig: PublicKey;
-  /** Index of the vault to target. Defaults to 0 */
-  vaultIndex?: number;
-  /** The public key of the fee payer, defaults to the creator */
-  rentPayer?: PublicKey;
-  /** Optional memo for indexing purposes */
-  memo?: string;
-  /** Optional program ID (defaults to Solana mainnet-beta/devnet Program ID) */
-  programId?: PublicKey;
-}
-
-interface CreateBatchResult extends BuildResult {
-  /** Transaction index of the resulting VaultTransaction */
-  index: number;
-}
-
-interface BatchAddTransactionActionArgs {
-  /** The public key of the multisig config account */
-  multisig: PublicKey;
-  /** Member who is executing the transaction */
-  member: PublicKey;
-  /** Transaction index of the Batch created. */
-  globalIndex: number;
-  /** Local transaction index of a transaction inside of the Batch. */
-  innerIndex: number;
-  /** Transaction message containing the instructions to execute */
-  message: TransactionMessage;
-  /** Index of the vault to target. Defaults to 0 */
-  vaultIndex?: number;
-  /** Specify a number of ephemeral signers to include.
-   * Useful if the underlying transaction requires more than one signer.
-   */
-  ephemeralSigners?: number;
-  /** Optional memo for indexing purposes */
-  memo?: string;
-  /** Optional program ID (defaults to Solana mainnet-beta/devnet Program ID) */
-  programId?: PublicKey;
-}
-
-interface BatchAddTransactionResult {
-  /** `batchAddTransaction` instruction */
-  instruction: TransactionInstruction;
-}
-
-interface ExecuteBatchActionArgs {
-  /** The connection to an SVM network cluster */
-  connection: Connection;
-  /** The public key of the multisig config account */
-  multisig: PublicKey;
-  /** Member who is executing the transaction */
-  member: PublicKey;
-  /** Transaction index of the VaultTransaction to execute */
-  index: number;
-  /** Optional memo for indexing purposes */
-  memo?: string;
-  /** Optional program ID (defaults to Solana mainnet-beta/devnet Program ID) */
-  programId?: PublicKey;
-}
-
-interface ExecuteBatchResult {
-  /** `vaultTransactionExecute` instruction */
-  instruction: TransactionInstruction;
-  /** AddressLookupTableAccounts for the transaction */
-  lookupTableAccounts: AddressLookupTableAccount[];
-}
+  createRejectionCore,
+} from "./common/proposal";
 
 /**
- * Builds an instruction to create a new VaultTransaction and returns the instruction with the corresponding transaction index.
- * Can optionally chain additional methods for transactions, and sending.
+ * Builds an instruction to create a new Batch.
+ * Also includes the ability to chain instructions for creating/voting on proposals, and adding transactions, as well as sending
+ * a built transaction.
  *
- * @param args - Object of type `CreateVaultTransactionActionArgs` that contains the necessary information to create a new VaultTransaction.
+ * @param args - Object of type `CreateBatchActionArgs` that contains the necessary information to create a new VaultTransaction.
  * @returns `{ instruction: TransactionInstruction, index: number }` - object with the `vaultTransactionCreate` instruction and the transaction index of the resulting VaultTransaction.
  *
  * @example
@@ -129,7 +63,7 @@ export function createBatch(args: CreateBatchActionArgs): BatchBuilder {
   return new BatchBuilder(args);
 }
 
-class BatchBuilder extends BaseBuilder<
+class BatchBuilder extends BaseTransactionBuilder<
   CreateBatchResult,
   CreateBatchActionArgs
 > {
@@ -163,6 +97,20 @@ class BatchBuilder extends BaseBuilder<
     this.index = result.index;
   }
 
+  /**
+   * Fetches the current index of transactions inside of the `Batch` account.
+   * @returns `Promise<number>`
+   */
+  async getInnerIndex(): Promise<number> {
+    this.ensureBuilt();
+
+    return this.innerIndex;
+  }
+
+  /**
+   * Fetches the PublicKey of the built `Batch` account.
+   * @returns `Promise<PublicKey>` - PublicKey of the `Batch` account.
+   */
   async getBatchKey(): Promise<PublicKey> {
     this.ensureBuilt();
     const index = this.index;
@@ -175,6 +123,11 @@ class BatchBuilder extends BaseBuilder<
     return batchPda;
   }
 
+  /**
+   * Fetches the PublicKey of a transaction inside of the built `Batch` account.
+   * @args `innerIndex` - Number denoting the index of the transaction inside of the batch.
+   * @returns `Promise<PublicKey>` - PublicKey of the `VaultBatchTransaction` account.
+   */
   async getBatchTransactionKey(innerIndex?: number): Promise<PublicKey> {
     this.ensureBuilt();
     const index = this.index;
@@ -188,6 +141,10 @@ class BatchBuilder extends BaseBuilder<
     return batchPda;
   }
 
+  /**
+   * Fetches and returns an array of PublicKeys for all transactions added to the batch.
+   * @returns `Promise<PublicKey[]>` - An array of `VaultBatchTransaction` PublicKeys.
+   */
   async getAllBatchTransactionKeys(): Promise<PublicKey[]> {
     this.ensureBuilt();
     const index = this.index;
@@ -206,6 +163,11 @@ class BatchBuilder extends BaseBuilder<
     return transactions;
   }
 
+  /**
+   * Fetches and deserializes the `Batch` account after it is built and sent.
+   * @args `key` - The public key of the `Batch` account.
+   * @returns `Batch` - Deserialized `Batch` account data.
+   */
   async getBatchAccount(
     key: PublicKey
   ): Promise<Pick<BatchBuilder, BatchMethods<"getBatchAccount">>> {
@@ -216,14 +178,36 @@ class BatchBuilder extends BaseBuilder<
   }
 
   /**
+   * Fetches and deserializes a `VaultBatchTransaction` account after it is added to the `Batch`.
+   * @args `key` - The public key of the `Batch` account.
+   * @returns `VaultBatchTransaction` - Deserialized `VaultBatchTransaction` account data.
+   */
+  async getBatchTransactionAccount(
+    key: PublicKey
+  ): Promise<Pick<BatchBuilder, BatchMethods<"getBatchAccount">>> {
+    this.ensureBuilt();
+    const batchTxAccount = await VaultBatchTransaction.fromAccountAddress(
+      this.connection,
+      key
+    );
+
+    return batchTxAccount;
+  }
+
+  /**
    * Creates a transaction containing the VaultTransaction creation instruction.
    * @args feePayer - Optional signer to pay the transaction fee.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
-  async addTransaction(
-    message: TransactionMessage,
-    member?: PublicKey
-  ): Promise<Pick<BatchBuilder, BatchMethods<"addTransaction">>> {
+  async addTransaction({
+    message,
+    member,
+    ephemeralSigners,
+  }: {
+    message: TransactionMessage;
+    member?: PublicKey;
+    ephemeralSigners?: number;
+  }): Promise<Pick<BatchBuilder, BatchMethods<"addTransaction">>> {
     this.ensureBuilt();
     const { instruction } = await addBatchTransactionCore({
       multisig: this.args.multisig,
@@ -231,8 +215,8 @@ class BatchBuilder extends BaseBuilder<
       globalIndex: this.index,
       innerIndex: this.innerIndex,
       message,
-      // vaultIndex: this.vaultIndex,
-      // ephemeralSigners: this.ephemeralSigners,
+      vaultIndex: this.vaultIndex,
+      ephemeralSigners: ephemeralSigners ?? 0,
       programId: this.args.programId,
     });
 
@@ -244,20 +228,19 @@ class BatchBuilder extends BaseBuilder<
   }
 
   /**
-   * Creates a transaction containing the VaultTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `proposalCreate` instruction to the builder.
+   * @args `isDraft` - **(Optional)** Whether the proposal is a draft or not, defaults to `false`.
    */
-  async withProposal(
-    isDraft?: boolean
-  ): Promise<Pick<BatchBuilder, BatchMethods<"withProposal">>> {
+  async withProposal({ isDraft }: { isDraft?: boolean } = {}): Promise<
+    Pick<BatchBuilder, BatchMethods<"withProposal">>
+  > {
     this.ensureBuilt();
     const { instruction } = createProposalCore({
       multisig: this.args.multisig,
       creator: this.creator,
       transactionIndex: this.index,
       programId: this.args.programId,
-      isDraft,
+      isDraft: isDraft ?? false,
     });
 
     this.instructions.push(instruction);
@@ -266,13 +249,13 @@ class BatchBuilder extends BaseBuilder<
   }
 
   /**
-   * Creates a transaction containing the VaultTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `proposalApprove` instruction to the builder.
+   * @args `member` - **(Optional)** Specify the approving member, will default to the creator.
    */
-  withApproval(
-    member?: PublicKey
-  ): Pick<BatchBuilder, BatchMethods<"withApproval">> {
+  withApproval({ member }: { member?: PublicKey } = {}): Pick<
+    BatchBuilder,
+    BatchMethods<"withApproval">
+  > {
     const { instruction } = createApprovalCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
@@ -286,13 +269,13 @@ class BatchBuilder extends BaseBuilder<
   }
 
   /**
-   * Creates a transaction containing the VaultTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `proposalReject` instruction to the builder.
+   * @args `member` - **(Optional)** Specify the rejecting member, will default to the creator.
    */
-  withRejection(
-    member?: PublicKey
-  ): Pick<BatchBuilder, BatchMethods<"withRejection">> {
+  withRejection({ member }: { member?: PublicKey } = {}): Pick<
+    BatchBuilder,
+    BatchMethods<"withRejection">
+  > {
     const { instruction } = createRejectionCore({
       multisig: this.args.multisig,
       member: member ?? this.creator,
@@ -306,13 +289,12 @@ class BatchBuilder extends BaseBuilder<
   }
 
   /**
-   * Creates a transaction containing the VaultTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
-   * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
+   * Pushes a `vaultTransactionExecute` instruction to the builder.
+   * @args `member` - **(Optional)** Specify the executing member, will default to the creator.
    */
-  async withExecute(
-    member?: PublicKey
-  ): Promise<Pick<BatchBuilder, BatchMethods<"withExecute">>> {
+  async withExecute({ member }: { member?: PublicKey } = {}): Promise<
+    Pick<BatchBuilder, BatchMethods<"withExecute">>
+  > {
     await this.ensureBuilt();
     const { instruction } = await executeBatchTransactionCore({
       connection: this.connection,
@@ -347,81 +329,4 @@ export async function isBatchTransaction(
   } catch (err) {
     return false;
   }
-}
-
-async function createBatchCore(
-  args: CreateBatchActionArgs
-): Promise<CreateBatchResult> {
-  const {
-    connection,
-    multisig,
-    creator,
-    vaultIndex = 0,
-    rentPayer = creator,
-    memo,
-    programId = PROGRAM_ID,
-  } = args;
-
-  const multisigInfo = await accounts.Multisig.fromAccountAddress(
-    connection,
-    multisig
-  );
-
-  const currentTransactionIndex = Number(multisigInfo.transactionIndex);
-  const index = BigInt(currentTransactionIndex + 1);
-
-  const ix = instructions.batchCreate({
-    multisigPda: multisig,
-    batchIndex: index,
-    creator: creator,
-    vaultIndex: vaultIndex,
-    memo: memo,
-    rentPayer,
-    programId: programId,
-  });
-
-  return { instructions: [ix], index: Number(index) };
-}
-
-async function addBatchTransactionCore(
-  args: BatchAddTransactionActionArgs
-): Promise<BatchAddTransactionResult> {
-  const {
-    multisig,
-    globalIndex,
-    innerIndex,
-    message,
-    vaultIndex,
-    ephemeralSigners,
-    member,
-    programId = PROGRAM_ID,
-  } = args;
-  const ix = instructions.batchAddTransaction({
-    multisigPda: multisig,
-    member: member,
-    batchIndex: BigInt(globalIndex),
-    transactionIndex: innerIndex,
-    transactionMessage: message,
-    vaultIndex: vaultIndex ?? 0,
-    ephemeralSigners: ephemeralSigners ?? 0,
-    programId: programId,
-  });
-
-  return { instruction: ix };
-}
-
-async function executeBatchTransactionCore(
-  args: ExecuteBatchActionArgs
-): Promise<ExecuteBatchResult> {
-  const { connection, multisig, index, member, programId = PROGRAM_ID } = args;
-  const ix = instructions.batchExecuteTransaction({
-    connection,
-    multisigPda: multisig,
-    member: member,
-    batchIndex: BigInt(index),
-    transactionIndex: index,
-    programId: programId,
-  });
-
-  return { ...ix };
 }
