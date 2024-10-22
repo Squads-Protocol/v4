@@ -69,7 +69,7 @@ export abstract class BaseBuilder<
   /**
    * Creates a `VersionedTransaction` containing the corresponding instruction(s).
    *
-   * @args `BuildTransactionSettings` - **(Optional)** Address Lookup Table accounts, signers, a custom fee-payer to add to the transaction.
+   * @args  {@link BuildTransactionSettings} - **(Optional)** Address Lookup Table accounts, signers, a custom fee-payer to add to the transaction.
    * @returns `VersionedTransaction`
    *
    * @example
@@ -110,7 +110,7 @@ export abstract class BaseBuilder<
    *
    * **NOTE: Not wallet-adapter compatible.**
    *
-   * @args `settings` - Optional pre/post instructions, fee payer keypair, and send options.
+   * @args  {@link SendSettings} - Optional pre/post instructions, fee payer, and send options.
    * @returns `TransactionSignature`
    * @example
    * const builder = createMultisig({
@@ -170,7 +170,7 @@ export abstract class BaseBuilder<
    *
    * **NOTE: Not wallet-adapter compatible.**
    *
-   * @args `settings` - Optional pre/post instructions, fee payer keypair, and send options.
+   * @args  {@link SendSettings} - Optional pre/post instructions, fee payer keypair, and send options.
    * @returns `TransactionSignature`
    * @example
    * const builder = createMultisig({

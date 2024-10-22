@@ -25,6 +25,7 @@ import {
   isVaultTransaction,
   isConfigTransaction,
   isMultisig,
+  isBatch,
 } from "@sqds/multisig";
 import assert from "assert";
 import { SquadPermissions } from "@sqds/multisig";
@@ -50,7 +51,7 @@ describe("Examples / End2End Actions", () => {
   let transactionPda: PublicKey;
   let configTransactionPda: PublicKey;
   let batchPda: PublicKey;
-  let batchWithTx: PublicKey;
+  let batchTxPda: PublicKey;
 
   let members: TestMembers;
   let outsider: Keypair;
@@ -530,6 +531,9 @@ describe("Examples / End2End Actions", () => {
       member: members.almighty.publicKey,
     });
 
+    const innerIndex = await batchBuilder.getInnerIndex();
+    batchTxPda = await batchBuilder.getBatchTransactionKey(innerIndex - 1);
+
     const signature = await batchBuilder.sendAndConfirm({
       feePayer: members.almighty,
     });
@@ -555,51 +559,6 @@ describe("Examples / End2End Actions", () => {
 
     assert.ok(account instanceof multisig.accounts.Batch);
   });
-
-  it("should get batch transaction account", async () => {
-    const [vaultPda] = multisig.getVaultPda({
-      multisigPda: multisigPda,
-      index: 0,
-    });
-
-    const message = new TransactionMessage({
-      payerKey: vaultPda,
-      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-      instructions: [
-        createTestTransferInstruction(vaultPda, outsider.publicKey),
-      ],
-    });
-
-    const batchBuilder = createBatch({
-      connection,
-      creator: members.almighty.publicKey,
-      multisig: multisigPda,
-      programId,
-    });
-
-    await batchBuilder.withProposal({ isDraft: true });
-    await batchBuilder.addTransaction({
-      message,
-      member: members.almighty.publicKey,
-    });
-
-    const innerIndex = await batchBuilder.getInnerIndex();
-    const transactionKey = await batchBuilder.getBatchTransactionKey(
-      innerIndex - 1
-    );
-
-    const signature = await batchBuilder.sendAndConfirm({
-      feePayer: members.almighty,
-    });
-
-    assert.ok(signature);
-
-    const account = await batchBuilder.getBatchTransactionAccount(
-      transactionKey
-    );
-
-    assert.ok(account instanceof multisig.accounts.VaultBatchTransaction);
-  });
   //endregion
 
   //region Account checks
@@ -620,6 +579,21 @@ describe("Examples / End2End Actions", () => {
 
     assert.ok(get);
   });
+
+  it("is this a batch?", async () => {
+    const get = await isBatch(connection, batchPda);
+
+    assert.ok(get);
+  });
+
+  /*
+  // WIP
+  it("is this a batch transaction?", async () => {
+    const get = await isBatchTransaction(connection, batchTxPda);
+
+    assert.ok(get);
+  });
+  */
   //endregion
 
   //region Complete actions

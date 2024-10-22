@@ -17,35 +17,53 @@ import {
 } from "./common/proposal";
 
 /**
- * Builds an instruction to create a new ConfigTransaction and returns the instruction with the corresponding transaction index.
- * Can optionally chain additional methods for transactions, and sending.
+ * Builds an instruction to create a new {@link ConfigTransaction},
+ * with the option to chain additional methods for adding proposals, voting, building transactions, and sending.
  *
- * @param args - Object of type `CreateConfigTransactionActionArgs` that contains the necessary information to create a new ConfigTransaction.
- * @returns `{ instruction: TransactionInstruction, index: number }` - object with the `configTransactionCreate` instruction and the transaction index of the resulting ConfigTransaction.
+ * @args  {@link CreateConfigTransactionActionArgs}
+ * @returns - {@link ConfigTransactionBuilder} or if awaited {@link CreateConfigTransactionResult}
  *
  * @example
- * // Basic usage (no chaining):
+ * const configBuilder = createConfigTransaction({
+ *   connection,
+ *   multisig: multisigPda,
+ *   creator: creator,
+ *   actions: [ConfigActions.SetTimeLock(100)],
+ *   // Can also include rentPayer, programId, and memo.
+ * });
+ *
+ * // Chain proposal creations, and votes
+ * await configBuilder.withProposal();
+ * await configBuilder.withApproval();
+ *
+ * // Get instructions and the computed transaction index.
+ * const instructions = configBuilder.getInstructions();
+ * const index = configBuilder.getIndex();
+ *
+ * @example
+ * // Run the builder async to get the result immediately.
  * const result = await createConfigTransaction({
  *   connection,
- *   creator: creatorPublicKey,
- *   threshold: 2,
- *   members: membersList,
- *   timeLock: 3600,
+ *   multisig: multisigPda,
+ *   creator: creator,
+ *   actions: [ConfigActions.SetTimeLock(100)],
  * });
- * console.log(result.instruction);
- * console.log(result.createKey);
  *
  * @example
- * // Using the transaction() method:
+ * // Using the `transaction()` method:
  * const transaction = await createConfigTransaction({
  *   // ... args
  * }).transaction();
  *
  * @example
- * // Using the rpc() method:
+ * // Using the `send()` or `sendAndConfirm()` methods:
  * const signature = await createConfigTransaction({
  *   // ... args
- * }).send();
+ * }).sendAndConfirm({
+ *   // Options for fee-payer, pre/post instructions, and signers.
+ *   signers: [signer1, signer2],
+ *   options: { skipPreflight: true },
+ * });
  *
  * @throws Will throw an error if required parameters are missing or invalid.
  *
@@ -85,7 +103,7 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Fetches deserialized account data for the corresponding `ConfigTransaction` account after it is built and sent.
+   * Fetches deserialized account data for the corresponding {@link ConfigTransaction} account after it is built and sent.
    *
    * @returns `ConfigTransaction`
    */
@@ -184,6 +202,10 @@ class ConfigTransactionBuilder extends BaseTransactionBuilder<
   }
 }
 
+/**
+ * Attempts to fetch and deserialize the {@link ConfigTransaction} account, and returns a boolean indicating if it was successful.
+ * @args `connection: Connection, key: PublicKey` - Specify a cluster connection, and the `PublicKey` of the `ConfigTransaction` account.
+ */
 export async function isConfigTransaction(
   connection: Connection,
   key: PublicKey

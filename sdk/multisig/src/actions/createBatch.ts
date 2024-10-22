@@ -24,36 +24,52 @@ import {
 } from "./common/proposal";
 
 /**
- * Builds an instruction to create a new Batch.
- * Also includes the ability to chain instructions for creating/voting on proposals, and adding transactions, as well as sending
- * a built transaction.
+ * Builds an instruction to create a new {@link Batch},
+ * with the option to chain additional methods for adding transactions, adding proposals, voting, building transactions, and sending.
  *
- * @param args - Object of type `CreateBatchActionArgs` that contains the necessary information to create a new VaultTransaction.
- * @returns `{ instruction: TransactionInstruction, index: number }` - object with the `vaultTransactionCreate` instruction and the transaction index of the resulting VaultTransaction.
+ * @args  {@link CreateBatchActionArgs}
+ * @returns - {@link BatchBuilder} or if awaited {@link CreateBatchResult}
  *
  * @example
- * // Basic usage (no chaining):
- * const result = await createVaultTransaction({
+ * const batchBuilder = createBatch({
  *   connection,
- *   creator: creatorPublicKey,
- *   threshold: 2,
- *   members: membersList,
- *   timeLock: 3600,
+ *   creator: creator,
+ *   multisig: multisigPda,
+ *   // Can also include vaultIndex, rentPayer, programId, and memo.
  * });
- * console.log(result.instruction);
- * console.log(result.createKey);
+ *
+ * // Chain proposal creations, and votes
+ * await batchBuilder.withProposal({ isDraft: true });
+ * await batchBuilder.withApproval();
+ *
+ * // Get instructions and the computed transaction indexes.
+ * const instructions = batchBuilder.getInstructions();
+ * const index = batchBuilder.getIndex();
+ * const innerIndex = batchBuilder.getInnerIndex();
  *
  * @example
- * // Using the transaction() method:
- * const transaction = await createVaultTransaction({
+ * // Run the builder async to get the result immediately.
+ * const result = await createBatch({
+ *   connection,
+ *   creator: creator,
+ *   multisig: multisigPda,
+ * });
+ *
+ * @example
+ * // Using the `transaction()` method:
+ * const transaction = await createBatch({
  *   // ... args
  * }).transaction();
  *
  * @example
- * // Using the send() method:
- * const signature = await createVaultTransaction({
+ * // Using the `send()` or `sendAndConfirm()` methods:
+ * const signature = await createBatch({
  *   // ... args
- * }).send();
+ * }).sendAndConfirm({
+ *   // Options for fee-payer, pre/post instructions, and signers.
+ *   signers: [signer1, signer2],
+ *   options: { skipPreflight: true },
+ * });
  *
  * @throws Will throw an error if required parameters are missing or invalid.
  *
@@ -98,7 +114,7 @@ class BatchBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Fetches the current index of transactions inside of the `Batch` account.
+   * Fetches the current index of transactions inside of the {@link Batch} account.
    * @returns `Promise<number>`
    */
   async getInnerIndex(): Promise<number> {
@@ -108,7 +124,7 @@ class BatchBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Fetches the PublicKey of the built `Batch` account.
+   * Fetches the PublicKey of the built {@link Batch} account.
    * @returns `Promise<PublicKey>` - PublicKey of the `Batch` account.
    */
   async getBatchKey(): Promise<PublicKey> {
@@ -124,7 +140,7 @@ class BatchBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Fetches the PublicKey of a transaction inside of the built `Batch` account.
+   * Fetches the PublicKey of a transaction inside of the built {@link Batch} account.
    * @args `innerIndex` - Number denoting the index of the transaction inside of the batch.
    * @returns `Promise<PublicKey>` - PublicKey of the `VaultBatchTransaction` account.
    */
@@ -143,7 +159,7 @@ class BatchBuilder extends BaseTransactionBuilder<
 
   /**
    * Fetches and returns an array of PublicKeys for all transactions added to the batch.
-   * @returns `Promise<PublicKey[]>` - An array of `VaultBatchTransaction` PublicKeys.
+   * @returns `Promise<PublicKey[]>`
    */
   async getAllBatchTransactionKeys(): Promise<PublicKey[]> {
     this.ensureBuilt();
@@ -164,7 +180,7 @@ class BatchBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Fetches and deserializes the `Batch` account after it is built and sent.
+   * Fetches and deserializes the {@link Batch} account after it is built and sent.
    * @args `key` - The public key of the `Batch` account.
    * @returns `Batch` - Deserialized `Batch` account data.
    */
@@ -178,7 +194,7 @@ class BatchBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Fetches and deserializes a `VaultBatchTransaction` account after it is added to the `Batch`.
+   * Fetches and deserializes a {@link VaultBatchTransaction} account after it is added to the `Batch`.
    * @args `key` - The public key of the `Batch` account.
    * @returns `VaultBatchTransaction` - Deserialized `VaultBatchTransaction` account data.
    */
@@ -195,8 +211,8 @@ class BatchBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Creates a transaction containing the VaultTransaction creation instruction.
-   * @args feePayer - Optional signer to pay the transaction fee.
+   * Pushes a `batchAddTransaction` instruction to the builder. Increments the batch's inner index.
+   * @args `{ message: TransactionMessage, member?: PublicKey, ephemeralSigners?: number }` - Specify the `TransactionMessage` to add to the batch, the member conducting the action, and the number of ephemeral signers to include.
    * @returns `VersionedTransaction` with the `vaultTransactionCreate` instruction.
    */
   async addTransaction({
@@ -310,6 +326,10 @@ class BatchBuilder extends BaseTransactionBuilder<
   }
 }
 
+/**
+ * Attempts to fetch and deserialize the {@link Batch} account, and returns a boolean indicating if it was successful.
+ * @args `connection: Connection, key: PublicKey` - Specify a cluster connection, and the `PublicKey` of the `Batch` account.
+ */
 export async function isBatch(connection: Connection, key: PublicKey) {
   try {
     await Batch.fromAccountAddress(connection, key);
@@ -319,6 +339,10 @@ export async function isBatch(connection: Connection, key: PublicKey) {
   }
 }
 
+/**
+ * Attempts to fetch and deserialize the {@link VaultBatchTransaction} account, and returns a boolean indicating if it was successful.
+ * @args `connection: Connection, key: PublicKey` - Specify a cluster connection, and the `PublicKey` of the `VaultBatchTransaction` account.
+ */
 export async function isBatchTransaction(
   connection: Connection,
   key: PublicKey

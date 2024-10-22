@@ -38,7 +38,7 @@ export abstract class BaseTransactionBuilder<
   }
 
   /**
-   * Fetches the `PublicKey` of the corresponding proposal account for the transaction being built.
+   * Fetches the `PublicKey` of the corresponding {@link Proposal} account for the transaction being built.
    *
    * @returns `PublicKey`
    */
@@ -54,7 +54,7 @@ export abstract class BaseTransactionBuilder<
   }
 
   /**
-   * Fetches and deserializes the `Proposal` account after it is built and sent.
+   * Fetches and deserializes the {@link Proposal} account after it is built and sent.
    * @args `key` - The public key of the `Proposal` account.
    * @returns `Proposal` - Deserialized `Proposal` account data.
    */

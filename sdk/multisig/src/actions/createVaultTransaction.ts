@@ -23,35 +23,54 @@ import {
 } from "./common/proposal";
 
 /**
- * Builds an instruction to create a new VaultTransaction and returns the instruction with the corresponding transaction index.
- * Can optionally chain additional methods for transactions, and sending.
+ * Builds an instruction to create a new {@link VaultTransaction},
+ * with the option to chain additional methods for adding proposals, voting, building transactions, and sending.
  *
- * @param args - Object of type `CreateVaultTransactionActionArgs` that contains the necessary information to create a new VaultTransaction.
- * @returns `{ instruction: TransactionInstruction, index: number }` - object with the `vaultTransactionCreate` instruction and the transaction index of the resulting VaultTransaction.
+ * @args  {@link CreateVaultTransactionActionArgs}
+ * @returns - {@link VaultTransactionBuilder} or if awaited {@link CreateVaultTransactionResult}
  *
  * @example
- * // Basic usage (no chaining):
+ * const txBuilder = createVaultTransaction({
+ *   connection,
+ *   multisig: multisigPda,
+ *   creator: creator,
+ *   message: message,
+ *   // Can also include ephemeral signers, vaultIndex,
+ *   // rentPayer, programId, and memo.
+ * });
+ *
+ * // Chain proposal creations, and votes
+ * await txBuilder.withProposal();
+ * await txBuilder.withApproval();
+ *
+ * // Get the built instructions and the computed transaction index.
+ * const instructions = txBuilder.getInstructions();
+ * const index = txBuilder.getIndex();
+ *
+ * @example
+ * // Run the builder async to get the result immediately.
  * const result = await createVaultTransaction({
  *   connection,
- *   creator: creatorPublicKey,
- *   threshold: 2,
- *   members: membersList,
- *   timeLock: 3600,
+ *   multisig: multisigPda,
+ *   creator: creator,
+ *   message: message,
  * });
- * console.log(result.instruction);
- * console.log(result.createKey);
  *
  * @example
- * // Using the transaction() method:
+ * // Using the `transaction()` method:
  * const transaction = await createVaultTransaction({
  *   // ... args
  * }).transaction();
  *
  * @example
- * // Using the send() method:
+ * // Using the `send()` or `sendAndConfirm()` methods:
  * const signature = await createVaultTransaction({
  *   // ... args
- * }).send();
+ * }).sendAndConfirm({
+ *   // Options for fee-payer, pre/post instructions, and signers.
+ *   signers: [signer1, signer2],
+ *   options: { skipPreflight: true },
+ * });
  *
  * @throws Will throw an error if required parameters are missing or invalid.
  *
@@ -105,7 +124,7 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
   }
 
   /**
-   * Fetches deserialized account data for the corresponding `VaultTransaction` account after it is built and sent.
+   * Fetches deserialized account data for the corresponding {@link VaultTransaction} account after it is built and sent.
    *
    * @returns `VaultTransaction`
    */
@@ -218,6 +237,10 @@ class VaultTransactionBuilder extends BaseTransactionBuilder<
   }
 }
 
+/**
+ * Attempts to fetch and deserialize the {@link VaultTransaction} account, and returns a boolean indicating if it was successful.
+ * @args `connection: Connection, key: PublicKey` - Specify a cluster connection, and the `PublicKey` of the `VaultTransaction` account.
+ */
 export async function isVaultTransaction(
   connection: Connection,
   key: PublicKey
