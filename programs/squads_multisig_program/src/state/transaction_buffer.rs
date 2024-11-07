@@ -34,8 +34,8 @@ impl TransactionBuffer {
             8 +   // anchor account discriminator
             32 +  // multisig
             32 +  // creator
-            8 + //  buffer_index
-            8 +   // vault_index
+            1 +   // buffer_index
+            1 +   // vault_index
             32 +  // transaction_message_hash
             2 +  // final_buffer_size
             4 + // vec length bytes
