@@ -636,7 +636,7 @@ describe("Instructions / transaction_buffer_create", () => {
           bufferIndex: bufferIndex,
           vaultIndex: 0,
           finalBufferHash: Array.from(messageHash),
-          finalBufferSize: 4001,
+          finalBufferSize: 10128 + 1,
           buffer: largeBuffer,
         } as TransactionBufferCreateArgs,
       } as TransactionBufferCreateInstructionArgs,

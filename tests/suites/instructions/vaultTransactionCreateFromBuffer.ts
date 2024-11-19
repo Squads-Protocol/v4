@@ -6,7 +6,8 @@ import {
   SystemProgram,
   Transaction,
   TransactionMessage,
-  VersionedTransaction
+  VersionedTransaction,
+  ComputeBudgetProgram
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
 import {
@@ -18,7 +19,6 @@ import {
   VaultTransactionCreateFromBufferInstructionArgs
 } from "@sqds/multisig/lib/generated";
 import assert from "assert";
-import { BN } from "bn.js";
 import * as crypto from "crypto";
 import {
   TestMembers,
@@ -497,5 +497,180 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
 
     assert.match(logs, /Access violation in heap section at address/);
 
+  });
+
+  it("handles buffer sizes up to 10128 bytes", async () => {
+    const transactionIndex = 2n;
+    const bufferIndex = 1;
+    const CHUNK_SIZE = 900; // Safe chunk size for buffer extension
+
+    // Create dummy instruction with 200 bytes of random data
+    function createLargeInstruction() {
+      const randomData = crypto.randomBytes(200);
+      return {
+        programId: SystemProgram.programId,
+        keys: [{ pubkey: vaultPda, isSigner: false, isWritable: true }],
+        data: randomData
+      };
+    }
+
+    // Create 45 instructions to get close to but not exceed 10128 bytes
+    const instructions = Array(45).fill(null).map(() => createLargeInstruction());
+
+    const testTransferMessage = new TransactionMessage({
+      payerKey: vaultPda,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: instructions,
+    });
+
+    // Serialize the message
+    const messageBuffer = multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+      message: testTransferMessage,
+      addressLookupTableAccounts: [],
+      vaultPda,
+    });
+
+    console.log(`Total message buffer size: ${messageBuffer.length} bytes`);
+
+    // Verify buffer size is within limits
+    if (messageBuffer.length > 10128) {
+      throw new Error("Buffer size exceeds 10128 byte limit");
+    }
+
+    const [transactionBuffer] = await PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("multisig"),
+        multisigPda.toBuffer(),
+        Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
+        Uint8Array.from([bufferIndex]),
+      ],
+      programId
+    );
+
+    const messageHash = crypto.createHash("sha256").update(messageBuffer).digest();
+
+    // Calculate number of chunks needed
+    const numChunks = Math.ceil(messageBuffer.length / CHUNK_SIZE);
+    console.log(`Uploading in ${numChunks} chunks`);
+
+    // Initial buffer creation with first chunk
+    const firstChunk = messageBuffer.slice(0, CHUNK_SIZE);
+    const createIx = multisig.generated.createTransactionBufferCreateInstruction(
+      {
+        multisig: multisigPda,
+        transactionBuffer,
+        creator: members.proposer.publicKey,
+        rentPayer: members.proposer.publicKey,
+        systemProgram: SystemProgram.programId,
+      },
+      {
+        args: {
+          bufferIndex,
+          vaultIndex: 0,
+          finalBufferHash: Array.from(messageHash),
+          finalBufferSize: messageBuffer.length,
+          buffer: firstChunk,
+        } as TransactionBufferCreateArgs,
+      } as TransactionBufferCreateInstructionArgs,
+      programId
+    );
+
+    // Send initial chunk
+    const createTx = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: members.proposer.publicKey,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [createIx],
+      }).compileToV0Message()
+    );
+    createTx.sign([members.proposer]);
+    const signature = await connection.sendTransaction(createTx, { skipPreflight: true });
+    await connection.confirmTransaction(signature);
+
+    // Extend buffer with remaining chunks
+    for (let i = 1; i < numChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, messageBuffer.length);
+      const chunk = messageBuffer.slice(start, end);
+
+      const extendIx = multisig.generated.createTransactionBufferExtendInstruction(
+        {
+          multisig: multisigPda,
+          transactionBuffer,
+          creator: members.proposer.publicKey,
+        },
+        {
+          args: {
+            buffer: chunk,
+          } as TransactionBufferExtendArgs,
+        } as TransactionBufferExtendInstructionArgs,
+        programId
+      );
+
+      const extendTx = new VersionedTransaction(
+        new TransactionMessage({
+          payerKey: members.proposer.publicKey,
+          recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+          instructions: [extendIx],
+        }).compileToV0Message()
+      );
+      extendTx.sign([members.proposer]);
+      const sig = await connection.sendRawTransaction(extendTx.serialize(), { skipPreflight: true });
+      await connection.confirmTransaction(sig);
+    }
+    console.log("Buffer upload complete");
+    // Verify final buffer size
+    const bufferAccount = await connection.getAccountInfo(transactionBuffer);
+    const [bufferData] = await multisig.generated.TransactionBuffer.fromAccountInfo(bufferAccount!);
+    assert.equal(bufferData.buffer.length, messageBuffer.length);
+
+    // Create transaction from buffer
+    const [transactionPda] = multisig.getTransactionPda({
+      multisigPda,
+      index: transactionIndex,
+      programId,
+    });
+
+    const createFromBufferIx = multisig.generated.createVaultTransactionCreateFromBufferInstruction(
+      {
+        vaultTransactionCreateItemMultisig: multisigPda,
+        vaultTransactionCreateItemTransaction: transactionPda,
+        vaultTransactionCreateItemCreator: members.proposer.publicKey,
+        vaultTransactionCreateItemRentPayer: members.proposer.publicKey,
+        vaultTransactionCreateItemSystemProgram: SystemProgram.programId,
+        creator: members.proposer.publicKey,
+        transactionBuffer: transactionBuffer,
+      },
+      {
+        args: {
+          vaultIndex: 0,
+          ephemeralSigners: 0,
+          transactionMessage: new Uint8Array(6).fill(0),
+          memo: null,
+        } as VaultTransactionCreateArgs,
+      } as VaultTransactionCreateFromBufferInstructionArgs,
+      programId
+    );
+    const requestHeapIx = ComputeBudgetProgram.requestHeapFrame({
+      bytes: 262144
+    })
+    const finalTx = new VersionedTransaction(
+      new TransactionMessage({
+        payerKey: members.proposer.publicKey,
+        recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+        instructions: [requestHeapIx, createFromBufferIx],
+      }).compileToV0Message()
+    );
+    finalTx.sign([members.proposer]);
+    const finalSignature = await connection.sendRawTransaction(finalTx.serialize(), { skipPreflight: true });
+    await connection.confirmTransaction(finalSignature);
+
+    // Verify created transaction
+    const transactionInfo = await multisig.accounts.VaultTransaction.fromAccountAddress(
+      connection,
+      transactionPda
+    );
+    assert.equal(transactionInfo.message.instructions.length, 45);
   });
 });
