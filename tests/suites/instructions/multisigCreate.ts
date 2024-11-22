@@ -1,16 +1,15 @@
+import { Keypair } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
+import assert from "assert";
 import {
-  comparePubkeys,
   createAutonomousMultisig,
   createControlledMultisig,
   createLocalhostConnection,
   generateFundedKeypair,
   generateMultisigMembers,
   getTestProgramId,
-  TestMembers,
+  TestMembers
 } from "../../utils";
-import { Keypair, PublicKey } from "@solana/web3.js";
-import assert from "assert";
 
 const { Multisig } = multisig.accounts;
 const { Permission, Permissions } = multisig.types;
@@ -57,7 +56,7 @@ describe("Instructions / multisig_create", () => {
           sendOptions: { skipPreflight: true },
           programId,
         }),
-      /Found multiple members with the same pubkey/
+      /Deprecated/
     );
   });
 
@@ -123,7 +122,7 @@ describe("Instructions / multisig_create", () => {
           sendOptions: { skipPreflight: true },
           programId,
         }),
-      /Members don't include any proposers/
+      /Deprecated/
     );
   });
 
@@ -158,7 +157,7 @@ describe("Instructions / multisig_create", () => {
           sendOptions: { skipPreflight: true },
           programId,
         }),
-      /Member has unknown permission/
+      /Deprecated/
     );
   });
 
@@ -191,7 +190,7 @@ describe("Instructions / multisig_create", () => {
           sendOptions: { skipPreflight: true },
           programId,
         }),
-      /Invalid threshold, must be between 1 and number of members/
+      /Deprecated/
     );
   });
 
@@ -239,94 +238,43 @@ describe("Instructions / multisig_create", () => {
           sendOptions: { skipPreflight: true },
           programId,
         }),
-      /Invalid threshold, must be between 1 and number of members with Vote permission/
+      /Deprecated/
     );
   });
 
-  it("create a new autonomous multisig", async () => {
+  it("error: create a new autonomous multisig (deprecated)", async () => {
     const createKey = Keypair.generate();
+    assert.rejects(
+      () =>
+        createAutonomousMultisig({
+          connection,
+          createKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+          programId,
+        }),
+      /Deprecated/
+    );
 
-    const [multisigPda, multisigBump] = await createAutonomousMultisig({
-      connection,
-      createKey,
-      members,
-      threshold: 2,
-      timeLock: 0,
-      programId,
-    });
-
-    const multisigAccount = await Multisig.fromAccountAddress(
-      connection,
-      multisigPda
-    );
-    assert.strictEqual(
-      multisigAccount.configAuthority.toBase58(),
-      PublicKey.default.toBase58()
-    );
-    assert.strictEqual(multisigAccount.threshold, 2);
-    assert.deepEqual(
-      multisigAccount.members,
-      [
-        {
-          key: members.almighty.publicKey,
-          permissions: {
-            mask: Permission.Initiate | Permission.Vote | Permission.Execute,
-          },
-        },
-        {
-          key: members.proposer.publicKey,
-          permissions: {
-            mask: Permission.Initiate,
-          },
-        },
-        {
-          key: members.voter.publicKey,
-          permissions: {
-            mask: Permission.Vote,
-          },
-        },
-        {
-          key: members.executor.publicKey,
-          permissions: {
-            mask: Permission.Execute,
-          },
-        },
-      ].sort((a, b) => comparePubkeys(a.key, b.key))
-    );
-    assert.strictEqual(multisigAccount.rentCollector, null);
-    assert.strictEqual(multisigAccount.transactionIndex.toString(), "0");
-    assert.strictEqual(multisigAccount.staleTransactionIndex.toString(), "0");
-    assert.strictEqual(
-      multisigAccount.createKey.toBase58(),
-      createKey.publicKey.toBase58()
-    );
-    assert.strictEqual(multisigAccount.bump, multisigBump);
   });
 
-  it("create a new controlled multisig", async () => {
+  it("error: create a new controlled multisig (deprecated)", async () => {
     const createKey = Keypair.generate();
     const configAuthority = await generateFundedKeypair(connection);
-
-    const [multisigPda] = await createControlledMultisig({
-      connection,
-      createKey,
-      configAuthority: configAuthority.publicKey,
-      members,
-      threshold: 2,
-      timeLock: 0,
-      programId,
-    });
-
-    const multisigAccount = await Multisig.fromAccountAddress(
-      connection,
-      multisigPda
+    assert.rejects(
+      () =>
+        createControlledMultisig({
+          connection,
+          createKey,
+          configAuthority: configAuthority.publicKey,
+          members,
+          threshold: 2,
+          timeLock: 0,
+          programId,
+        }),
+      /Deprecated/
     );
 
-    assert.strictEqual(
-      multisigAccount.configAuthority.toBase58(),
-      configAuthority.publicKey.toBase58()
-    );
-    // We can skip the rest of the assertions because they are already tested
-    // in the previous case and will be the same here.
   });
 });
