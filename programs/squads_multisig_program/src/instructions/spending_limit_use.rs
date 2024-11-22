@@ -98,6 +98,11 @@ impl SpendingLimitUse<'_> {
 
         // member
         require!(
+            multisig.is_member(member.key()).is_some(),
+            MultisigError::NotAMember
+        );
+        // We don't check member's permissions here but we check if the spending_limit is for the member.
+        require!(
             spending_limit.members.contains(&member.key()),
             MultisigError::Unauthorized
         );

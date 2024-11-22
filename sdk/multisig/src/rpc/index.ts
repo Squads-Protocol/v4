@@ -17,7 +17,6 @@ export * from "./multisigSetTimeLock.js";
 export * from "./proposalActivate.js";
 export * from "./proposalApprove.js";
 export * from "./proposalCancel.js";
-export * from "./proposalCancelV2.js";
 export * from "./proposalCreate.js";
 export * from "./proposalReject.js";
 export * from "./spendingLimitUse.js";

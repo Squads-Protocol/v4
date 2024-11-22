@@ -15,7 +15,6 @@ pub use instructions::*;
 pub use state::*;
 pub use utils::SmallVec;
 
-pub mod allocator;
 pub mod errors;
 pub mod instructions;
 pub mod state;
@@ -40,8 +39,6 @@ declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
 
 #[program]
 pub mod squads_multisig_program {
-    use errors::MultisigError;
-
     use super::*;
 
     /// Initialize the program config.
@@ -77,9 +74,9 @@ pub mod squads_multisig_program {
     }
 
     /// Create a multisig.
-    pub fn multisig_create(_ctx: Context<Deprecated>) -> Result<()> {
-        msg!("multisig_create has been deprecated. Use multisig_create_v2 instead.");
-        Err(MultisigError::MultisigCreateDeprecated.into())
+    #[allow(deprecated)]
+    pub fn multisig_create(ctx: Context<MultisigCreate>, args: MultisigCreateArgs) -> Result<()> {
+        MultisigCreate::multisig_create(ctx, args)
     }
 
     /// Create a multisig.
@@ -178,36 +175,6 @@ pub mod squads_multisig_program {
         VaultTransactionCreate::vault_transaction_create(ctx, args)
     }
 
-    /// Create a transaction buffer account.
-    pub fn transaction_buffer_create(
-        ctx: Context<TransactionBufferCreate>,
-        args: TransactionBufferCreateArgs,
-    ) -> Result<()> {
-        TransactionBufferCreate::transaction_buffer_create(ctx, args)
-    }
-
-    /// Close a transaction buffer account.
-    pub fn transaction_buffer_close(ctx: Context<TransactionBufferClose>) -> Result<()> {
-        TransactionBufferClose::transaction_buffer_close(ctx)
-    }
-
-    /// Extend a transaction buffer account.
-    pub fn transaction_buffer_extend(
-        ctx: Context<TransactionBufferExtend>,
-        args: TransactionBufferExtendArgs,
-    ) -> Result<()> {
-        TransactionBufferExtend::transaction_buffer_extend(ctx, args)
-    }
-
-    /// Create a new vault transaction from a completed transaction buffer.
-    /// Finalized buffer hash must match `final_buffer_hash`
-    pub fn vault_transaction_create_from_buffer<'info>(
-        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreateFromBuffer<'info>>,
-        args: VaultTransactionCreateArgs,
-    ) -> Result<()> {
-        VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
-    }
-
     /// Execute a vault transaction.
     /// The transaction must be `Approved`.
     pub fn vault_transaction_execute(ctx: Context<VaultTransactionExecute>) -> Result<()> {
@@ -258,20 +225,6 @@ pub mod squads_multisig_program {
     /// The proposal must be `Approved`.
     pub fn proposal_cancel(ctx: Context<ProposalVote>, args: ProposalVoteArgs) -> Result<()> {
         ProposalVote::proposal_cancel(ctx, args)
-    }
-
-    /// Cancel a multisig proposal on behalf of the `member`.
-    /// The proposal must be `Approved`.
-    /// This was introduced to incorporate proper state update, as old multisig members
-    /// may have lingering votes, and the proposal size may need to be reallocated to
-    /// accommodate the new amount of cancel votes.
-    /// The previous implemenation still works if the proposal size is in line with the
-    /// threshold size.
-    pub fn proposal_cancel_v2<'info>(
-        ctx: Context<'_, '_, 'info, 'info, ProposalCancelV2<'info>>,
-        args: ProposalVoteArgs,
-    ) -> Result<()> {
-        ProposalCancelV2::proposal_cancel_v2(ctx, args)
     }
 
     /// Use a spending limit to transfer tokens from a multisig vault to a destination account.

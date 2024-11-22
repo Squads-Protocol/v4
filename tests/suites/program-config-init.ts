@@ -1,11 +1,4 @@
-import {
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  TransactionMessage,
-  VersionedTransaction,
-} from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
-import assert from "assert";
 import {
   createLocalhostConnection,
   generateFundedKeypair,
@@ -14,6 +7,13 @@ import {
   getTestProgramId,
   getTestProgramTreasury,
 } from "../utils";
+import {
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  TransactionMessage,
+  VersionedTransaction,
+} from "@solana/web3.js";
+import assert from "assert";
 
 const programId = getTestProgramId();
 const programConfigInitializer = getTestProgramConfigInitializer();
@@ -161,7 +161,7 @@ describe("Initialize Global ProgramConfig", () => {
     }).compileToV0Message();
     const tx = new VersionedTransaction(message);
     tx.sign([programConfigInitializer]);
-    const sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
+    const sig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(sig);
 
     const programConfigData =

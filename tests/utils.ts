@@ -1,4 +1,3 @@
-import { createMemoInstruction } from "@solana/spl-memo";
 import {
   Connection,
   Keypair,
@@ -6,12 +5,12 @@ import {
   PublicKey,
   SystemProgram,
   TransactionMessage,
-  VersionedTransaction,
 } from "@solana/web3.js";
 import * as multisig from "@sqds/multisig";
-import assert from "assert";
 import { readFileSync } from "fs";
 import path from "path";
+import { createMemoInstruction } from "@solana/spl-memo";
+import assert from "assert";
 
 const { Permission, Permissions } = multisig.types;
 const { Proposal } = multisig.accounts;
@@ -125,14 +124,6 @@ export function createLocalhostConnection() {
   return new Connection("http://127.0.0.1:8899", "confirmed");
 }
 
-export const getLogs = async (connection: Connection, signature: string): Promise<string[]> => {
-  const tx = await connection.getTransaction(
-    signature,
-    { commitment: "confirmed" }
-  )
-  return tx!.meta!.logMessages || []
-}
-
 export async function createAutonomousMultisig({
   connection,
   createKey = Keypair.generate(),
@@ -148,21 +139,41 @@ export async function createAutonomousMultisig({
   connection: Connection;
   programId: PublicKey;
 }) {
+  const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
     createKey: createKey.publicKey,
     programId,
   });
 
-  await createAutonomousMultisigV2({
+  const signature = await multisig.rpc.multisigCreate({
     connection,
-    createKey,
-    members,
-    threshold,
+    creator,
+    multisigPda,
+    configAuthority: null,
     timeLock,
-    rentCollector: null,
+    threshold,
+    members: [
+      { key: members.almighty.publicKey, permissions: Permissions.all() },
+      {
+        key: members.proposer.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Initiate]),
+      },
+      {
+        key: members.voter.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Vote]),
+      },
+      {
+        key: members.executor.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Execute]),
+      },
+    ],
+    createKey: createKey,
+    sendOptions: { skipPreflight: true },
     programId,
   });
+
+  await connection.confirmTransaction(signature);
 
   return [multisigPda, multisigBump] as const;
 }
@@ -249,22 +260,41 @@ export async function createControlledMultisig({
   connection: Connection;
   programId: PublicKey;
 }) {
+  const creator = await generateFundedKeypair(connection);
 
   const [multisigPda, multisigBump] = multisig.getMultisigPda({
     createKey: createKey.publicKey,
     programId,
   });
 
-  await createControlledMultisigV2({
+  const signature = await multisig.rpc.multisigCreate({
     connection,
-    createKey,
-    members,
-    rentCollector: null,
-    threshold,
-    configAuthority: configAuthority,
+    creator,
+    multisigPda,
+    configAuthority,
     timeLock,
-    programId
+    threshold,
+    members: [
+      { key: members.almighty.publicKey, permissions: Permissions.all() },
+      {
+        key: members.proposer.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Initiate]),
+      },
+      {
+        key: members.voter.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Vote]),
+      },
+      {
+        key: members.executor.publicKey,
+        permissions: Permissions.fromPermissions([Permission.Execute]),
+      },
+    ],
+    createKey: createKey,
+    sendOptions: { skipPreflight: true },
+    programId,
   });
+
+  await connection.confirmTransaction(signature);
 
   return [multisigPda, multisigBump] as const;
 }
@@ -344,12 +374,6 @@ export type MultisigWithRentReclamationAndVariousBatches = {
    * The proposal is stale.
    */
   staleDraftBatchIndex: bigint;
-  /**
-   * Index of a batch with a proposal in the Draft state.
-   * The batch contains 1 transaction, which is not executed.
-   * The proposal is stale.
-   */
-  staleDraftBatchNoProposalIndex: bigint;
   /**
    * Index of a batch with a proposal in the Approved state.
    * The batch contains 2 transactions, the first of which is executed, the second is not.
@@ -467,14 +491,13 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
   //endregion
 
   const staleDraftBatchIndex = 1n;
-  const staleDraftBatchNoProposalIndex = 2n;
-  const staleApprovedBatchIndex = 3n;
-  const executedConfigTransactionIndex = 4n;
-  const executedBatchIndex = 5n;
-  const activeBatchIndex = 6n;
-  const approvedBatchIndex = 7n;
-  const rejectedBatchIndex = 8n;
-  const cancelledBatchIndex = 9n;
+  const staleApprovedBatchIndex = 2n;
+  const executedConfigTransactionIndex = 3n;
+  const executedBatchIndex = 4n;
+  const activeBatchIndex = 5n;
+  const approvedBatchIndex = 6n;
+  const rejectedBatchIndex = 7n;
+  const cancelledBatchIndex = 8n;
 
   //region Stale batch with proposal in Draft state
   // Create a batch (Stale and Non-Approved).
@@ -515,24 +538,6 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
     programId,
   });
   await connection.confirmTransaction(signature);
-  // This batch will become stale when the config transaction is executed.
-  //endregion
-
-  //region Stale batch with No Proposal
-  // Create a batch (Stale and Non-Approved).
-  signature = await multisig.rpc.batchCreate({
-    connection,
-    feePayer: members.proposer,
-    multisigPda,
-    batchIndex: staleDraftBatchNoProposalIndex,
-    vaultIndex: 0,
-    creator: members.proposer,
-    programId,
-  });
-  await connection.confirmTransaction(signature);
-
-  // No Proposal for this batch.
-
   // This batch will become stale when the config transaction is executed.
   //endregion
 
@@ -1143,7 +1148,6 @@ export async function createAutonomousMultisigWithRentReclamationAndVariousBatch
   return {
     multisigPda,
     staleDraftBatchIndex,
-    staleDraftBatchNoProposalIndex,
     staleApprovedBatchIndex,
     executedConfigTransactionIndex,
     executedBatchIndex,
@@ -1186,58 +1190,4 @@ export function range(min: number, max: number, step: number = 1) {
 
 export function comparePubkeys(a: PublicKey, b: PublicKey) {
   return a.toBuffer().compare(b.toBuffer());
-}
-
-export async function processBufferInChunks(
-  member: Keypair,
-  multisigPda: PublicKey,
-  bufferAccount: PublicKey,
-  buffer: Uint8Array,
-  connection: Connection,
-  programId: PublicKey,
-  chunkSize: number = 700,
-  startIndex: number = 0
-) {
-  const processChunk = async (startIndex: number) => {
-    if (startIndex >= buffer.length) {
-      return;
-    }
-
-    const chunk = buffer.slice(startIndex, startIndex + chunkSize);
-
-    const ix = multisig.generated.createTransactionBufferExtendInstruction(
-      {
-        multisig: multisigPda,
-        transactionBuffer: bufferAccount,
-        creator: member.publicKey,
-      },
-      {
-        args: {
-          buffer: chunk,
-        },
-      },
-      programId
-    );
-
-    const message = new TransactionMessage({
-      payerKey: member.publicKey,
-      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-      instructions: [ix],
-    }).compileToV0Message();
-
-    const tx = new VersionedTransaction(message);
-
-    tx.sign([member]);
-
-    const signature = await connection.sendRawTransaction(tx.serialize(), {
-      skipPreflight: true,
-    });
-
-    await connection.confirmTransaction(signature);
-
-    // Move to next chunk
-    await processChunk(startIndex + chunkSize);
-  };
-
-  await processChunk(startIndex);
 }

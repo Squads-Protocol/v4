@@ -269,13 +269,13 @@ describe("Instructions / batch_accounts_close", () => {
         multisig: multisigPda,
         rentCollector: vaultPda,
         proposal: multisig.getProposalPda({
-          multisigPda,
+          multisigPda: otherMultisig,
           transactionIndex: 1n,
           programId,
         })[0],
         batch: multisig.getTransactionPda({
-          multisigPda: otherMultisig,
-          index: 1n,
+          multisigPda,
+          index: testMultisig.rejectedBatchIndex,
           programId,
         })[0],
       },
@@ -297,7 +297,7 @@ describe("Instructions / batch_accounts_close", () => {
         connection
           .sendTransaction(tx)
           .catch(multisig.errors.translateAndThrowAnchorError),
-      /Transaction is for another multisig/
+      /Proposal is for another multisig/
     );
   });
 
@@ -432,42 +432,6 @@ describe("Instructions / batch_accounts_close", () => {
       programId,
     })[0];
     assert.equal(await connection.getAccountInfo(proposalPda), null);
-  });
-
-  it("close accounts for Stale batch with no Proposal", async () => {
-    const batchIndex = testMultisig.staleDraftBatchNoProposalIndex;
-
-    const multisigAccount = await Multisig.fromAccountAddress(
-      connection,
-      multisigPda
-    );
-
-    const proposalPda = multisig.getProposalPda({
-      multisigPda,
-      transactionIndex: batchIndex,
-      programId,
-    })[0];
-
-    // Make sure proposal account doesn't exist.
-    assert.equal(await connection.getAccountInfo(proposalPda), null);
-
-    let signature = await multisig.rpc.batchAccountsClose({
-      connection,
-      feePayer: members.almighty,
-      multisigPda,
-      rentCollector: multisigAccount.rentCollector!,
-      batchIndex,
-      programId,
-    });
-    await connection.confirmTransaction(signature);
-
-    // Make sure batch and proposal accounts are closed.
-    const batchPda = multisig.getTransactionPda({
-      multisigPda,
-      index: batchIndex,
-      programId,
-    })[0];
-    assert.equal(await connection.getAccountInfo(batchPda), null);
   });
 
   it("close accounts for Executed batch", async () => {
