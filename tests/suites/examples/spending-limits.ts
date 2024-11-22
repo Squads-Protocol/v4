@@ -17,7 +17,6 @@ import {
 } from "@solana/spl-token";
 import assert from "assert";
 import {
-  comparePubkeys,
   createAutonomousMultisig,
   createLocalhostConnection,
   generateFundedKeypair,
@@ -37,7 +36,6 @@ describe("Examples / Spending Limits", () => {
 
   let multisigPda: PublicKey;
   let members: TestMembers;
-  let nonMember: Keypair;
   let solSpendingLimitParams: multisig.types.ConfigActionRecord["AddSpendingLimit"];
   let splSpendingLimitParams: multisig.types.ConfigActionRecord["AddSpendingLimit"];
   let splMint: PublicKey;
@@ -54,8 +52,6 @@ describe("Examples / Spending Limits", () => {
       })
     )[0];
 
-    nonMember = await generateFundedKeypair(connection);
-
     // Set params for creating a Spending Limit for SOL tokens.
     solSpendingLimitParams = {
       createKey: Keypair.generate().publicKey,
@@ -64,7 +60,7 @@ describe("Examples / Spending Limits", () => {
       mint: PublicKey.default,
       amount: 10 * LAMPORTS_PER_SOL,
       period: Period.OneTime,
-      members: [members.almighty.publicKey, nonMember.publicKey],
+      members: [members.almighty.publicKey],
       destinations: [
         Keypair.generate().publicKey,
         Keypair.generate().publicKey,
@@ -103,7 +99,7 @@ describe("Examples / Spending Limits", () => {
       mint: splMint,
       amount: 10 * 10 ** mintDecimals,
       period: Period.OneTime,
-      members: [members.almighty.publicKey, nonMember.publicKey],
+      members: [members.almighty.publicKey],
       destinations: [
         Keypair.generate().publicKey,
         Keypair.generate().publicKey,
@@ -276,12 +272,8 @@ describe("Examples / Spending Limits", () => {
     );
     assert.strictEqual(solSpendingLimitAccount.bump, solSpendingLimitBump);
     assert.deepEqual(
-      solSpendingLimitAccount.members
-        .sort(comparePubkeys)
-        .map((k) => k.toBase58()),
-      solSpendingLimitParams.members
-        .sort(comparePubkeys)
-        .map((k) => k.toBase58())
+      solSpendingLimitAccount.members.map((k) => k.toBase58()),
+      solSpendingLimitParams.members.map((k) => k.toBase58())
     );
     assert.deepEqual(
       solSpendingLimitAccount.destinations.map((k) => k.toBase58()),
@@ -298,8 +290,7 @@ describe("Examples / Spending Limits", () => {
       programId,
     });
 
-    // Member of the multisig that can use the Spending Limit.
-    let signature = await multisig.rpc
+    const signature = await multisig.rpc
       .spendingLimitUse({
         connection,
         feePayer: members.almighty,
@@ -311,7 +302,7 @@ describe("Examples / Spending Limits", () => {
         mint: undefined,
         vaultIndex: solSpendingLimitParams.vaultIndex,
         // Use the entire amount.
-        amount: (solSpendingLimitParams.amount as number) / 2,
+        amount: solSpendingLimitParams.amount as number,
         // SOL has 9 decimals.
         decimals: 9,
         // Transfer tokens to one of the allowed destinations.
@@ -327,46 +318,7 @@ describe("Examples / Spending Limits", () => {
     await connection.confirmTransaction(signature);
 
     // Fetch the Spending Limit account.
-    let solSpendingLimitAccount = await SpendingLimit.fromAccountAddress(
-      connection,
-      solSpendingLimitPda
-    );
-
-    // We used the half of the amount.
-    assert.strictEqual(
-      solSpendingLimitAccount.remainingAmount.toString(),
-      String((solSpendingLimitParams.amount as number) / 2)
-    );
-
-    // Non-member of the multisig that can use the Spending Limit.
-    signature = await multisig.rpc
-      .spendingLimitUse({
-        connection,
-        feePayer: members.almighty,
-        // A member that can use the Spending Limit.
-        member: nonMember,
-        multisigPda,
-        spendingLimit: solSpendingLimitPda,
-        // We don't need to specify the mint, because this Spending Limit is for SOL.
-        mint: undefined,
-        vaultIndex: solSpendingLimitParams.vaultIndex,
-        // Use the entire amount.
-        amount: (solSpendingLimitParams.amount as number) / 2,
-        // SOL has 9 decimals.
-        decimals: 9,
-        // Transfer tokens to one of the allowed destinations.
-        destination: solSpendingLimitParams.destinations[0],
-        // You can optionally add a memo.
-        memo: "Using my allowance!",
-        programId,
-      })
-      .catch((err) => {
-        console.log(err.logs);
-        throw err;
-      });
-    await connection.confirmTransaction(signature);
-
-    solSpendingLimitAccount = await SpendingLimit.fromAccountAddress(
+    const solSpendingLimitAccount = await SpendingLimit.fromAccountAddress(
       connection,
       solSpendingLimitPda
     );

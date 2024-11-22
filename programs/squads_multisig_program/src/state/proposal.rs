@@ -2,9 +2,6 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
-use crate::id;
-
-use anchor_lang::system_program;
 
 /// Stores the data required for tracking the status of a multisig proposal.
 /// Each `Proposal` has a 1:1 association with a transaction account, e.g. a `VaultTransaction` or a `ConfigTransaction`;
@@ -124,62 +121,6 @@ impl Proposal {
     /// Delete the vote of approval at the `index`.
     fn remove_approval_vote(&mut self, index: usize) {
         self.approved.remove(index);
-    }
-
-    /// Check if the proposal account space needs to be reallocated to accommodate `cancelled` vec.
-    /// Proposal size is crated at creation, and thus may not accomodate enough space for all members to cancel if more are added or changed
-    /// Returns `true` if the account was reallocated.
-    pub fn realloc_if_needed<'a>(
-        proposal: AccountInfo<'a>,
-        members_length: usize,
-        rent_payer: Option<AccountInfo<'a>>,
-        system_program: Option<AccountInfo<'a>>,
-    ) -> Result<bool> {
-        // Sanity checks
-        require_keys_eq!(*proposal.owner, id(), MultisigError::IllegalAccountOwner);
-
-        let current_account_size = proposal.data.borrow().len();
-        let account_size_to_fit_members = Proposal::size(members_length);
-
-        // Check if we need to reallocate space.
-        if current_account_size >= account_size_to_fit_members {
-            return Ok(false);
-        }
-
-        // Reallocate more space.
-        AccountInfo::realloc(&proposal, account_size_to_fit_members, false)?;
-
-        // If more lamports are needed, transfer them to the account.
-        let rent_exempt_lamports = Rent::get()
-            .unwrap()
-            .minimum_balance(account_size_to_fit_members)
-            .max(1);
-        let top_up_lamports =
-            rent_exempt_lamports.saturating_sub(proposal.to_account_info().lamports());
-
-        if top_up_lamports > 0 {
-            let system_program = system_program.ok_or(MultisigError::MissingAccount)?;
-            require_keys_eq!(
-                *system_program.key,
-                system_program::ID,
-                MultisigError::InvalidAccount
-            );
-
-            let rent_payer = rent_payer.ok_or(MultisigError::MissingAccount)?;
-
-            system_program::transfer(
-                CpiContext::new(
-                    system_program,
-                    system_program::Transfer {
-                        from: rent_payer,
-                        to: proposal,
-                    },
-                ),
-                top_up_lamports,
-            )?;
-        }
-
-        Ok(true)
     }
 }
 

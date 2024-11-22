@@ -7,28 +7,50 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
+import {
+  MultisigCreateArgs,
+  multisigCreateArgsBeet,
+} from '../types/MultisigCreateArgs'
 
 /**
  * @category Instructions
  * @category MultisigCreate
  * @category generated
  */
-export const multisigCreateStruct = new beet.BeetArgsStruct<{
-  instructionDiscriminator: number[] /* size: 8 */
-}>(
-  [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
+export type MultisigCreateInstructionArgs = {
+  args: MultisigCreateArgs
+}
+/**
+ * @category Instructions
+ * @category MultisigCreate
+ * @category generated
+ */
+export const multisigCreateStruct = new beet.FixableBeetArgsStruct<
+  MultisigCreateInstructionArgs & {
+    instructionDiscriminator: number[] /* size: 8 */
+  }
+>(
+  [
+    ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
+    ['args', multisigCreateArgsBeet],
+  ],
   'MultisigCreateInstructionArgs'
 )
 /**
  * Accounts required by the _multisigCreate_ instruction
  *
- * @property [] null
+ * @property [_writable_] multisig
+ * @property [**signer**] createKey
+ * @property [_writable_, **signer**] creator
  * @category Instructions
  * @category MultisigCreate
  * @category generated
  */
 export type MultisigCreateInstructionAccounts = {
-  null: web3.PublicKey
+  multisig: web3.PublicKey
+  createKey: web3.PublicKey
+  creator: web3.PublicKey
+  systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
 
@@ -40,20 +62,39 @@ export const multisigCreateInstructionDiscriminator = [
  * Creates a _MultisigCreate_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
+ * @param args to provide as instruction data to the program
+ *
  * @category Instructions
  * @category MultisigCreate
  * @category generated
  */
 export function createMultisigCreateInstruction(
   accounts: MultisigCreateInstructionAccounts,
+  args: MultisigCreateInstructionArgs,
   programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
 ) {
   const [data] = multisigCreateStruct.serialize({
     instructionDiscriminator: multisigCreateInstructionDiscriminator,
+    ...args,
   })
   const keys: web3.AccountMeta[] = [
     {
-      pubkey: accounts.null,
+      pubkey: accounts.multisig,
+      isWritable: true,
+      isSigner: false,
+    },
+    {
+      pubkey: accounts.createKey,
+      isWritable: false,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.creator,
+      isWritable: true,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
       isWritable: false,
       isSigner: false,
     },

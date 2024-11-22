@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
 
 use crate::errors::*;
 use crate::state::*;
@@ -25,7 +24,7 @@ pub struct VaultTransactionCreate<'info> {
     )]
     pub multisig: Account<'info, Multisig>,
 
-    #[account(
+    #[account( 
         init,
         payer = rent_payer,
         space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message)?,
@@ -49,8 +48,8 @@ pub struct VaultTransactionCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> VaultTransactionCreate<'info> {
-    pub fn validate(&self) -> Result<()> {
+impl VaultTransactionCreate<'_> {
+    fn validate(&self) -> Result<()> {
         let Self {
             multisig, creator, ..
         } = self;

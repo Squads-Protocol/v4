@@ -25,12 +25,11 @@ describe("Instructions / config_transaction_accounts_close", () => {
   let members: TestMembers;
   let multisigPda: PublicKey;
   const staleTransactionIndex = 1n;
-  const staleNoProposalTransactionIndex = 2n;
-  const executedTransactionIndex = 3n;
-  const activeTransactionIndex = 4n;
-  const approvedTransactionIndex = 5n;
-  const rejectedTransactionIndex = 6n;
-  const cancelledTransactionIndex = 7n;
+  const executedTransactionIndex = 2n;
+  const activeTransactionIndex = 3n;
+  const approvedTransactionIndex = 4n;
+  const rejectedTransactionIndex = 5n;
+  const cancelledTransactionIndex = 6n;
 
   // Set up a multisig with config transactions.
   before(async () => {
@@ -81,24 +80,6 @@ describe("Instructions / config_transaction_accounts_close", () => {
     });
     await connection.confirmTransaction(signature);
     // This transaction will become stale when the second config transaction is executed.
-    //endregion
-
-    //region Stale and No Proposal
-    // Create a config transaction (Stale and No Proposal).
-    signature = await multisig.rpc.configTransactionCreate({
-      connection,
-      feePayer: members.proposer,
-      multisigPda,
-      transactionIndex: staleNoProposalTransactionIndex,
-      creator: members.proposer.publicKey,
-      actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
-      programId,
-    });
-    await connection.confirmTransaction(signature);
-
-    // No proposal created for this transaction.
-
-    // This transaction will become stale when the config transaction is executed.
     //endregion
 
     //region Executed
@@ -543,7 +524,7 @@ describe("Instructions / config_transaction_accounts_close", () => {
         connection
           .sendTransaction(tx)
           .catch(multisig.errors.translateAndThrowAnchorError),
-      /A seeds constraint was violated/
+      /Proposal is for another multisig/
     );
   });
 
@@ -640,7 +621,7 @@ describe("Instructions / config_transaction_accounts_close", () => {
           rentCollector: vaultPda,
           proposal: multisig.getProposalPda({
             multisigPda,
-            transactionIndex: 1n,
+            transactionIndex: rejectedTransactionIndex,
             programId,
           })[0],
           transaction: multisig.getTransactionPda({
@@ -712,7 +693,7 @@ describe("Instructions / config_transaction_accounts_close", () => {
         connection
           .sendTransaction(tx)
           .catch(multisig.errors.translateAndThrowAnchorError),
-      /A seeds constraint was violated/
+      /Transaction doesn't match proposal/
     );
   });
 
@@ -761,53 +742,6 @@ describe("Instructions / config_transaction_accounts_close", () => {
     const postBalance = await connection.getBalance(vaultPda);
     const accountsRent = 5554080;
     assert.ok(postBalance === preBalance + accountsRent);
-  });
-
-  it("close accounts for Stale transaction with No Proposal", async () => {
-    const transactionIndex = staleNoProposalTransactionIndex;
-
-    const multisigAccount = await Multisig.fromAccountAddress(
-      connection,
-      multisigPda
-    );
-
-    // Make sure there's no proposal.
-    let proposalAccount = await connection.getAccountInfo(
-      multisig.getProposalPda({
-        multisigPda,
-        transactionIndex,
-        programId,
-      })[0]
-    );
-    assert.equal(proposalAccount, null);
-
-    // Make sure the transaction is stale.
-    assert.ok(
-      transactionIndex <=
-        multisig.utils.toBigInt(multisigAccount.staleTransactionIndex)
-    );
-
-    const [vaultPda] = multisig.getVaultPda({
-      multisigPda,
-      index: 0,
-      programId,
-    });
-
-    const preBalance = await connection.getBalance(vaultPda);
-
-    const sig = await multisig.rpc.configTransactionAccountsClose({
-      connection,
-      feePayer: members.almighty,
-      multisigPda,
-      rentCollector: vaultPda,
-      transactionIndex,
-      programId,
-    });
-    await connection.confirmTransaction(sig);
-
-    const postBalance = await connection.getBalance(vaultPda);
-    const accountsRent = 1_503_360; // Rent for the transaction account.
-    assert.equal(postBalance, preBalance + accountsRent);
   });
 
   it("close accounts for Executed transaction", async () => {

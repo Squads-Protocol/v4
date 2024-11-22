@@ -108,12 +108,7 @@ impl BatchExecuteTransaction<'_> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let batch = &mut ctx.accounts.batch;
-
-        // NOTE: After `take()` is called, the VaultTransaction is reduced to
-        // its default empty value, which means it should no longer be referenced or
-        // used after this point to avoid faulty behavior.
-        // Instead only make use of the returned `transaction` value.
-        let transaction = ctx.accounts.transaction.take();
+        let transaction = &mut ctx.accounts.transaction;
 
         let multisig_key = multisig.key();
         let batch_key = batch.key();
@@ -126,7 +121,7 @@ impl BatchExecuteTransaction<'_> {
             &[batch.vault_bump],
         ];
 
-        let transaction_message = transaction.message;
+        let transaction_message = &transaction.message;
         let num_lookups = transaction_message.address_table_lookups.len();
 
         let message_account_infos = ctx
@@ -154,13 +149,11 @@ impl BatchExecuteTransaction<'_> {
         let protected_accounts = &[proposal.key(), batch_key];
 
         // Execute the transaction message instructions one-by-one.
-        // NOTE: `execute_message()` calls `self.to_instructions_and_accounts()`
-        // which in turn calls `take()` on
-        // `self.message.instructions`, therefore after this point no more
-        // references or usages of `self.message` should be made to avoid
-        // faulty behavior.
         executable_message.execute_message(
-            vault_seeds,
+            &vault_seeds
+                .iter()
+                .map(|seed| seed.to_vec())
+                .collect::<Vec<Vec<u8>>>(),
             &ephemeral_signer_seeds,
             protected_accounts,
         )?;

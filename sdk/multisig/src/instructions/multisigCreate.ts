@@ -29,29 +29,18 @@ export function multisigCreate({
 }): TransactionInstruction {
   return createMultisigCreateInstruction(
     {
-      null: PublicKey.default,
-      anchorRemainingAccounts: [
-        {
-          pubkey: creator,
-          isWritable: true,
-          isSigner: true,
-        },
-        {
-          pubkey: createKey,
-          isWritable: false,
-          isSigner: true,
-        },
-        {
-          pubkey: multisigPda,
-          isWritable: true,
-          isSigner: false,
-        },
-        {
-          pubkey: createKey,
-          isWritable: false,
-          isSigner: true,
-        }
-      ]
+      creator,
+      createKey,
+      multisig: multisigPda,
+    },
+    {
+      args: {
+        configAuthority,
+        threshold,
+        members,
+        timeLock,
+        memo: memo ?? null,
+      },
     },
     programId
   );
