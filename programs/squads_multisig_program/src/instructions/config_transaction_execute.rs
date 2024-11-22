@@ -143,14 +143,6 @@ impl<'info> ConfigTransactionExecute<'info> {
                     members,
                     destinations,
                 } => {
-                    // SpendingLimit members must all be members of the multisig.
-                    for sl_member in members.iter() {
-                        require!(
-                            multisig.is_member(*sl_member).is_some(),
-                            MultisigError::NotAMember
-                        );
-                    }
-
                     let (spending_limit_key, spending_limit_bump) = Pubkey::find_program_address(
                         &[
                             SEED_PREFIX,
