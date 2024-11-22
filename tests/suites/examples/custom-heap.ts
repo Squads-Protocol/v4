@@ -12,7 +12,7 @@ import * as multisig from "@sqds/multisig";
 import {
   TransactionBufferCreateArgs,
   TransactionBufferCreateInstructionArgs,
-  VaultTransactionCreateFromBufferArgs,
+  VaultTransactionCreateArgs,
   VaultTransactionCreateFromBufferInstructionArgs,
 } from "@sqds/multisig/lib/generated";
 import assert from "assert";
@@ -205,18 +205,19 @@ describe("Examples / Custom Heap Usage", () => {
     const thirdIx =
       multisig.generated.createVaultTransactionCreateFromBufferInstruction(
         {
-          multisig: multisigPda,
+          vaultTransactionCreateItemMultisig: multisigPda,
           transactionBuffer,
-          transaction: transactionPda,
+          vaultTransactionCreateItemTransaction: transactionPda,
+          vaultTransactionCreateItemCreator: members.proposer.publicKey,
           creator: members.proposer.publicKey,
-          rentPayer: members.proposer.publicKey,
-          systemProgram: SystemProgram.programId,
+          vaultTransactionCreateItemRentPayer: members.proposer.publicKey,
+          vaultTransactionCreateItemSystemProgram: SystemProgram.programId,
         },
         {
           args: {
             ephemeralSigners: 0,
             memo: null,
-          } as VaultTransactionCreateFromBufferArgs,
+          } as  VaultTransactionCreateArgs,
         } as VaultTransactionCreateFromBufferInstructionArgs,
         programId
       );
