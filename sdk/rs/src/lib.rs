@@ -41,26 +41,28 @@ pub mod cpi {
     use squads_multisig_program::anchor_lang::prelude::{CpiContext, Pubkey, Result};
     pub use squads_multisig_program::cpi::accounts::{
         BatchAddTransaction, BatchCreate, BatchExecuteTransaction, ConfigTransactionCreate,
-        ConfigTransactionExecute, MultisigAddSpendingLimit, MultisigConfig, MultisigCreate,
+        ConfigTransactionExecute, MultisigAddSpendingLimit, MultisigConfig, MultisigCreateV2,
         MultisigRemoveSpendingLimit, ProposalActivate, ProposalCreate, ProposalVote,
         SpendingLimitUse, VaultTransactionCreate, VaultTransactionExecute,
     };
     use squads_multisig_program::Member;
 
     pub fn create_multisig<'info>(
-        ctx: CpiContext<'_, '_, '_, 'info, MultisigCreate<'info>>,
+        ctx: CpiContext<'_, '_, '_, 'info, MultisigCreateV2<'info>>,
         members: Vec<Member>,
         threshold: u16,
         config_authority: Option<Pubkey>,
+        rent_collector: Option<Pubkey>,
         time_lock: u32,
         memo: Option<String>,
     ) -> Result<()> {
-        squads_multisig_program::cpi::multisig_create(
+        squads_multisig_program::cpi::multisig_create_v2(
             ctx,
-            squads_multisig_program::MultisigCreateArgs {
+            squads_multisig_program::MultisigCreateArgsV2 {
                 members,
                 threshold,
                 config_authority,
+                rent_collector,
                 time_lock,
                 memo,
             },

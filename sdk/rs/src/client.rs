@@ -4,7 +4,6 @@ pub use squads_multisig_program::accounts::BatchAccountsClose as BatchAccountsCl
 pub use squads_multisig_program::accounts::ConfigTransactionAccountsClose as ConfigTransactionAccountsCloseAccounts;
 pub use squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
 pub use squads_multisig_program::accounts::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
-pub use squads_multisig_program::accounts::MultisigCreate as MultisigCreateAccounts;
 pub use squads_multisig_program::accounts::MultisigCreateV2 as MultisigCreateAccountsV2;
 pub use squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 pub use squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
@@ -27,7 +26,6 @@ pub use squads_multisig_program::instruction::VaultTransactionAccountsClose as V
 pub use squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
 pub use squads_multisig_program::instruction::VaultTransactionExecute as VaultTransactionExecuteData;
 pub use squads_multisig_program::instructions::ConfigTransactionCreateArgs;
-pub use squads_multisig_program::instructions::MultisigCreateArgs;
 pub use squads_multisig_program::instructions::MultisigCreateArgsV2;
 pub use squads_multisig_program::instructions::ProposalCreateArgs;
 pub use squads_multisig_program::instructions::ProposalVoteArgs;
@@ -71,54 +69,6 @@ pub async fn get_spending_limit(
             .map_err(|_| ClientError::DeserializationError)?;
 
     Ok(spending_limit)
-}
-
-/// Creates a new multisig config transaction.
-/// Example:
-/// ```
-/// use squads_multisig::anchor_lang::error::ComparedValues::Pubkeys;
-/// use squads_multisig::solana_program::pubkey::Pubkey;
-/// use squads_multisig::solana_program::system_program;
-/// use squads_multisig::state::{ConfigAction, Member, Permissions, Permission};
-/// use squads_multisig::client::{
-///     MultisigCreateAccounts,
-///     MultisigCreateArgs,
-///     multisig_create
-/// };
-///
-/// let ix = multisig_create(
-///     MultisigCreateAccounts {
-///         multisig: Pubkey::new_unique(),
-///         create_key: Pubkey::new_unique(),
-///         creator: Pubkey::new_unique(),
-///         system_program: system_program::id(),
-///     },
-///     MultisigCreateArgs {
-///         members: vec![
-///             Member {
-///                 key: Pubkey::new_unique(),
-///                 permissions: Permissions::from_vec(&[Permission::Initiate, Permission::Vote, Permission::Execute]),
-///             }
-///         ],
-///         threshold: 1,
-///         time_lock: 0,
-///         config_authority: None,
-///         memo: Some("Deploy my own Squad".to_string()),
-///     },
-///     Some(squads_multisig_program::ID)
-/// );
-/// ```
-///
-pub fn multisig_create(
-    accounts: MultisigCreateAccounts,
-    args: MultisigCreateArgs,
-    program_id: Option<Pubkey>,
-) -> Instruction {
-    Instruction {
-        accounts: accounts.to_account_metas(Some(false)),
-        data: MultisigCreateData { args }.data(),
-        program_id: program_id.unwrap_or(squads_multisig_program::ID),
-    }
 }
 
 /// Creates a new multisig config transaction.
