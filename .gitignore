@@ -11,3 +11,5 @@ test-ledger
 
 lib
 .crates
+.history/
+.vscode/

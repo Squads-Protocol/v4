@@ -20,6 +20,8 @@ pub use transaction_buffer_extend::*;
 pub use vault_transaction_create::*;
 pub use vault_transaction_create_from_buffer::*;
 pub use vault_transaction_execute::*;
+pub use dynamic_multisig_create::*;
+pub use dynamic_multisig_member::*;
 
 mod batch_add_transaction;
 mod batch_create;
@@ -43,3 +45,5 @@ mod transaction_buffer_extend;
 mod vault_transaction_create;
 mod vault_transaction_create_from_buffer;
 mod vault_transaction_execute;
+mod dynamic_multisig_create;
+mod dynamic_multisig_member;
