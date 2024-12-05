@@ -92,8 +92,4 @@ pub enum MultisigError {
     FinalBufferSizeMismatch,
     #[msg("multisig_create has been deprecated. Use multisig_create_v2 instead.")]
     MultisigCreateDeprecated,
-    #[msg("Threshold ratio must be between 1 and 100")]
-    InvalidThresholdRatio,
-    #[msg("Cannot modify dynamic multisig configuration directly")]
-    DynamicMultisigConfigLocked,
 }

@@ -322,25 +322,3 @@ pub mod squads_multisig_program {
         BatchAccountsClose::batch_accounts_close(ctx)
     }
 }
-#[program]
-pub mod squads_multisig_program {
-    use super::*;  // This lets you use the instructions module
-    // ... rest of program code ...
-
-    pub fn create_dynamic_multisig(
-        ctx: Context<CreateDynamicMultisig>,
-        threshold_ratio: u8,
-        time_lock: u32,
-        members: Vec<Member>,
-    ) -> Result<()> {
-        instructions::dynamic_multisig_create::handler(ctx, threshold_ratio, time_lock, members)
-    }
-
-    pub fn add_dynamic_member(ctx: Context<AddDynamicMember>, new_member: Member) -> Result<()> {
-        instructions::dynamic_multisig_member::add_member(ctx, new_member)
-    }
-
-    pub fn remove_dynamic_member(ctx: Context<RemoveDynamicMember>, member_key: Pubkey) -> Result<()> {
-        instructions::dynamic_multisig_member::remove_member(ctx, member_key)
-    }
-}
