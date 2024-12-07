@@ -8,6 +8,7 @@ use crate::command::proposal_vote::ProposalVote;
 use crate::command::vault_transaction_accounts_close::VaultTransactionAccountsClose;
 use crate::command::vault_transaction_create::VaultTransactionCreate;
 use crate::command::vault_transaction_execute::VaultTransactionExecute;
+use crate::command::display_vault::DisplayVault;
 
 use clap::Subcommand;
 
@@ -21,6 +22,7 @@ pub mod proposal_vote;
 pub mod vault_transaction_accounts_close;
 pub mod vault_transaction_create;
 pub mod vault_transaction_execute;
+pub mod display_vault;
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -34,4 +36,5 @@ pub enum Command {
     VaultTransactionAccountsClose(VaultTransactionAccountsClose),
     InitiateTransfer(InitiateTransfer),
     InitiateProgramUpgrade(InitiateProgramUpgrade),
+    DisplayVault(DisplayVault),
 }
