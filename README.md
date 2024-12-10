@@ -18,8 +18,9 @@ The Squads Protocol v4 program is deployed to:
 
  - Solana Mainnet-beta: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
  - Solana Devnet: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
+ - Eclipse Mainnet: `eSQDSMLf3qxwHVHeTr9amVAGmZbRLY2rFdSURandt6f`
 
-Both deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
+Solana deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
 
 ## Responsibility
 
