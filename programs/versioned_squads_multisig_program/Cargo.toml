@@ -1,0 +1,25 @@
+[package]
+name = "versioned-squads-multisig-program"
+version = "2.1.0"
+description = "Versioned Squads Multisig Program V4"
+edition = "2021"
+license-file = "../../LICENSE"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "versioned_squads_multisig_program"
+
+[features]
+default = ["custom-heap"]
+custom-heap = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+testing = []
+
+[dependencies]
+anchor-lang = { version = "=0.29.0", features = ["allow-missing-optionals"] }
+anchor-spl = { version="=0.29.0", features=["token"] }
+solana-program = "1.17.4"
+solana-security-txt = "1.1.1"

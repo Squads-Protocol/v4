@@ -10,7 +10,7 @@ pub struct CreateVersionedProposal<'info> {
     #[account(
         init,
         payer = creator,
-        space = Proposal::size(),
+        space = Proposal::size(multisig.members.len()),
         seeds = [
             b"proposal",
             multisig.key().as_ref(),
@@ -40,10 +40,8 @@ pub fn handler(ctx: Context<CreateVersionedProposal>) -> Result<()> {
     );
 
     // Set up proposal
-    proposal.index = multisig.current_proposal_index;
-    proposal.eligible_voters = multisig.get_eligible_voters(proposal.index);
-    proposal.threshold = multisig.calculate_threshold_for_proposal(proposal.index);
-    proposal.status = ProposalStatus::Active;
+    proposal.transaction_index = multisig.current_proposal_index;
+    proposal.status = ProposalStatus::Active { timestamp: Clock::get()?.unix_timestamp };
     
     // Increment proposal index
     multisig.current_proposal_index += 1;
