@@ -139,7 +139,10 @@ Below is a list of audit reports pertaining to the v4 program. Each entry enumer
 - Ottersec 2024 Final: [View full
   report](https://github.com/Squads-Protocol/v4/blob/main/audits/ottersec_squads_v4_audit_2024_final.pdf)
 - Neodyme: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report.pdf)
-- Neodyme 2024: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report_2024.pdf)
+- Neodyme 2024: [View full
+  report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report_2024.pdf)
+- Neodyme 2024 Final: [View full
+  report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report_2024_final.pdf)
 - Certora + Formal verification: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/certora_squads_v4_security_report_and_formal_verification.pdf)
 - Certora Audit + Formal Verification (December 2023): [View full
   report](https://github.com/Squads-Protocol/v4/blob/main/audits/certora_squads_v4_security_report_and_formal_verification_2024.pdf)
