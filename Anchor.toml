@@ -7,13 +7,23 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-multisig = "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf"
+multisig = "5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er"
+versioned_squads_multisig_program = "5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er"
+
+[programs.devnet]
+multisig = "5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er"
+versioned_squads_multisig_program = "5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er"
+
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[provider]
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [test.validator]
