@@ -1,0 +1,23 @@
+[package]
+name = "versioned_squads_multisig"
+version = "2.1.0"
+description = "An SDK for building automated programs on Solana"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+homepage = "https://squads.so"
+authors = ["Valentin Madrid <valentin@incility.com>"]
+repository = "https://github.com/Squads-Protocol/v4"
+documentation = "https://developers.squads.so"
+keywords = ["solana", "multisig", "anchor", "squads", "cpi"]
+
+[lib]
+name = "versioned_squads_multisig"
+
+[dependencies]
+futures = { version = "0.3.28" , features = ["async-await", "alloc"] }
+versioned-squads-multisig-program = { path = "../../programs/versioned_squads_multisig_program", features =["cpi", "no-entrypoint"], version = "2.0.0" }
+solana-client = "1.17.4"
+thiserror = "1.0.48"
+
+[features]
+default = []

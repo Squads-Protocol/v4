@@ -22,6 +22,8 @@ pub enum VersionedMultisigError {
     NotEnoughApprovals,
     #[msg("Time lock not expired")]
     TimeLockNotExpired,
+    #[msg("Invalid join proposal index")]
+    InvalidJoinProposalIndex,
 } 
 
 #[error_code]

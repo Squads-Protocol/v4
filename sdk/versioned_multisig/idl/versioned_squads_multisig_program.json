@@ -1602,6 +1602,11 @@
       "code": 6009,
       "name": "TimeLockNotExpired",
       "msg": "Time lock not expired"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidJoinProposalIndex",
+      "msg": "Invalid join proposal index"
     }
   ],
   "metadata": {

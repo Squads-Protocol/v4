@@ -1,0 +1,30 @@
+[workspace]
+
+[package]
+name = "versioned-squads-multisig-cli"
+version = "0.1.4"
+edition = "2021"
+authors = ["Valentin Madrid", "Vova Guguiev"]
+license = "MIT OR Apache-2.0"
+description = "Command line interface to interact with the Squads v4 program."
+
+[dependencies]
+tokio = { version = "1.35.1", features = ["rt", "rt-multi-thread", "macros"] }
+clap = { version = "4.4.13", features = ["derive"] }
+eyre = "0.6.11"
+dialoguer = "0.11.0"
+indicatif = "0.17.7"
+colored = "2.1.0"
+# Solana deps
+solana-sdk = "1.18.3"
+# local deps
+versioned_squads_multisig = { path = "../sdk/versioned_rs", version = "2.0.1" }
+solana-remote-wallet = "1.18.3"
+solana-clap-v3-utils = "1.18.3"
+solana-program = "1.18.3"
+clap_v3 = { package = "clap", version = "3.0", optional = false }  # The version needed for solana_clap_utils
+solana-address-lookup-table-program = "1.18.3"
+spl-token = "4.0.0"
+spl-associated-token-account = "2.3.0"
+serde = "1.0.216"
+serde_json = "1.0.134"

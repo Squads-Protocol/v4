@@ -11,6 +11,7 @@
   "dependencies": {
     "@solana/web3.js": "^1.91.0",
     "@sqds/multisig": "file:../../sdk/multisig",
+    "@sqds/versioned-multisig": "file:../../sdk/versioned-multisig",
     "@types/node": "20.11.25",
     "@types/react": "18.2.64",
     "@types/react-dom": "18.2.21",

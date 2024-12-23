@@ -233,6 +233,29 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * InvalidJoinProposalIndex: 'Invalid join proposal index'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidJoinProposalIndexError extends Error {
+  readonly code: number = 0x177a
+  readonly name: string = 'InvalidJoinProposalIndex'
+  constructor() {
+    super('Invalid join proposal index')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidJoinProposalIndexError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177a, () => new InvalidJoinProposalIndexError())
+createErrorFromNameLookup.set(
+  'InvalidJoinProposalIndex',
+  () => new InvalidJoinProposalIndexError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

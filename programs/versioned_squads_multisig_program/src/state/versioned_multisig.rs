@@ -96,6 +96,11 @@ impl VersionedMultisig {
             !self.members.iter().any(|m| m.key == member.key),
             MultisigError::DuplicateMember
         );
+        
+        require!(
+            new_member.join_proposal_index == self.current_proposal_index + 1,
+            VersionedMultisigError::InvalidJoinProposalIndex
+        );
 
         self.members.push(member);
         self.members.sort_by_key(|m| m.key);

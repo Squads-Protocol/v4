@@ -3,11 +3,9 @@
 #![deny(unused_must_use)]
 
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::system_program;
-use anchor_lang::prelude::*;
 
-declare_id!("VSMPxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"); // Replace with actual program ID
-
+declare_id!("5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er"); // Replace with actual program ID
+pub use anchor_lang;
 pub use instructions::ProgramConfig;
 pub use instructions::*;
 pub use state::*;

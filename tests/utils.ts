@@ -34,6 +34,8 @@ export function getTestProgramId() {
   return programKeypair.publicKey;
 }
 
+
+
 export function getTestProgramConfigInitializer() {
   return Keypair.fromSecretKey(
     Buffer.from(
@@ -87,6 +89,7 @@ export async function generateFundedKeypair(connection: Connection) {
     1 * LAMPORTS_PER_SOL
   );
   await connection.confirmTransaction(tx);
+  console.log("Funded keypair", keypair.publicKey.toBase58());
 
   return keypair;
 }

@@ -1,74 +1,68 @@
-import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
-import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
-import { SquadsMultisigProgram } from "../../target/types/squads_multisig_program";
-import { Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { BN } from "@project-serum/anchor";
-import { RetryConditionManager, RetryScenario } from './retry-conditions';
+import { Connection, Keypair,TransactionInstruction, PublicKey, SystemProgram, TransactionMessage } from "@solana/web3.js";
+import * as versionedMultisig from "../../sdk/versioned_multisig/";
+import { VersionedMember } from "../../sdk/versioned_multisig/lib/generated";
+import { getVersionedTestProgramId, getVersionedTestProgramTreasury } from "../suites/versioned_multisig/versioned-utils";
+import { generateFundedKeypair } from "../utils";
+import { RetryScenario } from './retry-conditions';
+import { Permissions } from "../../sdk/versioned_multisig/lib/types";
 
 export class VersionedMultisigTestHelper {
-    private retryManager?: RetryConditionManager;
 
-    constructor(
-        private program: Program<SquadsMultisigProgram>,
-        private provider: anchor.AnchorProvider,
-        enableRetryConditions: boolean = false
-    ) {
-        if (enableRetryConditions) {
-            this.retryManager = new RetryConditionManager(program, provider);
-        }
+    private connection: Connection;
+    constructor( connection: Connection) {
+        this.connection = connection;
     }
-
-    async createMultisig(
-        members: { key: PublicKey; permissions: number }[],
+    async createVersionedMultisig(
+        members: VersionedMember[],
         threshold: number,
         timeLock: number = 0
     ) {
-        const createKey = Keypair.generate();
-        
-        const [multisigPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("squad"), createKey.publicKey.toBuffer()],
-            this.program.programId
-        );
-
-        await this.program.methods
-            .createVersionedMultisig(threshold, timeLock, members)
-            .accounts({
-                creator: this.provider.wallet.publicKey,
-                createKey: createKey.publicKey,
-                multisig: multisigPda,
-                systemProgram: SystemProgram.programId,
-            })
-            .signers([createKey])
-            .rpc();
-
-        return { multisigPda, createKey };
+        const creator = await generateFundedKeypair(this.connection);
+            const [multisigPda, multisigBump] = versionedMultisig.getMultisigPda({
+                createKey: creator.publicKey,
+                programId: getVersionedTestProgramId(),
+            });
+            const sig = (await versionedMultisig.rpc.versionedMultisigCreate({
+                connection: this.connection,
+                treasury: getVersionedTestProgramTreasury().publicKey,
+                createKey: creator,
+                creator,
+                multisigPda,
+                configAuthority: null,
+                threshold,
+                members: members,
+                rentCollector: null,
+                timeLock,
+                programId: getVersionedTestProgramId(),
+            }))[0];
+        return { multisigPda, createKey: creator };
     }
 
-    async createProposal(
-        multisig: PublicKey,
-        creator: Keypair,
-        index: number
-    ) {
-        const [proposalPda] = PublicKey.findProgramAddressSync(
+    async getVersionedProposalPda(multisig: PublicKey, index: number) {
+        return PublicKey.findProgramAddressSync(
             [
                 Buffer.from("proposal"),
                 multisig.toBuffer(),
                 Buffer.from(index.toString())
             ],
-            this.program.programId
+            getVersionedTestProgramId()
         );
+    }
 
-        await this.program.methods
-            .createVersionedProposal()
-            .accounts({
-                multisig,
-                proposal: proposalPda,
-                creator: creator.publicKey,
-                systemProgram: SystemProgram.programId,
-            })
-            .signers([creator])
-            .rpc();
+    async createVersionedProposal(
+        multisig: PublicKey,
+        creator: Keypair,
+        index: number
+    ) {
+        const [proposalPda, _] = await this.getVersionedProposalPda(multisig, index);
+
+        await versionedMultisig.rpc.versionedProposalCreate({
+            connection: this.connection,
+            multisigPda: multisig,
+            creator: creator,
+            transactionIndex: BigInt(index),
+            programId: getVersionedTestProgramId(),
+        });
 
         return proposalPda;
     }
@@ -79,97 +73,83 @@ export class VersionedMultisigTestHelper {
         voter: Keypair,
         approve: boolean
     ) {
-        await this.program.methods
-            .voteOnVersionedProposal(approve)
-            .accounts({
-                multisig,
-                proposal,
-                voter: voter.publicKey,
-            })
-            .signers([voter])
-            .rpc();
+        await versionedMultisig.rpc.versionedProposalVote({
+            connection: this.connection,
+            multisigPda: multisig,
+            proposalPda: proposal,
+            voter: voter,
+            approve: approve,
+            programId: getVersionedTestProgramId(),
+        });
     }
 
     // Helper to generate test members
-    generateMembers(count: number, permissions: number = 7) {
+    generateMembers(count: number, permissions: Permissions = Permissions.all(), joinProposalIndex: number = 0): VersionedMember[] {
         return Array(count)
             .fill(0)
             .map(() => ({
                 key: Keypair.generate().publicKey,
                 permissions,
+                joinProposalIndex
             }));
     }
 
     async createProposalWithInstruction(
         multisig: PublicKey,
         creator: Keypair,
+        index: number,
         instruction: TransactionInstruction
     ) {
-        return this.createProposalWithInstructions(multisig, creator, [instruction]);
+        return this.createVersionedProposalWithInstructions(multisig, creator, index, [instruction]);
     }
 
-    async createProposalWithInstructions(
+    async createVersionedProposalWithInstructions(
         multisig: PublicKey,
         creator: Keypair,
+        index: number,
         instructions: TransactionInstruction[]
     ) {
-        const [proposalPda] = await this.getProposalPda(multisig);
+        const [proposalPda] = await this.getVersionedProposalPda(multisig, index);
+        await this.createVersionedProposal(multisig, creator, index);
+        await versionedMultisig.rpc.versionedProposalCreate({
+            connection: this.connection,
+            multisigPda: multisig,
+            creator: creator,
+            transactionIndex: BigInt(index),
+            programId: getVersionedTestProgramId(),
+        });
+        await versionedMultisig.rpc.vaultTransactionCreate({
+            connection: this.connection,
+            feePayer: creator,
+            multisigPda: multisig,
+            transactionIndex: BigInt(index),
+            creator: creator.publicKey,
+            vaultIndex: 0,
+            ephemeralSigners: 0,
+            transactionMessage: new TransactionMessage({
+                payerKey: creator.publicKey,
+                recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+                instructions: instructions,
+            }),
+            programId: getVersionedTestProgramId(),
+        });
         
-        await this.program.methods
-            .createVersionedProposal({ instructions })
-            .accounts({
-                multisig,
-                proposal: proposalPda,
-                creator: creator.publicKey,
-                systemProgram: SystemProgram.programId,
-            })
-            .signers([creator])
-            .rpc();
-
         return proposalPda;
     }
 
-    async createProposalWithRetryableInstruction(
+
+    async executeVaultTransaction(
         multisig: PublicKey,
-        creator: Keypair,
-        scenario?: RetryScenario
-    ) {
-        if (!this.retryManager) {
-            throw new Error("Retry conditions not enabled");
-        }
-
-        const instruction = scenario 
-            ? await this.retryManager.createRetryableInstruction(scenario)
-            : {
-                programId: SystemProgram.programId,
-                keys: [],
-                data: Buffer.from([])
-            };
-        
-        return this.createProposalWithInstruction(multisig, creator, instruction);
-    }
-
-    async setupSuccessConditions(scenario: RetryScenario) {
-        if (!this.retryManager) {
-            throw new Error("Retry conditions not enabled");
-        }
-        
-        return this.retryManager.setupConditions(scenario);
-    }
-
-    async executeProposal(
-        multisig: PublicKey,
-        proposal: PublicKey,
+        transactionIndex: number,
         executor: Keypair
     ) {
-        await this.program.methods
-            .executeVersionedProposal()
-            .accounts({
-                multisig,
-                proposal,
-                executor: executor.publicKey,
-            })
-            .signers([executor])
-            .rpc();
+        await versionedMultisig.rpc.vaultTransactionExecute({
+            connection: this.connection,
+            feePayer: executor,
+            multisigPda: multisig,
+            transactionIndex: BigInt(transactionIndex),
+            member: executor.publicKey,
+            programId: getVersionedTestProgramId(),
+        });
     }
 }
