@@ -22,10 +22,6 @@ url = "https://api.apr.dev"
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
-[provider]
-cluster = "devnet"
-wallet = "~/.config/solana/id.json"
-
 [test.validator]
 url = "https://api.devnet.solana.com"
 

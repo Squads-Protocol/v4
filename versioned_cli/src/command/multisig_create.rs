@@ -12,17 +12,16 @@ use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
 use std::str::FromStr;
 use std::time::Duration;
-
 use versioned_squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
 use versioned_squads_multisig::pda::get_multisig_pda;
 use versioned_squads_multisig::pda::get_program_config_pda;
 use versioned_squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
-use versioned_squads_multisig::accounts::MultisigCreateV2 as MultisigCreateV2Accounts;
+use versioned_squads_multisig::versioned_squads_multisig_program::accounts::VersionedMultisigCreateV2 as MultisigCreateV2Accounts;
 use versioned_squads_multisig::anchor_lang::ToAccountMetas;
-use versioned_squads_multisig::instruction::MultisigCreateV2 as MultisigCreateV2Data;
-use versioned_squads_multisig::state::ProgramConfig;
-use versioned_squads_multisig::MultisigCreateArgsV2;
-use versioned_squads_multisig::state::{Member, Permissions};
+use versioned_squads_multisig::versioned_squads_multisig_program::instruction::CreateVersionedMultisig as MultisigCreateV2Data;
+use versioned_squads_multisig::versioned_squads_multisig_program::state::ProgramConfig;
+use versioned_squads_multisig::versioned_squads_multisig_program::VersionedMultisigCreateArgsV2;
+use versioned_squads_multisig::state::{VersionedMember, Permissions};
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
@@ -168,7 +167,7 @@ impl MultisigCreate {
                     }
                     .to_account_metas(Some(false)),
                     data: MultisigCreateV2Data {
-                        args: MultisigCreateArgsV2 {
+                        args: VersionedMultisigCreateArgsV2 {
                             config_authority,
                             members,
                             threshold,
@@ -210,7 +209,7 @@ impl MultisigCreate {
     }
 }
 
-fn parse_members(member_strings: Vec<String>) -> Result<Vec<Member>, String> {
+fn parse_members(member_strings: Vec<String>) -> Result<Vec<VersionedMember>, String> {
     member_strings
         .into_iter()
         .map(|s| {
@@ -227,8 +226,9 @@ fn parse_members(member_strings: Vec<String>) -> Result<Vec<Member>, String> {
                 .parse::<u8>()
                 .map_err(|_| "Invalid permission format".to_string())?;
 
-            Ok(Member {
+            Ok(VersionedMember {
                 key,
+                join_proposal_index: 0,
                 permissions: Permissions { mask: permissions },
             })
         })

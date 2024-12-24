@@ -12,17 +12,13 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 
-use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::pda::get_proposal_pda;
-use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
-use squads_multisig::squads_multisig_program::instruction::ProposalCancel;
-use squads_multisig::squads_multisig_program::instruction::ProposalReject;
-use squads_multisig::squads_multisig_program::ProposalVoteArgs;
-
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use versioned_squads_multisig::anchor_lang::InstructionData;
+use versioned_squads_multisig::client::ProposalApproveData;
+use versioned_squads_multisig::pda::get_proposal_pda;
+use versioned_squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
+use versioned_squads_multisig::versioned_squads_multisig_program::accounts::VoteOnVersionedProposal as ProposalVoteAccounts;
+use versioned_squads_multisig::versioned_squads_multisig_program::anchor_lang::ToAccountMetas;
 
 #[derive(Args)]
 pub struct ProposalVote {
@@ -123,18 +119,8 @@ impl ProposalVote {
             .expect("Failed to get blockhash");
 
         let data = match action.to_lowercase().as_str() {
-            "approve" | "ap" => ProposalApprove {
-                args: ProposalVoteArgs { memo },
-            }
-            .data(),
-            "reject" | "rj" => ProposalReject {
-                args: ProposalVoteArgs { memo },
-            }
-            .data(),
-            "cancel" | "cl" => ProposalCancel {
-                args: ProposalVoteArgs { memo },
-            }
-            .data(),
+            "approve" | "ap" => ProposalApproveData { approve: true }.data(),
+            "reject" | "rj" => ProposalApproveData { approve: false }.data(),
             _ => {
                 eprintln!("Invalid action. Please use one of: Approve, Reject, Cancel, Activate (or their short forms)");
                 std::process::exit(1);
@@ -149,7 +135,7 @@ impl ProposalVote {
                 ),
                 Instruction {
                     accounts: ProposalVoteAccounts {
-                        member: transaction_creator,
+                        voter: transaction_creator,
                         multisig,
                         proposal: proposal_pda.0,
                     }

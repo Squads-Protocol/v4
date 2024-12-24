@@ -23,6 +23,14 @@ pub mod versioned_squads_multisig_program {
 
     use super::*;
 
+    /// Initialize the program config.
+    pub fn program_config_init(
+        ctx: Context<ProgramConfigInit>,
+        args: ProgramConfigInitArgs,
+    ) -> Result<()> {
+        ProgramConfigInit::program_config_init(ctx, args)
+    }
+
     /// Create a new versioned multisig
     pub fn create_versioned_multisig(
         ctx: Context<VersionedMultisigCreateV2>,
