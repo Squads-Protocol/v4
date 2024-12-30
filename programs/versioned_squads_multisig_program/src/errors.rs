@@ -24,6 +24,18 @@ pub enum VersionedMultisigError {
     TimeLockNotExpired,
     #[msg("Invalid join proposal index")]
     InvalidJoinProposalIndex,
+    #[msg("Account is not owned by Multisig program")]
+    IllegalAccountOwner,
+    #[msg("Missing account")]
+    MissingAccount,
+    #[msg("Provided pubkey is not a member of multisig")]
+    NotAMember,
+    #[msg("Members array is empty")]
+    EmptyMembers,
+    #[msg("Too many members, can be up to 65535")]
+    TooManyMembers,
+    #[msg("Members don't include any voters")]
+    NoVoters,
 } 
 
 #[error_code]

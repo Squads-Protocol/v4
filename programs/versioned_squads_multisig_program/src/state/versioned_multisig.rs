@@ -94,7 +94,7 @@ impl VersionedMultisig {
         // Check for duplicates
         require!(
             !self.members.iter().any(|m| m.key == member.key),
-            MultisigError::DuplicateMember
+            VersionedMultisigError::DuplicateMember
         );
         
         require!(
@@ -111,7 +111,7 @@ impl VersionedMultisig {
         let pos = self.members
             .iter()
             .position(|m| m.key == member_key)
-            .ok_or(MultisigError::NotAMember)?;
+            .ok_or(VersionedMultisigError::NotAMember)?;
 
         self.members.remove(pos);
         Ok(())
@@ -123,19 +123,21 @@ impl VersionedMultisig {
 
     pub fn invariant(&self) -> Result<()> {
         // Basic checks
-        require!(!self.members.is_empty(), MultisigError::EmptyMembers);
+        require!(!self.members.is_empty(), VersionedMultisigError::EmptyMembers);
         require!(
             self.members.len() <= usize::from(u16::MAX),
-            MultisigError::TooManyMembers
+            VersionedMultisigError::TooManyMembers
         );
 
+        msg!("Checking for duplicates");
+        msg!("Members: {:?}", self.members.iter().map(|m| m.key).collect::<Vec<Pubkey>>());
         // Check for duplicates
         let has_duplicates = self.members.windows(2).any(|w| w[0].key == w[1].key);
-        require!(!has_duplicates, MultisigError::DuplicateMember);
+        require!(!has_duplicates, VersionedMultisigError::DuplicateMember);
 
         // Verify at least one member can vote on next proposal
         let next_proposal_voters = self.get_eligible_voters(self.current_proposal_index);
-        require!(!next_proposal_voters.is_empty(), MultisigError::NoVoters);
+        require!(!next_proposal_voters.is_empty(), VersionedMultisigError::NoVoters);
 
         // Verify threshold
         require!(
@@ -175,7 +177,7 @@ impl VersionedMultisig {
         system_program: Option<AccountInfo<'a>>,
     ) -> Result<bool> {
         // Sanity checks
-        require_keys_eq!(*multisig.owner, id(), MultisigError::IllegalAccountOwner);
+        require_keys_eq!(*multisig.owner, id(), VersionedMultisigError::IllegalAccountOwner);
 
         let current_account_size = multisig.data.borrow().len();
         let account_size_to_fit_members = VersionedMultisig::size(members_length);
@@ -198,14 +200,14 @@ impl VersionedMultisig {
             rent_exempt_lamports.saturating_sub(multisig.to_account_info().lamports());
 
         if top_up_lamports > 0 {
-            let system_program = system_program.ok_or(MultisigError::MissingAccount)?;
+            let system_program = system_program.ok_or(VersionedMultisigError::MissingAccount)?;
             require_keys_eq!(
                 *system_program.key,
                 system_program::ID,
                 MultisigError::InvalidAccount
             );
 
-            let rent_payer = rent_payer.ok_or(MultisigError::MissingAccount)?;
+            let rent_payer = rent_payer.ok_or(VersionedMultisigError::MissingAccount)?;
 
             system_program::transfer(
                 CpiContext::new(

@@ -7,10 +7,10 @@ use crate::state::*;
 /// This is a key controlled by the Squads team and is intended to use for the single
 /// transaction that initializes the global program config. It is not used for anything else.
 #[cfg(not(feature = "testing"))]
-const INITIALIZER: Pubkey = pubkey!("GkEpJcdhwXeZwW4o5BEdLXZDhMMZU5c4cDHVqapkGiTA");
+const INITIALIZER: Pubkey = pubkey!("BZxQCuTBzHoPVknFMw6DGn8ZJ5eM3UmM8MgtsEP7eJBg");
 
 #[cfg(feature = "testing")]
-const INITIALIZER: Pubkey = pubkey!("GkEpJcdhwXeZwW4o5BEdLXZDhMMZU5c4cDHVqapkGiTA");
+const INITIALIZER: Pubkey = pubkey!("BZxQCuTBzHoPVknFMw6DGn8ZJ5eM3UmM8MgtsEP7eJBg");
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct ProgramConfigInitArgs {

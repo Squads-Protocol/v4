@@ -25,15 +25,16 @@ export function getVersionedTestProgramId() {
       )
     )
   );
+  console.log("programKeypair", programKeypair.publicKey.toBase58());
 
   return programKeypair.publicKey;
 }
 
 
 export function getVersionedTestProgramConfigAuthority() {
-    return loadKeypairFromFile("~/workplace/squads-v4/tests/suites/versioned_multisig/versioned-keys/program-config-auth.json");
+    return loadKeypairFromFile("/workplace/squads-v4/tests/suites/versioned_multisig/versioned-keys/program-config-auth.json");
   }
   
   export function getVersionedTestProgramTreasury() {
-    return loadKeypairFromFile("~/workplace/squads-v4/tests/suites/versioned_multisig/versioned-keys/program-treasury.json");
+    return loadKeypairFromFile("/workplace/squads-v4/tests/suites/versioned_multisig/versioned-keys/program-treasury.json");
   }

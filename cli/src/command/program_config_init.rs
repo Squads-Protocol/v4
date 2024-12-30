@@ -93,6 +93,7 @@ impl ProgramConfigInit {
         println!("⚙️ Config Parameters");
         println!();
         println!("Config Authority:  {}", program_config_authority);
+        println!("Program Config:    {}", program_config);
         println!("Treasury:          {}", treasury);
         println!("Creation Fee:      {}", multisig_creation_fee);
         println!();
@@ -151,6 +152,9 @@ impl ProgramConfigInit {
             &[&*transaction_creator_keypair],
         )
         .expect("Failed to create transaction");
+
+        // println!("Transaction: {:?}", transaction);
+        // println!("Transaction JSON: {}", serde_json::to_string_pretty(&transaction).unwrap());
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 

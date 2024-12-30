@@ -20,6 +20,7 @@
 // import "./suites/instructions/vaultTransactionAccountsClose";
 // import "./suites/instructions/vaultTransactionCreateFromBuffer";
 import "./suites/versioned_multisig/versioned-multisig";
+import "./suites/versioned_multisig/creation.test";
 
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";

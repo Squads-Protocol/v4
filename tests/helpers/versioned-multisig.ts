@@ -1,10 +1,9 @@
-import { Connection, Keypair,TransactionInstruction, PublicKey, SystemProgram, TransactionMessage } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, TransactionInstruction, TransactionMessage } from "@solana/web3.js";
 import * as versionedMultisig from "../../sdk/versioned_multisig/";
 import { VersionedMember } from "../../sdk/versioned_multisig/lib/generated";
-import { getVersionedTestProgramId, getVersionedTestProgramTreasury } from "../suites/versioned_multisig/versioned-utils";
-import { generateFundedKeypair } from "../utils";
-import { RetryScenario } from './retry-conditions';
 import { Permissions } from "../../sdk/versioned_multisig/lib/types";
+import { getVersionedTestProgramId } from "../suites/versioned_multisig/versioned-utils";
+import { generateFundedKeypair } from "../utils";
 
 export class VersionedMultisigTestHelper {
 
@@ -17,24 +16,38 @@ export class VersionedMultisigTestHelper {
         threshold: number,
         timeLock: number = 0
     ) {
+        const programConfigPda = versionedMultisig.getProgramConfigPda({ programId: getVersionedTestProgramId() })[0];
+        const programConfig =
+            await versionedMultisig.accounts.ProgramConfig.fromAccountAddress(
+                this.connection,
+                programConfigPda
+            );
+        // console.log("programConfig", JSON.stringify(programConfig, null, 2));
         const creator = await generateFundedKeypair(this.connection);
             const [multisigPda, multisigBump] = versionedMultisig.getMultisigPda({
                 createKey: creator.publicKey,
                 programId: getVersionedTestProgramId(),
             });
-            const sig = (await versionedMultisig.rpc.versionedMultisigCreate({
+            console.log("multisigPda", multisigPda.toBase58());
+            const [signature, blockhash] = await versionedMultisig.rpc.versionedMultisigCreate({
                 connection: this.connection,
-                treasury: getVersionedTestProgramTreasury().publicKey,
+                treasury: programConfig.treasury,
                 createKey: creator,
                 creator,
                 multisigPda,
-                configAuthority: null,
+                configAuthority: programConfig.authority,
                 threshold,
                 members: members,
                 rentCollector: null,
                 timeLock,
                 programId: getVersionedTestProgramId(),
-            }))[0];
+            });
+            console.log("versionedMultisigCreate - sig", signature);
+            await this.connection.confirmTransaction({
+                signature,
+                blockhash: blockhash.blockhash,
+                lastValidBlockHeight: blockhash.lastValidBlockHeight,
+            });
         return { multisigPda, createKey: creator };
     }
 

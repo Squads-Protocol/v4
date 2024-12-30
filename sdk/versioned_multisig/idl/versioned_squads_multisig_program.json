@@ -3,6 +3,40 @@
   "name": "versioned_squads_multisig_program",
   "instructions": [
     {
+      "name": "programConfigInit",
+      "docs": [
+        "Initialize the program config."
+      ],
+      "accounts": [
+        {
+          "name": "programConfig",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "initializer",
+          "isMut": true,
+          "isSigner": true,
+          "docs": [
+            "The hard-coded account that is used to initialize the program config once."
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "ProgramConfigInitArgs"
+          }
+        }
+      ]
+    },
+    {
       "name": "createVersionedMultisig",
       "docs": [
         "Create a new versioned multisig"
