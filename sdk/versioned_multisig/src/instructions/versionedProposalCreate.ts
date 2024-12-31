@@ -30,6 +30,11 @@ export function versionedProposalCreate({
       multisig: multisigPda,
       proposal: proposalPda,
     },
+    {
+      args: {
+        transactionIndex: Number(transactionIndex),
+      },
+    },
     programId
   );
 }

@@ -4,6 +4,7 @@ use anchor_lang::system_program;
 use solana_program::native_token::LAMPORTS_PER_SOL;
 
 use crate::errors::MultisigError;
+use crate::errors::VersionedMultisigError;
 use crate::state::*;
 
 // Dummy Account context for multisigCreate, since Anchor doesn't allow empty instructions.
@@ -69,7 +70,7 @@ impl VersionedMultisigCreateV2<'_> {
         require_keys_eq!(
             self.treasury.key(),
             self.program_config.treasury,
-            MultisigError::InvalidAccount
+            VersionedMultisigError::InvalidAccount
         );
         //endregion
 

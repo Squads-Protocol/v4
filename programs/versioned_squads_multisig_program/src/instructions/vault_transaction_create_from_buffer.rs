@@ -13,7 +13,7 @@ pub struct VaultTransactionCreateFromBuffer<'info> {
         close = creator,
         // Only the creator can turn the buffer into a transaction and reclaim
         // the rent
-        constraint = transaction_buffer.creator == creator.key() @ MultisigError::Unauthorized,
+        constraint = transaction_buffer.creator == creator.key() @ VersionedMultisigError::Unauthorized,
         seeds = [
             SEED_PREFIX,
             vault_transaction_create.multisig.key().as_ref(),

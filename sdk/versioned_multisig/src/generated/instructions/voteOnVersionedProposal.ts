@@ -66,7 +66,7 @@ export const voteOnVersionedProposalInstructionDiscriminator = [
 export function createVoteOnVersionedProposalInstruction(
   accounts: VoteOnVersionedProposalInstructionAccounts,
   args: VoteOnVersionedProposalInstructionArgs,
-  programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
+  programId = new web3.PublicKey('5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er')
 ) {
   const [data] = voteOnVersionedProposalStruct.serialize({
     instructionDiscriminator: voteOnVersionedProposalInstructionDiscriminator,

@@ -72,7 +72,7 @@ impl VersionedMultisigConfig<'_> {
         require_keys_eq!(
             self.config_authority.key(),
             self.multisig.config_authority,
-            MultisigError::Unauthorized
+            VersionedMultisigError::Unauthorized
         );
 
         Ok(())
@@ -91,7 +91,7 @@ impl VersionedMultisigConfig<'_> {
         // Make sure that the new member is not already in the multisig.
         require!(
             multisig.is_member(new_member.key).is_none(),
-            MultisigError::DuplicateMember
+            VersionedMultisigError::DuplicateMember
         );
 
         let _ = multisig.add_member(new_member)?;
@@ -128,7 +128,7 @@ impl VersionedMultisigConfig<'_> {
     ) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
 
-        require!(multisig.members.len() > 1, MultisigError::RemoveLastMember);
+        require!(multisig.members.len() > 1, VersionedMultisigError::RemoveLastMember);
 
         multisig.remove_member(args.old_member)?;
 

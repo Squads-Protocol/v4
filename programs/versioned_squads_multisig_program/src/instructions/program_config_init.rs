@@ -1,4 +1,4 @@
-use crate::errors::MultisigError;
+use crate::errors::{MultisigError, VersionedMultisigError};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey;
 
@@ -36,7 +36,7 @@ pub struct ProgramConfigInit<'info> {
     /// The hard-coded account that is used to initialize the program config once.
     #[account(
         mut,
-        address = INITIALIZER @ MultisigError::Unauthorized
+        address = INITIALIZER @ VersionedMultisigError::Unauthorized
     )]
     pub initializer: Signer<'info>,
 

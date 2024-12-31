@@ -36,6 +36,26 @@ pub enum VersionedMultisigError {
     TooManyMembers,
     #[msg("Members don't include any voters")]
     NoVoters,
+    #[msg("Proposal is stale")]
+    StaleProposal,
+    #[msg("Attempted to perform an unauthorized action")]
+    Unauthorized,
+    #[msg("Invalid transaction index")]
+    InvalidTransactionIndex,
+    #[msg("Invalid account provided")]
+    InvalidAccount,
+    #[msg("Wrong number of accounts provided")]
+    InvalidNumberOfAccounts,
+    #[msg("Attempted to remove last member")]
+    RemoveLastMember,
+    #[msg("Member already approved the transaction")]
+    AlreadyApproved,
+    #[msg("Member already rejected the transaction")]
+    AlreadyRejected,
+    #[msg("Member already cancelled the transaction")]
+    AlreadyCancelled,
+    #[msg("Member already executed the transaction")]
+    AlreadyExecuted,
 } 
 
 #[error_code]
@@ -46,32 +66,16 @@ pub enum MultisigError {
     EmptyMembers,
     #[msg("Too many members, can be up to 65535")]
     TooManyMembers,
-    #[msg("Invalid threshold, must be between 1 and number of members with Vote permission")]
-    InvalidThreshold,
-    #[msg("Attempted to perform an unauthorized action")]
-    Unauthorized,
+    
     #[msg("Provided pubkey is not a member of multisig")]
     NotAMember,
     #[msg("TransactionMessage is malformed.")]
     InvalidTransactionMessage,
-    #[msg("Proposal is stale")]
-    StaleProposal,
     #[msg("Invalid proposal status")]
     InvalidProposalStatus,
-    #[msg("Invalid transaction index")]
-    InvalidTransactionIndex,
-    #[msg("Member already approved the transaction")]
-    AlreadyApproved,
-    #[msg("Member already rejected the transaction")]
-    AlreadyRejected,
-    #[msg("Member already cancelled the transaction")]
-    AlreadyCancelled,
-    #[msg("Wrong number of accounts provided")]
-    InvalidNumberOfAccounts,
-    #[msg("Invalid account provided")]
-    InvalidAccount,
-    #[msg("Cannot remove last member")]
-    RemoveLastMember,
+    
+   
+    
     #[msg("Members don't include any voters")]
     NoVoters,
     #[msg("Members don't include any proposers")]

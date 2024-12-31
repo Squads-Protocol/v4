@@ -122,7 +122,14 @@
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": "VersionedProposalCreateArgs"
+          }
+        }
+      ]
     },
     {
       "name": "voteOnVersionedProposal",
@@ -1040,6 +1047,21 @@
       }
     },
     {
+      "name": "VersionedProposalCreateArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "transactionIndex",
+            "docs": [
+              "Index of the multisig transaction this proposal is associated with."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "VaultTransactionMessage",
       "type": {
         "kind": "struct",
@@ -1233,43 +1255,13 @@
             "name": "TooManyMembers"
           },
           {
-            "name": "InvalidThreshold"
-          },
-          {
-            "name": "Unauthorized"
-          },
-          {
             "name": "NotAMember"
           },
           {
             "name": "InvalidTransactionMessage"
           },
           {
-            "name": "StaleProposal"
-          },
-          {
             "name": "InvalidProposalStatus"
-          },
-          {
-            "name": "InvalidTransactionIndex"
-          },
-          {
-            "name": "AlreadyApproved"
-          },
-          {
-            "name": "AlreadyRejected"
-          },
-          {
-            "name": "AlreadyCancelled"
-          },
-          {
-            "name": "InvalidNumberOfAccounts"
-          },
-          {
-            "name": "InvalidAccount"
-          },
-          {
-            "name": "RemoveLastMember"
           },
           {
             "name": "NoVoters"
@@ -1641,10 +1633,90 @@
       "code": 6010,
       "name": "InvalidJoinProposalIndex",
       "msg": "Invalid join proposal index"
+    },
+    {
+      "code": 6011,
+      "name": "IllegalAccountOwner",
+      "msg": "Account is not owned by Multisig program"
+    },
+    {
+      "code": 6012,
+      "name": "MissingAccount",
+      "msg": "Missing account"
+    },
+    {
+      "code": 6013,
+      "name": "NotAMember",
+      "msg": "Provided pubkey is not a member of multisig"
+    },
+    {
+      "code": 6014,
+      "name": "EmptyMembers",
+      "msg": "Members array is empty"
+    },
+    {
+      "code": 6015,
+      "name": "TooManyMembers",
+      "msg": "Too many members, can be up to 65535"
+    },
+    {
+      "code": 6016,
+      "name": "NoVoters",
+      "msg": "Members don't include any voters"
+    },
+    {
+      "code": 6017,
+      "name": "StaleProposal",
+      "msg": "Proposal is stale"
+    },
+    {
+      "code": 6018,
+      "name": "Unauthorized",
+      "msg": "Attempted to perform an unauthorized action"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidTransactionIndex",
+      "msg": "Invalid transaction index"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidAccount",
+      "msg": "Invalid account provided"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidNumberOfAccounts",
+      "msg": "Wrong number of accounts provided"
+    },
+    {
+      "code": 6022,
+      "name": "RemoveLastMember",
+      "msg": "Attempted to remove last member"
+    },
+    {
+      "code": 6023,
+      "name": "AlreadyApproved",
+      "msg": "Member already approved the transaction"
+    },
+    {
+      "code": 6024,
+      "name": "AlreadyRejected",
+      "msg": "Member already rejected the transaction"
+    },
+    {
+      "code": 6025,
+      "name": "AlreadyCancelled",
+      "msg": "Member already cancelled the transaction"
+    },
+    {
+      "code": 6026,
+      "name": "AlreadyExecuted",
+      "msg": "Member already executed the transaction"
     }
   ],
   "metadata": {
-    "address": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
+    "address": "5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er",
     "origin": "anchor",
     "binaryVersion": "0.29.0",
     "libVersion": "=0.29.0"

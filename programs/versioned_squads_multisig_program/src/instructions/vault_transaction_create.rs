@@ -58,11 +58,11 @@ impl<'info> VaultTransactionCreate<'info> {
         // creator
         require!(
             multisig.is_member(creator.key()).is_some(),
-            MultisigError::NotAMember
+            VersionedMultisigError::NotAMember
         );
         require!(
             multisig.member_has_permission(creator.key(), Permission::Initiate),
-            MultisigError::Unauthorized
+            VersionedMultisigError::Unauthorized
         );
 
         Ok(())

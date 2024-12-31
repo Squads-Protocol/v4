@@ -7,16 +7,33 @@
 
 import * as beet from '@metaplex-foundation/beet'
 import * as web3 from '@solana/web3.js'
+import {
+  VersionedProposalCreateArgs,
+  versionedProposalCreateArgsBeet,
+} from '../types/VersionedProposalCreateArgs'
 
 /**
  * @category Instructions
  * @category CreateVersionedProposal
  * @category generated
  */
-export const createVersionedProposalStruct = new beet.BeetArgsStruct<{
-  instructionDiscriminator: number[] /* size: 8 */
-}>(
-  [['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)]],
+export type CreateVersionedProposalInstructionArgs = {
+  args: VersionedProposalCreateArgs
+}
+/**
+ * @category Instructions
+ * @category CreateVersionedProposal
+ * @category generated
+ */
+export const createVersionedProposalStruct = new beet.BeetArgsStruct<
+  CreateVersionedProposalInstructionArgs & {
+    instructionDiscriminator: number[] /* size: 8 */
+  }
+>(
+  [
+    ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
+    ['args', versionedProposalCreateArgsBeet],
+  ],
   'CreateVersionedProposalInstructionArgs'
 )
 /**
@@ -45,16 +62,20 @@ export const createVersionedProposalInstructionDiscriminator = [
  * Creates a _CreateVersionedProposal_ instruction.
  *
  * @param accounts that will be accessed while the instruction is processed
+ * @param args to provide as instruction data to the program
+ *
  * @category Instructions
  * @category CreateVersionedProposal
  * @category generated
  */
 export function createCreateVersionedProposalInstruction(
   accounts: CreateVersionedProposalInstructionAccounts,
-  programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
+  args: CreateVersionedProposalInstructionArgs,
+  programId = new web3.PublicKey('5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er')
 ) {
   const [data] = createVersionedProposalStruct.serialize({
     instructionDiscriminator: createVersionedProposalInstructionDiscriminator,
+    ...args,
   })
   const keys: web3.AccountMeta[] = [
     {

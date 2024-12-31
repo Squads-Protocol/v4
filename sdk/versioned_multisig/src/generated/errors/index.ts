@@ -256,6 +256,350 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * IllegalAccountOwner: 'Account is not owned by Multisig program'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class IllegalAccountOwnerError extends Error {
+  readonly code: number = 0x177b
+  readonly name: string = 'IllegalAccountOwner'
+  constructor() {
+    super('Account is not owned by Multisig program')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, IllegalAccountOwnerError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177b, () => new IllegalAccountOwnerError())
+createErrorFromNameLookup.set(
+  'IllegalAccountOwner',
+  () => new IllegalAccountOwnerError()
+)
+
+/**
+ * MissingAccount: 'Missing account'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class MissingAccountError extends Error {
+  readonly code: number = 0x177c
+  readonly name: string = 'MissingAccount'
+  constructor() {
+    super('Missing account')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, MissingAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177c, () => new MissingAccountError())
+createErrorFromNameLookup.set('MissingAccount', () => new MissingAccountError())
+
+/**
+ * NotAMember: 'Provided pubkey is not a member of multisig'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NotAMemberError extends Error {
+  readonly code: number = 0x177d
+  readonly name: string = 'NotAMember'
+  constructor() {
+    super('Provided pubkey is not a member of multisig')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NotAMemberError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177d, () => new NotAMemberError())
+createErrorFromNameLookup.set('NotAMember', () => new NotAMemberError())
+
+/**
+ * EmptyMembers: 'Members array is empty'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class EmptyMembersError extends Error {
+  readonly code: number = 0x177e
+  readonly name: string = 'EmptyMembers'
+  constructor() {
+    super('Members array is empty')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, EmptyMembersError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177e, () => new EmptyMembersError())
+createErrorFromNameLookup.set('EmptyMembers', () => new EmptyMembersError())
+
+/**
+ * TooManyMembers: 'Too many members, can be up to 65535'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TooManyMembersError extends Error {
+  readonly code: number = 0x177f
+  readonly name: string = 'TooManyMembers'
+  constructor() {
+    super('Too many members, can be up to 65535')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TooManyMembersError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x177f, () => new TooManyMembersError())
+createErrorFromNameLookup.set('TooManyMembers', () => new TooManyMembersError())
+
+/**
+ * NoVoters: 'Members don't include any voters'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class NoVotersError extends Error {
+  readonly code: number = 0x1780
+  readonly name: string = 'NoVoters'
+  constructor() {
+    super("Members don't include any voters")
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NoVotersError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1780, () => new NoVotersError())
+createErrorFromNameLookup.set('NoVoters', () => new NoVotersError())
+
+/**
+ * StaleProposal: 'Proposal is stale'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class StaleProposalError extends Error {
+  readonly code: number = 0x1781
+  readonly name: string = 'StaleProposal'
+  constructor() {
+    super('Proposal is stale')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, StaleProposalError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1781, () => new StaleProposalError())
+createErrorFromNameLookup.set('StaleProposal', () => new StaleProposalError())
+
+/**
+ * Unauthorized: 'Attempted to perform an unauthorized action'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class UnauthorizedError extends Error {
+  readonly code: number = 0x1782
+  readonly name: string = 'Unauthorized'
+  constructor() {
+    super('Attempted to perform an unauthorized action')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, UnauthorizedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1782, () => new UnauthorizedError())
+createErrorFromNameLookup.set('Unauthorized', () => new UnauthorizedError())
+
+/**
+ * InvalidTransactionIndex: 'Invalid transaction index'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidTransactionIndexError extends Error {
+  readonly code: number = 0x1783
+  readonly name: string = 'InvalidTransactionIndex'
+  constructor() {
+    super('Invalid transaction index')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidTransactionIndexError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1783, () => new InvalidTransactionIndexError())
+createErrorFromNameLookup.set(
+  'InvalidTransactionIndex',
+  () => new InvalidTransactionIndexError()
+)
+
+/**
+ * InvalidAccount: 'Invalid account provided'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidAccountError extends Error {
+  readonly code: number = 0x1784
+  readonly name: string = 'InvalidAccount'
+  constructor() {
+    super('Invalid account provided')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1784, () => new InvalidAccountError())
+createErrorFromNameLookup.set('InvalidAccount', () => new InvalidAccountError())
+
+/**
+ * InvalidNumberOfAccounts: 'Wrong number of accounts provided'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidNumberOfAccountsError extends Error {
+  readonly code: number = 0x1785
+  readonly name: string = 'InvalidNumberOfAccounts'
+  constructor() {
+    super('Wrong number of accounts provided')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidNumberOfAccountsError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1785, () => new InvalidNumberOfAccountsError())
+createErrorFromNameLookup.set(
+  'InvalidNumberOfAccounts',
+  () => new InvalidNumberOfAccountsError()
+)
+
+/**
+ * RemoveLastMember: 'Attempted to remove last member'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class RemoveLastMemberError extends Error {
+  readonly code: number = 0x1786
+  readonly name: string = 'RemoveLastMember'
+  constructor() {
+    super('Attempted to remove last member')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, RemoveLastMemberError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1786, () => new RemoveLastMemberError())
+createErrorFromNameLookup.set(
+  'RemoveLastMember',
+  () => new RemoveLastMemberError()
+)
+
+/**
+ * AlreadyApproved: 'Member already approved the transaction'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class AlreadyApprovedError extends Error {
+  readonly code: number = 0x1787
+  readonly name: string = 'AlreadyApproved'
+  constructor() {
+    super('Member already approved the transaction')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, AlreadyApprovedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1787, () => new AlreadyApprovedError())
+createErrorFromNameLookup.set(
+  'AlreadyApproved',
+  () => new AlreadyApprovedError()
+)
+
+/**
+ * AlreadyRejected: 'Member already rejected the transaction'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class AlreadyRejectedError extends Error {
+  readonly code: number = 0x1788
+  readonly name: string = 'AlreadyRejected'
+  constructor() {
+    super('Member already rejected the transaction')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, AlreadyRejectedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1788, () => new AlreadyRejectedError())
+createErrorFromNameLookup.set(
+  'AlreadyRejected',
+  () => new AlreadyRejectedError()
+)
+
+/**
+ * AlreadyCancelled: 'Member already cancelled the transaction'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class AlreadyCancelledError extends Error {
+  readonly code: number = 0x1789
+  readonly name: string = 'AlreadyCancelled'
+  constructor() {
+    super('Member already cancelled the transaction')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, AlreadyCancelledError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1789, () => new AlreadyCancelledError())
+createErrorFromNameLookup.set(
+  'AlreadyCancelled',
+  () => new AlreadyCancelledError()
+)
+
+/**
+ * AlreadyExecuted: 'Member already executed the transaction'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class AlreadyExecutedError extends Error {
+  readonly code: number = 0x178a
+  readonly name: string = 'AlreadyExecuted'
+  constructor() {
+    super('Member already executed the transaction')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, AlreadyExecutedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178a, () => new AlreadyExecutedError())
+createErrorFromNameLookup.set(
+  'AlreadyExecuted',
+  () => new AlreadyExecutedError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

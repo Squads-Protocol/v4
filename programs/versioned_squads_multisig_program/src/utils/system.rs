@@ -1,4 +1,5 @@
 use crate::errors::MultisigError;
+use crate::errors::VersionedMultisigError;
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
@@ -17,7 +18,7 @@ pub fn create_account<'a, 'info>(
     require_keys_eq!(
         *system_program.key,
         system_program::ID,
-        MultisigError::InvalidAccount
+        VersionedMultisigError::InvalidAccount
     );
 
     let current_lamports = **new_account.try_borrow_lamports()?;

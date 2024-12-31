@@ -57,11 +57,11 @@ impl VaultTransactionExecute<'_> {
         // member
         require!(
             multisig.is_member(member.key()).is_some(),
-            MultisigError::NotAMember
+            VersionedMultisigError::NotAMember
         );
         require!(
             multisig.member_has_permission(member.key(), Permission::Execute),
-            MultisigError::Unauthorized
+            VersionedMultisigError::Unauthorized
         );
 
         // proposal
@@ -72,7 +72,7 @@ impl VaultTransactionExecute<'_> {
                     MultisigError::TimeLockNotReleased
                 );
             }
-            _ => return err!(MultisigError::InvalidProposalStatus),
+            _ => return err!(VersionedMultisigError::InvalidProposalStatus),
         }
         // Stale vault transaction proposals CAN be executed if they were approved
         // before becoming stale, hence no check for staleness here.
@@ -112,11 +112,11 @@ impl VaultTransactionExecute<'_> {
         let message_account_infos = ctx
             .remaining_accounts
             .get(num_lookups..)
-            .ok_or(MultisigError::InvalidNumberOfAccounts)?;
+            .ok_or(VersionedMultisigError::InvalidNumberOfAccounts)?;
         let address_lookup_table_account_infos = ctx
             .remaining_accounts
             .get(..num_lookups)
-            .ok_or(MultisigError::InvalidNumberOfAccounts)?;
+            .ok_or(VersionedMultisigError::InvalidNumberOfAccounts)?;
 
         let vault_pubkey = Pubkey::create_program_address(vault_seeds, ctx.program_id).unwrap();
 

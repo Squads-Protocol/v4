@@ -1,9 +1,10 @@
-import { Connection, Keypair, PublicKey, TransactionInstruction, TransactionMessage } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, TransactionInstruction,SystemProgram, TransactionMessage, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as versionedMultisig from "../../sdk/versioned_multisig/";
 import { VersionedMember } from "../../sdk/versioned_multisig/lib/generated";
 import { Permissions } from "../../sdk/versioned_multisig/lib/types";
 import { getVersionedTestProgramId } from "../suites/versioned_multisig/versioned-utils";
 import { generateFundedKeypair } from "../utils";
+import { BN } from "bn.js";
 
 export class VersionedMultisigTestHelper {
 
@@ -11,6 +12,45 @@ export class VersionedMultisigTestHelper {
     constructor( connection: Connection) {
         this.connection = connection;
     }
+
+    async addVersionedMultisigMember(
+        multisig: PublicKey,
+        feePayer: Keypair,
+        configAuthority: PublicKey,
+        rentPayer: Keypair,
+        member: VersionedMember,
+        signers: Keypair[]
+    ) {
+        const [result, blockhash] = await versionedMultisig.rpc.versionedMultisigAddMember({
+            connection: this.connection,
+            feePayer: feePayer,
+            configAuthority: configAuthority,
+            rentPayer: rentPayer,
+            multisigPda: multisig,
+            newMember: member,
+            programId: getVersionedTestProgramId(),
+            signers
+        });
+        await this.connection.confirmTransaction({
+            signature: result,
+            blockhash: blockhash.blockhash,
+            lastValidBlockHeight: blockhash.lastValidBlockHeight
+        });
+        console.log("versionedMultisigAddMember", await this.connection.getTransaction(result, {
+            maxSupportedTransactionVersion: 0,
+        }));
+    }
+
+    async getProgramConfig(){ 
+        const programConfigPda = versionedMultisig.getProgramConfigPda({ programId: getVersionedTestProgramId() })[0];
+        const programConfig =
+            await versionedMultisig.accounts.ProgramConfig.fromAccountAddress(
+                this.connection,
+                programConfigPda
+            );
+        return programConfig;
+    }
+
     async createVersionedMultisig(
         members: VersionedMember[],
         threshold: number,
@@ -54,12 +94,75 @@ export class VersionedMultisigTestHelper {
     async getVersionedProposalPda(multisig: PublicKey, index: number) {
         return PublicKey.findProgramAddressSync(
             [
-                Buffer.from("proposal"),
+                Buffer.from("multisig"),
                 multisig.toBuffer(),
-                Buffer.from(index.toString())
-            ],
+                Buffer.from("transaction"),
+                Buffer.from(new Uint8Array(new BN(index).toArray("le", 8))),
+                Buffer.from("proposal"),
+              ],
             getVersionedTestProgramId()
         );
+    }
+
+    async airdrop(to: PublicKey, lamports: number) {
+        const sig = await this.connection.requestAirdrop(to, lamports);
+        await this.connection.confirmTransaction(sig);
+        return sig;
+    }
+
+    async getVersionedProposal(multisig: PublicKey, index: number) {
+        const [proposalPda] = await this.getVersionedProposalPda(multisig, index);
+        return versionedMultisig.accounts.Proposal.fromAccountAddress(this.connection, proposalPda);
+    }
+
+    async createVersionedVaultTransaction(
+        multisig: PublicKey,
+        creator: Keypair,
+    ) {
+
+        const [vaultPda] = versionedMultisig.getVaultPda({
+            multisigPda: multisig,
+            index: 0,
+          });
+
+          const instruction = SystemProgram.transfer({
+            // The transfer is being signed from the Squads Vault, that is why we use the VaultPda
+            fromPubkey: vaultPda,
+            toPubkey: creator.publicKey,
+            lamports: 1 * LAMPORTS_PER_SOL,
+          });
+          // This message contains the instructions that the transaction is going to execute
+          const transferMessage = new TransactionMessage({
+            payerKey: vaultPda,
+            recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+            instructions: [instruction],
+          });
+      
+          // Get the current multisig transaction index
+          const multisigInfo = await versionedMultisig.accounts.VersionedMultisig.fromAccountAddress(
+            this.connection,
+            multisig
+          );
+  
+      const currentTransactionIndex = Number(multisigInfo.transactionIndex);
+  
+        const newTransactionIndex = BigInt(currentTransactionIndex + 1);
+
+        const [signature1, blockhash] = await versionedMultisig.rpc.vaultTransactionCreate({
+            connection: this.connection,
+            feePayer: creator,
+            multisigPda: multisig,
+            transactionIndex: newTransactionIndex,
+            creator: creator.publicKey,
+            vaultIndex: 0,
+            ephemeralSigners: 0,
+            transactionMessage: transferMessage,
+            memo: "Transfer 0.1 SOL to creator",
+            programId: getVersionedTestProgramId(),
+        });
+        console.log("signature1", signature1);
+        await this.connection.confirmTransaction(signature1);
+        return signature1;
     }
 
     async createVersionedProposal(
@@ -68,16 +171,20 @@ export class VersionedMultisigTestHelper {
         index: number
     ) {
         const [proposalPda, _] = await this.getVersionedProposalPda(multisig, index);
-
-        await versionedMultisig.rpc.versionedProposalCreate({
+        console.log("proposalPda", proposalPda.toBase58());
+        const sig =  await versionedMultisig.rpc.versionedProposalCreate({
             connection: this.connection,
             multisigPda: multisig,
             creator: creator,
             transactionIndex: BigInt(index),
             programId: getVersionedTestProgramId(),
         });
+        await this.connection.confirmTransaction(sig);
+        console.log("versionedProposalCreate", await this.connection.getTransaction(sig, {
+            maxSupportedTransactionVersion: 0,
+        }));
 
-        return proposalPda;
+        return {sig,proposalPda};
     }
 
     async vote(
@@ -86,7 +193,7 @@ export class VersionedMultisigTestHelper {
         voter: Keypair,
         approve: boolean
     ) {
-        await versionedMultisig.rpc.versionedProposalVote({
+        const sig =  await versionedMultisig.rpc.versionedProposalVote({
             connection: this.connection,
             multisigPda: multisig,
             proposalPda: proposal,
@@ -94,18 +201,28 @@ export class VersionedMultisigTestHelper {
             approve: approve,
             programId: getVersionedTestProgramId(),
         });
+        await this.connection.confirmTransaction(sig);
+        console.log("versionedProposalVote", await this.connection.getTransaction(sig, {
+            maxSupportedTransactionVersion: 0,
+        }));
+        return sig;
     }
 
     // Helper to generate test members
-    generateMembers(count: number, permissions: Permissions = Permissions.all(), joinProposalIndex: number = 0): VersionedMember[] {
+    generateMembers(count: number, permissions: Permissions = Permissions.all(), joinProposalIndex: number = 0): (VersionedMember & {keyPair: Keypair})[] {
         return Array(count)
             .fill(0)
-            .map(() => ({
-                key: Keypair.generate().publicKey,
-                permissions,
-                joinProposalIndex
-            }));
+            .map(() => {
+                const keyPair = Keypair.generate();
+                return ({
+                    key: keyPair.publicKey,
+                    keyPair,
+                    permissions,
+                    joinProposalIndex
+                });
+            });
     }
+
 
     async createProposalWithInstruction(
         multisig: PublicKey,
@@ -164,5 +281,26 @@ export class VersionedMultisigTestHelper {
             member: executor.publicKey,
             programId: getVersionedTestProgramId(),
         });
+    }
+
+    async removeVersionedMultisigMember(
+        multisig: PublicKey,
+        feePayer: Keypair,
+        configAuthority: PublicKey,
+        rentCollector: Keypair,
+        memberKey: PublicKey,
+        signers: Keypair[]
+    ) {
+        const [result, blockhash] = await versionedMultisig.rpc.versionedMultisigRemoveMember({
+            connection: this.connection,
+            feePayer,
+            configAuthority,
+            oldMember: memberKey,
+            multisigPda: multisig,
+            programId: getVersionedTestProgramId(),
+            signers
+        });
+        await this.connection.confirmTransaction(result);
+        return result;
     }
 }

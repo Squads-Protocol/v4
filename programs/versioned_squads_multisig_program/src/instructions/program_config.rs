@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::MultisigError;
+use crate::errors::VersionedMultisigError;
 use crate::state::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -41,7 +41,7 @@ impl ProgramConfig<'_> {
         require_keys_eq!(
             program_config.authority,
             authority.key(),
-            MultisigError::Unauthorized
+            VersionedMultisigError::Unauthorized
         );
 
         Ok(())

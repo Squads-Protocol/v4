@@ -1,4 +1,6 @@
 import {
+  Blockhash,
+  BlockhashWithExpiryBlockHeight,
   Connection,
   PublicKey,
   SendOptions,
@@ -31,11 +33,11 @@ export async function versionedMultisigAddMember({
   signers?: Signer[];
   sendOptions?: SendOptions;
   programId?: PublicKey;
-}): Promise<TransactionSignature> {
-  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+}): Promise<[TransactionSignature, BlockhashWithExpiryBlockHeight]>{
+  const blockhash = (await connection.getLatestBlockhash());
 
   const tx = transactions.versionedMultisigAddMember({
-    blockhash,
+    blockhash: blockhash.blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
     configAuthority,
@@ -43,13 +45,15 @@ export async function versionedMultisigAddMember({
     newMember,
     programId,
   });
-
   const transaction = new VersionedTransaction(tx);
 
-  transaction.sign([feePayer, rentPayer, ...(signers ?? [])]);
+  const allSigners = [feePayer, rentPayer, ...(signers ?? [])];
+  const distinctSigners = [...new Set(allSigners)];
+  transaction.sign(distinctSigners);
 
   try {
-    return await connection.sendTransaction(transaction, sendOptions);
+    const result = await connection.sendTransaction(transaction, sendOptions);
+    return [result, blockhash];
   } catch (err) {
     translateAndThrowAnchorError(err);
   }

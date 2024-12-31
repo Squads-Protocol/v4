@@ -49,7 +49,7 @@ impl Proposal {
 
         // Insert the vote of approval.
         match self.approved.binary_search(&member) {
-            Ok(_) => return err!(MultisigError::AlreadyApproved),
+            Ok(_) => return err!(VersionedMultisigError::AlreadyVoted),
             Err(pos) => self.approved.insert(pos, member),
         };
 
@@ -72,7 +72,7 @@ impl Proposal {
 
         // Insert the vote of rejection.
         match self.rejected.binary_search(&member) {
-            Ok(_) => return err!(MultisigError::AlreadyRejected),
+            Ok(_) => return err!(VersionedMultisigError::AlreadyVoted),
             Err(pos) => self.rejected.insert(pos, member),
         };
 
@@ -87,22 +87,22 @@ impl Proposal {
     }
 
     /// Registers a cancellation vote.
-    pub fn cancel(&mut self, member: Pubkey, threshold: usize) -> Result<()> {
-        // Insert the vote of cancellation.
-        match self.cancelled.binary_search(&member) {
-            Ok(_) => return err!(MultisigError::AlreadyCancelled),
-            Err(pos) => self.cancelled.insert(pos, member),
-        };
+    // pub fn cancel(&mut self, member: Pubkey, threshold: usize) -> Result<()> {
+    //     // Insert the vote of cancellation.
+    //     match self.cancelled.binary_search(&member) {
+    //         Ok(_) => return err!(VersionedMultisigError::AlreadyCancelled),
+    //         Err(pos) => self.cancelled.insert(pos, member),
+    //     };
 
-        // If current number of cancellations reaches threshold, mark the transaction as `Cancelled`.
-        if self.cancelled.len() >= threshold {
-            self.status = ProposalStatus::Cancelled {
-                timestamp: Clock::get()?.unix_timestamp,
-            };
-        }
+    //     // If current number of cancellations reaches threshold, mark the transaction as `Cancelled`.
+    //     if self.cancelled.len() >= threshold {
+    //         self.status = ProposalStatus::Cancelled {
+    //             timestamp: Clock::get()?.unix_timestamp,
+    //         };
+    //     }
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     /// Check if the member approved the transaction.
     /// Returns `Some(index)` if `member` has approved the transaction, with `index` into the `approved` vec.
@@ -158,14 +158,14 @@ impl Proposal {
             rent_exempt_lamports.saturating_sub(proposal.to_account_info().lamports());
 
         if top_up_lamports > 0 {
-            let system_program = system_program.ok_or(MultisigError::MissingAccount)?;
+            let system_program = system_program.ok_or(VersionedMultisigError::MissingAccount)?;
             require_keys_eq!(
                 *system_program.key,
                 system_program::ID,
-                MultisigError::InvalidAccount
+                VersionedMultisigError::InvalidAccount
             );
 
-            let rent_payer = rent_payer.ok_or(MultisigError::MissingAccount)?;
+            let rent_payer = rent_payer.ok_or(VersionedMultisigError::MissingAccount)?;
 
             system_program::transfer(
                 CpiContext::new(

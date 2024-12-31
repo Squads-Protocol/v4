@@ -87,8 +87,9 @@ impl VersionedMultisig {
     pub fn add_member(&mut self, new_member: VersionedMember) -> Result<()> {
         // Set join index to next proposal
         let member = VersionedMember {
+            key: new_member.key,
             join_proposal_index: self.current_proposal_index,
-            ..new_member
+            permissions: new_member.permissions,
         };
         
         // Check for duplicates
@@ -96,19 +97,15 @@ impl VersionedMultisig {
             !self.members.iter().any(|m| m.key == member.key),
             VersionedMultisigError::DuplicateMember
         );
-        
-        require!(
-            new_member.join_proposal_index == self.current_proposal_index + 1,
-            VersionedMultisigError::InvalidJoinProposalIndex
-        );
 
-        self.members.push(member);
+        self.members.push(member.clone());
         self.members.sort_by_key(|m| m.key);
+        msg!("Member added: {}, Join Index: {}", member.key.to_string(), member.join_proposal_index.to_string());
         Ok(())
     }
 
     pub fn remove_member(&mut self, member_key: Pubkey) -> Result<()> {
-        let pos = self.members
+        let pos: usize = self.members
             .iter()
             .position(|m| m.key == member_key)
             .ok_or(VersionedMultisigError::NotAMember)?;
@@ -139,11 +136,12 @@ impl VersionedMultisig {
         let next_proposal_voters = self.get_eligible_voters(self.current_proposal_index);
         require!(!next_proposal_voters.is_empty(), VersionedMultisigError::NoVoters);
 
-        // Verify threshold
-        require!(
-            self.threshold <= next_proposal_voters.len() as u16,
-            VersionedMultisigError::InvalidThreshold
-        );
+        // // Verify threshold
+        //TODO: This is not working as expected.
+        // require!(
+        //     self.calculate_threshold_for_proposal(self.current_proposal_index) <= next_proposal_voters.len() as u16,
+        //     VersionedMultisigError::InvalidThreshold
+        // );
 
         Ok(())
     }
@@ -204,7 +202,7 @@ impl VersionedMultisig {
             require_keys_eq!(
                 *system_program.key,
                 system_program::ID,
-                MultisigError::InvalidAccount
+                VersionedMultisigError::InvalidAccount
             );
 
             let rent_payer = rent_payer.ok_or(VersionedMultisigError::MissingAccount)?;

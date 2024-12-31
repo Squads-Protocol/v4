@@ -74,7 +74,7 @@ export const removeMemberInstructionDiscriminator = [
 export function createRemoveMemberInstruction(
   accounts: RemoveMemberInstructionAccounts,
   args: RemoveMemberInstructionArgs,
-  programId = new web3.PublicKey('SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf')
+  programId = new web3.PublicKey('5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er')
 ) {
   const [data] = removeMemberStruct.serialize({
     instructionDiscriminator: removeMemberInstructionDiscriminator,

@@ -115,7 +115,7 @@ describe("Versioned Multisig Creation", () => {
                 await helper.createVersionedMultisig(members, threshold);
                 assert.fail("Should have thrown error for empty members");
             } catch (error: any) {
-                console.log(error);
+                console.log(error.toString());
                 assert(error.toString().includes("EmptyMembers"));
             }
         });

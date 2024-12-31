@@ -19,8 +19,13 @@
 // import "./suites/instructions/vaultBatchTransactionAccountClose";
 // import "./suites/instructions/vaultTransactionAccountsClose";
 // import "./suites/instructions/vaultTransactionCreateFromBuffer";
-import "./suites/versioned_multisig/versioned-multisig";
-import "./suites/versioned_multisig/creation.test";
+
+// import "./suites/versioned_multisig/versioned-multisig";
+// import "./suites/versioned_multisig/creation.test";
+// import "./suites/versioned_multisig/member-management.test";
+// import "./suites/versioned_multisig/proposals.test";
+// import "./suites/versioned_multisig/voting.test";
+import "./suites/versioned_multisig/permissions.test";
 
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";

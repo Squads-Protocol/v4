@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::MultisigError;
+use crate::errors::VersionedMultisigError;
 
 /// Global program configuration account.
 #[account]
@@ -23,14 +23,14 @@ impl ProgramConfig {
         require_keys_neq!(
             self.authority,
             Pubkey::default(),
-            MultisigError::InvalidAccount
+            VersionedMultisigError::InvalidAccount
         );
 
         // treasury must be non-default.
         require_keys_neq!(
             self.treasury,
             Pubkey::default(),
-            MultisigError::InvalidAccount
+            VersionedMultisigError::InvalidAccount
         );
 
         Ok(())

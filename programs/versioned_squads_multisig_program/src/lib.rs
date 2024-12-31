@@ -42,8 +42,9 @@ pub mod versioned_squads_multisig_program {
     /// Create a new proposal
     pub fn create_versioned_proposal(
         ctx: Context<CreateVersionedProposal>,
+        args: VersionedProposalCreateArgs
     ) -> Result<()> {
-        versioned_proposal_create::handler(ctx)
+        versioned_proposal_create::handler(ctx, args)
     }
 
     /// Vote on a proposal

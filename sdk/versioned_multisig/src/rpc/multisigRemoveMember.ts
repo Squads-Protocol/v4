@@ -1,4 +1,5 @@
 import {
+  BlockhashWithExpiryBlockHeight,
   Connection,
   PublicKey,
   SendOptions,
@@ -9,7 +10,7 @@ import {
 import { translateAndThrowAnchorError } from "../errors";
 import * as transactions from "../transactions";
 
-/** Add a member/key to the multisig and reallocate space if necessary. */
+/** Remove a member/key from the multisig. */
 export async function versionedMultisigRemoveMember({
   connection,
   feePayer,
@@ -28,11 +29,11 @@ export async function versionedMultisigRemoveMember({
   signers?: Signer[];
   sendOptions?: SendOptions;
   programId?: PublicKey;
-}): Promise<TransactionSignature> {
-  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+}): Promise<[TransactionSignature, BlockhashWithExpiryBlockHeight]> {
+  const blockhash = (await connection.getLatestBlockhash());
 
   const tx = transactions.multisigRemoveMember({
-    blockhash,
+    blockhash: blockhash.blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
     configAuthority,
@@ -45,7 +46,7 @@ export async function versionedMultisigRemoveMember({
   transaction.sign([feePayer, ...(signers ?? [])]);
 
   try {
-    return await connection.sendTransaction(transaction, sendOptions);
+    return [await connection.sendTransaction(transaction, sendOptions), blockhash];
   } catch (err) {
     translateAndThrowAnchorError(err);
   }

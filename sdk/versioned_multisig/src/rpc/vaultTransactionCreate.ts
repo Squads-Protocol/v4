@@ -1,5 +1,8 @@
 import {
   AddressLookupTableAccount,
+  
+  BlockhashWithExpiryBlockHeight,
+  
   Connection,
   PublicKey,
   SendOptions,
@@ -47,11 +50,11 @@ export async function vaultTransactionCreate({
   signers?: Signer[];
   sendOptions?: SendOptions;
   programId?: PublicKey;
-}): Promise<TransactionSignature> {
-  const blockhash = (await connection.getLatestBlockhash()).blockhash;
+}): Promise<[TransactionSignature, BlockhashWithExpiryBlockHeight]> {
+  const blockhash = (await connection.getLatestBlockhash());
 
   const tx = transactions.vaultTransactionCreate({
-    blockhash,
+    blockhash: blockhash.blockhash,
     feePayer: feePayer.publicKey,
     multisigPda,
     transactionIndex,
@@ -70,7 +73,8 @@ export async function vaultTransactionCreate({
   transaction.sign([feePayer, ...(signers ?? [])]);
 
   try {
-    return await connection.sendTransaction(transaction, sendOptions);
+    const res = await connection.sendTransaction(transaction, sendOptions);
+    return [res, blockhash];
   } catch (err) {
     translateAndThrowAnchorError(err);
   }
