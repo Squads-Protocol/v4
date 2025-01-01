@@ -56,6 +56,8 @@ pub enum VersionedMultisigError {
     AlreadyCancelled,
     #[msg("Member already executed the transaction")]
     AlreadyExecuted,
+    #[msg("Proposal time lock has not been released")]
+    TimeLockNotReleased,
 } 
 
 #[error_code]
@@ -86,8 +88,7 @@ pub enum MultisigError {
     InvalidStaleTransactionIndex,
     #[msg("Instruction not supported for controlled multisig")]
     NotSupportedForControlled,
-    #[msg("Proposal time lock has not been released")]
-    TimeLockNotReleased,
+    
     #[msg("Config transaction must have at least one action")]
     NoActions,
     #[msg("Missing account")]

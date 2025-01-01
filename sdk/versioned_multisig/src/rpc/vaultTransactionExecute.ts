@@ -51,6 +51,7 @@ export async function vaultTransactionExecute({
   try {
     return await connection.sendTransaction(transaction, sendOptions);
   } catch (err) {
+    console.log("err", err);
     translateAndThrowAnchorError(err);
   }
 }

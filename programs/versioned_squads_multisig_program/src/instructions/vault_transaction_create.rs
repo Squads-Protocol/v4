@@ -127,6 +127,7 @@ impl<'info> VaultTransactionCreate<'info> {
 
         // Logs for indexing.
         msg!("transaction index: {}", transaction_index);
+        msg!("transaction key: {}", transaction_key);
 
         Ok(())
     }

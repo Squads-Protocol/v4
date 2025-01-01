@@ -69,8 +69,11 @@ impl VaultTransactionExecute<'_> {
             ProposalStatus::Approved { timestamp } => {
                 require!(
                     Clock::get()?.unix_timestamp - timestamp >= i64::from(multisig.time_lock),
-                    MultisigError::TimeLockNotReleased
+                    VersionedMultisigError::TimeLockNotReleased
                 );
+            },
+            ProposalStatus::Executed { .. } => {
+                return err!(VersionedMultisigError::AlreadyExecuted);
             }
             _ => return err!(VersionedMultisigError::InvalidProposalStatus),
         }

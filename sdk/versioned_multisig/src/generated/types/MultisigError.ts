@@ -22,7 +22,6 @@ export enum MultisigError {
   NoExecutors,
   InvalidStaleTransactionIndex,
   NotSupportedForControlled,
-  TimeLockNotReleased,
   NoActions,
   MissingAccount,
   InvalidMint,

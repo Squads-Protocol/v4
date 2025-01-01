@@ -1279,9 +1279,6 @@
             "name": "NotSupportedForControlled"
           },
           {
-            "name": "TimeLockNotReleased"
-          },
-          {
             "name": "NoActions"
           },
           {
@@ -1713,6 +1710,11 @@
       "code": 6026,
       "name": "AlreadyExecuted",
       "msg": "Member already executed the transaction"
+    },
+    {
+      "code": 6027,
+      "name": "TimeLockNotReleased",
+      "msg": "Proposal time lock has not been released"
     }
   ],
   "metadata": {

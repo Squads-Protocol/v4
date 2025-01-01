@@ -25,7 +25,10 @@
 // import "./suites/versioned_multisig/member-management.test";
 // import "./suites/versioned_multisig/proposals.test";
 // import "./suites/versioned_multisig/voting.test";
-import "./suites/versioned_multisig/permissions.test";
+// import "./suites/versioned_multisig/permissions.test";
+// import "./suites/versioned_multisig/transactions.test";
+import "./suites/versioned_multisig/state.test";
+// import "./suites/versioned_multisig/scenarios.test";
 
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";

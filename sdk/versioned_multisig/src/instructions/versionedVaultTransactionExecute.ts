@@ -38,6 +38,7 @@ import {
       index: transactionIndex,
       programId,
     });
+    console.log('transactionPdaInInstruction', transactionPda)
     const transactionAccount = await VaultTransaction.fromAccountAddress(
       connection,
       transactionPda

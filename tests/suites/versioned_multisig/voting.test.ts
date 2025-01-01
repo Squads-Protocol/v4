@@ -113,7 +113,7 @@ describe("Versioned Multisig Voting", () => {
             }
         });
 
-        it.only("Prevents voting on executed proposal", async () => {
+        it("Prevents voting on executed proposal", async () => {
             // Get threshold approvals
             for (let i = 0; i < 2; i++) {
                 const member = defaultMembers[i];
@@ -138,8 +138,13 @@ describe("Versioned Multisig Voting", () => {
             for (const member of defaultMembers) {
                 await helper.airdrop(member.keyPair.publicKey, LAMPORTS_PER_SOL);
                 await helper.vote(multisigPda, proposalPda, member.keyPair, true);
+                const proposal = await helper.getVersionedProposal(multisigPda, 0);
+                if(proposal.status.__kind === "Approved") {
+                    break;
+                }
             }
 
+            // Check proposal is approved
             const proposal = await helper.getVersionedProposal(multisigPda, 0);
             assert(proposal.approved);
         });

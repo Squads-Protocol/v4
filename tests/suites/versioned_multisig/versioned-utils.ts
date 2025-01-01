@@ -25,7 +25,7 @@ export function getVersionedTestProgramId() {
       )
     )
   );
-  console.log("programKeypair", programKeypair.publicKey.toBase58());
+  // console.log("programKeypair", programKeypair.publicKey.toBase58());
 
   return programKeypair.publicKey;
 }

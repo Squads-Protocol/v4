@@ -600,6 +600,29 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * TimeLockNotReleased: 'Proposal time lock has not been released'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class TimeLockNotReleasedError extends Error {
+  readonly code: number = 0x178b
+  readonly name: string = 'TimeLockNotReleased'
+  constructor() {
+    super('Proposal time lock has not been released')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, TimeLockNotReleasedError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178b, () => new TimeLockNotReleasedError())
+createErrorFromNameLookup.set(
+  'TimeLockNotReleased',
+  () => new TimeLockNotReleasedError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated
