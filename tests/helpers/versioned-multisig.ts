@@ -150,7 +150,7 @@ export class VersionedMultisigTestHelper {
         return transferMessage;
     }
 
-    createVersionedVaultSwapMessage(multisig: PublicKey, creator: Keypair, 
+    async createVersionedVaultSwapMessage(multisig: PublicKey, creator: Keypair, 
         inputMint: PublicKey = new PublicKey("So11111111111111111111111111111111111111112"), 
         outputMint: PublicKey = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"), 
         amount: number = 1 * LAMPORTS_PER_SOL) {

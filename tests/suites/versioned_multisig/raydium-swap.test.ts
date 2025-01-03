@@ -42,7 +42,7 @@ describe("Versioned Multisig Creation", () => {
             await helper.airdrop(members[0].key, 1 * LAMPORTS_PER_SOL);
             await helper.airdrop(members[1].key, 1 * LAMPORTS_PER_SOL);
 
-            const swapInstruction = helper.createVersionedVaultSwapMessage(multisigPda, members[0].keyPair);
+            const swapInstruction = await helper.createVersionedVaultSwapMessage(multisigPda, members[0].keyPair);
             const swapVault = await helper.createVersionedVaultTransactionWithMessage(multisigPda, members[0].keyPair, swapInstruction);
             const { proposalPda } = await helper.createVersionedProposal(multisigPda, members[0].keyPair, 0);
 
