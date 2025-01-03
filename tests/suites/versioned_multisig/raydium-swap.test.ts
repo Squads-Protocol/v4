@@ -6,6 +6,7 @@ import * as versionedMultisig from "../../../sdk/versioned_multisig";
 import { ProgramConfig } from "../../../sdk/versioned_multisig/lib/accounts";
 import { VersionedMultisigTestHelper } from "../../helpers/versioned-multisig";
 import { getVersionedTestProgramId } from "./versioned-utils";
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 const programId = getVersionedTestProgramId();
 const connection = createLocalhostConnection();
@@ -37,6 +38,9 @@ describe("Versioned Multisig Creation", () => {
                 connection, 
                 multisigPda
             );
+
+            await helper.airdrop(members[0].key, 1 * LAMPORTS_PER_SOL);
+            await helper.airdrop(members[1].key, 1 * LAMPORTS_PER_SOL);
 
             const swapInstruction = helper.createVersionedVaultSwapMessage(multisigPda, members[0].keyPair);
             const { proposalPda } = await helper.createVersionedProposal(multisigPda, members[0].keyPair, 1);
