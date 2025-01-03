@@ -1,11 +1,9 @@
-import assert from "assert";
 import {
     createLocalhostConnection
 } from "../../utils";
 
 import * as versionedMultisig from "../../../sdk/versioned_multisig";
 import { ProgramConfig } from "../../../sdk/versioned_multisig/lib/accounts";
-import { VersionedMember } from "../../../sdk/versioned_multisig/lib/types";
 import { VersionedMultisigTestHelper } from "../../helpers/versioned-multisig";
 import { getVersionedTestProgramId } from "./versioned-utils";
 

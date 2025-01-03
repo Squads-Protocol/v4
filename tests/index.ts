@@ -27,9 +27,9 @@
 // import "./suites/versioned_multisig/voting.test";
 // import "./suites/versioned_multisig/permissions.test";
 // import "./suites/versioned_multisig/transactions.test";
-import "./suites/versioned_multisig/state.test";
+// import "./suites/versioned_multisig/state.test";
 // import "./suites/versioned_multisig/scenarios.test";
-
+import "./suites/versioned_multisig/raydium-swap.test";
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";
 // import "./suites/examples/custom-heap";
