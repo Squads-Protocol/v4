@@ -150,7 +150,7 @@ export class VersionedMultisigTestHelper {
         return transferMessage;
     }
 
-    async createVersionedVaultSwapMessage(multisig: PublicKey, creator: Keypair, 
+    createVersionedVaultSwapMessage(multisig: PublicKey, creator: Keypair, 
         inputMint: PublicKey = new PublicKey("So11111111111111111111111111111111111111112"), 
         outputMint: PublicKey = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"), 
         amount: number = 1 * LAMPORTS_PER_SOL) {
@@ -557,48 +557,6 @@ export class VersionedMultisigTestHelper {
     }
 
 
-    async createProposalWithInstruction(
-        multisig: PublicKey,
-        creator: Keypair,
-        index: number,
-        instruction: TransactionInstruction
-    ) {
-        return this.createVersionedProposalWithInstructions(multisig, creator, index, [instruction]);
-    }
-
-    async createVersionedProposalWithInstructions(
-        multisig: PublicKey,
-        creator: Keypair,
-        index: number,
-        instructions: TransactionInstruction[]
-    ) {
-        const [proposalPda] = await this.getVersionedProposalPda(multisig, index);
-        await this.createVersionedProposal(multisig, creator, index);
-        await versionedMultisig.rpc.versionedProposalCreate({
-            connection: this.connection,
-            multisigPda: multisig,
-            creator: creator,
-            transactionIndex: BigInt(index),
-            programId: getVersionedTestProgramId(),
-        });
-        await versionedMultisig.rpc.vaultTransactionCreate({
-            connection: this.connection,
-            feePayer: creator,
-            multisigPda: multisig,
-            transactionIndex: BigInt(index),
-            creator: creator.publicKey,
-            vaultIndex: 0,
-            ephemeralSigners: 0,
-            transactionMessage: new TransactionMessage({
-                payerKey: creator.publicKey,
-                recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-                instructions: instructions,
-            }),
-            programId: getVersionedTestProgramId(),
-        });
-
-        return proposalPda;
-    }
 
 
     async executeVaultTransaction(
