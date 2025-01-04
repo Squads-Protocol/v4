@@ -36,11 +36,11 @@ pub struct VaultTransaction {
 }
 
 impl VaultTransaction {
-    pub fn size(ephemeral_signers_length: u8, transaction_message: &[u8]) -> Result<usize> {
+    pub fn size(ephemeral_signers_length: u8, transaction_message: &[u8], memo: Option<String>) -> Result<usize> {
         let transaction_message: VaultTransactionMessage =
             TransactionMessage::deserialize(&mut &transaction_message[..])?.try_into()?;
         let message_size = get_instance_packed_len(&transaction_message).unwrap_or_default();
-        let memo_size = if let Some(memo) = &self.memo {
+        let memo_size = if let Some(memo) = &memo {
             memo.len() + 1 // memo
         } else {
             0

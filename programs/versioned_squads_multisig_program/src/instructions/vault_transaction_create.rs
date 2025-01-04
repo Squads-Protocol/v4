@@ -28,7 +28,7 @@ pub struct VaultTransactionCreate<'info> {
     #[account(
         init,
         payer = rent_payer,
-        space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message)?,
+        space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message, args.memo)?,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),
