@@ -119,6 +119,7 @@ impl<'info> VaultTransactionCreate<'info> {
         transaction.vault_bump = vault_bump;
         transaction.ephemeral_signer_bumps = ephemeral_signer_bumps;
         transaction.message = transaction_message.try_into()?;
+        transaction.memo = args.memo;
 
         // Updated last transaction index in the multisig account.
         multisig.transaction_index = transaction_index;

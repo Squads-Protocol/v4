@@ -27,6 +27,7 @@ export type VaultTransactionArgs = {
   vaultBump: number
   ephemeralSignerBumps: Uint8Array
   message: VaultTransactionMessage
+  memo: beet.COption<string>
 }
 
 export const vaultTransactionDiscriminator = [
@@ -48,7 +49,8 @@ export class VaultTransaction implements VaultTransactionArgs {
     readonly vaultIndex: number,
     readonly vaultBump: number,
     readonly ephemeralSignerBumps: Uint8Array,
-    readonly message: VaultTransactionMessage
+    readonly message: VaultTransactionMessage,
+    readonly memo: beet.COption<string>
   ) {}
 
   /**
@@ -63,7 +65,8 @@ export class VaultTransaction implements VaultTransactionArgs {
       args.vaultIndex,
       args.vaultBump,
       args.ephemeralSignerBumps,
-      args.message
+      args.message,
+      args.memo
     )
   }
 
@@ -190,6 +193,7 @@ export class VaultTransaction implements VaultTransactionArgs {
       vaultBump: this.vaultBump,
       ephemeralSignerBumps: this.ephemeralSignerBumps,
       message: this.message,
+      memo: this.memo,
     }
   }
 }
@@ -214,6 +218,7 @@ export const vaultTransactionBeet = new beet.FixableBeetStruct<
     ['vaultBump', beet.u8],
     ['ephemeralSignerBumps', beet.bytes],
     ['message', vaultTransactionMessageBeet],
+    ['memo', beet.coption(beet.utf8String)],
   ],
   VaultTransaction.fromArgs,
   'VaultTransaction'

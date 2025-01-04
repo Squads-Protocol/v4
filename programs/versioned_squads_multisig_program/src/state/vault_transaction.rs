@@ -32,6 +32,7 @@ pub struct VaultTransaction {
     pub ephemeral_signer_bumps: Vec<u8>,
     /// data required for executing the transaction.
     pub message: VaultTransactionMessage,
+    pub memo: Option<String>
 }
 
 impl VaultTransaction {

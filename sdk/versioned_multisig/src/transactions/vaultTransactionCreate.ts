@@ -59,5 +59,5 @@ export function vaultTransactionCreate({
         programId,
       }),
     ],
-  }).compileToV0Message();
+  }).compileToV0Message(addressLookupTableAccounts);
 }
