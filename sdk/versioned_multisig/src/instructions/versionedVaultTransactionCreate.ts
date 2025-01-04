@@ -67,7 +67,7 @@ import {
           vaultIndex,
           ephemeralSigners,
           transactionMessage: transactionMessageBytes,
-          memo: memo ?? null,
+          memo: memo ? new Uint8Array(Buffer.from(memo)) : new Uint8Array(),
         },
       },
       programId

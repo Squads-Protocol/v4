@@ -12,7 +12,7 @@ pub struct VaultTransactionCreateArgs {
     /// Number of ephemeral signing PDAs required by the transaction.
     pub ephemeral_signers: u8,
     pub transaction_message: Vec<u8>,
-    pub memo: Option<String>,
+    pub memo: Vec<u8>,
 }
 
 #[derive(Accounts)]
@@ -28,7 +28,7 @@ pub struct VaultTransactionCreate<'info> {
     #[account(
         init,
         payer = rent_payer,
-        space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message, args.memo)?,
+        space = VaultTransaction::size(args.ephemeral_signers, &args.transaction_message, &args.memo)?,
         seeds = [
             SEED_PREFIX,
             multisig.key().as_ref(),

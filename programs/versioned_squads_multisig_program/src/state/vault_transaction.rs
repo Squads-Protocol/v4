@@ -32,19 +32,15 @@ pub struct VaultTransaction {
     pub ephemeral_signer_bumps: Vec<u8>,
     /// data required for executing the transaction.
     pub message: VaultTransactionMessage,
-    pub memo: Option<String>
+    pub memo: Vec<u8>
 }
 
 impl VaultTransaction {
-    pub fn size(ephemeral_signers_length: u8, transaction_message: &[u8], memo: Option<String>) -> Result<usize> {
+    pub fn size(ephemeral_signers_length: u8, transaction_message: &[u8], memo: &[u8]) -> Result<usize> {
         let transaction_message: VaultTransactionMessage =
             TransactionMessage::deserialize(&mut &transaction_message[..])?.try_into()?;
         let message_size = get_instance_packed_len(&transaction_message).unwrap_or_default();
-        let memo_size = if let Some(memo) = &memo {
-            memo.len() + 1 // memo
-        } else {
-            0
-        };
+        let memo_size = get_instance_packed_len(&memo).unwrap_or_default();
         Ok(
             8 +   // anchor account discriminator
             32 +  // multisig
@@ -55,7 +51,7 @@ impl VaultTransaction {
             1 +   // vault_bump
             (4 + usize::from(ephemeral_signers_length)) +   // ephemeral_signers_bumps vec
             message_size + // message
-            memo_size
+            memo_size + 1 // memo
         )
     }
     /// Reduces the VaultTransaction to its default empty value and moves

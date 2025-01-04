@@ -10,7 +10,7 @@ export type VaultTransactionCreateArgs = {
   vaultIndex: number
   ephemeralSigners: number
   transactionMessage: Uint8Array
-  memo: beet.COption<string>
+  memo: Uint8Array
 }
 
 /**
@@ -23,7 +23,7 @@ export const vaultTransactionCreateArgsBeet =
       ['vaultIndex', beet.u8],
       ['ephemeralSigners', beet.u8],
       ['transactionMessage', beet.bytes],
-      ['memo', beet.coption(beet.utf8String)],
+      ['memo', beet.bytes],
     ],
     'VaultTransactionCreateArgs'
   )

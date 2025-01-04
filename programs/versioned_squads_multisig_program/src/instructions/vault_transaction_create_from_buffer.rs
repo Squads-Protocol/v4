@@ -77,7 +77,7 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
         // Calculate the new required length of the vault transaction account,
         // since it was initialized with an empty transaction message
         let new_len =
-            VaultTransaction::size(args.ephemeral_signers, transaction_buffer.buffer.as_slice(), args.memo.clone())?;
+            VaultTransaction::size(args.ephemeral_signers, transaction_buffer.buffer.as_slice(), &args.memo)?;
 
         // Calculate the rent exemption for new length
         let rent_exempt_lamports = Rent::get().unwrap().minimum_balance(new_len).max(1);
