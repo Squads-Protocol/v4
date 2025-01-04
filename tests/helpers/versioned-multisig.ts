@@ -1,8 +1,6 @@
-import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage } from "@solana/web3.js";
+import { AddressLookupTableAccount, Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, TransactionInstruction, TransactionMessage } from "@solana/web3.js";
 import { BN } from "bn.js";
 import * as versionedMultisig from "../../sdk/versioned_multisig/";
-import { VersionedMember } from "../../sdk/versioned_multisig/lib/generated";
-import { Permissions } from "../../sdk/versioned_multisig/lib/types";
 import { getVersionedTestProgramId } from "../suites/versioned_multisig/versioned-utils";
 import { generateFundedKeypair } from "../utils";
 
@@ -18,7 +16,7 @@ export class VersionedMultisigTestHelper {
         feePayer: Keypair,
         configAuthority: PublicKey,
         rentPayer: Keypair,
-        member: VersionedMember,
+        member: versionedMultisig.types.VersionedMember,
         signers: Keypair[]
     ) {
         const [result, blockhash] = await versionedMultisig.rpc.versionedMultisigAddMember({
@@ -52,7 +50,7 @@ export class VersionedMultisigTestHelper {
     }
 
     async createVersionedMultisig(
-        members: VersionedMember[],
+        members: versionedMultisig.types.VersionedMember[],
         threshold: number,
         timeLock: number = 0
     ) {
@@ -441,25 +439,64 @@ export class VersionedMultisigTestHelper {
                 programId: new PublicKey("JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"),
                 data: Buffer.from("wSCbM0HWnIEAAwAAADhkAAE5ZAECLwEAZAIDQuH1BQAAAADFhW0UAAAAADIAAA==", "base64"),
             });
-            
-        return new TransactionMessage({
-            payerKey: vaultPda,
-            recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-            instructions: [swapInstruction],
-        });
+            const addressLookupTableAccounts = await this.getAddressLookupTableAccounts([
+                "BMFbALGFKnsAf6Dq9JQxU9yiUfUxkSTGhpepiye9RbcA",
+        "72L2vpvB2EntpASsx4rG5UhrvC1k4eJX1amRPuVpNX53",
+        "9gEufPKkfxG4hj16Bi1ijKALu7wS9t8JB4vz9UmsSeKL"
+            ]);
+        return {
+            message: new TransactionMessage({
+                payerKey: vaultPda,
+                recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+                instructions: [swapInstruction],
+            }),
+            addressLookupTableAccounts
+        };
     }
+
+    async getAddressLookupTableAccounts (
+        keys: string[]
+      ): Promise<AddressLookupTableAccount[]> {
+        const solanaMainnet = "https://api.mainnet-beta.solana.com";
+        const connection = new Connection(solanaMainnet);
+        //Use solana mainnet for testing 
+        const addressLookupTableAccountInfos =
+          await connection.getMultipleAccountsInfo(
+            keys.map((key) => new PublicKey(key))
+          );
+      
+        return addressLookupTableAccountInfos.reduce((acc, accountInfo, index) => {
+          const addressLookupTableAddress = keys[index];
+          if (accountInfo) {
+            const addressLookupTableAccount = new AddressLookupTableAccount({
+              key: new PublicKey(addressLookupTableAddress),
+              state: AddressLookupTableAccount.deserialize(accountInfo.data),
+            });
+            acc.push(addressLookupTableAccount);
+          }
+      
+          return acc;
+        }, new Array<AddressLookupTableAccount>());
+      };
 
     async createVersionedVaultTransaction(
         multisig: PublicKey,
         creator: Keypair,
     ) {
-        return this.createVersionedVaultTransactionWithMessage(multisig, creator, await this.sendSolToCreatorMessage(multisig, creator));
+        return this.createVersionedVaultTransactionWithMessage(multisig, creator, await this.sendSolToCreatorMessage(multisig, creator), [], JSON.stringify({
+            type: "Transfer",
+            mint: "So11111111111111111111111111111111111111112",
+            to: creator.publicKey.toBase58(),
+            amount: 1 * LAMPORTS_PER_SOL
+        }));
     }
 
     async createVersionedVaultTransactionWithMessage(
         multisig: PublicKey,
         creator: Keypair,
-        message: TransactionMessage
+        message: TransactionMessage,
+        addressLookupTableAccounts: AddressLookupTableAccount[] = [],
+        memo?: string
     ) {
         // Get the current multisig transaction index
         const multisigInfo = await versionedMultisig.accounts.VersionedMultisig.fromAccountAddress(
@@ -470,8 +507,8 @@ export class VersionedMultisigTestHelper {
         const currentTransactionIndex = Number(multisigInfo.transactionIndex);
 
         const newTransactionIndex = BigInt(currentTransactionIndex + 1);
-
-        const [signature1, blockhash] = await versionedMultisig.rpc.vaultTransactionCreate({
+        console.log("addressLookupTableAccounts", addressLookupTableAccounts);
+        const [signature1, blockhash] =  await versionedMultisig.rpc.vaultTransactionCreate({
             connection: this.connection,
             feePayer: creator,
             multisigPda: multisig,
@@ -480,7 +517,8 @@ export class VersionedMultisigTestHelper {
             vaultIndex: 0,
             ephemeralSigners: 0,
             transactionMessage: message,
-            memo: "Transfer 0.1 SOL to creator",
+            addressLookupTableAccounts,
+            memo: memo,
             programId: getVersionedTestProgramId(),
         });
         console.log("signature1", signature1);
@@ -542,7 +580,7 @@ export class VersionedMultisigTestHelper {
     }
 
     // Helper to generate test members
-    generateMembers(count: number, permissions: Permissions = Permissions.all(), joinProposalIndex: number = 0): (VersionedMember & { keyPair: Keypair })[] {
+    generateMembers(count: number, permissions: versionedMultisig.types.Permissions = versionedMultisig.types.Permissions.all(), joinProposalIndex: number = 0): (versionedMultisig.types.VersionedMember & { keyPair: Keypair })[] {
         return Array(count)
             .fill(0)
             .map(() => {

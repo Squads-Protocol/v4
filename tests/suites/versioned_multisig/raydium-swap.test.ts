@@ -16,6 +16,8 @@ describe("Versioned Multisig Creation", () => {
     let helper: VersionedMultisigTestHelper;
 
     before(async () => {
+        console.log("programId", programId);
+        // console.log("connection", connection);
         const programConfigPda = versionedMultisig.getProgramConfigPda({ programId })[0];
         programConfig = await versionedMultisig.accounts.ProgramConfig.fromAccountAddress(
             connection,
@@ -42,9 +44,16 @@ describe("Versioned Multisig Creation", () => {
             await helper.airdrop(members[0].key, 1 * LAMPORTS_PER_SOL);
             await helper.airdrop(members[1].key, 1 * LAMPORTS_PER_SOL);
 
-            const swapInstruction = await helper.createVersionedVaultSwapMessage(multisigPda, members[0].keyPair);
-            const swapVault = await helper.createVersionedVaultTransactionWithMessage(multisigPda, members[0].keyPair, swapInstruction);
+            const {message, addressLookupTableAccounts} = await helper.createVersionedVaultSwapMessage(multisigPda, members[0].keyPair);
+            console.log("addressLookupTableAccounts", addressLookupTableAccounts);
+            const swapVault = await helper.createVersionedVaultTransactionWithMessage(multisigPda, members[0].keyPair, message, addressLookupTableAccounts, JSON.stringify({
+                type:"Swap",
+                inputMint: "So11111111111111111111111111111111111111112",
+                outputMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                amount: 1 * LAMPORTS_PER_SOL
+            }));
             const { proposalPda } = await helper.createVersionedProposal(multisigPda, members[0].keyPair, 0);
+            
 
         });
 
