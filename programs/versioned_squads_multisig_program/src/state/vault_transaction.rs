@@ -40,7 +40,11 @@ impl VaultTransaction {
         let transaction_message: VaultTransactionMessage =
             TransactionMessage::deserialize(&mut &transaction_message[..])?.try_into()?;
         let message_size = get_instance_packed_len(&transaction_message).unwrap_or_default();
-
+        let memo_size = if let Some(memo) = &self.memo {
+            memo.len() + 1 // memo
+        } else {
+            0
+        };
         Ok(
             8 +   // anchor account discriminator
             32 +  // multisig
@@ -50,7 +54,8 @@ impl VaultTransaction {
             1 +   // vault_index
             1 +   // vault_bump
             (4 + usize::from(ephemeral_signers_length)) +   // ephemeral_signers_bumps vec
-            message_size, // message
+            message_size + // message
+            memo_size
         )
     }
     /// Reduces the VaultTransaction to its default empty value and moves
