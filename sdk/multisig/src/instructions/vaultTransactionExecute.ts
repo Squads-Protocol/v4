@@ -4,12 +4,12 @@ import {
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { getProposalPda, getTransactionPda, getVaultPda } from "../pda";
 import {
   createVaultTransactionExecuteInstruction,
   PROGRAM_ID,
   VaultTransaction,
 } from "../generated";
+import { getProposalPda, getTransactionPda, getVaultPda } from "../pda";
 import { accountsForTransactionExecute } from "../utils";
 
 export async function vaultTransactionExecute({
@@ -40,7 +40,8 @@ export async function vaultTransactionExecute({
   });
   const transactionAccount = await VaultTransaction.fromAccountAddress(
     connection,
-    transactionPda
+    transactionPda,
+    { commitment: "processed" }
   );
 
   const [vaultPda] = getVaultPda({

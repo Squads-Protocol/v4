@@ -22,6 +22,10 @@
 		"turbo": "1.6.3",
 		"typescript": "*"
 	},
+	"dependencies": {
+		"@solana/web3.js": "1.70.3",
+		"@sqds/multisig": "../sdk/multisig"
+	},
 	"resolutions": {
 		"@solana/web3.js": "1.70.3",
 		"@solana/spl-token": "0.3.6",

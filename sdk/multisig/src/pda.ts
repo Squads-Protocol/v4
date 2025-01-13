@@ -12,6 +12,7 @@ const SEED_PROPOSAL = toUtfBytes("proposal");
 const SEED_BATCH_TRANSACTION = toUtfBytes("batch_transaction");
 const SEED_EPHEMERAL_SIGNER = toUtfBytes("ephemeral_signer");
 const SEED_SPENDING_LIMIT = toUtfBytes("spending_limit");
+const SEED_TRANSACTION_BUFFER = toUtfBytes("transaction_buffer");
 
 export function getProgramConfigPda({
   programId = PROGRAM_ID,
@@ -155,4 +156,27 @@ export function getSpendingLimitPda({
     ],
     programId
   );
+}
+
+export function getTransactionBufferPda({
+    multisig,
+    creator,
+    bufferIndex,
+    programId = PROGRAM_ID,
+}: {
+    multisig: PublicKey,
+    creator: PublicKey,
+    bufferIndex: number,
+    programId?: PublicKey,
+}): [PublicKey, number] {
+    return PublicKey.findProgramAddressSync(
+        [
+            SEED_PREFIX,
+            multisig.toBytes(),
+            SEED_TRANSACTION_BUFFER,
+            creator.toBytes(),
+            toU8Bytes(bufferIndex),
+        ],
+        programId
+    )
 }
