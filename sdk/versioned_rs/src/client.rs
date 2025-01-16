@@ -407,7 +407,7 @@ pub fn vault_transaction_create(
     vault_index: u8,
     num_ephemeral_signers: u8,
     message: &TransactionMessage,
-    memo: Option<String>,
+    memo: Vec<u8>,
     program_id: Option<Pubkey>,
 ) -> Instruction {
     let args = VaultTransactionCreateArgs {
