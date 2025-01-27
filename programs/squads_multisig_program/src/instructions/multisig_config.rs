@@ -81,7 +81,7 @@ impl MultisigConfig<'_> {
     /// Add a member/key to the multisig and reallocate space if necessary.
     ///
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
         let MultisigAddMemberArgs { new_member, .. } = args;
@@ -120,7 +120,7 @@ impl MultisigConfig<'_> {
     /// Remove a member/key from the multisig.
     ///
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_remove_member(
         ctx: Context<Self>,
@@ -140,7 +140,7 @@ impl MultisigConfig<'_> {
     }
 
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_change_threshold(
         ctx: Context<Self>,
@@ -162,7 +162,7 @@ impl MultisigConfig<'_> {
     /// Set the `time_lock` config parameter for the multisig.
     ///
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_set_time_lock(ctx: Context<Self>, args: MultisigSetTimeLockArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
@@ -179,7 +179,7 @@ impl MultisigConfig<'_> {
     /// Set the multisig `config_authority`.
     ///
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_set_config_authority(
         ctx: Context<Self>,
@@ -199,7 +199,7 @@ impl MultisigConfig<'_> {
     /// Set the multisig `rent_collector` and reallocate space if necessary.
     ///
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_set_rent_collector(
         ctx: Context<Self>,
