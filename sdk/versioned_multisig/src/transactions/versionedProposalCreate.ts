@@ -9,12 +9,14 @@ export function versionedProposalCreate({
   blockhash,
   multisigPda,
   creator,
+  payer,
   transactionIndex,
   programId,
 }: {
   blockhash: string;
   multisigPda: PublicKey;
   creator: PublicKey;
+  payer: PublicKey;
   transactionIndex: bigint;
   programId: PublicKey;
 }): MessageV0 {
@@ -24,6 +26,7 @@ export function versionedProposalCreate({
     creator,
     transactionIndex,
     programId,
+    payer,
   });
 
   return new TransactionMessage({

@@ -17,6 +17,7 @@ export function proposalCreate({
   multisigPda,
   transactionIndex,
   creator,
+  payer,
   programId,
 }: {
   blockhash: string;
@@ -25,6 +26,7 @@ export function proposalCreate({
   transactionIndex: bigint;
   /** Member of the multisig that is creating the proposal. */
   creator: PublicKey;
+  payer: PublicKey;
   programId?: PublicKey;
 }): MessageV0 {
   return new TransactionMessage({
@@ -36,6 +38,7 @@ export function proposalCreate({
         creator,
         transactionIndex,
         programId,
+        payer,
       }),
     ],
   }).compileToV0Message();

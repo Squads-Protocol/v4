@@ -117,6 +117,11 @@
           "isSigner": true
         },
         {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -519,6 +524,13 @@
             "type": {
               "vec": "publicKey"
             }
+          },
+          {
+            "name": "proposer",
+            "docs": [
+              "The proposer of the proposal."
+            ],
+            "type": "publicKey"
           }
         ]
       }
@@ -658,6 +670,10 @@
             "type": {
               "defined": "VaultTransactionMessage"
             }
+          },
+          {
+            "name": "memo",
+            "type": "bytes"
           }
         ]
       }
@@ -1039,9 +1055,7 @@
           },
           {
             "name": "memo",
-            "type": {
-              "option": "string"
-            }
+            "type": "bytes"
           }
         ]
       }

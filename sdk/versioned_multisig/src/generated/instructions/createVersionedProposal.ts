@@ -42,6 +42,7 @@ export const createVersionedProposalStruct = new beet.BeetArgsStruct<
  * @property [_writable_] multisig
  * @property [_writable_] proposal
  * @property [_writable_, **signer**] creator
+ * @property [_writable_, **signer**] payer
  * @category Instructions
  * @category CreateVersionedProposal
  * @category generated
@@ -50,6 +51,7 @@ export type CreateVersionedProposalInstructionAccounts = {
   multisig: web3.PublicKey
   proposal: web3.PublicKey
   creator: web3.PublicKey
+  payer: web3.PublicKey
   systemProgram?: web3.PublicKey
   anchorRemainingAccounts?: web3.AccountMeta[]
 }
@@ -90,6 +92,11 @@ export function createCreateVersionedProposalInstruction(
     },
     {
       pubkey: accounts.creator,
+      isWritable: true,
+      isSigner: true,
+    },
+    {
+      pubkey: accounts.payer,
       isWritable: true,
       isSigner: true,
     },

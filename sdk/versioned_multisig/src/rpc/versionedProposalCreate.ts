@@ -14,6 +14,7 @@ export async function versionedProposalCreate({
   connection,
   multisigPda,
   creator,
+  payer,
   transactionIndex,
   sendOptions,
   programId,
@@ -21,6 +22,7 @@ export async function versionedProposalCreate({
   connection: Connection;
   multisigPda: PublicKey;
   creator: Signer;
+  payer: Signer;
   transactionIndex: bigint;
   sendOptions?: SendOptions;
   programId?: PublicKey;
@@ -31,6 +33,7 @@ export async function versionedProposalCreate({
     blockhash,
     multisigPda,
     creator: creator.publicKey,
+    payer: payer.publicKey,
     transactionIndex,
     programId: programId ?? PROGRAM_ID,
   });

@@ -23,6 +23,7 @@ export type ProposalArgs = {
   approved: web3.PublicKey[]
   rejected: web3.PublicKey[]
   cancelled: web3.PublicKey[]
+  proposer: web3.PublicKey
 }
 
 export const proposalDiscriminator = [26, 94, 189, 187, 116, 136, 53, 33]
@@ -41,7 +42,8 @@ export class Proposal implements ProposalArgs {
     readonly bump: number,
     readonly approved: web3.PublicKey[],
     readonly rejected: web3.PublicKey[],
-    readonly cancelled: web3.PublicKey[]
+    readonly cancelled: web3.PublicKey[],
+    readonly proposer: web3.PublicKey
   ) {}
 
   /**
@@ -55,7 +57,8 @@ export class Proposal implements ProposalArgs {
       args.bump,
       args.approved,
       args.rejected,
-      args.cancelled
+      args.cancelled,
+      args.proposer
     )
   }
 
@@ -181,6 +184,7 @@ export class Proposal implements ProposalArgs {
       approved: this.approved,
       rejected: this.rejected,
       cancelled: this.cancelled,
+      proposer: this.proposer.toBase58(),
     }
   }
 }
@@ -204,6 +208,7 @@ export const proposalBeet = new beet.FixableBeetStruct<
     ['approved', beet.array(beetSolana.publicKey)],
     ['rejected', beet.array(beetSolana.publicKey)],
     ['cancelled', beet.array(beetSolana.publicKey)],
+    ['proposer', beetSolana.publicKey],
   ],
   Proposal.fromArgs,
   'Proposal'
