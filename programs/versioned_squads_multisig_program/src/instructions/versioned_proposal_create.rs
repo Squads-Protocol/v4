@@ -21,7 +21,7 @@ pub struct CreateVersionedProposal<'info> {
     
     #[account(
         init,
-        payer = creator,
+        payer = payer,
         space = Proposal::size(multisig.members.len()),
         seeds = [
             SEED_PREFIX,
@@ -36,6 +36,9 @@ pub struct CreateVersionedProposal<'info> {
     
     #[account(mut)]
     pub creator: Signer<'info>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>,
     
     pub system_program: Program<'info, System>,
 }
@@ -68,6 +71,7 @@ pub fn handler(ctx: Context<CreateVersionedProposal>, args: VersionedProposalCre
     proposal.approved = vec![];
     proposal.rejected = vec![];
     proposal.cancelled = vec![];
+    proposal.proposer = ctx.accounts.creator.key();
     //Increment proposal index
     multisig.current_proposal_index += 1;
 

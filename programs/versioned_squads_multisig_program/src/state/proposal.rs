@@ -25,6 +25,8 @@ pub struct Proposal {
     pub rejected: Vec<Pubkey>,
     /// Keys that have cancelled (Approved only).
     pub cancelled: Vec<Pubkey>,
+    /// The proposer of the proposal.
+    pub proposer: Pubkey,
 }
 
 impl Proposal {
@@ -37,7 +39,8 @@ impl Proposal {
         1 +   // bump
         (4 + (members_len * 32)) + // approved vec
         (4 + (members_len * 32)) + // rejected vec
-        (4 + (members_len * 32)) // cancelled vec
+        (4 + (members_len * 32)) + // cancelled vec
+        32  // proposer
     }
 
     /// Register an approval vote.
