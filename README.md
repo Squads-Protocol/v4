@@ -2,25 +2,26 @@
 
 <img width="2500" alt="Frame 13" src="https://user-images.githubusercontent.com/81624955/182874414-98d63f58-450d-4520-a440-4bfda8f5329f.png">
 
-The v4 program is the latest upgrade to Squads Protocol. It expands the capabilities of multisig with several new features, including time locks, spending limits, roles, sub-accounts, multiple-party payments and support for address lookup tables. This program was designed to make it easier for developers to leverage multisig consensus and account abstraction on Solana, facilitating the creation of fintech-like applications and enhancing the secure management of on-chain assets.
+The versioned Squads Multisig Program is a fork of the Squads Multisig Program. It expands the capabilities of multisig with several new features, including versioned voting proposals and fluid member management. This program was designed to make it easier for developers to leverage multisig consensus and account abstraction on Solana, facilitating the creation of fintech-like applications and enhancing the secure management of on-chain assets.
 
 ## Content
 
 This repository contains:
 
- - The Squads Protocol v4 program.
- - The `@sqds/multisig` Typescript SDK to interact with the v4 program.
- - The `squads-multisig` crate to interact with the v4 program in Solana programs as well as Rust client applications.
+ - The versioned Squads Multisig Program.
+ - The `@sqds/versioned-multisig` Typescript SDK to interact with the v4 program.
+ - The `versioned-squads-multisig-program` crate to interact with the v4 program in Solana programs as well as Rust client applications.
 
 ## Program (Smart contract) Addresses
 
-The Squads Protocol v4 program is deployed to:
+The versioned Squads Multisig Program is deployed to:
 
- - Solana Mainnet-beta: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
- - Solana Devnet: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`
- - Eclipse Mainnet: `eSQDSMLf3qxwHVHeTr9amVAGmZbRLY2rFdSURandt6f`
+ - Solana Mainnet-beta: `wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY`
+ - Solana Devnet: `wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB`
+ <!-- - Eclipse Mainnet: `eSQDSMLf3qxwHVHeTr9amVAGmZbRLY2rFdSURandt6f` -->
 
 Solana deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
+
 
 ## Responsibility
 
@@ -42,8 +43,8 @@ By using a multisig, it is important to acknowledge certain concepts. Here are s
 You can interact with the Squads program via our SDKs. 
 
 List of SDKs:
-- Rust crate: [squads-multisig-program](https://crates.io/crates/squads-multisig-program)
-- Typescript SDK: [@sqds/multisig](https://www.npmjs.com/package/@sqds/multisig)
+- Rust crate: [versioned-squads-multisig-program](https://crates.io/crates/versioned-squads-multisig-program) (Not released yet)
+- Typescript SDK: [@sqds/versioned-multisig](https://www.npmjs.com/package/@sqds/versioned-multisig)(Not released yet)
 
 Documentation:
 - You can find the SDK documentation including instructions and helper functions here: https://docs.squads.so/main/v/development/development/overview.
@@ -105,20 +106,14 @@ Squads Protocol v4 has undergone various independent audits by leading cybersecu
 
 Below is a list of audit reports pertaining to the v4 program. Each entry enumerates the responsible auditor and is accompanied by a corresponding GitHub link for review:
 
- - OtterSec: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/ottersec_squads_v4_audit.pdf)
- - OtterSec 2024: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/ottersec_squads_v4_audit_2024.pdf)
- - Neodyme: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report.pdf)
- - Neodyme 2024: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/neodyme_squads_v4_report_2024.pdf)
- - Certora + Formal verification: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/certora_squads_v4_security_report_and_formal_verification.pdf)
- - Certora Audit + Formal Verification (December 2023): [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/certora_squads_v4_security_report_and_formal_verification_2024.pdf)
- - Trail of Bits: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/trail_of_bits_squads_v4_security_audit.pdf)
+Versioned Squads Multisig Program:
+
+- Not audited yet
 
 
 ## License
 
-The primary license for Squads Protocol v4 is the AGPL-3.0 license, see [LICENSE](./LICENSE). The following exceptions are licensed separately as follows:
+No license as it is not released yet.
 
 - The file <https://github.com/Squads-Protocol/v4/blob/main/programs/squads_multisig_program/src/utils/system.rs> is derived from code released under the [Apache 2.0 license](https://github.com/coral-xyz/anchor/blob/master/LICENSE) at <https://github.com/coral-xyz/anchor/blob/714d5248636493a3d1db1481f16052836ee59e94/lang/syn/src/codegen/accounts/constraints.rs#L1126-L1179>.
 - The file <https://github.com/Squads-Protocol/v4/blob/main/programs/squads_multisig_program/src/utils/small_vec.rs> is derived from code released under both the [Apache 2.0 license](https://github.com/near/borsh-rs/blob/master/LICENSE-APACHE) and the [MIT license](https://github.com/near/borsh-rs/blob/master/LICENSE-MIT) at <https://github.com/near/borsh-rs/blob/master/borsh/src/de/hint.rs> and <https://github.com/near/borsh-rs/blob/master/borsh/src/ser/mod.rs>.
-
-To the extent that each such file incorporates code from another source, such code is licensed under its respective open source license as provided above, and the original open source code is copyrighted by its respective owner as provided above.

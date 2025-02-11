@@ -93,7 +93,7 @@ export class ConfigTransaction implements ConfigTransactionArgs {
    */
   static gpaBuilder(
     programId: web3.PublicKey = new web3.PublicKey(
-      '5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er'
+      'wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB'
     )
   ) {
     return beetSolana.GpaBuilder.fromStruct(programId, configTransactionBeet)

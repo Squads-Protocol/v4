@@ -66,7 +66,7 @@ export const voteOnVaultTransactionInstructionDiscriminator = [
 export function createVoteOnVaultTransactionInstruction(
   accounts: VoteOnVaultTransactionInstructionAccounts,
   args: VoteOnVaultTransactionInstructionArgs,
-  programId = new web3.PublicKey('5XyhmmQ2dRFpnLtjbWZYkNH46YkEBzaKodnjTR7Cm9er')
+  programId = new web3.PublicKey('wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB')
 ) {
   const [data] = voteOnVaultTransactionStruct.serialize({
     instructionDiscriminator: voteOnVaultTransactionInstructionDiscriminator,
