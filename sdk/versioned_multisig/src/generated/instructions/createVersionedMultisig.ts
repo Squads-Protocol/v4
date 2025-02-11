@@ -75,7 +75,7 @@ export const createVersionedMultisigInstructionDiscriminator = [
 export function createCreateVersionedMultisigInstruction(
   accounts: CreateVersionedMultisigInstructionAccounts,
   args: CreateVersionedMultisigInstructionArgs,
-  programId = new web3.PublicKey('wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB')
+  programId = new web3.PublicKey('wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY')
 ) {
   const [data] = createVersionedMultisigStruct.serialize({
     instructionDiscriminator: createVersionedMultisigInstructionDiscriminator,

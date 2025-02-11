@@ -4,7 +4,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB"); // Replace with actual program ID
+declare_id!("wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY"); // Replace with actual program ID
 pub use anchor_lang;
 pub use instructions::ProgramConfig;
 pub use instructions::*;

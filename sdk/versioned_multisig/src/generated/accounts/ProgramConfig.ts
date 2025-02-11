@@ -89,7 +89,7 @@ export class ProgramConfig implements ProgramConfigArgs {
    */
   static gpaBuilder(
     programId: web3.PublicKey = new web3.PublicKey(
-      'wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB'
+      'wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY'
     )
   ) {
     return beetSolana.GpaBuilder.fromStruct(programId, programConfigBeet)

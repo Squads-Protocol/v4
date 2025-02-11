@@ -17,7 +17,7 @@ This repository contains:
 The versioned Squads Multisig Program is deployed to:
 
  - Solana Mainnet-beta: `wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY`
- - Solana Devnet: `wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB`
+ - Solana Devnet: `wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY`
  <!-- - Eclipse Mainnet: `eSQDSMLf3qxwHVHeTr9amVAGmZbRLY2rFdSURandt6f` -->
 
 Solana deployments can be verified using the [Ellipsis Labs verifiable build](https://github.com/Ellipsis-Labs/solana-verifiable-build) tool.
