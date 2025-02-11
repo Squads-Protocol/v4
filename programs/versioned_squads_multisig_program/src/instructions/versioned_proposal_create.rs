@@ -57,6 +57,8 @@ pub fn handler(ctx: Context<CreateVersionedProposal>, args: VersionedProposalCre
     );
 
     // We can only create a proposal for an existing transaction.
+    msg!("args.transaction_index: {}", args.transaction_index);
+    msg!("multisig.transaction_index: {}", multisig.transaction_index);
     require!(
         args.transaction_index <= multisig.transaction_index,
         VersionedMultisigError::InvalidTransactionIndex
