@@ -7,12 +7,12 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-multisig = "wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB"
-versioned_squads_multisig_program = "wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB"
+multisig = "wegmivK2TiR2dbNxMAtR48Y2tVq2hGzp6iK8j3FbUU7"
+versioned_squads_multisig_program = "wegmivK2TiR2dbNxMAtR48Y2tVq2hGzp6iK8j3FbUU7"
 
 [programs.devnet]
-multisig = "wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB"
-versioned_squads_multisig_program = "wegmipbzwiBk4TkEWYrwmgqZ8Qwd8VwJFUwtXwokBSB"
+multisig = "wegmivK2TiR2dbNxMAtR48Y2tVq2hGzp6iK8j3FbUU7"
+versioned_squads_multisig_program = "wegmivK2TiR2dbNxMAtR48Y2tVq2hGzp6iK8j3FbUU7"
 
 
 [registry]

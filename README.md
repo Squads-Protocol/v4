@@ -16,7 +16,7 @@ This repository contains:
 
 The versioned Squads Multisig Program is deployed to:
 
- - Solana Mainnet-beta: `wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY`
+ - Solana Mainnet-beta: `wegmivK2TiR2dbNxMAtR48Y2tVq2hGzp6iK8j3FbUU7`
  - Solana Devnet: `wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY`
  <!-- - Eclipse Mainnet: `eSQDSMLf3qxwHVHeTr9amVAGmZbRLY2rFdSURandt6f` -->
 

@@ -69,7 +69,7 @@ export const programConfigInitInstructionDiscriminator = [
 export function createProgramConfigInitInstruction(
   accounts: ProgramConfigInitInstructionAccounts,
   args: ProgramConfigInitInstructionArgs,
-  programId = new web3.PublicKey('wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY')
+  programId = new web3.PublicKey('wegmivK2TiR2dbNxMAtR48Y2tVq2hGzp6iK8j3FbUU7')
 ) {
   const [data] = programConfigInitStruct.serialize({
     instructionDiscriminator: programConfigInitInstructionDiscriminator,

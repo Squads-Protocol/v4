@@ -4,7 +4,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("wegmizLs3pRye1rBuAjJ8VqW8zmCVN1q97CvW6wVxhY"); // Replace with actual program ID
+declare_id!("wegmivK2TiR2dbNxMAtR48Y2tVq2hGzp6iK8j3FbUU7"); // Replace with actual program ID
 pub use anchor_lang;
 pub use instructions::ProgramConfig;
 pub use instructions::*;
@@ -89,5 +89,17 @@ pub mod versioned_squads_multisig_program {
         versioned_proposal_vote::handler(ctx, approve)
     }
 
-    
+    pub fn multisig_change_threshold(
+        ctx: Context<VersionedMultisigConfig>,
+        args: VersionedMultisigChangeThresholdArgs,
+    ) -> Result<()> {
+        VersionedMultisigConfig::multisig_change_threshold(ctx, args)
+    }
+
+    pub fn multisig_set_config_authority(
+        ctx: Context<VersionedMultisigConfig>,
+        args: VersionedMultisigSetConfigAuthorityArgs,
+    ) -> Result<()> {
+        VersionedMultisigConfig::multisig_set_config_authority(ctx, args)
+    }
 } 
