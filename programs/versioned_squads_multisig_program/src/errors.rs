@@ -58,6 +58,19 @@ pub enum VersionedMultisigError {
     AlreadyExecuted,
     #[msg("Proposal time lock has not been released")]
     TimeLockNotReleased,
+    #[msg("Final message buffer hash doesnt match the expected hash")]
+    FinalBufferHashMismatch,
+    #[msg("Final buffer size cannot exceed 4000 bytes")]
+    FinalBufferSizeExceeded,
+    #[msg("Final buffer size mismatch")]
+    FinalBufferSizeMismatch,
+    #[msg("Invalid Instruction Arguments")]
+    InvalidInstructionArgs,
+    #[msg("TransactionMessage is malformed.")]
+    InvalidTransactionMessage,
+
+    #[msg("Account is protected, it cannot be passed into a CPI as writable")]
+    ProtectedAccount,
 } 
 
 #[error_code]

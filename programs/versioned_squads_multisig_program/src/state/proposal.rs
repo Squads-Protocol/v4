@@ -139,7 +139,7 @@ impl Proposal {
         system_program: Option<AccountInfo<'a>>,
     ) -> Result<bool> {
         // Sanity checks
-        require_keys_eq!(*proposal.owner, id(), MultisigError::IllegalAccountOwner);
+        require_keys_eq!(*proposal.owner, id(), VersionedMultisigError::IllegalAccountOwner);
 
         let current_account_size = proposal.data.borrow().len();
         let account_size_to_fit_members = Proposal::size(members_length);

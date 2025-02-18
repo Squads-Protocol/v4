@@ -7,6 +7,9 @@ pub mod program_config_init;
 pub mod vault_transaction_create;
 pub mod vault_transaction_create_from_buffer;
 pub mod vault_transaction_execute;
+pub mod transaction_buffer_close;
+pub mod transaction_buffer_create;
+pub mod transaction_buffer_extend;
 
 pub use versioned_proposal_create::*;
 pub use versioned_proposal_vote::*;
@@ -17,3 +20,6 @@ pub use program_config_init::*;
 pub use vault_transaction_create::*;
 pub use vault_transaction_create_from_buffer::*;
 pub use vault_transaction_execute::*;
+pub use transaction_buffer_close::*;
+pub use transaction_buffer_create::*;
+pub use transaction_buffer_extend::*;

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hash;
 
-use crate::errors::MultisigError;
+use crate::errors::VersionedMultisigError;
 
 // Maximum PDA allocation size in an inner ix is 10240 bytes.
 // 10240 - account contents = 10128 bytes
@@ -30,7 +30,7 @@ impl TransactionBuffer {
     pub fn size(final_message_buffer_size: u16) -> Result<usize> {
         // Make sure final size is not greater than MAX_BUFFER_SIZE bytes.
         if (final_message_buffer_size as usize) > MAX_BUFFER_SIZE {
-            return err!(MultisigError::FinalBufferSizeExceeded);
+            return err!(VersionedMultisigError::FinalBufferSizeExceeded);
         }
         Ok(
             8 +   // anchor account discriminator
@@ -49,7 +49,7 @@ impl TransactionBuffer {
         let message_buffer_hash = hash(&self.buffer);
         require!(
             message_buffer_hash.to_bytes() == self.final_buffer_hash,
-            MultisigError::FinalBufferHashMismatch
+            VersionedMultisigError::FinalBufferHashMismatch
         );
         Ok(())
     }
@@ -57,7 +57,7 @@ impl TransactionBuffer {
         require_eq!(
             self.buffer.len(),
             self.final_buffer_size as usize,
-            MultisigError::FinalBufferSizeMismatch
+            VersionedMultisigError::FinalBufferSizeMismatch
         );
         Ok(())
     }
@@ -65,15 +65,15 @@ impl TransactionBuffer {
     pub fn invariant(&self) -> Result<()> {
         require!(
             self.final_buffer_size as usize <= MAX_BUFFER_SIZE,
-            MultisigError::FinalBufferSizeExceeded
+            VersionedMultisigError::FinalBufferSizeExceeded
         );
         require!(
             self.buffer.len() <= MAX_BUFFER_SIZE,
-            MultisigError::FinalBufferSizeExceeded
+            VersionedMultisigError::FinalBufferSizeExceeded
         );
         require!(
             self.buffer.len() <= self.final_buffer_size as usize,
-            MultisigError::FinalBufferSizeMismatch
+            VersionedMultisigError::FinalBufferSizeMismatch
         );
 
         Ok(())

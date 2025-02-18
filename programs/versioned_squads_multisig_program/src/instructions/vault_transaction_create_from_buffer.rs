@@ -41,7 +41,7 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
         // Check that the transaction message is "empty"
         require!(
             args.transaction_message == vec![0, 0, 0, 0, 0, 0],
-            MultisigError::InvalidInstructionArgs
+            VersionedMultisigError::InvalidInstructionArgs
         );
 
         // Validate that the final hash matches the buffer

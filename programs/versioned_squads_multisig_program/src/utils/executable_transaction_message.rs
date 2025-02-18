@@ -205,7 +205,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             for account_meta in ix.accounts.iter().filter(|m| m.is_writable) {
                 require!(
                     !protected_accounts.contains(&account_meta.pubkey),
-                    MultisigError::ProtectedAccount
+                    VersionedMultisigError::ProtectedAccount
                 );
             }
             invoke_signed(&ix, &account_infos, &signer_seeds)?;
@@ -232,7 +232,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             return Ok(self.loaded_readonly_accounts[index]);
         }
 
-        Err(MultisigError::InvalidTransactionMessage.into())
+        Err(VersionedMultisigError::InvalidTransactionMessage.into())
     }
 
     /// Whether the account at the `index` is requested as writable.

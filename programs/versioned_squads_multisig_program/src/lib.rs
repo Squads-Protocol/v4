@@ -102,4 +102,34 @@ pub mod versioned_squads_multisig_program {
     ) -> Result<()> {
         VersionedMultisigConfig::multisig_set_config_authority(ctx, args)
     }
+
+    /// Create a transaction buffer account.
+    pub fn transaction_buffer_create(
+        ctx: Context<TransactionBufferCreate>,
+        args: TransactionBufferCreateArgs,
+    ) -> Result<()> {
+        TransactionBufferCreate::transaction_buffer_create(ctx, args)
+    }
+
+    /// Close a transaction buffer account.
+    pub fn transaction_buffer_close(ctx: Context<TransactionBufferClose>) -> Result<()> {
+        TransactionBufferClose::transaction_buffer_close(ctx)
+    }
+
+    /// Extend a transaction buffer account.
+    pub fn transaction_buffer_extend(
+        ctx: Context<TransactionBufferExtend>,
+        args: TransactionBufferExtendArgs,
+    ) -> Result<()> {
+        TransactionBufferExtend::transaction_buffer_extend(ctx, args)
+    }
+
+    /// Create a new vault transaction from a completed transaction buffer.
+    /// Finalized buffer hash must match `final_buffer_hash`
+    pub fn vault_transaction_create_from_buffer<'info>(
+        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreateFromBuffer<'info>>,
+        args: VaultTransactionCreateArgs,
+    ) -> Result<()> {
+        VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
+    }
 } 

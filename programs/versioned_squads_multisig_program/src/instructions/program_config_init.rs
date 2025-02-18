@@ -1,4 +1,4 @@
-use crate::errors::{MultisigError, VersionedMultisigError};
+use crate::errors::VersionedMultisigError;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey;
 
@@ -7,10 +7,10 @@ use crate::state::*;
 /// This is a key controlled by the Squads team and is intended to use for the single
 /// transaction that initializes the global program config. It is not used for anything else.
 #[cfg(not(feature = "testing"))]
-const INITIALIZER: Pubkey = pubkey!("BZxQCuTBzHoPVknFMw6DGn8ZJ5eM3UmM8MgtsEP7eJBg");
+const INITIALIZER: Pubkey = pubkey!("4uYCFhFBETPHfkmNqTWsAT9CZubcjNUxwajmEqALvucg");
 
 #[cfg(feature = "testing")]
-const INITIALIZER: Pubkey = pubkey!("BZxQCuTBzHoPVknFMw6DGn8ZJ5eM3UmM8MgtsEP7eJBg");
+const INITIALIZER: Pubkey = pubkey!("4uYCFhFBETPHfkmNqTWsAT9CZubcjNUxwajmEqALvucg");
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct ProgramConfigInitArgs {

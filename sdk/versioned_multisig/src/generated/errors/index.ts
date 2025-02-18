@@ -623,6 +623,147 @@ createErrorFromNameLookup.set(
 )
 
 /**
+ * FinalBufferHashMismatch: 'Final message buffer hash doesnt match the expected hash'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class FinalBufferHashMismatchError extends Error {
+  readonly code: number = 0x178c
+  readonly name: string = 'FinalBufferHashMismatch'
+  constructor() {
+    super('Final message buffer hash doesnt match the expected hash')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, FinalBufferHashMismatchError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178c, () => new FinalBufferHashMismatchError())
+createErrorFromNameLookup.set(
+  'FinalBufferHashMismatch',
+  () => new FinalBufferHashMismatchError()
+)
+
+/**
+ * FinalBufferSizeExceeded: 'Final buffer size cannot exceed 4000 bytes'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class FinalBufferSizeExceededError extends Error {
+  readonly code: number = 0x178d
+  readonly name: string = 'FinalBufferSizeExceeded'
+  constructor() {
+    super('Final buffer size cannot exceed 4000 bytes')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, FinalBufferSizeExceededError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178d, () => new FinalBufferSizeExceededError())
+createErrorFromNameLookup.set(
+  'FinalBufferSizeExceeded',
+  () => new FinalBufferSizeExceededError()
+)
+
+/**
+ * FinalBufferSizeMismatch: 'Final buffer size mismatch'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class FinalBufferSizeMismatchError extends Error {
+  readonly code: number = 0x178e
+  readonly name: string = 'FinalBufferSizeMismatch'
+  constructor() {
+    super('Final buffer size mismatch')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, FinalBufferSizeMismatchError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178e, () => new FinalBufferSizeMismatchError())
+createErrorFromNameLookup.set(
+  'FinalBufferSizeMismatch',
+  () => new FinalBufferSizeMismatchError()
+)
+
+/**
+ * InvalidInstructionArgs: 'Invalid Instruction Arguments'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidInstructionArgsError extends Error {
+  readonly code: number = 0x178f
+  readonly name: string = 'InvalidInstructionArgs'
+  constructor() {
+    super('Invalid Instruction Arguments')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidInstructionArgsError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x178f, () => new InvalidInstructionArgsError())
+createErrorFromNameLookup.set(
+  'InvalidInstructionArgs',
+  () => new InvalidInstructionArgsError()
+)
+
+/**
+ * InvalidTransactionMessage: 'TransactionMessage is malformed.'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class InvalidTransactionMessageError extends Error {
+  readonly code: number = 0x1790
+  readonly name: string = 'InvalidTransactionMessage'
+  constructor() {
+    super('TransactionMessage is malformed.')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, InvalidTransactionMessageError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(
+  0x1790,
+  () => new InvalidTransactionMessageError()
+)
+createErrorFromNameLookup.set(
+  'InvalidTransactionMessage',
+  () => new InvalidTransactionMessageError()
+)
+
+/**
+ * ProtectedAccount: 'Account is protected, it cannot be passed into a CPI as writable'
+ *
+ * @category Errors
+ * @category generated
+ */
+export class ProtectedAccountError extends Error {
+  readonly code: number = 0x1791
+  readonly name: string = 'ProtectedAccount'
+  constructor() {
+    super('Account is protected, it cannot be passed into a CPI as writable')
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, ProtectedAccountError)
+    }
+  }
+}
+
+createErrorFromCodeLookup.set(0x1791, () => new ProtectedAccountError())
+createErrorFromNameLookup.set(
+  'ProtectedAccount',
+  () => new ProtectedAccountError()
+)
+
+/**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
  * @category generated

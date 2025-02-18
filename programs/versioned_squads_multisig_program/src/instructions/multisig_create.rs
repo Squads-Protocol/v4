@@ -3,7 +3,6 @@ use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use solana_program::native_token::LAMPORTS_PER_SOL;
 
-use crate::errors::MultisigError;
 use crate::errors::VersionedMultisigError;
 use crate::state::*;
 

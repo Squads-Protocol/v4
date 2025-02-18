@@ -153,18 +153,18 @@ impl TryFrom<TransactionMessage> for VaultTransactionMessage {
 
         require!(
             usize::from(message.num_signers) <= account_keys.len(),
-            MultisigError::InvalidTransactionMessage
+            VersionedMultisigError::InvalidTransactionMessage
         );
         require!(
             message.num_writable_signers <= message.num_signers,
-            MultisigError::InvalidTransactionMessage
+            VersionedMultisigError::InvalidTransactionMessage
         );
         require!(
             usize::from(message.num_writable_non_signers)
                 <= account_keys
                     .len()
                     .saturating_sub(usize::from(message.num_signers)),
-            MultisigError::InvalidTransactionMessage
+                    VersionedMultisigError::InvalidTransactionMessage
         );
 
         // Validate that all program ID indices and account indices are within the bounds of the account keys.
