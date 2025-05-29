@@ -55,6 +55,10 @@ pub struct VaultTransactionExecute {
 
     #[arg(long)]
     extra_keypair: Option<String>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool,
 }
 
 impl VaultTransactionExecute {
@@ -68,6 +72,7 @@ impl VaultTransactionExecute {
             priority_fee_lamports,
             compute_unit_limit,
             extra_keypair,
+            no_confirm,
         } = self;
 
         let program_id =
@@ -105,10 +110,15 @@ impl VaultTransactionExecute {
         println!("Transaction Index:       {}", transaction_index);
         println!();
 
-        let proceed = Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
-            .interact()?;
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
+                .with_prompt("Do you want to proceed?")
+                .default(false)
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());
