@@ -55,6 +55,10 @@ pub struct MultisigCreate {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool
 }
 
 impl MultisigCreate {
@@ -68,6 +72,7 @@ impl MultisigCreate {
             threshold,
             rent_collector,
             priority_fee_lamports,
+            no_confirm,
         } = self;
 
         let program_id =
@@ -114,10 +119,15 @@ impl MultisigCreate {
 
         let config_authority = config_authority.map(|s| Pubkey::from_str(&s)).transpose()?;
 
-        let proceed = Confirm::new()
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
             .with_prompt("Do you want to proceed?")
             .default(false)
-            .interact()?;
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());

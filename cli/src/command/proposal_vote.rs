@@ -56,6 +56,10 @@ pub struct ProposalVote {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool
 }
 
 impl ProposalVote {
@@ -69,6 +73,7 @@ impl ProposalVote {
             action,
             memo,
             priority_fee_lamports,
+            no_confirm,
         } = self;
 
         let program_id =
@@ -102,10 +107,15 @@ impl ProposalVote {
         println!("Vote Type:       {}", action);
         println!();
 
-        let proceed = Confirm::new()
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
             .with_prompt("Do you want to proceed?")
             .default(false)
-            .interact()?;
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());

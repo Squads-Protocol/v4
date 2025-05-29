@@ -83,6 +83,10 @@ pub struct VaultTransactionCreate {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool
 }
 
 impl VaultTransactionCreate {
@@ -96,6 +100,7 @@ impl VaultTransactionCreate {
             transaction_message,
             vault_index,
             priority_fee_lamports,
+            no_confirm,
         } = self;
 
         let program_id =
@@ -135,10 +140,15 @@ impl VaultTransactionCreate {
         println!("Vault Index:       {}", vault_index);
         println!();
 
-        let proceed = Confirm::new()
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
             .with_prompt("Do you want to proceed?")
             .default(false)
-            .interact()?;
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());
