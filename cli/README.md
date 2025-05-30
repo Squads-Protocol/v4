@@ -310,7 +310,7 @@ vault-transaction-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair
 ### Example Usage
 
 ```bash
-vault-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 1 --transaction-message [1, 2, 3, 5, 5, 6, 7, 8]
+vault-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 1 --transaction-message AAAABBBBBBB==
 ```
 
 In this example, a new transaction with the specified message is proposed in the multisig vault at vault index 1.

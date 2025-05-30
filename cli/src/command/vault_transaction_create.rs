@@ -1,8 +1,8 @@
 use std::str::FromStr;
 use std::time::Duration;
 
-use clap::Args;
 use clap::builder::ValueParser;
+use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
@@ -27,31 +27,6 @@ use squads_multisig::squads_multisig_program::VaultTransactionCreateArgs;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
-#[derive(Debug, Clone)]
-struct TransactionMessage(Vec<u8>);
-
-impl FromStr for TransactionMessage {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
-        if !s.starts_with('[') || !s.ends_with(']') {
-            return Err("Transaction message must be in format [1,2,3,4]".to_string());
-        }
-
-        // Remove brackets and split by commas
-        let inner = &s[1..s.len()-1];
-        let numbers: Result<Vec<u8>, _> = inner
-            .split(',')
-            .map(str::trim)
-            .map(|num| num.parse::<u8>()
-                .map_err(|_| format!("Invalid byte value: {}", num)))
-            .collect();
-
-        numbers.map(TransactionMessage)
-    }
-}
-
 #[derive(Args)]
 pub struct VaultTransactionCreate {
     /// RPC URL
@@ -73,9 +48,9 @@ pub struct VaultTransactionCreate {
     #[arg(long)]
     vault_index: u8,
 
-    /// Transaction message in format [1,2,3,4]
-    #[arg(long, value_parser = clap::value_parser!(TransactionMessage))]
-    transaction_message: TransactionMessage,
+    /// Transaction message in base64
+    #[arg(long)]
+    transaction_message: String,
 
     /// Memo to be included in the transaction
     #[arg(long)]
@@ -86,7 +61,7 @@ pub struct VaultTransactionCreate {
 
     /// Skip confirmation prompt
     #[arg(long)]
-    no_confirm: bool
+    no_confirm: bool,
 }
 
 impl VaultTransactionCreate {
@@ -102,6 +77,14 @@ impl VaultTransactionCreate {
             priority_fee_lamports,
             no_confirm,
         } = self;
+
+        let transaction_message: Vec<u8> = {
+            use base64::prelude::Engine as _;
+            use base64::prelude::BASE64_STANDARD;
+            BASE64_STANDARD
+                .decode(transaction_message)
+                .expect("Invalid base64 string for transaction_message")
+        };
 
         let program_id =
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
@@ -144,8 +127,8 @@ impl VaultTransactionCreate {
             true
         } else {
             Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
+                .with_prompt("Do you want to proceed?")
+                .default(false)
                 .interact()?
         };
 
@@ -183,7 +166,7 @@ impl VaultTransactionCreate {
                             ephemeral_signers: 0,
                             vault_index,
                             memo,
-                            transaction_message: transaction_message.0,
+                            transaction_message,
                         },
                     }
                     .data(),
