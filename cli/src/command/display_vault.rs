@@ -1,5 +1,5 @@
-use squads_multisig::pda::get_vault_pda;
 use solana_sdk::pubkey::Pubkey;
+use squads_multisig::pda::get_vault_pda;
 use std::str::FromStr;
 
 use clap::Args;
@@ -27,13 +27,13 @@ impl DisplayVault {
             vault_index,
         } = self;
 
-        let program_id = program_id.unwrap_or_else(|| {
-            "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string()
-        });
+        let program_id =
+            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let multisig_address = Pubkey::from_str(&multisig_address).expect("Invalid multisig address");
+        let multisig_address =
+            Pubkey::from_str(&multisig_address).expect("Invalid multisig address");
 
         let vault_index = vault_index.unwrap_or(0);
 

@@ -58,7 +58,7 @@ pub struct MultisigCreate {
 
     /// Skip confirmation prompt
     #[arg(long)]
-    no_confirm: bool
+    no_confirm: bool,
 }
 
 impl MultisigCreate {
@@ -123,8 +123,8 @@ impl MultisigCreate {
             true
         } else {
             Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
+                .with_prompt("Do you want to proceed?")
+                .default(false)
                 .interact()?
         };
 
