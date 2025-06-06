@@ -183,7 +183,7 @@ export async function accountsForTransactionExecute({
     await Promise.all(
       addressLookupTableKeys.map(async (key) => {
         const keyBase58 = key.toBase58();
-        const localAccount = offlineAddressLookupTableAccounts?.find((a) => a.key.toBase58() === keyBase58)
+        const localAccount = localAddressLookupTableAccounts?.find((a) => a.key.toBase58() === keyBase58)
         if (localAccount) {
           return [keyBase58, localAccount];
         }
