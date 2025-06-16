@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use std::time::Duration;
 
+use clap::builder::ValueParser;
 use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
@@ -47,8 +48,9 @@ pub struct VaultTransactionCreate {
     #[arg(long)]
     vault_index: u8,
 
+    /// Transaction message in base64
     #[arg(long)]
-    transaction_message: Vec<u8>,
+    transaction_message: String,
 
     /// Memo to be included in the transaction
     #[arg(long)]
@@ -56,6 +58,10 @@ pub struct VaultTransactionCreate {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool,
 }
 
 impl VaultTransactionCreate {
@@ -69,7 +75,16 @@ impl VaultTransactionCreate {
             transaction_message,
             vault_index,
             priority_fee_lamports,
+            no_confirm,
         } = self;
+
+        let transaction_message: Vec<u8> = {
+            use base64::prelude::Engine as _;
+            use base64::prelude::BASE64_STANDARD;
+            BASE64_STANDARD
+                .decode(transaction_message)
+                .expect("Invalid base64 string for transaction_message")
+        };
 
         let program_id =
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
@@ -108,10 +123,15 @@ impl VaultTransactionCreate {
         println!("Vault Index:       {}", vault_index);
         println!();
 
-        let proceed = Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
-            .interact()?;
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
+                .with_prompt("Do you want to proceed?")
+                .default(false)
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());
