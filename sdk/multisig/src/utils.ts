@@ -151,6 +151,7 @@ export async function accountsForTransactionExecute({
   message,
   ephemeralSignerBumps,
   programId,
+  addressLookupTableAccounts: localAddressLookupTableAccounts,
 }: {
   connection: Connection;
   message: VaultTransactionMessage;
@@ -158,6 +159,7 @@ export async function accountsForTransactionExecute({
   vaultPda: PublicKey;
   transactionPda: PublicKey;
   programId?: PublicKey;
+  addressLookupTableAccounts?: AddressLookupTableAccount[];
 }): Promise<{
   /** Account metas used in the `message`. */
   accountMetas: AccountMeta[];
@@ -180,13 +182,19 @@ export async function accountsForTransactionExecute({
   const addressLookupTableAccounts = new Map(
     await Promise.all(
       addressLookupTableKeys.map(async (key) => {
+        const keyBase58 = key.toBase58();
+        const localAccount = localAddressLookupTableAccounts?.find((a) => a.key.toBase58() === keyBase58)
+        if (localAccount) {
+          return [keyBase58, localAccount];
+        }
+
         const { value } = await connection.getAddressLookupTable(key);
         if (!value) {
           throw new Error(
-            `Address lookup table account ${key.toBase58()} not found`
+            `Address lookup table account ${keyBase58} not found`
           );
         }
-        return [key.toBase58(), value] as const;
+        return [keyBase58, value] as const;
       })
     )
   );
