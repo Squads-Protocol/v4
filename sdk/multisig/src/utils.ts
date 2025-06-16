@@ -185,7 +185,7 @@ export async function accountsForTransactionExecute({
         const keyBase58 = key.toBase58();
         const localAccount = localAddressLookupTableAccounts?.find((a) => a.key.toBase58() === keyBase58)
         if (localAccount) {
-          return [keyBase58, localAccount];
+          return [keyBase58, localAccount] as const;
         }
 
         const { value } = await connection.getAddressLookupTable(key);
