@@ -77,7 +77,7 @@ impl MultisigAddSpendingLimit<'_> {
 
     /// Create a new spending limit for the controlled multisig.
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_add_spending_limit(
         ctx: Context<Self>,
