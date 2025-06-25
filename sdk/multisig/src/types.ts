@@ -39,6 +39,10 @@ export class Permissions implements IPermissions {
     );
   }
 
+  static fromMask(mask: number) {
+    return new Permissions(mask);
+  }
+
   static all() {
     return new Permissions(
       Object.values(Permission).reduce(
