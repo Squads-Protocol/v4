@@ -87,7 +87,8 @@ impl VaultTransactionExecute {
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
-        let transaction_extra_signer_keypair = extra_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let transaction_extra_signer_keypair =
+            extra_keypair.map(|path| create_signer_from_path(path).unwrap());
 
         println!();
         println!(
@@ -185,11 +186,8 @@ impl VaultTransactionExecute {
             signers.push(&**extra_signer);
         }
 
-        let transaction = VersionedTransaction::try_new(
-            VersionedMessage::V0(message),
-            &signers,
-        )
-        .expect("Failed to create transaction");
+        let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
+            .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 
