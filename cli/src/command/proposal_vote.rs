@@ -56,6 +56,9 @@ pub struct ProposalVote {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    #[arg(long)]
+    fee_payer_keypair: Option<String>,
 }
 
 impl ProposalVote {
@@ -69,6 +72,7 @@ impl ProposalVote {
             action,
             memo,
             priority_fee_lamports,
+            fee_payer_keypair,
         } = self;
 
         let program_id =
@@ -85,6 +89,9 @@ impl ProposalVote {
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
+
+        let transaction_fee_payer_keypair =
+            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
 
         println!();
         println!(
@@ -141,8 +148,13 @@ impl ProposalVote {
             }
         };
 
+        let fee_payer = transaction_fee_payer_keypair
+            .as_ref()
+            .map(|kp| kp.pubkey())
+            .unwrap_or(transaction_creator);
+
         let message = Message::try_compile(
-            &transaction_creator,
+            &fee_payer,
             &[
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
@@ -163,11 +175,15 @@ impl ProposalVote {
         )
         .unwrap();
 
-        let transaction = VersionedTransaction::try_new(
-            VersionedMessage::V0(message),
-            &[&*transaction_creator_keypair],
-        )
-        .expect("Failed to create transaction");
+        let mut signers = vec![&*transaction_creator_keypair];
+        if let Some(ref fee_payer_kp) = transaction_fee_payer_keypair {
+            if fee_payer_kp.pubkey() != transaction_creator {
+                signers.push(&**fee_payer_kp);
+            }
+        }
+
+        let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
+            .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 

@@ -55,6 +55,9 @@ pub struct VaultTransactionExecute {
 
     #[arg(long)]
     extra_keypair: Option<String>,
+
+    #[arg(long)]
+    fee_payer_keypair: Option<String>,
 }
 
 impl VaultTransactionExecute {
@@ -68,6 +71,7 @@ impl VaultTransactionExecute {
             priority_fee_lamports,
             compute_unit_limit,
             extra_keypair,
+            fee_payer_keypair,
         } = self;
 
         let program_id =
@@ -89,6 +93,9 @@ impl VaultTransactionExecute {
 
         let transaction_extra_signer_keypair =
             extra_keypair.map(|path| create_signer_from_path(path).unwrap());
+
+        let transaction_fee_payer_keypair =
+            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
 
         println!();
         println!(
@@ -161,8 +168,13 @@ impl VaultTransactionExecute {
             .await
             .expect("Failed to get blockhash");
 
+        let fee_payer = transaction_fee_payer_keypair
+            .as_ref()
+            .map(|kp| kp.pubkey())
+            .unwrap_or(transaction_creator);
+
         let message = Message::try_compile(
-            &transaction_creator,
+            &fee_payer,
             &[
                 ComputeBudgetInstruction::set_compute_unit_limit(
                     compute_unit_limit.unwrap_or(200_000),
@@ -182,6 +194,11 @@ impl VaultTransactionExecute {
         .unwrap();
 
         let mut signers = vec![&*transaction_creator_keypair];
+        if let Some(ref fee_payer_kp) = transaction_fee_payer_keypair {
+            if fee_payer_kp.pubkey() != transaction_creator {
+                signers.push(&**fee_payer_kp);
+            }
+        }
         if let Some(ref extra_signer) = transaction_extra_signer_keypair {
             signers.push(&**extra_signer);
         }
