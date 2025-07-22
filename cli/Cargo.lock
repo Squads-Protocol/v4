@@ -4470,7 +4470,7 @@ dependencies = [
 
 [[package]]
 name = "squads-multisig-cli"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "clap 3.2.25",
  "clap 4.4.13",
