@@ -2,13 +2,20 @@ use clap_v3::ArgMatches;
 use colored::Colorize;
 use eyre::eyre;
 use solana_clap_v3_utils::keypair::signer_from_path;
-use solana_sdk::{signer::Signer, transaction::VersionedTransaction};
+use solana_sdk::signature::read_keypair_file;
+use solana_sdk::{signer::keypair::Keypair, signer::Signer, transaction::VersionedTransaction};
 use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::solana_client::{
     client_error::ClientErrorKind,
     rpc_request::{RpcError, RpcResponseErrorData},
     rpc_response::RpcSimulateTransactionResult,
 };
+
+pub fn create_keypair_from_path(
+    keypair_path: String,
+) -> Result<Keypair, Box<dyn std::error::Error>> {
+    read_keypair_file(&keypair_path).map_err(|e| e.into())
+}
 
 pub fn create_signer_from_path(
     keypair_path: String,
