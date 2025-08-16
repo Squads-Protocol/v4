@@ -103,7 +103,7 @@ or
 npm install
 ```
 
-And run these tests with this command:
+And, ensuring that `solana-test-validator` is run on another terminal, run these tests with this command:
 
 ```
 yarn test
