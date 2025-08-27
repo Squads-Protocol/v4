@@ -150,7 +150,7 @@ Below is a list of audit reports pertaining to the v4 program. Each entry enumer
   report](https://github.com/Squads-Protocol/v4/blob/main/audits/certora_squads_v4_security_report_and_formal_verification_2024_final.pdf)
 - Trail of Bits: [View full report](https://github.com/Squads-Protocol/v4/blob/main/audits/trail_of_bits_squads_v4_security_audit.pdf)
 
-The final and fully audited commit hash of the program is `64af7330413d5c85cbbccfd8c27a05d45b6e666fthe`
+The final and fully audited commit hash of the program is `64af7330413d5c85cbbccfd8c27a05d45b6e666f`
 
 ## License
 
