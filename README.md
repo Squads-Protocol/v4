@@ -137,7 +137,7 @@ Versioned Squads Multisig Program:
 
 - Not audited yet
 
-The final and fully audited commit hash of the program is `64af7330413d5c85cbbccfd8c27a05d45b6e666fthe`
+The final and fully audited commit hash of the program is `64af7330413d5c85cbbccfd8c27a05d45b6e666f`
 
 ## License
 
