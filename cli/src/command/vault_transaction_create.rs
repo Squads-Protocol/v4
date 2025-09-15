@@ -47,8 +47,9 @@ pub struct VaultTransactionCreate {
     #[arg(long)]
     vault_index: u8,
 
+    /// Transaction message in base64
     #[arg(long)]
-    transaction_message: Vec<u8>,
+    transaction_message: String,
 
     /// Memo to be included in the transaction
     #[arg(long)]
@@ -56,6 +57,13 @@ pub struct VaultTransactionCreate {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool,
+
+    #[arg(long, default_value = "finalized")]
+    commitment: solana_sdk::commitment_config::CommitmentConfig,
 }
 
 impl VaultTransactionCreate {
@@ -69,7 +77,17 @@ impl VaultTransactionCreate {
             transaction_message,
             vault_index,
             priority_fee_lamports,
+            no_confirm,
+            commitment,
         } = self;
+
+        let transaction_message: Vec<u8> = {
+            use base64::prelude::Engine as _;
+            use base64::prelude::BASE64_STANDARD;
+            BASE64_STANDARD
+                .decode(transaction_message)
+                .expect("Invalid base64 string for transaction_message")
+        };
 
         let program_id =
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
@@ -82,7 +100,7 @@ impl VaultTransactionCreate {
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
         let rpc_url_clone = rpc_url.clone();
-        let rpc_client = &RpcClient::new(rpc_url);
+        let rpc_client = &RpcClient::new_with_commitment(rpc_url, commitment);
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
 
@@ -108,10 +126,15 @@ impl VaultTransactionCreate {
         println!("Vault Index:       {}", vault_index);
         println!();
 
-        let proceed = Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
-            .interact()?;
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
+                .with_prompt("Do you want to proceed?")
+                .default(false)
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());

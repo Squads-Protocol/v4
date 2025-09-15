@@ -56,6 +56,13 @@ pub struct ProposalVote {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool,
+
+    #[arg(long, default_value = "finalized")]
+    commitment: solana_sdk::commitment_config::CommitmentConfig,
 }
 
 impl ProposalVote {
@@ -69,6 +76,8 @@ impl ProposalVote {
             action,
             memo,
             priority_fee_lamports,
+            no_confirm,
+            commitment,
         } = self;
 
         let program_id =
@@ -102,17 +111,22 @@ impl ProposalVote {
         println!("Vote Type:       {}", action);
         println!();
 
-        let proceed = Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
-            .interact()?;
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
+                .with_prompt("Do you want to proceed?")
+                .default(false)
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());
         }
         println!();
 
-        let rpc_client = RpcClient::new(rpc_url);
+        let rpc_client = RpcClient::new_with_commitment(rpc_url, commitment);
 
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
         progress.enable_steady_tick(Duration::from_millis(100));

@@ -54,7 +54,14 @@ pub struct VaultTransactionExecute {
     compute_unit_limit: Option<u32>,
 
     #[arg(long)]
-    extra_keypair: Option<String>,
+    extra_keypair: Vec<String>,
+
+    /// Skip confirmation prompt
+    #[arg(long)]
+    no_confirm: bool,
+
+    #[arg(long, default_value = "finalized")]
+    commitment: solana_sdk::commitment_config::CommitmentConfig,
 }
 
 impl VaultTransactionExecute {
@@ -68,6 +75,8 @@ impl VaultTransactionExecute {
             priority_fee_lamports,
             compute_unit_limit,
             extra_keypair,
+            no_confirm,
+            commitment,
         } = self;
 
         let program_id =
@@ -87,8 +96,10 @@ impl VaultTransactionExecute {
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
-        let transaction_extra_signer_keypair =
-            extra_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let transaction_extra_signer_keypair = extra_keypair
+            .into_iter()
+            .map(|path| create_signer_from_path(path).unwrap())
+            .collect::<Vec<_>>();
 
         println!();
         println!(
@@ -105,17 +116,22 @@ impl VaultTransactionExecute {
         println!("Transaction Index:       {}", transaction_index);
         println!();
 
-        let proceed = Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
-            .interact()?;
+        let proceed = if no_confirm {
+            true
+        } else {
+            Confirm::new()
+                .with_prompt("Do you want to proceed?")
+                .default(false)
+                .interact()?
+        };
+
         if !proceed {
             println!("OK, aborting.");
             return Ok(());
         }
         println!();
 
-        let rpc_client = RpcClient::new(rpc_url);
+        let rpc_client = RpcClient::new_with_commitment(rpc_url, commitment);
 
         let transaction_account_data = rpc_client
             .get_account(&transaction_pda.0)
@@ -182,7 +198,7 @@ impl VaultTransactionExecute {
         .unwrap();
 
         let mut signers = vec![&*transaction_creator_keypair];
-        if let Some(ref extra_signer) = transaction_extra_signer_keypair {
+        for extra_signer in &transaction_extra_signer_keypair {
             signers.push(&**extra_signer);
         }
 
