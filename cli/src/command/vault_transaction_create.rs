@@ -1,7 +1,6 @@
 use std::str::FromStr;
 use std::time::Duration;
 
-use clap::builder::ValueParser;
 use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
@@ -62,6 +61,9 @@ pub struct VaultTransactionCreate {
     /// Skip confirmation prompt
     #[arg(long)]
     no_confirm: bool,
+
+    #[arg(long, default_value = "finalized")]
+    commitment: solana_sdk::commitment_config::CommitmentConfig,
 }
 
 impl VaultTransactionCreate {
@@ -76,6 +78,7 @@ impl VaultTransactionCreate {
             vault_index,
             priority_fee_lamports,
             no_confirm,
+            commitment,
         } = self;
 
         let transaction_message: Vec<u8> = {
@@ -97,7 +100,7 @@ impl VaultTransactionCreate {
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
         let rpc_url_clone = rpc_url.clone();
-        let rpc_client = &RpcClient::new(rpc_url);
+        let rpc_client = &RpcClient::new_with_commitment(rpc_url, commitment);
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
 

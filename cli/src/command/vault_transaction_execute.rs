@@ -59,6 +59,9 @@ pub struct VaultTransactionExecute {
     /// Skip confirmation prompt
     #[arg(long)]
     no_confirm: bool,
+
+    #[arg(long, default_value = "finalized")]
+    commitment: solana_sdk::commitment_config::CommitmentConfig,
 }
 
 impl VaultTransactionExecute {
@@ -73,6 +76,7 @@ impl VaultTransactionExecute {
             compute_unit_limit,
             extra_keypair,
             no_confirm,
+            commitment,
         } = self;
 
         let program_id =
@@ -127,7 +131,7 @@ impl VaultTransactionExecute {
         }
         println!();
 
-        let rpc_client = RpcClient::new(rpc_url);
+        let rpc_client = RpcClient::new_with_commitment(rpc_url, commitment);
 
         let transaction_account_data = rpc_client
             .get_account(&transaction_pda.0)
