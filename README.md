@@ -53,13 +53,37 @@ Documentation:
 
 ## Compiling and testing
 
-You can compile the code with Anchor.
+You can compile the code with Anchor. If you do not have the Solana Anchor framework CLI installed, you can do so by following [this guide](https://www.anchor-lang.com/docs/installation).
 
 ```
+agave-install init 1.18.16
+avm use 0.29.0
+anchor clean # if you want to refresh your build
 anchor build
 ```
 
-If you do not have the Solana Anchor framework CLI installed, you can do so by following [this guide](https://www.anchor-lang.com/docs/installation).
+You may encounter two issues compiling:
+
+### 1. Problem installing edition2024
+
+This was stabilized in rustc version 1.85.0. You can override your rust version with the following command:
+
+```
+rustup override set 1.85.0
+```
+This will override the rust toolchain you are currently using to 1.85.0. You can then run `anchor build` as normal
+
+### 2. Cargo.lock version 4
+
+After running `cargo build`, you might get an error indicating that the new lockfile version requires a new flag. Instead, manually edit your Cargo.lock file to set it to version 3:
+
+```
+# Cargo.lock
+...
+version = 3
+```
+
+You can then run `anchor build` as normal.
 
 To deploy the program on a local validator instance for testing or development purposes, you can create a local instance by running this command from the [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools).
 
