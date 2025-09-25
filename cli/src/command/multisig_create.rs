@@ -24,7 +24,9 @@ use squads_multisig::squads_multisig_program::state::ProgramConfig;
 use squads_multisig::squads_multisig_program::MultisigCreateArgsV2;
 use squads_multisig::state::{Member, Permissions};
 
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{
+    create_keypair_from_path, create_signer_from_path, send_and_confirm_transaction,
+};
 
 #[derive(Args)]
 pub struct MultisigCreate {
@@ -55,6 +57,10 @@ pub struct MultisigCreate {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Optional path to create keypair, for creating deterministic vaults
+    #[arg(long)]
+    create_key: Option<String>,
 }
 
 impl MultisigCreate {
@@ -68,6 +74,7 @@ impl MultisigCreate {
             threshold,
             rent_collector,
             priority_fee_lamports,
+            create_key,
         } = self;
 
         let program_id =
@@ -134,9 +141,13 @@ impl MultisigCreate {
             .await
             .expect("Failed to get blockhash");
 
-        let random_keypair = Keypair::new();
+        let create_keypair = if let Some(create_key) = create_key {
+            create_keypair_from_path(create_key).unwrap()
+        } else {
+            Keypair::new()
+        };
 
-        let multisig_key = get_multisig_pda(&random_keypair.pubkey(), Some(&program_id));
+        let multisig_key = get_multisig_pda(&create_keypair.pubkey(), Some(&program_id));
 
         let program_config_pda = get_program_config_pda(Some(&program_id));
 
@@ -159,7 +170,7 @@ impl MultisigCreate {
                 ),
                 Instruction {
                     accounts: MultisigCreateV2Accounts {
-                        create_key: random_keypair.pubkey(),
+                        create_key: create_keypair.pubkey(),
                         creator: transaction_creator,
                         multisig: multisig_key.0,
                         system_program: system_program::id(),
@@ -190,7 +201,7 @@ impl MultisigCreate {
             VersionedMessage::V0(message),
             &[
                 &*transaction_creator_keypair,
-                &random_keypair as &dyn Signer,
+                &create_keypair as &dyn Signer,
             ],
         )
         .expect("Failed to create transaction");
