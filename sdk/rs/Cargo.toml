@@ -18,6 +18,7 @@ futures = { version = "0.3.28" , features = ["async-await", "alloc"] }
 squads-multisig-program = { path = "../../programs/squads_multisig_program", features =["cpi", "no-entrypoint"], version = "2.0.0" }
 solana-client = "1.17.4"
 thiserror = "1.0.48"
+time = ">=0.3.35"
 
 [features]
 default = []
