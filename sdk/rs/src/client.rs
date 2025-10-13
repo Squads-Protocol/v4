@@ -591,7 +591,7 @@ pub mod utils {
                 AccountMeta::new(self.multisig, false),
                 AccountMeta::new_readonly(self.member, true),
                 AccountMeta::new(self.proposal, false),
-                AccountMeta::new(self.transaction, false),
+                AccountMeta::new_readonly(self.transaction, false),
                 if let Some(rent_payer) = self.rent_payer {
                     AccountMeta::new(rent_payer, true)
                 } else {
