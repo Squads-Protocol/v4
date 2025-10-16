@@ -16,13 +16,13 @@ dialoguer = "0.11.0"
 indicatif = "0.17.7"
 colored = "2.1.0"
 # Solana deps
-solana-sdk = "1.18.3"
+solana-sdk = "=2.3.1"
 # local deps
 squads-multisig = { path = "../sdk/rs", version = "2.0.1" }
-solana-remote-wallet = "1.18.3"
-solana-clap-v3-utils = "1.18.3"
-solana-program = "1.18.3"
+solana-remote-wallet = "=2.3.3"
+solana-clap-utils = "=1.8.26"
+solana-program = "=2.3.0"
 clap_v3 = { package = "clap", version = "3.0", optional = false }  # The version needed for solana_clap_utils
-solana-address-lookup-table-program = "1.18.3"
-spl-token = "4.0.0"
-spl-associated-token-account = "2.3.0"
+solana-address-lookup-table-program = "=2.3.3"
+spl-token = { version = "4.0", features = ["no-entrypoint"] }
+spl-associated-token-account = { version = "7.0.0", features = ["no-entrypoint"] }

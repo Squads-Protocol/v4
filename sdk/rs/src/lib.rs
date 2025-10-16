@@ -5,6 +5,13 @@ pub use squads_multisig_program;
 pub use squads_multisig_program::anchor_lang;
 pub use squads_multisig_program::anchor_lang::solana_program;
 
+// AddressLookupTableAccount compatibility for Solana 2.3.x
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddressLookupTableAccount {
+    pub key: solana_program::pubkey::Pubkey,
+    pub addresses: Vec<solana_program::pubkey::Pubkey>,
+}
+
 pub mod client;
 pub mod pda;
 pub mod vault_transaction;

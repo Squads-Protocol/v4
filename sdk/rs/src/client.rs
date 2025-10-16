@@ -41,7 +41,7 @@ use crate::anchor_lang::{
 use crate::client::utils::IntoAccountMetas;
 use crate::error::ClientError;
 use crate::pda::get_vault_pda;
-use crate::solana_program::address_lookup_table_account::AddressLookupTableAccount;
+use crate::AddressLookupTableAccount;
 use crate::solana_program::instruction::AccountMeta;
 use crate::state::{Multisig, SpendingLimit};
 use crate::vault_transaction::{Error, VaultTransactionMessageExt};

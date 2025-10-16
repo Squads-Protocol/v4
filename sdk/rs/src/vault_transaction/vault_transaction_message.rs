@@ -5,7 +5,7 @@ use squads_multisig_program::{
 use std::collections::HashMap;
 
 use super::compiled_keys::CompiledKeys;
-use crate::solana_program::address_lookup_table_account::AddressLookupTableAccount;
+use crate::AddressLookupTableAccount;
 use crate::solana_program::instruction::{AccountMeta, Instruction};
 use crate::solana_program::message::{AccountKeys, CompileError};
 use crate::solana_program::pubkey::Pubkey;
