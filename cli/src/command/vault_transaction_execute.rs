@@ -52,6 +52,9 @@ pub struct VaultTransactionExecute {
 
     #[arg(long)]
     compute_unit_limit: Option<u32>,
+
+    #[arg(long)]
+    extra_keypair: Option<String>,
 }
 
 impl VaultTransactionExecute {
@@ -64,6 +67,7 @@ impl VaultTransactionExecute {
             transaction_index,
             priority_fee_lamports,
             compute_unit_limit,
+            extra_keypair,
         } = self;
 
         let program_id =
@@ -82,6 +86,9 @@ impl VaultTransactionExecute {
         let transaction_pda = get_transaction_pda(&multisig, transaction_index, Some(&program_id));
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
+
+        let transaction_extra_signer_keypair =
+            extra_keypair.map(|path| create_signer_from_path(path).unwrap());
 
         println!();
         println!(
@@ -174,11 +181,13 @@ impl VaultTransactionExecute {
         )
         .unwrap();
 
-        let transaction = VersionedTransaction::try_new(
-            VersionedMessage::V0(message),
-            &[&*transaction_creator_keypair],
-        )
-        .expect("Failed to create transaction");
+        let mut signers = vec![&*transaction_creator_keypair];
+        if let Some(ref extra_signer) = transaction_extra_signer_keypair {
+            signers.push(&**extra_signer);
+        }
+
+        let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
+            .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 

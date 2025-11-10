@@ -1,5 +1,6 @@
 use crate::command::config_transaction_create::ConfigTransactionCreate;
 use crate::command::config_transaction_execute::ConfigTransactionExecute;
+use crate::command::display_vault::DisplayVault;
 use crate::command::initiate_program_upgrade::InitiateProgramUpgrade;
 use crate::command::initiate_transfer::InitiateTransfer;
 use crate::command::multisig_create::MultisigCreate;
@@ -13,6 +14,7 @@ use clap::Subcommand;
 
 pub mod config_transaction_create;
 pub mod config_transaction_execute;
+pub mod display_vault;
 pub mod initiate_program_upgrade;
 pub mod initiate_transfer;
 pub mod multisig_create;
@@ -34,4 +36,5 @@ pub enum Command {
     VaultTransactionAccountsClose(VaultTransactionAccountsClose),
     InitiateTransfer(InitiateTransfer),
     InitiateProgramUpgrade(InitiateProgramUpgrade),
+    DisplayVault(DisplayVault),
 }
