@@ -11,3 +11,7 @@ test-ledger
 
 lib
 .crates
+.yarn
+
+.env.*
+.env
