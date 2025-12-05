@@ -2,7 +2,7 @@
 
 [package]
 name = "squads-multisig-cli"
-version = "0.1.4"
+version = "0.1.6"
 edition = "2021"
 authors = ["Valentin Madrid", "Vova Guguiev"]
 license = "MIT OR Apache-2.0"
