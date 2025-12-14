@@ -59,6 +59,10 @@ pub struct InitiateTransfer {
     #[arg(long)]
     keypair: String,
 
+    /// Path to the Fee Payer Keypair
+    #[arg(long)]
+    fee_payer_keypair: Option<String>,
+
     /// The multisig where the transaction has been proposed
     #[arg(long)]
     multisig_pubkey: String,
@@ -81,6 +85,7 @@ impl InitiateTransfer {
             program_id,
             token_program_id,
             keypair,
+            fee_payer_keypair,
             multisig_pubkey,
             memo,
             vault_index,
@@ -100,8 +105,9 @@ impl InitiateTransfer {
         let token_program_id = Pubkey::from_str(&token_program_id).expect("Invalid program ID");
 
         let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
-
         let transaction_creator = transaction_creator_keypair.pubkey();
+        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
         let rpc_url_clone = rpc_url.clone();
@@ -182,8 +188,9 @@ impl InitiateTransfer {
         )
         .unwrap();
 
+        let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
-            &transaction_creator,
+            &payer,
             &[
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(200_000),
@@ -191,7 +198,7 @@ impl InitiateTransfer {
                 Instruction {
                     accounts: VaultTransactionCreateAccounts {
                         creator: transaction_creator,
-                        rent_payer: transaction_creator,
+                        rent_payer: fee_payer.unwrap_or(transaction_creator),
                         transaction: transaction_pda.0,
                         multisig,
                         system_program: solana_sdk::system_program::id(),
@@ -211,7 +218,7 @@ impl InitiateTransfer {
                 Instruction {
                     accounts: ProposalCreateAccounts {
                         creator: transaction_creator,
-                        rent_payer: transaction_creator,
+                        rent_payer: fee_payer.unwrap_or(transaction_creator),
                         proposal: proposal_pda.0,
                         multisig,
                         system_program: solana_sdk::system_program::id(),
@@ -232,11 +239,13 @@ impl InitiateTransfer {
         )
         .unwrap();
 
-        let transaction = VersionedTransaction::try_new(
-            VersionedMessage::V0(message),
-            &[&*transaction_creator_keypair],
-        )
-        .expect("Failed to create transaction");
+        let mut signers = vec![&*transaction_creator_keypair];
+        if let Some(ref fee_payer_kp) = fee_payer_keypair {
+            signers.push(&**fee_payer_kp);
+        }
+
+        let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
+            .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 

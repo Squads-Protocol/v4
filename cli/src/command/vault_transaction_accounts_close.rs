@@ -36,6 +36,10 @@ pub struct VaultTransactionAccountsClose {
     #[arg(long)]
     keypair: String,
 
+    /// Path to the Fee Payer Keypair
+    #[arg(long)]
+    fee_payer_keypair: Option<String>,
+
     /// The multisig key
     #[arg(long)]
     multisig_pubkey: String,
@@ -58,6 +62,7 @@ impl VaultTransactionAccountsClose {
             rpc_url,
             program_id,
             keypair,
+            fee_payer_keypair,
             multisig_pubkey,
             transaction_index,
             rent_collector,
@@ -75,8 +80,9 @@ impl VaultTransactionAccountsClose {
             Pubkey::from_str(&rent_collector).expect("Invalid rent collector key");
 
         let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
-
         let transaction_creator = transaction_creator_keypair.pubkey();
+        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
@@ -117,8 +123,9 @@ impl VaultTransactionAccountsClose {
             .await
             .expect("Failed to get blockhash");
 
+        let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
-            &transaction_creator,
+            &payer,
             &[
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
@@ -141,11 +148,13 @@ impl VaultTransactionAccountsClose {
         )
         .unwrap();
 
-        let transaction = VersionedTransaction::try_new(
-            VersionedMessage::V0(message),
-            &[&*transaction_creator_keypair],
-        )
-        .expect("Failed to create transaction");
+        let mut signers = vec![&*transaction_creator_keypair];
+        if let Some(ref fee_payer_kp) = fee_payer_keypair {
+            signers.push(&**fee_payer_kp);
+        }
+
+        let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
+            .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 

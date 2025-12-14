@@ -36,6 +36,10 @@ pub struct ProgramConfigInit {
     #[arg(long)]
     initializer_keypair: String,
 
+    /// Path to the Fee Payer Keypair
+    #[arg(long)]
+    fee_payer_keypair: Option<String>,
+
     /// Address of the Program Config Authority that will be set to control the Program Config
     #[arg(long)]
     program_config_authority: String,
@@ -58,6 +62,7 @@ impl ProgramConfigInit {
             rpc_url,
             program_id,
             initializer_keypair,
+            fee_payer_keypair,
             program_config_authority,
             treasury,
             multisig_creation_fee,
@@ -73,8 +78,9 @@ impl ProgramConfigInit {
         let treasury = Pubkey::from_str(&treasury).expect("Invalid treasury address");
 
         let transaction_creator_keypair = create_signer_from_path(initializer_keypair).unwrap();
-
         let transaction_creator = transaction_creator_keypair.pubkey();
+        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let program_config = get_program_config_pda(Some(&program_id)).0;
 
@@ -117,8 +123,9 @@ impl ProgramConfigInit {
             .await
             .expect("Failed to get blockhash");
 
+        let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
-            &transaction_creator,
+            &payer,
             &[
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
@@ -146,11 +153,13 @@ impl ProgramConfigInit {
         )
         .unwrap();
 
-        let transaction = VersionedTransaction::try_new(
-            VersionedMessage::V0(message),
-            &[&*transaction_creator_keypair],
-        )
-        .expect("Failed to create transaction");
+        let mut signers = vec![&*transaction_creator_keypair];
+        if let Some(ref fee_payer_kp) = fee_payer_keypair {
+            signers.push(&**fee_payer_kp);
+        }
+
+        let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
+            .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 
