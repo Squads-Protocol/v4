@@ -7,7 +7,7 @@ use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::{Keypair, Signer};
+use solana_sdk::signature::{read_keypair_file, Keypair, Signer};
 use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
 use std::str::FromStr;
@@ -59,6 +59,10 @@ pub struct MultisigCreate {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Path to keypair file to use as the multisig seed keypair (optional, generates new keypair if not provided)
+    #[arg(long)]
+    seed_keypair: Option<String>,
 }
 
 impl MultisigCreate {
@@ -73,6 +77,7 @@ impl MultisigCreate {
             threshold,
             rent_collector,
             priority_fee_lamports,
+            seed_keypair,
         } = self;
 
         let program_id =
@@ -140,9 +145,13 @@ impl MultisigCreate {
             .await
             .expect("Failed to get blockhash");
 
-        let random_keypair = Keypair::new();
+        let seed_keypair = if let Some(seed_keypair_path) = seed_keypair {
+            read_keypair_file(&seed_keypair_path).expect("Failed to read seed keypair file")
+        } else {
+            Keypair::new()
+        };
 
-        let multisig_key = get_multisig_pda(&random_keypair.pubkey(), Some(&program_id));
+        let multisig_key = get_multisig_pda(&seed_keypair.pubkey(), Some(&program_id));
 
         let program_config_pda = get_program_config_pda(Some(&program_id));
 
@@ -166,7 +175,7 @@ impl MultisigCreate {
                 ),
                 Instruction {
                     accounts: MultisigCreateV2Accounts {
-                        create_key: random_keypair.pubkey(),
+                        create_key: seed_keypair.pubkey(),
                         creator: transaction_creator,
                         multisig: multisig_key.0,
                         system_program: system_program::id(),
@@ -195,7 +204,7 @@ impl MultisigCreate {
 
         let mut signers: Vec<&dyn Signer> = vec![
             &*transaction_creator_keypair,
-            &random_keypair as &dyn Signer,
+            &seed_keypair as &dyn Signer,
         ];
         if let Some(ref fee_payer_kp) = fee_payer_keypair {
             signers.push(&**fee_payer_kp);
