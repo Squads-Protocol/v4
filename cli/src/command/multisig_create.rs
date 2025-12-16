@@ -40,6 +40,10 @@ pub struct MultisigCreate {
     #[arg(long)]
     keypair: String,
 
+    /// Path to the Fee Payer Keypair
+    #[arg(long)]
+    fee_payer_keypair: Option<String>,
+
     /// Address of the Program Config Authority that will be set to control the Program Config
     #[arg(long)]
     config_authority: Option<String>,
@@ -67,6 +71,7 @@ impl MultisigCreate {
             rpc_url,
             program_id,
             keypair,
+            fee_payer_keypair,
             config_authority,
             members,
             threshold,
@@ -81,8 +86,9 @@ impl MultisigCreate {
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
         let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
-
         let transaction_creator = transaction_creator_keypair.pubkey();
+        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
@@ -160,8 +166,9 @@ impl MultisigCreate {
             .unwrap()
             .treasury;
 
+        let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
-            &transaction_creator,
+            &payer,
             &[
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
@@ -195,14 +202,16 @@ impl MultisigCreate {
         )
         .unwrap();
 
-        let transaction = VersionedTransaction::try_new(
-            VersionedMessage::V0(message),
-            &[
-                &*transaction_creator_keypair,
-                &seed_keypair as &dyn Signer,
-            ],
-        )
-        .expect("Failed to create transaction");
+        let mut signers: Vec<&dyn Signer> = vec![
+            &*transaction_creator_keypair,
+            &seed_keypair as &dyn Signer,
+        ];
+        if let Some(ref fee_payer_kp) = fee_payer_keypair {
+            signers.push(&**fee_payer_kp);
+        }
+
+        let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
+            .expect("Failed to create transaction");
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 
