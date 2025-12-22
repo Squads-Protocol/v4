@@ -16,7 +16,7 @@ use std::time::Duration;
 use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
 use squads_multisig::pda::get_multisig_pda;
 use squads_multisig::pda::get_program_config_pda;
-use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::MultisigCreateV2 as MultisigCreateV2Accounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::MultisigCreateV2 as MultisigCreateV2Data;

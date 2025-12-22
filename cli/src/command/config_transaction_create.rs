@@ -15,7 +15,7 @@ use solana_sdk::transaction::VersionedTransaction;
 use squads_multisig::anchor_lang::InstructionData;
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
 use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 
