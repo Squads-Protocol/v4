@@ -1,6 +1,6 @@
 [toolchain]
-anchor_version = "0.29.0" # `anchor-cli` version to use
-solana_version = "1.18.16" # Solana version to use
+anchor_version = "0.32.0" # `anchor-cli` version to use
+solana_version = "2.2.0" # Solana version to use
 
 [features]
 seeds = false

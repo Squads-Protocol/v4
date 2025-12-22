@@ -14,7 +14,7 @@ use solana_sdk::transaction::VersionedTransaction;
 use squads_multisig::anchor_lang::InstructionData;
 use squads_multisig::client::utils::IntoAccountMetas;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
 use squads_multisig::squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
 
