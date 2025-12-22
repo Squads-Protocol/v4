@@ -1,5 +1,6 @@
 // Re-export dependencies for convenience
-pub use solana_client;
+pub use solana_rpc_client;
+pub use solana_rpc_client_api;
 
 pub use squads_multisig_program;
 pub use squads_multisig_program::anchor_lang;
@@ -15,7 +16,7 @@ pub mod error {
     #[derive(Debug, Error)]
     pub enum ClientError {
         #[error(transparent)]
-        Client(#[from] solana_client::client_error::ClientError),
+        Client(#[from] solana_rpc_client_api::client_error::Error),
         #[error("Failed to deserialize account data")]
         DeserializationError,
         #[error("Invalid AddressLookupTableAccount")]

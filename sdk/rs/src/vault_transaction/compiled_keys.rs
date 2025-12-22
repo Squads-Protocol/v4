@@ -1,11 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::solana_program::address_lookup_table_account::AddressLookupTableAccount;
 use crate::solana_program::instruction::Instruction;
-use crate::solana_program::message::v0::{LoadedAddresses, MessageAddressTableLookup};
-use crate::solana_program::message::{CompileError, MessageHeader};
-
 use crate::solana_program::pubkey::Pubkey;
+use solana_message::v0::{LoadedAddresses, MessageAddressTableLookup};
+use solana_message::{AddressLookupTableAccount, CompileError, MessageHeader};
 
 /// A helper struct to collect pubkeys compiled for a set of instructions
 ///

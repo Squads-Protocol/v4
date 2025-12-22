@@ -14,7 +14,7 @@ use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
 use squads_multisig::pda::{
     get_ephemeral_signer_pda, get_proposal_pda, get_transaction_pda, get_vault_pda,
 };
-use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::VaultTransactionExecute as VaultTransactionExecuteAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::VaultTransactionExecute as VaultTransactionExecuteData;
@@ -95,7 +95,8 @@ impl VaultTransactionExecute {
         let transaction_extra_signer_keypair =
             extra_keypair.map(|path| create_signer_from_path(path).unwrap());
 
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair =
+            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         println!();
@@ -244,7 +245,7 @@ pub async fn message_to_execute_account_metas(
     for key in address_lookup_table_keys {
         let account_data = rpc_client.get_account(&key).await.unwrap().data;
         let lookup_table =
-            solana_address_lookup_table_program::state::AddressLookupTable::deserialize(
+            solana_address_lookup_table_interface::state::AddressLookupTable::deserialize(
                 &account_data,
             )
             .unwrap();
