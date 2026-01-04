@@ -3,11 +3,11 @@ use colored::Colorize;
 use eyre::eyre;
 use solana_clap_v3_utils::keypair::signer_from_path;
 use solana_sdk::{signer::Signer, transaction::VersionedTransaction};
-use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::solana_client::{
-    client_error::ClientErrorKind,
-    rpc_request::{RpcError, RpcResponseErrorData},
-    rpc_response::RpcSimulateTransactionResult,
+use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::solana_rpc_client_api::{
+    client_error::ErrorKind as ClientErrorKind,
+    request::{RpcError, RpcResponseErrorData},
+    response::RpcSimulateTransactionResult,
 };
 
 pub fn create_signer_from_path(

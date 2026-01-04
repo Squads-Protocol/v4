@@ -15,7 +15,7 @@ use solana_sdk::transaction::VersionedTransaction;
 use squads_multisig::anchor_lang::InstructionData;
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig::solana_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 use squads_multisig::squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
@@ -83,7 +83,8 @@ impl VaultTransactionCreate {
 
         let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair =
+            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
