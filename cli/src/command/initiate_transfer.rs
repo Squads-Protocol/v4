@@ -5,6 +5,7 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
+use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
@@ -20,6 +21,7 @@ use squads_multisig::anchor_lang::{AnchorSerialize, InstructionData};
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::solana_rpc_client_api::request::RpcError;
 use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 use squads_multisig::squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
@@ -365,8 +367,12 @@ async fn resolve_recipient_token_account(
     token_mint: &Pubkey,
     token_program_id: &Pubkey,
 ) -> eyre::Result<ResolvedRecipient> {
-    match rpc_client.get_account(recipient_pubkey).await {
-        Ok(account_info) => {
+    match rpc_client
+        .get_account_with_commitment(recipient_pubkey, CommitmentConfig::confirmed())
+        .await
+        .map(|resp| resp.value)
+    {
+        Ok(Some(account_info)) => {
             // Check if the account is owned by the token program
             if account_info.owner == *token_program_id {
                 // Try to deserialize as a token account to validate it's for the correct mint
@@ -409,7 +415,7 @@ async fn resolve_recipient_token_account(
                 })
             }
         }
-        Err(_) => {
+        Ok(None) => {
             // Account doesn't exist, derive the ATA
             Ok(ResolvedRecipient {
                 token_account: get_associated_token_address_with_program_id(
@@ -420,5 +426,11 @@ async fn resolve_recipient_token_account(
                 authority: *recipient_pubkey,
             })
         }
+
+        Err(e) => Err(eyre::eyre!(
+            "Failed to get account {}: {}",
+            recipient_pubkey,
+            e
+        )),
     }
 }
