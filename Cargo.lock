@@ -5121,6 +5121,7 @@ dependencies = [
 name = "squads-multisig-cli"
 version = "0.1.7"
 dependencies = [
+ "bincode",
  "clap 3.2.25",
  "clap 4.5.53",
  "colored",
