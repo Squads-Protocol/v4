@@ -6,6 +6,7 @@ use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_sdk::hash::hash;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -19,11 +20,15 @@ use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
 use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 
+use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
+use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
 use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
-use squads_multisig::squads_multisig_program::{ConfigTransactionCreateArgs, ProposalCreateArgs};
-use squads_multisig::state::{ConfigAction, Period, Permissions};
+use squads_multisig::squads_multisig_program::{
+    ConfigTransactionCreateArgs, ProposalCreateArgs, ProposalVoteArgs,
+};
+use squads_multisig::state::{ConfigAction, Period, Permission, Permissions};
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
@@ -59,6 +64,11 @@ pub struct ConfigTransactionCreate {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Approve the proposal atomically in the same transaction.
+    /// Note: This only works if the proposer has Vote permission.
+    #[arg(long)]
+    approve: bool,
 }
 
 impl ConfigTransactionCreate {
@@ -72,6 +82,7 @@ impl ConfigTransactionCreate {
             action,
             memo,
             priority_fee_lamports,
+            approve,
         } = self;
 
         let program_id =
@@ -81,7 +92,8 @@ impl ConfigTransactionCreate {
 
         let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair =
+            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
@@ -92,6 +104,20 @@ impl ConfigTransactionCreate {
 
         let multisig_data = get_multisig(rpc_client, &multisig).await?;
 
+        // Check if the proposer has Vote permission when --approve is used
+        if approve {
+            let has_vote_permission = multisig_data
+                .members
+                .iter()
+                .any(|m| m.key == transaction_creator && m.permissions.has(Permission::Vote));
+            if !has_vote_permission {
+                return Err(eyre::eyre!(
+                    "Cannot use --approve: {} does not have Vote permission in this multisig",
+                    transaction_creator
+                ));
+            }
+        }
+
         let transaction_index = multisig_data.transaction_index + 1;
 
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
@@ -100,10 +126,77 @@ impl ConfigTransactionCreate {
 
         let config_action = parse_action(&action);
 
+        // Build the message first so we can show the hash before confirmation
+        let payer = fee_payer.unwrap_or(transaction_creator);
+
+        let mut instructions = vec![
+            ComputeBudgetInstruction::set_compute_unit_price(priority_fee_lamports.unwrap_or(5000)),
+            Instruction {
+                accounts: ConfigTransactionCreateAccounts {
+                    creator: transaction_creator,
+                    multisig,
+                    rent_payer: fee_payer.unwrap_or(transaction_creator),
+                    transaction: transaction_pda.0,
+                    system_program: solana_sdk::system_program::id(),
+                }
+                .to_account_metas(Some(false)),
+                data: ConfigTransactionCreateData {
+                    args: ConfigTransactionCreateArgs {
+                        actions: vec![config_action.unwrap()],
+                        memo: memo.clone(),
+                    },
+                }
+                .data(),
+                program_id,
+            },
+            Instruction {
+                accounts: ProposalCreateAccounts {
+                    creator: transaction_creator,
+                    multisig,
+                    rent_payer: fee_payer.unwrap_or(transaction_creator),
+                    proposal: proposal_pda.0,
+                    system_program: solana_sdk::system_program::id(),
+                }
+                .to_account_metas(Some(false)),
+                data: ProposalCreateData {
+                    args: ProposalCreateArgs {
+                        draft: false,
+                        transaction_index,
+                    },
+                }
+                .data(),
+                program_id,
+            },
+        ];
+
+        if approve {
+            instructions.push(Instruction {
+                accounts: ProposalVoteAccounts {
+                    member: transaction_creator,
+                    multisig,
+                    proposal: proposal_pda.0,
+                }
+                .to_account_metas(Some(false)),
+                data: ProposalApprove {
+                    args: ProposalVoteArgs { memo },
+                }
+                .data(),
+                program_id,
+            });
+        }
+
+        let blockhash = rpc_client
+            .get_latest_blockhash()
+            .await
+            .expect("Failed to get blockhash");
+
+        let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
+        let message_hash = hash(&message.serialize());
+
         println!();
         println!(
             "{}",
-            "👀 You're about to execute a vault transaction, please review the details:".yellow()
+            "👀 You're about to execute a config transaction, please review the details:".yellow()
         );
         println!();
         println!("RPC Cluster URL:   {}", rpc_url_clone);
@@ -114,6 +207,9 @@ impl ConfigTransactionCreate {
         println!("Multisig Key:       {}", multisig_pubkey);
         println!("Transaction Index:       {}", transaction_index);
         println!("Action Type:       {}", action);
+        println!("Auto-approve:       {}", approve);
+        println!();
+        println!("Message Hash (verify on hardware wallet): {}", message_hash);
         println!();
 
         let proceed = Confirm::new()
@@ -127,61 +223,6 @@ impl ConfigTransactionCreate {
         println!();
 
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
-        progress.enable_steady_tick(Duration::from_millis(100));
-
-        let blockhash = rpc_client
-            .get_latest_blockhash()
-            .await
-            .expect("Failed to get blockhash");
-
-        let payer = fee_payer.unwrap_or(transaction_creator);
-        let message = Message::try_compile(
-            &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                Instruction {
-                    accounts: ConfigTransactionCreateAccounts {
-                        creator: transaction_creator,
-                        multisig,
-                        rent_payer: fee_payer.unwrap_or(transaction_creator),
-                        transaction: transaction_pda.0,
-                        system_program: solana_sdk::system_program::id(),
-                    }
-                    .to_account_metas(Some(false)),
-                    data: ConfigTransactionCreateData {
-                        args: ConfigTransactionCreateArgs {
-                            actions: vec![config_action.unwrap()],
-                            memo,
-                        },
-                    }
-                    .data(),
-                    program_id,
-                },
-                Instruction {
-                    accounts: ProposalCreateAccounts {
-                        creator: transaction_creator,
-                        multisig,
-                        rent_payer: fee_payer.unwrap_or(transaction_creator),
-                        proposal: proposal_pda.0,
-                        system_program: solana_sdk::system_program::id(),
-                    }
-                    .to_account_metas(Some(false)),
-                    data: ProposalCreateData {
-                        args: ProposalCreateArgs {
-                            draft: false,
-                            transaction_index,
-                        },
-                    }
-                    .data(),
-                    program_id,
-                },
-            ],
-            &[],
-            blockhash,
-        )
-        .unwrap();
 
         let mut signers = vec![&*transaction_creator_keypair];
         if let Some(ref fee_payer_kp) = fee_payer_keypair {
@@ -193,10 +234,17 @@ impl ConfigTransactionCreate {
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 
-        println!(
-            "✅ Created Config Transaction. Signature: {}",
-            signature.green()
-        );
+        if approve {
+            println!(
+                "✅ Created and approved Config Transaction. Signature: {}",
+                signature.green()
+            );
+        } else {
+            println!(
+                "✅ Created Config Transaction. Signature: {}",
+                signature.green()
+            );
+        }
         Ok(())
     }
 }

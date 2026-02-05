@@ -6,6 +6,7 @@ use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_sdk::hash::hash;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -94,36 +95,8 @@ impl ProposalVote {
         let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
-        println!();
-        println!(
-            "{}",
-            "👀 You're about to vote on a proposal, please review the details:".yellow()
-        );
-        println!();
-        println!("RPC Cluster URL:   {}", rpc_url);
-        println!("Program ID:        {}", program_id);
-        println!("Your Public Key:       {}", transaction_creator);
-        println!();
-        println!("⚙️ Config Parameters");
-        println!("Multisig Key:       {}", multisig_pubkey);
-        println!("Transaction Index:       {}", transaction_index);
-        println!("Vote Type:       {}", action);
-        println!();
-
-        let proceed = Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
-            .interact()?;
-        if !proceed {
-            println!("OK, aborting.");
-            return Ok(());
-        }
-        println!();
-
-        let rpc_client = RpcClient::new(rpc_url);
-
-        let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
-        progress.enable_steady_tick(Duration::from_millis(100));
+        // Build the message first so we can show the hash before confirmation
+        let rpc_client = RpcClient::new(rpc_url.clone());
 
         let blockhash = rpc_client
             .get_latest_blockhash()
@@ -172,6 +145,38 @@ impl ProposalVote {
             blockhash,
         )
         .unwrap();
+        let message_hash = hash(&message.serialize());
+
+        println!();
+        println!(
+            "{}",
+            "👀 You're about to vote on a proposal, please review the details:".yellow()
+        );
+        println!();
+        println!("RPC Cluster URL:   {}", rpc_url);
+        println!("Program ID:        {}", program_id);
+        println!("Your Public Key:       {}", transaction_creator);
+        println!();
+        println!("⚙️ Config Parameters");
+        println!("Multisig Key:       {}", multisig_pubkey);
+        println!("Transaction Index:       {}", transaction_index);
+        println!("Vote Type:       {}", action);
+        println!();
+        println!("Message Hash (verify on hardware wallet): {}", message_hash);
+        println!();
+
+        let proceed = Confirm::new()
+            .with_prompt("Do you want to proceed?")
+            .default(false)
+            .interact()?;
+        if !proceed {
+            println!("OK, aborting.");
+            return Ok(());
+        }
+        println!();
+
+        let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
+        progress.enable_steady_tick(Duration::from_millis(100));
 
         let mut signers = vec![&*transaction_creator_keypair];
         if let Some(ref fee_payer_kp) = fee_payer_keypair {

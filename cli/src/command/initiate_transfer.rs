@@ -7,6 +7,7 @@ use dialoguer::Confirm;
 use indicatif::ProgressBar;
 use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_sdk::hash::hash;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -21,15 +22,18 @@ use squads_multisig::anchor_lang::{AnchorSerialize, InstructionData};
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::solana_rpc_client_api::request::RpcError;
 use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
+use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
 use squads_multisig::squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
+use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
 use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
 use squads_multisig::squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
 use squads_multisig::squads_multisig_program::ProposalCreateArgs;
+use squads_multisig::squads_multisig_program::ProposalVoteArgs;
 use squads_multisig::squads_multisig_program::TransactionMessage;
 use squads_multisig::squads_multisig_program::VaultTransactionCreateArgs;
+use squads_multisig::state::Permission;
 use squads_multisig::vault_transaction::VaultTransactionMessageExt;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
@@ -82,6 +86,11 @@ pub struct InitiateTransfer {
 
     #[arg(long)]
     priority_fee_lamports: Option<u64>,
+
+    /// Approve the proposal atomically in the same transaction.
+    /// Note: This only works if the proposer has Vote permission.
+    #[arg(long)]
+    approve: bool,
 }
 
 impl InitiateTransfer {
@@ -99,6 +108,7 @@ impl InitiateTransfer {
             token_amount_u64,
             token_mint_address,
             recipient,
+            approve,
         } = self;
 
         let program_id =
@@ -155,51 +165,26 @@ impl InitiateTransfer {
 
         let multisig_data = get_multisig(rpc_client, &multisig).await?;
 
+        // Check if the proposer has Vote permission when --approve is used
+        if approve {
+            let has_vote_permission = multisig_data
+                .members
+                .iter()
+                .any(|m| m.key == transaction_creator && m.permissions.has(Permission::Vote));
+            if !has_vote_permission {
+                return Err(eyre::eyre!(
+                    "Cannot use --approve: {} does not have Vote permission in this multisig",
+                    transaction_creator
+                ));
+            }
+        }
+
         let transaction_index = multisig_data.transaction_index + 1;
 
         let transaction_pda = get_transaction_pda(&multisig, transaction_index, Some(&program_id));
         let proposal_pda = get_proposal_pda(&multisig, transaction_index, Some(&program_id));
-        println!();
-        println!(
-            "{}",
-            "👀 You're about to create a vault transaction, please review the details:".yellow()
-        );
-        println!();
-        println!("RPC Cluster URL:   {}", rpc_url_clone);
-        println!("Program ID:        {}", program_id);
-        println!("Your Public Key:       {}", transaction_creator);
-        println!();
-        println!("⚙️ Config Parameters");
-        println!("Multisig Key:       {}", multisig_pubkey);
-        println!("Transaction Index:       {}", transaction_index);
-        println!("Vault Index:       {}", vault_index);
-        println!();
 
-        println!("Recipient:       {}", resolved_recipient.authority);
-        println!("Recipient Token Account:       {}", recipient_ata);
-        println!(
-            "Transfer Amount:       {}",
-            format_token_amount(token_amount_u64, decimals)
-        );
-
-        let proceed = Confirm::new()
-            .with_prompt("Do you want to proceed?")
-            .default(false)
-            .interact()?;
-        if !proceed {
-            println!("OK, aborting.");
-            return Ok(());
-        }
-        println!();
-
-        let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
-        progress.enable_steady_tick(Duration::from_millis(100));
-
-        let blockhash = rpc_client
-            .get_latest_blockhash()
-            .await
-            .expect("Failed to get blockhash");
-
+        // Build the message first so we can show the hash before confirmation
         let vault_pda = get_vault_pda(&multisig, vault_index, Some(&program_id));
 
         let sender_ata = get_associated_token_address_with_program_id(
@@ -224,55 +209,113 @@ impl InitiateTransfer {
         .unwrap();
 
         let payer = fee_payer.unwrap_or(transaction_creator);
-        let message = Message::try_compile(
-            &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(200_000),
-                ),
-                Instruction {
-                    accounts: VaultTransactionCreateAccounts {
-                        creator: transaction_creator,
-                        rent_payer: fee_payer.unwrap_or(transaction_creator),
-                        transaction: transaction_pda.0,
-                        multisig,
-                        system_program: solana_sdk::system_program::id(),
-                    }
-                    .to_account_metas(Some(false)),
-                    data: VaultTransactionCreateData {
-                        args: VaultTransactionCreateArgs {
-                            ephemeral_signers: 0,
-                            vault_index,
-                            memo,
-                            transaction_message: transfer_message.try_to_vec().unwrap(),
-                        },
-                    }
-                    .data(),
-                    program_id,
-                },
-                Instruction {
-                    accounts: ProposalCreateAccounts {
-                        creator: transaction_creator,
-                        rent_payer: fee_payer.unwrap_or(transaction_creator),
-                        proposal: proposal_pda.0,
-                        multisig,
-                        system_program: solana_sdk::system_program::id(),
-                    }
-                    .to_account_metas(Some(false)),
-                    data: ProposalCreateData {
-                        args: ProposalCreateArgs {
-                            draft: false,
-                            transaction_index,
-                        },
-                    }
-                    .data(),
-                    program_id,
-                },
-            ],
-            &[],
-            blockhash,
-        )
-        .unwrap();
+
+        let mut instructions = vec![
+            ComputeBudgetInstruction::set_compute_unit_price(
+                priority_fee_lamports.unwrap_or(200_000),
+            ),
+            Instruction {
+                accounts: VaultTransactionCreateAccounts {
+                    creator: transaction_creator,
+                    rent_payer: fee_payer.unwrap_or(transaction_creator),
+                    transaction: transaction_pda.0,
+                    multisig,
+                    system_program: solana_sdk::system_program::id(),
+                }
+                .to_account_metas(Some(false)),
+                data: VaultTransactionCreateData {
+                    args: VaultTransactionCreateArgs {
+                        ephemeral_signers: 0,
+                        vault_index,
+                        memo: memo.clone(),
+                        transaction_message: transfer_message.try_to_vec().unwrap(),
+                    },
+                }
+                .data(),
+                program_id,
+            },
+            Instruction {
+                accounts: ProposalCreateAccounts {
+                    creator: transaction_creator,
+                    rent_payer: fee_payer.unwrap_or(transaction_creator),
+                    proposal: proposal_pda.0,
+                    multisig,
+                    system_program: solana_sdk::system_program::id(),
+                }
+                .to_account_metas(Some(false)),
+                data: ProposalCreateData {
+                    args: ProposalCreateArgs {
+                        draft: false,
+                        transaction_index,
+                    },
+                }
+                .data(),
+                program_id,
+            },
+        ];
+
+        if approve {
+            instructions.push(Instruction {
+                accounts: ProposalVoteAccounts {
+                    member: transaction_creator,
+                    multisig,
+                    proposal: proposal_pda.0,
+                }
+                .to_account_metas(Some(false)),
+                data: ProposalApprove {
+                    args: ProposalVoteArgs { memo },
+                }
+                .data(),
+                program_id,
+            });
+        }
+
+        let blockhash = rpc_client
+            .get_latest_blockhash()
+            .await
+            .expect("Failed to get blockhash");
+
+        let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
+        let message_hash = hash(&message.serialize());
+
+        println!();
+        println!(
+            "{}",
+            "👀 You're about to create a transfer transaction, please review the details:".yellow()
+        );
+        println!();
+        println!("RPC Cluster URL:   {}", rpc_url_clone);
+        println!("Program ID:        {}", program_id);
+        println!("Your Public Key:       {}", transaction_creator);
+        println!();
+        println!("⚙️ Config Parameters");
+        println!("Multisig Key:       {}", multisig_pubkey);
+        println!("Transaction Index:       {}", transaction_index);
+        println!("Vault Index:       {}", vault_index);
+        println!();
+        println!("Recipient:       {}", resolved_recipient.authority);
+        println!("Recipient Token Account:       {}", recipient_ata);
+        println!(
+            "Transfer Amount:       {}",
+            format_token_amount(token_amount_u64, decimals)
+        );
+        println!("Auto-approve:       {}", approve);
+        println!();
+        println!("Message Hash (verify on hardware wallet): {}", message_hash);
+        println!();
+
+        let proceed = Confirm::new()
+            .with_prompt("Do you want to proceed?")
+            .default(false)
+            .interact()?;
+        if !proceed {
+            println!("OK, aborting.");
+            return Ok(());
+        }
+        println!();
+
+        let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
+        progress.enable_steady_tick(Duration::from_millis(100));
 
         let mut signers = vec![&*transaction_creator_keypair];
         if let Some(ref fee_payer_kp) = fee_payer_keypair {
@@ -284,10 +327,17 @@ impl InitiateTransfer {
 
         let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
 
-        println!(
-            "✅ Transaction created successfully. Signature: {}",
-            signature.green()
-        );
+        if approve {
+            println!(
+                "✅ Transaction created and approved. Signature: {}",
+                signature.green()
+            );
+        } else {
+            println!(
+                "✅ Transaction created successfully. Signature: {}",
+                signature.green()
+            );
+        }
         Ok(())
     }
 }
