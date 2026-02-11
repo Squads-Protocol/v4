@@ -96,10 +96,16 @@ impl SpendingLimitUse<'_> {
             ..
         } = self;
 
-        // member
+        // member - must be in BOTH the spending limit's member list AND the multisig's member list.
+        // SECURITY FIX: Previously only checked spending_limit.members, allowing removed
+        // multisig members to retain spending limit access.
         require!(
             spending_limit.members.contains(&member.key()),
             MultisigError::Unauthorized
+        );
+        require!(
+            multisig.is_member(member.key()).is_some(),
+            MultisigError::NotAMember
         );
 
         // spending_limit - needs no checking.
