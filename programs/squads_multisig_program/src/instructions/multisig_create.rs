@@ -110,7 +110,7 @@ impl MultisigCreateV2<'_> {
                 ),
                 creation_fee,
             )?;
-            msg!("Creation fee: {}", creation_fee / LAMPORTS_PER_SOL);
+            msg!("Creation fee: {}", creation_fee.checked_div(LAMPORTS_PER_SO).ok_or(ErrorCode::DivisionByZero)?L);
         }
 
         Ok(())

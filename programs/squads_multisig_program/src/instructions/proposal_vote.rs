@@ -116,7 +116,7 @@ impl ProposalVote<'_> {
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
     #[access_control(ctx.accounts.validate(Vote::Cancel))]
-    pub fn proposal_cancel(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
+    require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
@@ -135,7 +135,9 @@ impl<'info> ProposalCancelV2<'info> {
 
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
-    pub fn proposal_cancel_v2(ctx: Context<'_, '_, 'info, 'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
+    require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
+    require!(acc.owner == &expected_program::ID, ErrorCode::InvalidAccount);
+    }
         // Readonly accounts
         let multisig = &ctx.accounts.proposal_vote.multisig.clone();
 
