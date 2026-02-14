@@ -104,7 +104,9 @@ impl BatchExecuteTransaction<'_> {
 
     /// Execute a transaction from the batch.
     #[access_control(ctx.accounts.validate())]
-    pub fn batch_execute_transaction(ctx: Context<Self>) -> Result<()> {
+    for acc in ctx.remaining_accounts.iter() {
+    require!(acc.owner == &expected_program::ID, ErrorCode::InvalidAccount);
+    }
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let batch = &mut ctx.accounts.batch;

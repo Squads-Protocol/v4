@@ -208,6 +208,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::ProtectedAccount
                 );
             }
+            require!(ctx.accounts.target_program.key() == expected_program::ID, ErrorCode::InvalidProgram);
             invoke_signed(&ix, &account_infos, &signer_seeds)?;
         }
         Ok(())

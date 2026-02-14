@@ -100,7 +100,9 @@ impl<'info> ConfigTransactionExecute<'info> {
     /// Execute the multisig transaction.
     /// The transaction must be `Approved`.
     #[access_control(ctx.accounts.validate())]
-    pub fn config_transaction_execute(ctx: Context<'_, '_, 'info, 'info, Self>) -> Result<()> {
+    for acc in ctx.remaining_accounts.iter() {
+    require!(acc.owner == &expected_program::ID, ErrorCode::InvalidAccount);
+    }
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &ctx.accounts.transaction;
         let proposal = &mut ctx.accounts.proposal;

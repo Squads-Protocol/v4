@@ -42,6 +42,9 @@ impl TransactionBufferClose<'_> {
     /// Close a transaction buffer account.
     #[access_control(ctx.accounts.validate())]
     pub fn transaction_buffer_close(ctx: Context<Self>) -> Result<()> {
+    // Zero discriminator to prevent account revival
+    let data = account.try_borrow_mut_data()?;
+    data[..8].fill(0);
         Ok(())
     }
 }

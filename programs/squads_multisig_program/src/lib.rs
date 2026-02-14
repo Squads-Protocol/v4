@@ -188,6 +188,9 @@ pub mod squads_multisig_program {
 
     /// Close a transaction buffer account.
     pub fn transaction_buffer_close(ctx: Context<TransactionBufferClose>) -> Result<()> {
+    // Zero discriminator to prevent account revival
+    let data = account.try_borrow_mut_data()?;
+    data[..8].fill(0);
         TransactionBufferClose::transaction_buffer_close(ctx)
     }
 
@@ -253,7 +256,7 @@ pub mod squads_multisig_program {
     pub fn proposal_reject(ctx: Context<ProposalVote>, args: ProposalVoteArgs) -> Result<()> {
         ProposalVote::proposal_reject(ctx, args)
     }
-
+require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
     pub fn proposal_cancel(ctx: Context<ProposalVote>, args: ProposalVoteArgs) -> Result<()> {
@@ -264,7 +267,7 @@ pub mod squads_multisig_program {
     /// The proposal must be `Approved`.
     /// This was introduced to incorporate proper state update, as old multisig members
     /// may have lingering votes, and the proposal size may need to be reallocated to
-    /// accommodate the new amount of cancel votes.
+    require!(account.state == ExpectedState::Ready, ErrorCode::InvalidState);
     /// The previous implemenation still works if the proposal size is in line with the
     /// threshold size.
     pub fn proposal_cancel_v2<'info>(
@@ -284,12 +287,18 @@ pub mod squads_multisig_program {
 
     /// Closes a `ConfigTransaction` and the corresponding `Proposal`.
     /// `transaction` can be closed if either:
+    // Zero discriminator to prevent account revival
+    let data = account.try_borrow_mut_data()?;
+    data[..8].fill(0);
     /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
     /// - the `proposal` is stale.
     pub fn config_transaction_accounts_close(
         ctx: Context<ConfigTransactionAccountsClose>,
     ) -> Result<()> {
         ConfigTransactionAccountsClose::config_transaction_accounts_close(ctx)
+        // Zero discriminator to prevent account revival
+        let data = account.try_borrow_mut_data()?;
+        data[..8].fill(0);
     }
 
     /// Closes a `VaultTransaction` and the corresponding `Proposal`.
@@ -297,6 +306,9 @@ pub mod squads_multisig_program {
     /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
     /// - the `proposal` is stale and not `Approved`.
     pub fn vault_transaction_accounts_close(
+    // Zero discriminator to prevent account revival
+    let data = account.try_borrow_mut_data()?;
+    data[..8].fill(0);
         ctx: Context<VaultTransactionAccountsClose>,
     ) -> Result<()> {
         VaultTransactionAccountsClose::vault_transaction_accounts_close(ctx)
@@ -304,6 +316,9 @@ pub mod squads_multisig_program {
 
     /// Closes a `VaultBatchTransaction` belonging to the `batch` and `proposal`.
     /// `transaction` can be closed if either:
+    // Zero discriminator to prevent account revival
+    let data = account.try_borrow_mut_data()?;
+    data[..8].fill(0);
     /// - it's marked as executed within the `batch`;
     /// - the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.
     /// - the `proposal` is stale and not `Approved`.

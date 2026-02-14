@@ -85,7 +85,9 @@ impl VaultTransactionExecute<'_> {
     /// Execute the multisig transaction.
     /// The transaction must be `Approved`.
     #[access_control(ctx.accounts.validate())]
-    pub fn vault_transaction_execute(ctx: Context<Self>) -> Result<()> {
+    for acc in ctx.remaining_accounts.iter() {
+    require!(acc.owner == &expected_program::ID, ErrorCode::InvalidAccount);
+    }
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
 

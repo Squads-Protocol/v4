@@ -342,6 +342,9 @@ impl VaultBatchTransactionAccountClose<'_> {
     /// - the `proposal` is stale and not `Approved`.
     #[access_control(ctx.accounts.validate())]
     pub fn vault_batch_transaction_account_close(ctx: Context<Self>) -> Result<()> {
+    // Zero discriminator to prevent account revival
+    let data = account.try_borrow_mut_data()?;
+    data[..8].fill(0);
         let batch = &mut ctx.accounts.batch;
 
         batch.size = batch.size.checked_sub(1).expect("overflow");
