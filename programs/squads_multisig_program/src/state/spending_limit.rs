@@ -37,9 +37,9 @@ pub struct SpendingLimit {
     /// PDA bump.
     pub bump: u8,
 
-    /// Members of the multisig that can use the spending limit.
-    /// In case a member is removed from the multisig, the spending limit will remain existent
-    /// (until explicitly deleted), but the removed member will not be able to use it anymore.
+    /// Members of the spending limit that can use it.
+    /// Don't have to be members of the multisig.
+    /// To remove members from the spending limit: Close and re-initialize 
     pub members: Vec<Pubkey>,
 
     /// The destination addresses the spending limit is allowed to sent funds to.
