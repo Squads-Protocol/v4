@@ -22,7 +22,7 @@ runs:
     - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
       name: Install Anchor CLI
       shell: bash
-      run: cargo install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked
+      run: cargo +1.78.0 install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked
 
     - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
       name: Save Cargo Cache with Installed Anchor CLI
