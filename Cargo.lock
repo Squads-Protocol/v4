@@ -5128,6 +5128,8 @@ dependencies = [
  "dialoguer 0.11.0",
  "eyre",
  "indicatif",
+ "serde",
+ "serde_json",
  "solana-address-lookup-table-interface",
  "solana-clap-v3-utils",
  "solana-program",

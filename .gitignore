@@ -15,3 +15,5 @@ lib
 
 .env.*
 .env
+
+cli/*.sh
