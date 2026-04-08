@@ -23,14 +23,21 @@ pub async fn send_and_confirm_transaction(
     transaction: &VersionedTransaction,
     rpc_client: &RpcClient,
 ) -> eyre::Result<String> {
+    // Print the signature up front so the user can always look the
+    // transaction up, even if confirmation later fails or times out.
+    let signature = transaction
+        .signatures
+        .first()
+        .ok_or_else(|| eyre!("Transaction is missing a signature"))?
+        .to_string();
+
+    println!("Transaction signature: {}", signature.clone().green());
+
     // Try to send and confirm the transaction
     match rpc_client.send_and_confirm_transaction(transaction).await {
-        Ok(signature) => {
-            println!(
-                "Transaction confirmed: {}\n\n",
-                signature.to_string().green()
-            );
-            Ok(signature.to_string())
+        Ok(_) => {
+            println!("{}\n\n", "Transaction confirmed.".green());
+            Ok(signature)
         }
         Err(err) => {
             if let ClientErrorKind::RpcError(RpcError::RpcResponseError {
