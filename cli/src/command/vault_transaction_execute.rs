@@ -5,6 +5,7 @@ use indicatif::ProgressBar;
 use solana_program::instruction::AccountMeta;
 use solana_sdk::address_lookup_table::AddressLookupTableAccount;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_sdk::hash::hash;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
@@ -191,6 +192,10 @@ impl VaultTransactionExecute {
             blockhash,
         )
         .unwrap();
+
+        let message_hash = hash(&message.serialize());
+        println!("Message Hash (verify on hardware wallet): {}", message_hash);
+        println!();
 
         let mut signers = vec![&*transaction_creator_keypair];
         if let Some(ref fee_payer_kp) = fee_payer_keypair {
