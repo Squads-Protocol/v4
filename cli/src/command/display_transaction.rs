@@ -11,7 +11,7 @@ use std::str::FromStr;
 
 /// Fetch a vault transaction account and display its decoded instructions, accounts, and address lookup tables.
 #[derive(Args)]
-pub struct ShowTransaction {
+pub struct DisplayTransaction {
     /// RPC URL (default: https://api.mainnet-beta.solana.com)
     #[arg(long)]
     rpc_url: Option<String>,
@@ -27,7 +27,7 @@ struct AccountEntry {
     is_signer: bool,
 }
 
-impl ShowTransaction {
+impl DisplayTransaction {
     pub async fn execute(self) -> eyre::Result<()> {
         let rpc_url = self
             .rpc_url

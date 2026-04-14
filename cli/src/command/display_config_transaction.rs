@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 /// Fetch a config transaction account and display its decoded actions (add/remove member, change threshold, etc.).
 #[derive(Args)]
-pub struct ShowConfigTransaction {
+pub struct DisplayConfigTransaction {
     /// RPC URL (default: https://api.mainnet-beta.solana.com)
     #[arg(long)]
     rpc_url: Option<String>,
@@ -46,7 +46,7 @@ fn format_period(period: Period) -> &'static str {
     }
 }
 
-impl ShowConfigTransaction {
+impl DisplayConfigTransaction {
     pub async fn execute(self) -> eyre::Result<()> {
         let rpc_url = self
             .rpc_url

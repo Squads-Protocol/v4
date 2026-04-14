@@ -17,3 +17,5 @@ lib
 .env
 
 cli/*.sh
+
+.idea
