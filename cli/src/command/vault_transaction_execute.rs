@@ -25,6 +25,7 @@ use std::time::Duration;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Execute an approved vault transaction on-chain.
 #[derive(Args)]
 pub struct VaultTransactionExecute {
     /// RPC URL

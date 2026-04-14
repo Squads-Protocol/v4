@@ -38,6 +38,7 @@ use crate::command::transfer_common::{
 };
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Create and activate a vault transaction that transfers SOL or SPL tokens from the vault.
 #[derive(Args)]
 pub struct InitiateTransfer {
     /// RPC URL

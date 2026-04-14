@@ -25,6 +25,7 @@ use squads_multisig::squads_multisig_program::ProposalVoteArgs;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Cast an approve or reject vote on an existing proposal.
 #[derive(Args)]
 pub struct ProposalVote {
     /// RPC URL

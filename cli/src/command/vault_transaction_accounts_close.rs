@@ -22,6 +22,7 @@ use squads_multisig::squads_multisig_program::instruction::VaultTransactionAccou
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Reclaim rent by closing the accounts of an executed, rejected, or cancelled vault transaction.
 #[derive(Args)]
 pub struct VaultTransactionAccountsClose {
     /// RPC URL

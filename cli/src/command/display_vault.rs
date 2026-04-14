@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use clap::Args;
 
+/// Derive and display the vault PDA address for a given multisig and vault index.
 #[derive(Args)]
 pub struct DisplayVault {
     /// Multisig Program ID

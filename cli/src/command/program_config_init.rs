@@ -22,6 +22,7 @@ use squads_multisig::squads_multisig_program::ProgramConfigInitArgs;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Initialize the global program config account (one-time setup, authority only).
 #[derive(Args)]
 pub struct ProgramConfigInit {
     /// RPC URL

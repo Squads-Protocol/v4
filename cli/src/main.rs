@@ -30,5 +30,7 @@ async fn main() -> eyre::Result<()> {
         Command::InitiateProgramUpgrade(command) => command.execute().await,
         Command::DisplayVault(command) => command.execute().await,
         Command::DisplayProposals(command) => command.execute().await,
+        Command::ShowTransaction(command) => command.execute().await,
+        Command::ShowConfigTransaction(command) => command.execute().await,
     }
 }
