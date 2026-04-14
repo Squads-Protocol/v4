@@ -36,7 +36,13 @@ impl DisplayTransaction {
 
         let rpc_client = RpcClient::new(rpc_url);
 
-        let account_data = rpc_client.get_account(&transaction_address).await?.data;
+        let account_data = match rpc_client.get_account(&transaction_address).await {
+            Ok(account) => account.data,
+            Err(_) => {
+                println!("Account closed or not found.");
+                return Ok(());
+            }
+        };
 
         let vault_tx =
             VaultTransaction::try_deserialize(&mut account_data.as_slice())?;
