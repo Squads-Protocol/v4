@@ -127,7 +127,7 @@ impl ProposalVote {
         };
 
         let should_create_proposal =
-            matches!(action_lower.as_str(), "approve" | "ap") && {
+            matches!(action_lower.as_str(), "approve" | "ap" | "reject" | "rj") && {
                 let transaction_pda =
                     get_transaction_pda(&multisig, transaction_index, Some(&program_id));
                 let accounts = rpc_client
