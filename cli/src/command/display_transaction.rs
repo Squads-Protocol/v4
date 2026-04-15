@@ -4,7 +4,7 @@ use solana_address_lookup_table_interface::state::AddressLookupTable;
 use solana_sdk::pubkey::Pubkey;
 use squads_multisig::anchor_lang::AccountDeserialize;
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use bs58;
+use solana_sdk::bs58;
 use squads_multisig::squads_multisig_program::state::VaultTransaction;
 use squads_multisig::state::VaultTransactionMessage;
 use std::str::FromStr;
