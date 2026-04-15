@@ -32,6 +32,7 @@ use squads_multisig::state::Permission;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Create and activate a vault transaction that upgrades a BPF upgradeable program.
 #[derive(Args)]
 pub struct InitiateProgramUpgrade {
     /// RPC URL

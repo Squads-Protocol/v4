@@ -10,6 +10,7 @@ use squads_multisig::pda::get_proposal_pda;
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::state::{Multisig, Proposal, ProposalStatus};
 
+/// Fetch and display all proposals for a multisig, showing their status and transaction index.
 #[derive(Args)]
 pub struct DisplayProposals {
     /// RPC URL

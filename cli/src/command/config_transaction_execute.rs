@@ -20,6 +20,7 @@ use squads_multisig::squads_multisig_program::instruction::ConfigTransactionExec
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Execute an approved config transaction on-chain.
 #[derive(Args)]
 pub struct ConfigTransactionExecute {
     /// RPC URL

@@ -26,6 +26,7 @@ use squads_multisig::state::{Member, Permissions};
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Create a new Squads multisig with the specified members and threshold.
 #[derive(Args)]
 pub struct MultisigCreate {
     /// RPC URL

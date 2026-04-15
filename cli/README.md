@@ -14,6 +14,8 @@ Overview
    - [Reclaim Vault Transaction rent](#vault-transaction-accounts-close)
    - [Create new Vault Transaction](#vault-transaction-create)
    - [Execute Vault Transaction](#vault-transaction-execute)
+   - [Display Vault Transaction](#display-transaction)
+   - [Display Config Transaction](#display-config-transaction)
 
 # 1. Installation
 
@@ -342,3 +344,49 @@ vault-transaction-execute --keypair /path/to/keypair.json --multisig-pubkey <MUL
 ```
 
 This example executes the transaction at index 1 in the specified multisig.
+
+## Display Transaction
+
+### Description
+
+Fetches a vault transaction account and displays its decoded instructions, including each instruction's program ID, accounts (with writable/signer flags), base58-encoded data, and any address lookup tables used.
+
+### Syntax
+
+```bash
+display-transaction --transaction-address <TRANSACTION_ADDRESS> [--rpc-url <RPC_URL>]
+```
+
+### Parameters
+
+- `--transaction-address <TRANSACTION_ADDRESS>`: The public key of the VaultTransaction account to inspect.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to `https://api.mainnet-beta.solana.com`.
+
+### Example Usage
+
+```bash
+squads-multisig-cli display-transaction --transaction-address 279SBhVyHLEBsphBkDBNMUbSoA31yRBDtnU5mzSM3d5n
+```
+
+## Display Config Transaction
+
+### Description
+
+Fetches a config transaction account and displays its decoded actions, such as adding or removing members, changing the threshold, setting the time lock, managing spending limits, and updating the rent collector.
+
+### Syntax
+
+```bash
+display-config-transaction --transaction-address <TRANSACTION_ADDRESS> [--rpc-url <RPC_URL>]
+```
+
+### Parameters
+
+- `--transaction-address <TRANSACTION_ADDRESS>`: The public key of the ConfigTransaction account to inspect.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to `https://api.mainnet-beta.solana.com`.
+
+### Example Usage
+
+```bash
+squads-multisig-cli display-config-transaction --transaction-address AQb6VyZGzC2kL7vFU7WqoTJYTNZdHKhKuHmzuxkqGGjV
+```

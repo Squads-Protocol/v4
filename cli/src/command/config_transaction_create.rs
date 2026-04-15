@@ -32,6 +32,7 @@ use squads_multisig::state::{ConfigAction, Period, Permission, Permissions};
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Create a new config transaction (add/remove member, change threshold, etc.) and activate its proposal.
 #[derive(Args)]
 pub struct ConfigTransactionCreate {
     /// RPC URL

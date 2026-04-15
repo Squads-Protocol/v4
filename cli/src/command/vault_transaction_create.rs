@@ -31,6 +31,7 @@ use squads_multisig::state::Permission;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Create a new vault transaction and activate its proposal for voting.
 #[derive(Args)]
 pub struct VaultTransactionCreate {
     /// RPC URL
