@@ -1,6 +1,6 @@
 [package]
 name = "squads-multisig"
-version = "2.1.0"
+version = "2.1.1"
 description = "An SDK for building automated programs on Solana"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -20,6 +20,7 @@ solana-rpc-client = "2.2"
 solana-rpc-client-api = "2.2"
 solana-message = "2.2"
 thiserror = "1.0.48"
+time = ">=0.3.35"
 
 [features]
 default = []
