@@ -14,7 +14,7 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::system_instruction;
 use solana_sdk::transaction::VersionedTransaction;
 use spl_associated_token_account::get_associated_token_address_with_program_id;
-use spl_token::instruction::transfer;
+use spl_token_2022::instruction::transfer_checked;
 use squads_multisig::anchor_lang::{AnchorSerialize, InstructionData};
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
@@ -248,13 +248,15 @@ impl InitiateBatchTransfer {
                     );
 
                     inner_instructions.push(
-                        transfer(
+                        transfer_checked(
                             &token_program_id,
                             &sender_ata,
+                            &token_mint,
                             &resolved.token_account,
                             &vault_pubkey,
                             &[&vault_pubkey],
                             *amount,
+                            decimals,
                         )
                         .map_err(|e| eyre::eyre!("SPL transfer build failed: {}", e))?,
                     );
