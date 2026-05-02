@@ -50,7 +50,7 @@ impl MultisigRemoveSpendingLimit<'_> {
 
     /// Remove the spending limit from the controlled multisig.
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
-    ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    ///       Uncontrolled Multisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_remove_spending_limit(
         ctx: Context<Self>,
