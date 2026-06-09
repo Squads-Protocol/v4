@@ -73,6 +73,7 @@ export async function batchExecuteTransaction({
       ephemeralSignerBumps: [...batchTransactionAccount.ephemeralSignerBumps],
       vaultPda,
       transactionPda: batchPda,
+      programId,
     });
 
   return {
