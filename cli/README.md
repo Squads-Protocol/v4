@@ -124,7 +124,7 @@ config-transaction-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypai
    config-transaction-create --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --action "AddSpendingLimit <CREATE_KEY> <VAULT_INDEX> <MINT> <AMOUNT> <PERIOD> <MEMBERS> <DESTINATIONS>"
    ```
 
-   Adds a spending limit to the multisig account.
+   Adds a spending limit to the multisig account. `<PERIOD>` is the reset period and must be one of `OneTime`, `Day`, `Week`, or `Month` (case-sensitive).
 
 6. **Remove Spending Limit:**
 
