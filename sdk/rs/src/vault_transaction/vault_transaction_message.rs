@@ -110,14 +110,29 @@ pub trait VaultTransactionMessageExt {
         // region: -- Account Metas --
 
         // First go the lookup table accounts used by the transaction. They are needed for on-chain validation.
-        let lookup_table_account_metas = address_lookup_table_accounts
+        //
+        // These must be built from `message.address_table_lookups` (in message order), NOT from the
+        // raw caller-supplied slice. The on-chain validator splits `remaining_accounts` at
+        // `message.address_table_lookups.len()` and requires each leading lookup-table account to match
+        // the message's referenced tables by both order and length. Emitting every supplied ALT (e.g. a
+        // cached/aggregated superset, or a reordered slice) would desync the instruction from the
+        // validator and brick execution of otherwise-valid ALT-backed transactions.
+        let lookup_table_account_metas = message
+            .address_table_lookups
             .iter()
-            .map(|alt| AccountMeta {
-                pubkey: alt.key,
-                is_writable: false,
-                is_signer: false,
+            .map(|lookup| {
+                // Ensure the referenced lookup table was actually supplied by the caller.
+                address_lookup_tables
+                    .get(&lookup.account_key)
+                    .ok_or(Error::InvalidAddressLookupTableAccount)?;
+
+                Ok(AccountMeta {
+                    pubkey: lookup.account_key,
+                    is_writable: false,
+                    is_signer: false,
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, Error>>()?;
 
         // Then come static account keys included into the message.
         let static_account_metas = message
