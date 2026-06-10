@@ -95,6 +95,12 @@ impl DisplayProposals {
         // Calculate the starting index (don't go below 1)
         let start_idx = transaction_index.saturating_sub(limit - 1).max(1);
 
+        // When the scan window does not reach transaction index 1, there are older
+        // transactions we never inspected. An already-`Approved` vault proposal in that
+        // hidden range remains executable on-chain, so we must never report an
+        // unqualified all-clear based on this bounded scan.
+        let window_truncated = start_idx > 1;
+
         // Iterate through recent transaction indices in reverse order (most recent first)
         for idx in (start_idx..=transaction_index).rev() {
             let proposal_pda = get_proposal_pda(&multisig, idx, Some(&program_id));
@@ -131,7 +137,30 @@ impl DisplayProposals {
         }
 
         if outstanding_proposals.is_empty() {
-            println!("{}", "No outstanding proposals found.".green());
+            if window_truncated {
+                println!(
+                    "{}",
+                    format!(
+                        "No outstanding proposals found in the last {} transaction(s) \
+                         (indices {}..={}).",
+                        limit, start_idx, transaction_index
+                    )
+                    .yellow()
+                );
+                println!(
+                    "{}",
+                    format!(
+                        "WARNING: transaction indices 1..={} were NOT checked. An older \
+                         Approved vault proposal in that range may still be executable. \
+                         Re-run with `-n {}` (or higher) to scan all transactions.",
+                        start_idx - 1,
+                        transaction_index
+                    )
+                    .red()
+                );
+            } else {
+                println!("{}", "No outstanding proposals found.".green());
+            }
             return Ok(());
         }
 
@@ -207,6 +236,23 @@ impl DisplayProposals {
         }
 
         println!("{}", "─".repeat(80).bright_black());
+
+        if window_truncated {
+            println!();
+            println!(
+                "{}",
+                format!(
+                    "NOTE: only transaction indices {}..={} were checked. Older Approved \
+                     vault proposals (indices 1..={}) are not shown and may still be \
+                     executable. Re-run with `-n {}` (or higher) to scan all transactions.",
+                    start_idx,
+                    transaction_index,
+                    start_idx - 1,
+                    transaction_index
+                )
+                .yellow()
+            );
+        }
 
         Ok(())
     }
