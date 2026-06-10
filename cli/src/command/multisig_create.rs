@@ -45,7 +45,10 @@ pub struct MultisigCreate {
     #[arg(long)]
     fee_payer_keypair: Option<String>,
 
-    /// Address of the Program Config Authority that will be set to control the Program Config
+    /// Address granted UNILATERAL control over the multisig configuration
+    /// (add/remove members, change threshold, etc.). Setting this makes the
+    /// multisig "controlled" rather than autonomous. This is NOT the rent
+    /// collector — use --rent-collector for that.
     #[arg(long)]
     config_authority: Option<String>,
 
@@ -123,6 +126,21 @@ impl MultisigCreate {
         );
         println!("Members amount:      {}", members.len());
         println!();
+
+        // A config authority grants unilateral governance over the multisig. If it is set
+        // while the rent collector is unset, the operator may have confused the two flags
+        // (e.g. passed a rent-collector key to --config-authority), so warn explicitly.
+        if config_authority.is_some() && rent_collector.is_none() {
+            println!(
+                "{}",
+                "⚠️  WARNING: --config-authority is set but --rent-collector is not. The \
+                 config authority has UNILATERAL control over this multisig's configuration \
+                 (members, threshold, etc.). If you meant to set a rent collector, re-run \
+                 with --rent-collector instead."
+                    .red()
+            );
+            println!();
+        }
 
         let config_authority = config_authority.map(|s| Pubkey::from_str(&s)).transpose()?;
 
