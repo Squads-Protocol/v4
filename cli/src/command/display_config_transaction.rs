@@ -2,6 +2,7 @@ use clap::Args;
 use colored::Colorize;
 use solana_sdk::pubkey::Pubkey;
 use squads_multisig::anchor_lang::AccountDeserialize;
+use squads_multisig::client::get_spending_limit;
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use squads_multisig::squads_multisig_program::state::ConfigTransaction;
 use squads_multisig::state::{ConfigAction, Period, Permission, Permissions};
@@ -152,6 +153,43 @@ impl DisplayConfigTransaction {
                         format!("Action {}: Remove Spending Limit", i + 1).yellow().bold()
                     );
                     println!("  Spending Limit: {}", spending_limit);
+                    // Resolve the referenced SpendingLimit account so reviewers can see
+                    // exactly which delegated spend authority is being revoked, rather than
+                    // an opaque PDA. If the lookup fails, warn explicitly instead of treating
+                    // the bare PDA as adequate review material.
+                    match get_spending_limit(&rpc_client, spending_limit).await {
+                        Ok(limit) => {
+                            println!("  Vault Index:  {}", limit.vault_index);
+                            println!("  Mint:         {}", limit.mint);
+                            println!("  Amount:       {}", limit.amount);
+                            println!("  Period:       {}", format_period(limit.period));
+                            if limit.members.is_empty() {
+                                println!("  Members:      (all)");
+                            } else {
+                                println!("  Members:");
+                                for m in &limit.members {
+                                    println!("    {}", m);
+                                }
+                            }
+                            if limit.destinations.is_empty() {
+                                println!("  Destinations: (any)");
+                            } else {
+                                println!("  Destinations:");
+                                for d in &limit.destinations {
+                                    println!("    {}", d);
+                                }
+                            }
+                        }
+                        Err(_) => {
+                            println!(
+                                "{}",
+                                "  WARNING: could not resolve the referenced spending limit \
+                                 account; the details of the guardrail being removed cannot be \
+                                 verified from this output."
+                                    .red()
+                            );
+                        }
+                    }
                 }
                 ConfigAction::SetRentCollector { new_rent_collector } => {
                     println!(
