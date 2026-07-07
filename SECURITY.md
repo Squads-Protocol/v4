@@ -86,3 +86,14 @@ We ask that:
 * You do not exploit a security issue you discover for any reason. This includes demonstrating additional risk, such as an attempted compromise of sensitive company data or probing for additional issues. 
 * You have not violated any other applicable laws or regulations. 
 * You are not currently subject to any U.S. sanctions administered by the Office of Foreign Assets Control of the U.S. Department of the Treasury (“OFAC”).
+## Protocol Design Invariants
+
+The following behaviors are intentional properties of the Squads Protocol governance model and, by themselves, do not constitute security vulnerabilities:
+
+* **Governance finality.** Once a proposal or transaction has reached consensus (e.g. `Approved` or `ExecuteReady`), subsequent multisig configuration changes are not intended to retroactively invalidate, recalculate, or otherwise alter that proposal or transaction. Configuration changes are prospective, not retroactive.
+
+* **Staleness and deprecation.** Staleness (`stale_transaction_index`) and deprecation (`ms_change_index`) mechanisms are designed to invalidate proposals and transactions that have **not yet reached consensus**. They are not intended to revoke or invalidate governance decisions that have already achieved the required approvals.
+
+* **Independent authorization models.** Certain protocol features intentionally maintain authorization state independent of multisig membership. For example, Spending Limit delegates are managed separately from multisig members, and changes to multisig membership do not implicitly grant or revoke Spending Limit permissions. Such permissions must be managed through their respective administrative mechanisms.
+
+Reports describing the above behaviors as vulnerabilities, without demonstrating an unintended violation of these design invariants, will generally be considered expected protocol behavior rather than security issues.

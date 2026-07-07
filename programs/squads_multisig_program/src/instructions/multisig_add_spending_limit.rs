@@ -19,7 +19,8 @@ pub struct MultisigAddSpendingLimitArgs {
     /// When it passes, the remaining amount is reset, unless it's `Period::OneTime`.
     pub period: Period,
     /// Members of the Spending Limit that can use it.
-    /// Don't have to be members of the multisig.
+    /// These can be any pubkey capable of signing and are NOT tied to multisig
+    /// membership; this list is managed independently of the multisig's members.
     pub members: Vec<Pubkey>,
     /// The destination addresses the spending limit is allowed to sent funds to.
     /// If empty, funds can be sent to any address.
