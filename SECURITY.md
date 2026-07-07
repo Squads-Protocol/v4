@@ -56,7 +56,7 @@ $25,000 USD in locked SOL tokens (locked for 12 months):
 $10,000 USD in locked SOL tokens (locked for 12 months): 
 * Modification of any Multisig or module settings without proper authorization by the owners of the Multisig
 ### In Scope
-Squads V3 on-chain program () is in scope for the bounty program.
+Squads V4 on-chain program (`SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`) is in scope for the bounty program.
 ### Out of Scope
 The following components are out of scope for the bounty program: 
 * any encrypted credentials, auth tokens, etc. checked into the repo 
