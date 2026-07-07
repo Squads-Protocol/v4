@@ -90,7 +90,7 @@ We ask that:
 
 The following behaviors are intentional properties of the Squads Protocol governance model and, by themselves, do not constitute security vulnerabilities:
 
-* **Governance finality.** Once a proposal or transaction has reached consensus (e.g. `Approved` or `ExecuteReady`), subsequent multisig configuration changes are not intended to retroactively invalidate, recalculate, or otherwise alter that proposal or transaction. Configuration changes are prospective, not retroactive.
+* **Governance finality.** Once a proposal or transaction has reached consensus (e.g. `Approved` or `ExecuteReady`), subsequent multisig *configuration changes* are not intended to retroactively invalidate, recalculate, or otherwise alter that proposal or transaction. Configuration changes are prospective, not retroactive. This does not preclude an `Approved` proposal from being cancelled: cancellation is itself a first-class governance action that requires a fresh threshold of cancellation votes from current members before the proposal transitions to `Cancelled`. Altering a reached-consensus decision therefore requires the same consensus process that produced it — it cannot be achieved as a side effect of a configuration change.
 
 * **Staleness and deprecation.** Staleness (`stale_transaction_index`) and deprecation (`ms_change_index`) mechanisms are designed to invalidate proposals and transactions that have **not yet reached consensus**. They are not intended to revoke or invalidate governance decisions that have already achieved the required approvals.
 
