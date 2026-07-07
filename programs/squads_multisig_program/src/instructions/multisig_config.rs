@@ -121,6 +121,9 @@ impl MultisigConfig<'_> {
     ///
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
     ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
+    /// NOTE: Removing a member from the multisig does NOT revoke any Spending Limit access.
+    ///       Spending Limit membership is tracked independently (see `SpendingLimit::members`);
+    ///       to revoke a member's Spending Limit access, update the relevant Spending Limit(s).
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_remove_member(
         ctx: Context<Self>,

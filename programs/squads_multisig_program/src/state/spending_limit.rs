@@ -38,8 +38,11 @@ pub struct SpendingLimit {
     pub bump: u8,
 
     /// Members of the spending limit that can use it.
-    /// Don't have to be members of the multisig.
-    /// To remove members from the spending limit: Close and re-initialize 
+    /// These can be any pubkey capable of signing and are NOT tied to multisig
+    /// membership. This list is tracked independently of the multisig's member list:
+    /// adding or removing a multisig member does NOT modify it, and a member removed
+    /// from the multisig who is still listed here can continue to use the spending limit.
+    /// To change who can use the spending limit: close and re-initialize it.
     pub members: Vec<Pubkey>,
 
     /// The destination addresses the spending limit is allowed to sent funds to.

@@ -64,9 +64,13 @@ pub enum ConfigAction {
         /// The reset period of the spending limit.
         /// When it passes, the remaining amount is reset, unless it's `Period::OneTime`.
         period: Period,
-        /// Members of the multisig that can use the spending limit.
-        /// In case a member is removed from the multisig, the spending limit will remain existent
-        /// (until explicitly deleted), but the removed member will not be able to use it anymore.
+        /// Members that can use the spending limit.
+        /// These can be any pubkey capable of signing and are NOT tied to multisig
+        /// membership. Spending limit membership is tracked independently: adding or
+        /// removing a multisig member does NOT add or remove them from any spending
+        /// limit, and a member removed from the multisig who is still listed here can
+        /// continue to use the spending limit. To change who can use a spending limit,
+        /// remove and re-add the spending limit with the desired members.
         members: Vec<Pubkey>,
         /// The destination addresses the spending limit is allowed to sent funds to.
         /// If empty, funds can be sent to any address.

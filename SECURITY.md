@@ -56,7 +56,7 @@ $25,000 USD in locked SOL tokens (locked for 12 months):
 $10,000 USD in locked SOL tokens (locked for 12 months): 
 * Modification of any Multisig or module settings without proper authorization by the owners of the Multisig
 ### In Scope
-Squads V3 on-chain program () is in scope for the bounty program.
+Squads V4 on-chain program (`SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`) is in scope for the bounty program.
 ### Out of Scope
 The following components are out of scope for the bounty program: 
 * any encrypted credentials, auth tokens, etc. checked into the repo 
@@ -86,3 +86,14 @@ We ask that:
 * You do not exploit a security issue you discover for any reason. This includes demonstrating additional risk, such as an attempted compromise of sensitive company data or probing for additional issues. 
 * You have not violated any other applicable laws or regulations. 
 * You are not currently subject to any U.S. sanctions administered by the Office of Foreign Assets Control of the U.S. Department of the Treasury (“OFAC”).
+## Protocol Design Invariants
+
+The following behaviors are intentional properties of the Squads Protocol governance model and, by themselves, do not constitute security vulnerabilities:
+
+* **Governance finality.** Once a proposal or transaction has reached consensus (e.g. `Approved` or `ExecuteReady`), subsequent multisig *configuration changes* are not intended to retroactively invalidate, recalculate, or otherwise alter that proposal or transaction. Configuration changes are prospective, not retroactive. This does not preclude an `Approved` proposal from being cancelled: cancellation is itself a first-class governance action that requires a fresh threshold of cancellation votes from current members before the proposal transitions to `Cancelled`. Altering a reached-consensus decision therefore requires the same consensus process that produced it — it cannot be achieved as a side effect of a configuration change.
+
+* **Staleness and deprecation.** Staleness (`stale_transaction_index`) and deprecation (`ms_change_index`) mechanisms are designed to invalidate proposals and transactions that have **not yet reached consensus**. They are not intended to revoke or invalidate governance decisions that have already achieved the required approvals.
+
+* **Independent authorization models.** Certain protocol features intentionally maintain authorization state independent of multisig membership. For example, Spending Limit delegates are managed separately from multisig members, and changes to multisig membership do not implicitly grant or revoke Spending Limit permissions. Such permissions must be managed through their respective administrative mechanisms.
+
+Reports describing the above behaviors as vulnerabilities, without demonstrating an unintended violation of these design invariants, will generally be considered expected protocol behavior rather than security issues.
