@@ -272,4 +272,172 @@ describe("Examples / Batch SOL Transfer", () => {
       assert.strictEqual(postBalance, preBalance + 2 * LAMPORTS_PER_SOL);
     }
   });
+
+  // Regression test for MUL-744: batchExecuteTransaction must forward the
+  // custom `programId` when deriving ephemeral signer PDAs. Otherwise the SDK
+  // derives them under the default program namespace, leaves the real ephemeral
+  // signer marked as a required outer signer, and produces an unsignable
+  // transaction on non-default deployments.
+  it("executes a batch transaction with an ephemeral signer under a custom programId", async () => {
+    const feePayer = await generateFundedKeypair(connection);
+
+    const [multisigPda] = await createAutonomousMultisig({
+      connection,
+      members,
+      threshold: 2,
+      timeLock: 0,
+      programId,
+    });
+
+    const multisigAccount = await Multisig.fromAccountAddress(
+      connection,
+      multisigPda
+    );
+
+    const vaultIndex = 0;
+    const batchIndex =
+      multisig.utils.toBigInt(multisigAccount.transactionIndex) + 1n;
+    const transactionIndex = 1;
+
+    const [proposalPda] = multisig.getProposalPda({
+      multisigPda,
+      transactionIndex: batchIndex,
+      programId,
+    });
+    const [batchPda] = multisig.getTransactionPda({
+      multisigPda,
+      index: batchIndex,
+      programId,
+    });
+    const [vaultPda] = multisig.getVaultPda({
+      multisigPda,
+      index: vaultIndex,
+      programId,
+    });
+    // Ephemeral signer PDA derived under the *custom* programId — this is the
+    // address the on-chain program signs for via CPI during execution.
+    const [ephemeralSignerPda] = multisig.getEphemeralSignerPda({
+      transactionPda: batchPda,
+      ephemeralSignerIndex: 0,
+      programId,
+    });
+
+    // Fund the vault so it can pay rent for the account the batch leg creates.
+    const airdropSig = await connection.requestAirdrop(
+      vaultPda,
+      LAMPORTS_PER_SOL
+    );
+    await connection.confirmTransaction(airdropSig);
+
+    // The batch leg creates a new account keyed by the ephemeral signer PDA,
+    // which requires the program to sign for it during execution.
+    const transactionMessage = new TransactionMessage({
+      payerKey: vaultPda,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [
+        SystemProgram.createAccount({
+          fromPubkey: vaultPda,
+          newAccountPubkey: ephemeralSignerPda,
+          lamports: 1_000_000,
+          space: 0,
+          programId: SystemProgram.programId,
+        }),
+      ],
+    });
+
+    let signature = await multisig.rpc.batchCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      creator: members.proposer,
+      batchIndex,
+      vaultIndex,
+      memo: "Ephemeral signer batch",
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    signature = await multisig.rpc.proposalCreate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      transactionIndex: batchIndex,
+      creator: members.proposer,
+      isDraft: true,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    signature = await multisig.rpc.batchAddTransaction({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      member: members.proposer,
+      vaultIndex,
+      batchIndex,
+      transactionIndex,
+      ephemeralSigners: 1,
+      transactionMessage,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    signature = await multisig.rpc.proposalActivate({
+      connection,
+      feePayer: members.proposer,
+      multisigPda,
+      member: members.proposer,
+      transactionIndex: batchIndex,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    signature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.voter,
+      multisigPda,
+      member: members.voter,
+      transactionIndex: batchIndex,
+      memo: "approve 1",
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    signature = await multisig.rpc.proposalApprove({
+      connection,
+      feePayer: members.almighty,
+      multisigPda,
+      member: members.almighty,
+      transactionIndex: batchIndex,
+      memo: "approve 2",
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // Execute through the official batch executor. Before the fix this produced
+    // an unsignable transaction because the ephemeral signer PDA was derived
+    // under the default programId; it must succeed now.
+    signature = await multisig.rpc.batchExecuteTransaction({
+      connection,
+      feePayer,
+      multisigPda,
+      member: members.executor,
+      batchIndex,
+      transactionIndex,
+      programId,
+    });
+    await connection.confirmTransaction(signature);
+
+    // The ephemeral signer account must now exist, owned by the System Program.
+    const createdAccount = await connection.getAccountInfo(ephemeralSignerPda);
+    assert.ok(createdAccount);
+    assert.ok(createdAccount.owner.equals(SystemProgram.programId));
+
+    // Proposal status must be "Executed".
+    const proposalAccount = await Proposal.fromAccountAddress(
+      connection,
+      proposalPda
+    );
+    assert.ok(multisig.types.isProposalStatusExecuted(proposalAccount.status));
+  });
 });
