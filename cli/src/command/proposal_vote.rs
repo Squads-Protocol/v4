@@ -14,14 +14,16 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 
 use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::pda::get_proposal_pda;
+use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
 use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
 use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
 use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
 use squads_multisig::squads_multisig_program::instruction::ProposalCancel;
+use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
 use squads_multisig::squads_multisig_program::instruction::ProposalReject;
-use squads_multisig::squads_multisig_program::ProposalVoteArgs;
+use squads_multisig::squads_multisig_program::{ProposalCreateArgs, ProposalVoteArgs};
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
@@ -104,7 +106,8 @@ impl ProposalVote {
             .await
             .expect("Failed to get blockhash");
 
-        let data = match action.to_lowercase().as_str() {
+        let action_lower = action.to_lowercase();
+        let data = match action_lower.as_str() {
             "approve" | "ap" => ProposalApprove {
                 args: ProposalVoteArgs { memo },
             }
@@ -123,25 +126,59 @@ impl ProposalVote {
             }
         };
 
+        let should_create_proposal =
+            matches!(action_lower.as_str(), "approve" | "ap" | "reject" | "rj") && {
+                let transaction_pda =
+                    get_transaction_pda(&multisig, transaction_index, Some(&program_id));
+                let accounts = rpc_client
+                    .get_multiple_accounts(&[transaction_pda.0, proposal_pda.0])
+                    .await?;
+                let transaction_exists = accounts.first().and_then(|a| a.as_ref()).is_some();
+                let proposal_exists = accounts.get(1).and_then(|a| a.as_ref()).is_some();
+                transaction_exists && !proposal_exists
+            };
+
         let payer = fee_payer.unwrap_or(transaction_creator);
+
+        let mut instructions = vec![ComputeBudgetInstruction::set_compute_unit_price(
+            priority_fee_lamports.unwrap_or(5000),
+        )];
+
+        if should_create_proposal {
+            instructions.push(Instruction {
+                accounts: ProposalCreateAccounts {
+                    creator: transaction_creator,
+                    rent_payer: payer,
+                    proposal: proposal_pda.0,
+                    multisig,
+                    system_program: solana_sdk::system_program::id(),
+                }
+                .to_account_metas(Some(false)),
+                data: ProposalCreateData {
+                    args: ProposalCreateArgs {
+                        draft: false,
+                        transaction_index,
+                    },
+                }
+                .data(),
+                program_id,
+            });
+        }
+
+        instructions.push(Instruction {
+            accounts: ProposalVoteAccounts {
+                member: transaction_creator,
+                multisig,
+                proposal: proposal_pda.0,
+            }
+            .to_account_metas(Some(false)),
+            data,
+            program_id,
+        });
 
         let message = Message::try_compile(
             &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                Instruction {
-                    accounts: ProposalVoteAccounts {
-                        member: transaction_creator,
-                        multisig,
-                        proposal: proposal_pda.0,
-                    }
-                    .to_account_metas(Some(false)),
-                    data,
-                    program_id,
-                },
-            ],
+            &instructions,
             &[],
             blockhash,
         )
