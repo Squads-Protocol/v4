@@ -127,6 +127,14 @@ impl ConfigTransactionCreate {
 
         let config_action = parse_action(&action);
 
+        // Surface the decoded spending-limit period so reviewers can confirm the
+        // reset cadence that will actually be created before approving (the raw
+        // action string alone previously hid that the period was ignored).
+        let spending_limit_period = match &config_action {
+            Ok(ConfigAction::AddSpendingLimit { period, .. }) => Some(*period),
+            _ => None,
+        };
+
         // Build the message first so we can show the hash before confirmation
         let payer = fee_payer.unwrap_or(transaction_creator);
 
@@ -208,6 +216,9 @@ impl ConfigTransactionCreate {
         println!("Multisig Key:       {}", multisig_pubkey);
         println!("Transaction Index:       {}", transaction_index);
         println!("Action Type:       {}", action);
+        if let Some(period) = spending_limit_period {
+            println!("Spending Limit Period:       {:?}", period);
+        }
         println!("Auto-approve:       {}", approve);
         println!();
         println!("Message Hash (verify on hardware wallet): {}", message_hash);
@@ -326,6 +337,7 @@ fn parse_add_spending_limit(parts: &[&str]) -> Result<ConfigAction, String> {
     let vault_index = parts[1].parse().map_err(|_| "Invalid vault_index format")?;
     let mint = parts[2].parse().map_err(|_| "Invalid mint format")?;
     let amount = parts[3].parse().map_err(|_| "Invalid amount format")?;
+    let period = parse_period(parts[4])?;
     let members = parse_pubkey_list(parts[5]).map_err(|_| "Invalid members format")?;
     let destinations = parse_pubkey_list(parts[6]).map_err(|_| "Invalid destinations format")?;
 
@@ -334,8 +346,81 @@ fn parse_add_spending_limit(parts: &[&str]) -> Result<ConfigAction, String> {
         vault_index,
         mint,
         amount,
-        period: Period::Day,
+        period,
         members,
         destinations,
     })
+}
+
+/// Parse the spending limit reset period from its CLI string representation.
+///
+/// Unknown values are rejected rather than defaulting to a particular period,
+/// so an operator never silently gets a period they did not request.
+fn parse_period(period_str: &str) -> Result<Period, String> {
+    match period_str {
+        "OneTime" => Ok(Period::OneTime),
+        "Day" => Ok(Period::Day),
+        "Week" => Ok(Period::Week),
+        "Month" => Ok(Period::Month),
+        _ => Err(format!(
+            "Invalid period '{}'. Expected one of: OneTime, Day, Week, Month",
+            period_str
+        )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // A valid base58 pubkey reused across the AddSpendingLimit test actions.
+    const PUBKEY: &str = "11111111111111111111111111111111";
+
+    fn add_spending_limit_action(period: &str) -> String {
+        format!(
+            "AddSpendingLimit {pk} 0 {pk} 1000 {period} {pk} {pk}",
+            pk = PUBKEY,
+            period = period
+        )
+    }
+
+    #[test]
+    fn add_spending_limit_round_trips_each_period() {
+        for (input, expected) in [
+            ("OneTime", Period::OneTime),
+            ("Day", Period::Day),
+            ("Week", Period::Week),
+            ("Month", Period::Month),
+        ] {
+            let action = parse_action(&add_spending_limit_action(input))
+                .unwrap_or_else(|e| panic!("expected '{input}' to parse, got error: {e}"));
+            match action {
+                ConfigAction::AddSpendingLimit { period, .. } => assert_eq!(
+                    period, expected,
+                    "requested period '{input}' was not preserved"
+                ),
+                _ => panic!("expected AddSpendingLimit action for input '{input}'"),
+            }
+        }
+    }
+
+    #[test]
+    fn add_spending_limit_rejects_unknown_period() {
+        // An unknown period must error rather than silently defaulting.
+        let result = parse_action(&add_spending_limit_action("Yearly"));
+        assert!(
+            result.is_err(),
+            "unknown period must be rejected, not defaulted"
+        );
+    }
+
+    #[test]
+    fn parse_period_maps_all_known_values() {
+        assert_eq!(parse_period("OneTime"), Ok(Period::OneTime));
+        assert_eq!(parse_period("Day"), Ok(Period::Day));
+        assert_eq!(parse_period("Week"), Ok(Period::Week));
+        assert_eq!(parse_period("Month"), Ok(Period::Month));
+        assert!(parse_period("day").is_err());
+        assert!(parse_period("").is_err());
+    }
 }
