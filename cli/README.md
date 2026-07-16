@@ -183,7 +183,7 @@ multisig-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
 - `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
-- `--config-authority <CONFIG_AUTHORITY>`: (Optional) Address of the Program Config Authority.
+- `--config-authority <CONFIG_AUTHORITY>`: (Optional) Address granted **unilateral** control over the multisig configuration (add/remove members, change threshold, etc.). This makes the multisig "controlled" rather than autonomous — only set it if you intend a single key to govern config changes. This is **not** the rent collector; use `--rent-collector` for that.
 - `--members <MEMBER_...>`: List of members' public keys, separated by spaces.
 - `--threshold <THRESHOLD>`: The threshold number of signatures required for executing multisig transactions.
 - `--rent-collector <RENT_COLLECTOR>` : The Public key that will be able to reclaim rent from canceled and executed transactions.
@@ -208,7 +208,7 @@ multisig-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR
 
 3. **Creating a Multisig with Rent Collector:**
    ```bash
-   multisig-create --keypair /path/to/keypair.json --config-authority <RENT_COLLECTOR_PUBKEY> --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 1
+   multisig-create --keypair /path/to/keypair.json --rent-collector <RENT_COLLECTOR_PUBKEY> --members "Member1PubKey,Permission1" "Member2PubKey,Permission2" --threshold 1
    ```
    Initializes a multisig account with a specified rent collector and a threshold of 1.
 
