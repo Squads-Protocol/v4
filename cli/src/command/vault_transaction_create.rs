@@ -57,8 +57,9 @@ pub struct VaultTransactionCreate {
     #[arg(long)]
     vault_index: u8,
 
+    /// Base58-encoded transaction message bytes
     #[arg(long)]
-    transaction_message: Vec<u8>,
+    transaction_message: String,
 
     /// Memo to be included in the transaction
     #[arg(long)]
@@ -87,6 +88,10 @@ impl VaultTransactionCreate {
             priority_fee_lamports,
             approve,
         } = self;
+
+        let transaction_message = bs58::decode(&transaction_message)
+            .into_vec()
+            .map_err(|e| eyre::eyre!("Invalid base58 transaction_message: {}", e))?;
 
         let program_id =
             program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
