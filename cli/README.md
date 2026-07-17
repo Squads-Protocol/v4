@@ -16,6 +16,13 @@ Overview
    - [Execute Vault Transaction](#vault-transaction-execute)
    - [Display Vault Transaction](#display-transaction)
    - [Display Config Transaction](#display-config-transaction)
+   - [Claim Rent](#claim-rent)
+   - [Display Proposals](#display-proposals)
+   - [Display Vault](#display-vault)
+   - [Initiate Transfer](#initiate-transfer)
+   - [Initiate Batch Transfer](#initiate-batch-transfer)
+   - [Initiate Program Upgrade](#initiate-program-upgrade)
+   - [Program Config Init](#program-config-init)
 
 # 1. Installation
 
@@ -389,4 +396,246 @@ display-config-transaction --transaction-address <TRANSACTION_ADDRESS> [--rpc-ur
 
 ```bash
 squads-multisig-cli display-config-transaction --transaction-address AQb6VyZGzC2kL7vFU7WqoTJYTNZdHKhKuHmzuxkqGGjV
+```
+
+## Claim Rent
+
+### Description
+
+Scans executed or terminal proposals for a multisig and reclaims rent from closed 
+vault, config, and batch transaction accounts, returning SOL to the multisig 
+`rent_collector`.
+
+### Syntax
+
+```bash
+claim-rent --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--fee-payer-keypair <FEE_PAYER_PATH>] [--last-n <LAST_N>] [--dry-run] [--priority-fee-lamports <LAMPORTS>]
+```
+
+### Parameters
+
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--keypair <KEYPAIR_PATH>`: Path to your keypair file (fee payer unless `--fee-payer-keypair` is set).
+- `--fee-payer-keypair <FEE_PAYER_PATH>`: (Optional) Path to a separate fee payer keypair.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--last-n <LAST_N>`: (Optional) Number of most recent transaction indices to scan. Defaults to 500.
+- `--dry-run`: (Optional) List closable accounts and estimated rent only; does not send any transactions.
+- `--priority-fee-lamports <LAMPORTS>`: (Optional) Priority fee in lamports. Defaults to 5000.
+
+### Example Usage
+
+```bash
+claim-rent --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY>
+```
+
+Dry run to preview reclaimable rent without sending transactions:
+
+```bash
+claim-rent --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --dry-run
+```
+
+## Display Proposals
+
+### Description
+
+Fetches and displays all outstanding proposals for a multisig, showing their 
+status (Draft, Active, Approved), transaction index, proposal PDA, and 
+current vote counts.
+
+### Syntax
+
+```bash
+display-proposals --multisig-pubkey <MULTISIG_PUBLIC_KEY> [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--limit <LIMIT>]
+```
+
+### Parameters
+
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--limit <LIMIT>`: (Optional) Maximum number of recent transactions to check. Defaults to 20.
+
+### Example Usage
+
+```bash
+display-proposals --multisig-pubkey <MULTISIG_PUBLIC_KEY>
+```
+
+## Display Vault
+
+### Description
+
+Derives and displays the vault PDA address for a given multisig and vault index.
+
+### Syntax
+
+```bash
+display-vault --multisig-address <MULTISIG_ADDRESS> [--program-id <PROGRAM_ID>] [--vault-index <VAULT_INDEX>]
+```
+
+### Parameters
+
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--multisig-address <MULTISIG_ADDRESS>`: The public key of the multisig account.
+- `--vault-index <VAULT_INDEX>`: (Optional) The vault index to derive. Defaults to 0.
+
+### Example Usage
+
+```bash
+display-vault --multisig-address <MULTISIG_PUBLIC_KEY>
+```
+
+```bash
+display-vault --multisig-address <MULTISIG_PUBLIC_KEY> --vault-index 1
+```
+
+## Initiate Transfer
+
+### Description
+
+Creates and activates a vault transaction that transfers SPL tokens from the 
+multisig vault. Supports both wallet addresses (ATA is derived automatically) 
+and direct token account addresses as recipient. Optionally approves the 
+proposal atomically in the same transaction.
+
+### Syntax
+
+```bash
+initiate-transfer --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index <VAULT_INDEX> --token-mint-address <MINT> --token-amount-u64 <AMOUNT> --recipient <RECIPIENT> [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--token-program-id <TOKEN_PROGRAM_ID>] [--fee-payer-keypair <FEE_PAYER_PATH>] [--memo <MEMO>] [--priority-fee-lamports <LAMPORTS>] [--approve]
+```
+
+### Parameters
+
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--token-program-id <TOKEN_PROGRAM_ID>`: (Optional) Token program ID. Defaults to standard SPL token program.
+- `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
+- `--fee-payer-keypair <FEE_PAYER_PATH>`: (Optional) Path to a separate fee payer keypair.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--vault-index <VAULT_INDEX>`: The index of the vault to transfer from.
+- `--token-mint-address <MINT>`: The mint address of the token to transfer.
+- `--token-amount-u64 <AMOUNT>`: The transfer amount in raw token units (u64).
+- `--recipient <RECIPIENT>`: Recipient wallet or token account address.
+- `--memo <MEMO>`: (Optional) A memo for the transaction.
+- `--priority-fee-lamports <LAMPORTS>`: (Optional) Priority fee in lamports. Defaults to 200000.
+- `--approve`: (Optional) Approve the proposal atomically in the same transaction. Requires Vote permission.
+
+### Example Usage
+
+```bash
+initiate-transfer --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 0 --token-mint-address <MINT_ADDRESS> --token-amount-u64 1000000 --recipient <RECIPIENT_ADDRESS>
+```
+
+With auto-approve:
+
+```bash
+initiate-transfer --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 0 --token-mint-address <MINT_ADDRESS> --token-amount-u64 1000000 --recipient <RECIPIENT_ADDRESS> --approve
+```
+
+## Initiate Batch Transfer
+
+### Description
+
+Creates and activates a vault transaction containing multiple SOL and SPL token 
+transfers from the multisig vault in a single proposal. Each transfer leg is 
+specified with `--transfer`. Optionally approves the proposal atomically.
+
+### Syntax
+
+```bash
+initiate-batch-transfer --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index <VAULT_INDEX> --transfer <LEG> [--transfer <LEG> ...] [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--fee-payer-keypair <FEE_PAYER_PATH>] [--memo <MEMO>] [--priority-fee-lamports <LAMPORTS>] [--approve]
+```
+
+### Parameters
+
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
+- `--fee-payer-keypair <FEE_PAYER_PATH>`: (Optional) Path to a separate fee payer keypair.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--vault-index <VAULT_INDEX>`: The index of the vault to transfer from.
+- `--transfer <LEG>`: A transfer leg. Repeatable. Format: `sol:<recipient>:<lamports>` for SOL, or `<mint>:<recipient>:<amount>` for SPL tokens (raw amount).
+- `--memo <MEMO>`: (Optional) A memo for the transaction.
+- `--priority-fee-lamports <LAMPORTS>`: (Optional) Priority fee in lamports. Defaults to 200000.
+- `--approve`: (Optional) Approve the proposal atomically in the same transaction. Requires Vote permission.
+
+### Example Usage
+
+SOL transfer only:
+
+```bash
+initiate-batch-transfer --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 0 --transfer "sol:<RECIPIENT_ADDRESS>:1000000000"
+```
+
+Mixed SOL and SPL in one proposal:
+
+```bash
+initiate-batch-transfer --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 0 --transfer "sol:<RECIPIENT_1>:500000000" --transfer "<MINT_ADDRESS>:<RECIPIENT_2>:1000000"
+```
+
+## Initiate Program Upgrade
+
+### Description
+
+Creates and activates a vault transaction that upgrades a BPF upgradeable 
+program from a buffer. Optionally approves the proposal atomically in the 
+same transaction.
+
+### Syntax
+
+```bash
+initiate-program-upgrade --keypair <KEYPAIR_PATH> --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index <VAULT_INDEX> --program-to-upgrade-id <PROGRAM_ID> --buffer-address <BUFFER_ADDRESS> --spill-address <SPILL_ADDRESS> [--rpc-url <RPC_URL>] [--squads-program-id <SQUADS_PROGRAM_ID>] [--fee-payer-keypair <FEE_PAYER_PATH>] [--memo <MEMO>] [--priority-fee-lamports <LAMPORTS>] [--approve]
+```
+
+### Parameters
+
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--squads-program-id <SQUADS_PROGRAM_ID>`: (Optional) The ID of the Squads multisig program. Defaults to a standard ID if not specified.
+- `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
+- `--fee-payer-keypair <FEE_PAYER_PATH>`: (Optional) Path to a separate fee payer keypair.
+- `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
+- `--vault-index <VAULT_INDEX>`: The vault index to use as the upgrade authority.
+- `--program-to-upgrade-id <PROGRAM_ID>`: The address of the program to upgrade.
+- `--buffer-address <BUFFER_ADDRESS>`: The address of the buffer account containing the new program binary.
+- `--spill-address <SPILL_ADDRESS>`: The address that will receive the lamports from the closed buffer account.
+- `--memo <MEMO>`: (Optional) A memo for the transaction.
+- `--priority-fee-lamports <LAMPORTS>`: (Optional) Priority fee in lamports. Defaults to 200000.
+- `--approve`: (Optional) Approve the proposal atomically in the same transaction. Requires Vote permission.
+
+### Example Usage
+
+```bash
+initiate-program-upgrade --keypair /path/to/keypair.json --multisig-pubkey <MULTISIG_PUBLIC_KEY> --vault-index 0 --program-to-upgrade-id <PROGRAM_ADDRESS> --buffer-address <BUFFER_ADDRESS> --spill-address <SPILL_ADDRESS>
+```
+
+## Program Config Init
+
+### Description
+
+Initializes the global program config account. This is a one-time setup 
+operation, only callable by the program authority. Sets the config authority, 
+treasury address, and multisig creation fee.
+
+### Syntax
+
+```bash
+program-config-init --initializer-keypair <KEYPAIR_PATH> --program-config-authority <AUTHORITY> --treasury <TREASURY> --multisig-creation-fee <FEE> [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--fee-payer-keypair <FEE_PAYER_PATH>] [--priority-fee-lamports <LAMPORTS>]
+```
+
+### Parameters
+
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--initializer-keypair <KEYPAIR_PATH>`: Path to the initializer keypair (must be the program authority).
+- `--fee-payer-keypair <FEE_PAYER_PATH>`: (Optional) Path to a separate fee payer keypair.
+- `--program-config-authority <AUTHORITY>`: Address of the authority that will control the program config.
+- `--treasury <TREASURY>`: Address of the treasury that will receive multisig creation fees.
+- `--multisig-creation-fee <FEE>`: Multisig creation fee in lamports.
+- `--priority-fee-lamports <LAMPORTS>`: (Optional) Priority fee in lamports. Defaults to 5000.
+
+### Example Usage
+
+```bash
+program-config-init --initializer-keypair /path/to/keypair.json --program-config-authority <AUTHORITY_ADDRESS> --treasury <TREASURY_ADDRESS> --multisig-creation-fee 1000000
 ```
