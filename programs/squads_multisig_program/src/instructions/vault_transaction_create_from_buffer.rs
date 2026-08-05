@@ -44,6 +44,14 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
             MultisigError::InvalidInstructionArgs
         );
 
+        // The buffer declares its vault index at creation; conversion must
+        // target the same vault rather than silently re-targeting the
+        // buffered transaction to a different one.
+        require!(
+            args.vault_index == transaction_buffer_account.vault_index,
+            MultisigError::InvalidInstructionArgs
+        );
+
         // Validate that the final hash matches the buffer
         transaction_buffer_account.validate_hash()?;
 

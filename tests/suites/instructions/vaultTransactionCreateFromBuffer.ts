@@ -439,6 +439,138 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
     );
   });
 
+  it("error: create from buffer with mismatched vault_index", async () => {
+    const transactionIndex = 6n;
+    // bufferIndex 2: 0 and 1 are occupied by buffers left behind from
+    // earlier failed conversions in this suite.
+    const bufferIndex = 2;
+
+    const testIx = await createTestTransferInstruction(
+      vaultPda,
+      Keypair.generate().publicKey,
+      0.1 * LAMPORTS_PER_SOL
+    );
+
+    const testTransferMessage = new TransactionMessage({
+      payerKey: vaultPda,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [testIx],
+    });
+
+    const messageBuffer =
+      multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+        message: testTransferMessage,
+        addressLookupTableAccounts: [],
+        vaultPda,
+      });
+
+    const [transactionBuffer, _] = await PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("multisig"),
+        multisigPda.toBuffer(),
+        Buffer.from("transaction_buffer"),
+        members.proposer.publicKey.toBuffer(),
+        Uint8Array.from([bufferIndex]),
+      ],
+      programId
+    );
+
+    const messageHash = crypto
+      .createHash("sha256")
+      .update(messageBuffer)
+      .digest();
+
+    // Buffer declares vault_index 0
+    const createIx =
+      multisig.generated.createTransactionBufferCreateInstruction(
+        {
+          multisig: multisigPda,
+          transactionBuffer,
+          creator: members.proposer.publicKey,
+          rentPayer: members.proposer.publicKey,
+          systemProgram: SystemProgram.programId,
+        },
+        {
+          args: {
+            bufferIndex,
+            vaultIndex: 0,
+            finalBufferHash: Array.from(messageHash),
+            finalBufferSize: messageBuffer.length,
+            buffer: messageBuffer,
+          } as TransactionBufferCreateArgs,
+        } as TransactionBufferCreateInstructionArgs,
+        programId
+      );
+
+    const createMessage = new TransactionMessage({
+      payerKey: members.proposer.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [createIx],
+    }).compileToV0Message();
+
+    const createTx = new VersionedTransaction(createMessage);
+    createTx.sign([members.proposer]);
+
+    const createBufferSig = await connection.sendTransaction(createTx, {
+      skipPreflight: true,
+    });
+    await connection.confirmTransaction(createBufferSig);
+
+    const [transactionPda] = multisig.getTransactionPda({
+      multisigPda,
+      index: transactionIndex,
+      programId,
+    });
+    const transactionBufferMeta: AccountMeta = {
+      pubkey: transactionBuffer,
+      isWritable: true,
+      isSigner: false
+    }
+
+    // Conversion passes vault_index 1 while the buffer declared 0
+    const createFromBufferIx =
+      multisig.generated.createVaultTransactionCreateFromBufferInstruction(
+        {
+          vaultTransactionCreateItemMultisig: multisigPda,
+          vaultTransactionCreateItemTransaction: transactionPda,
+          vaultTransactionCreateItemCreator: members.proposer.publicKey,
+          vaultTransactionCreateItemRentPayer: members.proposer.publicKey,
+          vaultTransactionCreateItemSystemProgram: SystemProgram.programId,
+          creator: members.proposer.publicKey,
+          transactionBuffer: transactionBuffer,
+        },
+        {
+          args: {
+            vaultIndex: 1,
+            ephemeralSigners: 0,
+            transactionMessage: new Uint8Array(6).fill(0),
+            memo: null,
+            anchorRemainingAccounts: [transactionBufferMeta]
+          } as VaultTransactionCreateArgs,
+        } as VaultTransactionCreateFromBufferInstructionArgs,
+        programId
+      );
+
+    const createFromBufferMessage = new TransactionMessage({
+      payerKey: members.proposer.publicKey,
+      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+      instructions: [createFromBufferIx],
+    }).compileToV0Message();
+
+    const createFromBufferTx = new VersionedTransaction(
+      createFromBufferMessage
+    );
+    createFromBufferTx.sign([members.proposer]);
+
+    await assert.rejects(
+      () =>
+        connection
+          .sendTransaction(createFromBufferTx)
+          .catch(multisig.errors.translateAndThrowAnchorError),
+      /InvalidInstructionArgs/
+    );
+  });
+
   // We expect the program to run out of memory in a base case, given 43 transfers.
   it("error: out of memory (no allocator)", async () => {
     const [transactionPda] = multisig.getTransactionPda({
