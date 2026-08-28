@@ -1,5 +1,5 @@
 // The order of imports is the order the test suite will run in.
-import "./suites/program-config-init"
+import "./suites/program-config-init";
 import "./suites/account-migrations";
 import "./suites/examples/batch-sol-transfer";
 import "./suites/examples/create-mint";
@@ -13,6 +13,7 @@ import "./suites/instructions/configTransactionExecute";
 import "./suites/instructions/multisigCreate";
 import "./suites/instructions/multisigCreateV2";
 import "./suites/instructions/multisigSetRentCollector";
+import "./suites/instructions/spendingLimitUse";
 import "./suites/instructions/transactionBufferClose";
 import "./suites/instructions/transactionBufferCreate";
 import "./suites/instructions/transactionBufferExtend";
@@ -24,4 +25,3 @@ import "./suites/multisig-sdk";
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";
 // import "./suites/examples/custom-heap";
-

@@ -32,7 +32,7 @@ export function spendingLimitUse({
   /** Provide if `spendingLimit` is for an SPL token, omit if it's for SOL. */
   mint?: PublicKey;
   vaultIndex: number;
-  amount: number;
+  amount: number | bigint;
   decimals: number;
   destination: PublicKey;
   tokenProgram?: PublicKey;
