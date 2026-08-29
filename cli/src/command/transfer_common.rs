@@ -5,7 +5,17 @@ use solana_sdk::program_pack::Pack;
 use solana_sdk::pubkey::Pubkey;
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 use spl_token::state::{Account as TokenAccount, Mint};
+use spl_token_2022::extension::StateWithExtensions;
+use spl_token_2022::state::Mint as Mint2022;
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
+
+fn unpack_mint_decimals(data: &[u8], token_program_id: &Pubkey) -> eyre::Result<u8> {
+    if token_program_id == &spl_token::id() {
+        Ok(Mint::unpack(data)?.decimals)
+    } else {
+        Ok(StateWithExtensions::<Mint2022>::unpack(data)?.base.decimals)
+    }
+}
 
 /// Resolved recipient information for a token transfer.
 pub(crate) struct ResolvedRecipient {
@@ -115,9 +125,9 @@ pub(crate) async fn fetch_mint_decimals(
         ));
     }
 
-    let mint = Mint::unpack(&mint_account.data)
+    let decimals = unpack_mint_decimals(&mint_account.data, token_program_id)
         .map_err(|e| eyre::eyre!("Failed to deserialize mint account {}: {}", token_mint, e))?;
-    Ok(mint.decimals)
+    Ok(decimals)
 }
 
 /// Decimals and SPL token program id inferred from the mint account (mint account owner).
@@ -132,9 +142,9 @@ pub(crate) async fn fetch_mint_decimals_and_token_program(
 
     let token_program_id = mint_account.owner;
 
-    let mint = Mint::unpack(&mint_account.data)
+    let decimals = unpack_mint_decimals(&mint_account.data, &token_program_id)
         .map_err(|e| eyre::eyre!("Failed to deserialize mint account {}: {}", token_mint, e))?;
-    Ok((mint.decimals, token_program_id))
+    Ok((decimals, token_program_id))
 }
 
 pub(crate) fn parse_pubkey(label: &str, s: &str) -> eyre::Result<Pubkey> {
