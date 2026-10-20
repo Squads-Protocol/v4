@@ -101,7 +101,7 @@ impl Multisig {
             account_size_to_fit_members,
         );
         // Reallocate more space.
-        AccountInfo::realloc(&multisig, new_size, false)?;
+        multisig.resize(new_size)?;
 
         // If more lamports are needed, transfer them to the account.
         let rent_exempt_lamports = Rent::get().unwrap().minimum_balance(new_size).max(1);
@@ -120,7 +120,7 @@ impl Multisig {
 
             system_program::transfer(
                 CpiContext::new(
-                    system_program,
+                    system_program.key(),
                     system_program::Transfer {
                         from: rent_payer,
                         to: multisig,

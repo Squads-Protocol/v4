@@ -1,72 +1,40 @@
-// Re-export dependencies for convenience
-pub use solana_rpc_client;
-pub use solana_rpc_client_api;
+//! Rust client for the Squads Multisig 4r program (`SMS4Rd3C3P1V2PdGRSdZCVQ5fPJk7NsV7vAVoUgSvT5`).
+//! `generated` comes from Codama (`sdk/multisig-4r/scripts/generate.mjs`); the other modules
+//! add PDA helpers, vault transaction message compilation, and owner-checked RPC fetches.
 
-pub use squads_multisig_program;
-pub use squads_multisig_program::anchor_lang;
-pub use squads_multisig_program::anchor_lang::solana_program;
+#[allow(unused_imports)]
+mod generated;
 
-pub mod client;
+pub mod error;
+pub mod message;
 pub mod pda;
-pub mod vault_transaction;
+#[cfg(feature = "fetch")]
+pub mod rpc;
 
-pub mod error {
-    use thiserror::Error;
+// Generated code refers to `crate::shared` and `crate::SQUADS_MULTISIG4R_ID`.
+pub use generated::programs::{SQUADS_MULTISIG4R_ID, SQUADS_MULTISIG4R_ID as ID};
+pub use generated::{accounts, errors, instructions, programs, shared, types};
 
-    #[derive(Debug, Error)]
-    pub enum ClientError {
-        #[error(transparent)]
-        Client(#[from] solana_rpc_client_api::client_error::Error),
-        #[error("Failed to deserialize account data")]
-        DeserializationError,
-        #[error("Invalid AddressLookupTableAccount")]
-        InvalidAddressLookupTableAccount,
-        #[error("Invalid TransactionMessage")]
-        InvalidTransactionMessage,
-    }
-}
-
-pub type ClientResult<T> = Result<T, error::ClientError>;
-
-pub mod state {
-    pub use squads_multisig_program::instructions::TransactionMessage;
-    pub use squads_multisig_program::state::{
-        Batch, ConfigAction, ConfigTransaction, Member, Multisig, MultisigCompiledInstruction,
-        MultisigMessageAddressTableLookup, Period, Permission, Permissions, Proposal,
-        ProposalStatus, SpendingLimit, VaultTransactionMessage,
+/// Returns `instruction` addressed to `program_id`, for localnet or staging deployments.
+/// Also moves the `None` optional-account placeholders (readonly, non-signer metas set to
+/// the mainnet ID by the generated builders) to `program_id`, as Anchor expects.
+pub fn with_program_id(
+    instruction: solana_instruction::Instruction,
+    program_id: &solana_address::Address,
+) -> solana_instruction::Instruction {
+    let is_placeholder = |meta: &solana_instruction::AccountMeta| {
+        meta.pubkey == ID && !meta.is_signer && !meta.is_writable
     };
-    pub use squads_multisig_program::SmallVec;
-}
-
-pub mod cpi {
-    use squads_multisig_program::anchor_lang::prelude::{CpiContext, Pubkey, Result};
-    pub use squads_multisig_program::cpi::accounts::{
-        BatchAddTransaction, BatchCreate, BatchExecuteTransaction, ConfigTransactionCreate,
-        ConfigTransactionExecute, MultisigAddSpendingLimit, MultisigConfig, MultisigCreateV2,
-        MultisigRemoveSpendingLimit, ProposalActivate, ProposalCreate, ProposalVote,
-        SpendingLimitUse, VaultTransactionCreate, VaultTransactionExecute,
-    };
-    use squads_multisig_program::Member;
-
-    pub fn create_multisig<'info>(
-        ctx: CpiContext<'_, '_, '_, 'info, MultisigCreateV2<'info>>,
-        members: Vec<Member>,
-        threshold: u16,
-        config_authority: Option<Pubkey>,
-        rent_collector: Option<Pubkey>,
-        time_lock: u32,
-        memo: Option<String>,
-    ) -> Result<()> {
-        squads_multisig_program::cpi::multisig_create_v2(
-            ctx,
-            squads_multisig_program::MultisigCreateArgsV2 {
-                members,
-                threshold,
-                config_authority,
-                rent_collector,
-                time_lock,
-                memo,
-            },
-        )
+    solana_instruction::Instruction {
+        program_id: *program_id,
+        accounts: instruction
+            .accounts
+            .into_iter()
+            .map(|meta| match is_placeholder(&meta) {
+                true => solana_instruction::AccountMeta::new_readonly(*program_id, false),
+                false => meta,
+            })
+            .collect(),
+        data: instruction.data,
     }
 }

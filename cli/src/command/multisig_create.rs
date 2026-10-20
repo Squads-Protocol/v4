@@ -1,30 +1,26 @@
+use std::str::FromStr;
+use std::time::Duration;
+
 use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::instruction::Instruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::{read_keypair_file, Keypair, Signer};
-use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
-use std::str::FromStr;
-use std::time::Duration;
+use solana_system_interface::program as system_program;
+use squads_multisig_4r::accounts::ProgramConfig;
+use squads_multisig_4r::instructions::{MultisigCreateV2, MultisigCreateV2InstructionArgs};
+use squads_multisig_4r::pda::{get_multisig_pda, get_program_config_pda};
+use squads_multisig_4r::rpc::decode_checked;
+use squads_multisig_4r::types::{Member, Permissions};
+use squads_multisig_4r::with_program_id;
 
-use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
-use squads_multisig::pda::get_multisig_pda;
-use squads_multisig::pda::get_program_config_pda;
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::MultisigCreateV2 as MultisigCreateV2Accounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::MultisigCreateV2 as MultisigCreateV2Data;
-use squads_multisig::squads_multisig_program::state::ProgramConfig;
-use squads_multisig::squads_multisig_program::MultisigCreateArgsV2;
-use squads_multisig::state::{Member, Permissions};
-
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
 /// Create a new Squads multisig with the specified members and threshold.
 #[derive(Args)]
@@ -84,14 +80,15 @@ impl MultisigCreate {
             seed_keypair,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
@@ -179,11 +176,12 @@ impl MultisigCreate {
             .await
             .expect("Failed to fetch program config account");
 
-        let mut program_config_data = program_config.data.as_slice();
-
-        let treasury = ProgramConfig::try_deserialize(&mut program_config_data)
-            .unwrap()
-            .treasury;
+        let treasury = decode_checked::<ProgramConfig>(
+            &program_config_pda.0,
+            &program_config,
+            Some(&program_id),
+        )?
+        .treasury;
 
         let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
@@ -192,39 +190,33 @@ impl MultisigCreate {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                Instruction {
-                    accounts: MultisigCreateV2Accounts {
+                with_program_id(
+                    MultisigCreateV2 {
                         create_key: seed_keypair.pubkey(),
                         creator: transaction_creator,
                         multisig: multisig_key.0,
-                        system_program: system_program::id(),
+                        system_program: system_program::ID,
                         program_config: program_config_pda.0,
                         treasury,
                     }
-                    .to_account_metas(Some(false)),
-                    data: MultisigCreateV2Data {
-                        args: MultisigCreateArgsV2 {
-                            config_authority,
-                            members,
-                            threshold,
-                            time_lock: 0,
-                            memo: None,
-                            rent_collector,
-                        },
-                    }
-                    .data(),
-                    program_id,
-                },
+                    .instruction(MultisigCreateV2InstructionArgs {
+                        config_authority,
+                        members,
+                        threshold,
+                        time_lock: 0,
+                        memo: None,
+                        rent_collector,
+                    }),
+                    &program_id,
+                ),
             ],
             &[],
             blockhash,
         )
         .unwrap();
 
-        let mut signers: Vec<&dyn Signer> = vec![
-            &*transaction_creator_keypair,
-            &seed_keypair as &dyn Signer,
-        ];
+        let mut signers: Vec<&dyn Signer> =
+            vec![&*transaction_creator_keypair, &seed_keypair as &dyn Signer];
         if let Some(ref fee_payer_kp) = fee_payer_keypair {
             signers.push(&**fee_payer_kp);
         }

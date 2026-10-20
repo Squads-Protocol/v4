@@ -37,7 +37,7 @@ pub struct ConfigTransactionAccountsClose<'info> {
         ],
         bump,
     )]
-    pub proposal: AccountInfo<'info>,
+    pub proposal: UncheckedAccount<'info>,
 
     /// ConfigTransaction corresponding to the `proposal`.
     #[account(
@@ -53,7 +53,7 @@ pub struct ConfigTransactionAccountsClose<'info> {
         mut,
         address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
     )]
-    pub rent_collector: AccountInfo<'info>,
+    pub rent_collector: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -142,7 +142,7 @@ pub struct VaultTransactionAccountsClose<'info> {
         ],
         bump,
     )]
-    pub proposal: AccountInfo<'info>,
+    pub proposal: UncheckedAccount<'info>,
 
     /// VaultTransaction corresponding to the `proposal`.
     #[account(
@@ -158,7 +158,7 @@ pub struct VaultTransactionAccountsClose<'info> {
         mut,
         address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
     )]
-    pub rent_collector: AccountInfo<'info>,
+    pub rent_collector: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -264,7 +264,7 @@ pub struct VaultBatchTransactionAccountClose<'info> {
         mut,
         address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
     )]
-    pub rent_collector: AccountInfo<'info>,
+    pub rent_collector: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -377,7 +377,7 @@ pub struct BatchAccountsClose<'info> {
         ],
         bump,
     )]
-    pub proposal: AccountInfo<'info>,
+    pub proposal: UncheckedAccount<'info>,
 
     /// `Batch` corresponding to the `proposal`.
     #[account(
@@ -393,7 +393,7 @@ pub struct BatchAccountsClose<'info> {
         mut,
         address = multisig.rent_collector.unwrap().key() @ MultisigError::InvalidRentCollector,
     )]
-    pub rent_collector: AccountInfo<'info>,
+    pub rent_collector: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }

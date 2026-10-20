@@ -1,29 +1,27 @@
-use clap::Args;
-use colored::Colorize;
-use dialoguer::Confirm;
-use indicatif::ProgressBar;
-use solana_program::instruction::AccountMeta;
-use solana_sdk::address_lookup_table::AddressLookupTableAccount;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::instruction::Instruction;
-use solana_sdk::message::v0::Message;
-use solana_sdk::message::VersionedMessage;
-use solana_sdk::pubkey::Pubkey;
-use solana_sdk::transaction::VersionedTransaction;
-use squads_multisig::anchor_lang::{AccountDeserialize, InstructionData};
-use squads_multisig::pda::{
-    get_ephemeral_signer_pda, get_proposal_pda, get_transaction_pda, get_vault_pda,
-};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::VaultTransactionExecute as VaultTransactionExecuteAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::VaultTransactionExecute as VaultTransactionExecuteData;
-use squads_multisig::squads_multisig_program::state::VaultTransaction;
-use squads_multisig::state::VaultTransactionMessage;
 use std::str::FromStr;
 use std::time::Duration;
 
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use clap::Args;
+use colored::Colorize;
+use dialoguer::Confirm;
+use eyre::eyre;
+use indicatif::ProgressBar;
+use solana_address_lookup_table_interface::state::AddressLookupTable;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use solana_sdk::message::v0::Message;
+use solana_sdk::message::AddressLookupTableAccount;
+use solana_sdk::message::VersionedMessage;
+use solana_sdk::pubkey::Pubkey;
+use solana_sdk::transaction::VersionedTransaction;
+use squads_multisig_4r::accounts::VaultTransaction;
+use squads_multisig_4r::instructions::VaultTransactionExecute as VaultTransactionExecuteAccounts;
+use squads_multisig_4r::message::vault_transaction_execute;
+use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
+use squads_multisig_4r::rpc::decode_checked;
+use squads_multisig_4r::types::VaultTransactionMessage;
+
+use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
 /// Execute an approved vault transaction on-chain.
 #[derive(Args)]
@@ -76,12 +74,11 @@ impl VaultTransactionExecute {
             fee_payer_keypair,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
 
         let transaction_creator = transaction_creator_keypair.pubkey();
 
@@ -93,11 +90,13 @@ impl VaultTransactionExecute {
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
-        let transaction_extra_signer_keypair =
-            extra_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let transaction_extra_signer_keypair = extra_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
 
-        let fee_payer_keypair =
-            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         println!();
@@ -127,42 +126,33 @@ impl VaultTransactionExecute {
 
         let rpc_client = RpcClient::new(rpc_url);
 
-        let transaction_account_data = rpc_client
+        let transaction_account = rpc_client
             .get_account(&transaction_pda.0)
             .await
-            .expect("Failed to get transaction account")
-            .data;
+            .map_err(|e| eyre!("Failed to get transaction account: {e}"))?;
 
-        let mut transaction_account_data_slice = transaction_account_data.as_slice();
-
-        let deserialized_account_data =
-            VaultTransaction::try_deserialize(&mut transaction_account_data_slice).unwrap();
-
-        let vault_pda = get_vault_pda(
-            &multisig,
-            deserialized_account_data.vault_index,
-            Some(&program_id),
-        );
-
-        let transaction_message = deserialized_account_data.message;
-        let remaining_account_metas = message_to_execute_account_metas(
-            &rpc_client,
-            transaction_message,
-            deserialized_account_data.ephemeral_signer_bumps,
-            &vault_pda.0,
+        let vault_transaction = decode_checked::<VaultTransaction>(
             &transaction_pda.0,
+            &transaction_account,
             Some(&program_id),
-        )
-        .await;
+        )?;
 
-        let mut vault_transaction_account_metas = VaultTransactionExecuteAccounts {
-            member: transaction_creator,
-            multisig,
-            proposal: proposal_pda.0,
-            transaction: transaction_pda.0,
-        }
-        .to_account_metas(Some(false));
-        vault_transaction_account_metas.extend(remaining_account_metas.0);
+        let address_lookup_table_accounts =
+            fetch_address_lookup_tables(&rpc_client, &vault_transaction.message).await?;
+
+        let execute_instruction = vault_transaction_execute(
+            &VaultTransactionExecuteAccounts {
+                multisig,
+                proposal: proposal_pda.0,
+                transaction: transaction_pda.0,
+                member: transaction_creator,
+            },
+            vault_transaction.vault_index,
+            u8::try_from(vault_transaction.ephemeral_signer_bumps.len())?,
+            &vault_transaction.message,
+            &address_lookup_table_accounts,
+            Some(&program_id),
+        )?;
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
         progress.enable_steady_tick(Duration::from_millis(100));
 
@@ -182,13 +172,9 @@ impl VaultTransactionExecute {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                Instruction {
-                    accounts: vault_transaction_account_metas,
-                    data: VaultTransactionExecuteData {}.data(),
-                    program_id,
-                },
+                execute_instruction,
             ],
-            &remaining_account_metas.1.as_slice(),
+            &address_lookup_table_accounts,
             blockhash,
         )
         .unwrap();
@@ -214,94 +200,20 @@ impl VaultTransactionExecute {
     }
 }
 
-pub async fn message_to_execute_account_metas(
+async fn fetch_address_lookup_tables(
     rpc_client: &RpcClient,
-    message: VaultTransactionMessage,
-    ephemeral_signer_bumps: Vec<u8>,
-    vault_pda: &Pubkey,
-    transaction_pda: &Pubkey,
-    program_id: Option<&Pubkey>,
-) -> (Vec<AccountMeta>, Vec<AddressLookupTableAccount>) {
-    let mut account_metas = Vec::with_capacity(message.account_keys.len());
-
-    let mut address_lookup_table_accounts: Vec<AddressLookupTableAccount> = Vec::new();
-
-    let ephemeral_signer_pdas: Vec<Pubkey> = (0..ephemeral_signer_bumps.len())
-        .map(|additional_signer_index| {
-            let (pda, _bump_seed) = get_ephemeral_signer_pda(
-                &transaction_pda,
-                additional_signer_index as u8,
-                program_id,
-            );
-            pda
-        })
-        .collect();
-
-    let address_lookup_table_keys = message
-        .address_table_lookups
-        .iter()
-        .map(|lookup| lookup.account_key)
-        .collect::<Vec<_>>();
-
-    for key in address_lookup_table_keys {
-        let account_data = rpc_client.get_account(&key).await.unwrap().data;
-        let lookup_table =
-            solana_address_lookup_table_interface::state::AddressLookupTable::deserialize(
-                &account_data,
-            )
-            .unwrap();
-
-        let address_lookup_table_account = AddressLookupTableAccount {
-            addresses: lookup_table.addresses.to_vec(),
+    message: &VaultTransactionMessage,
+) -> eyre::Result<Vec<AddressLookupTableAccount>> {
+    let mut tables = Vec::with_capacity(message.address_table_lookups.len());
+    for lookup in &message.address_table_lookups {
+        let key = lookup.account_key;
+        let data = rpc_client.get_account(&key).await?.data;
+        let table = AddressLookupTable::deserialize(&data)
+            .map_err(|e| eyre!("Invalid address lookup table {key}: {e}"))?;
+        tables.push(AddressLookupTableAccount {
             key,
-        };
-
-        address_lookup_table_accounts.push(address_lookup_table_account);
-        account_metas.push(AccountMeta::new(key, false));
-    }
-
-    for (account_index, account_key) in message.account_keys.iter().enumerate() {
-        let is_writable =
-            VaultTransactionMessage::is_static_writable_index(&message, account_index);
-        let is_signer = VaultTransactionMessage::is_signer_index(&message, account_index)
-            && !account_key.eq(&vault_pda)
-            && !ephemeral_signer_pdas.contains(account_key);
-
-        account_metas.push(AccountMeta {
-            pubkey: *account_key,
-            is_signer,
-            is_writable,
+            addresses: table.addresses.to_vec(),
         });
     }
-
-    for lookup in &message.address_table_lookups {
-        let lookup_table_account = address_lookup_table_accounts
-            .iter()
-            .find(|account| account.key == lookup.account_key)
-            .unwrap();
-
-        for &account_index in &lookup.writable_indexes {
-            let account_index_usize = account_index as usize;
-
-            let pubkey = lookup_table_account
-                .addresses
-                .get(account_index_usize)
-                .unwrap();
-
-            account_metas.push(AccountMeta::new(*pubkey, false));
-        }
-
-        for &account_index in &lookup.readonly_indexes {
-            let account_index_usize = account_index as usize;
-
-            let pubkey = lookup_table_account
-                .addresses
-                .get(account_index_usize)
-                .unwrap();
-
-            account_metas.push(AccountMeta::new_readonly(*pubkey, false));
-        }
-    }
-
-    (account_metas, address_lookup_table_accounts)
+    Ok(tables)
 }

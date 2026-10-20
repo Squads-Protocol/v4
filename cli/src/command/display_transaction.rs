@@ -1,13 +1,15 @@
+use std::str::FromStr;
+
 use clap::Args;
 use colored::Colorize;
 use solana_address_lookup_table_interface::state::AddressLookupTable;
-use solana_sdk::pubkey::Pubkey;
-use squads_multisig::anchor_lang::AccountDeserialize;
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::bs58;
-use squads_multisig::squads_multisig_program::state::VaultTransaction;
-use squads_multisig::state::VaultTransactionMessage;
-use std::str::FromStr;
+use solana_sdk::pubkey::Pubkey;
+use squads_multisig_4r::accounts::VaultTransaction;
+use squads_multisig_4r::rpc::decode_checked;
+
+use crate::utils::{is_signer_index, is_static_writable_index};
 
 /// Fetch a vault transaction account and display its decoded instructions, accounts, and address lookup tables.
 #[derive(Args)]
@@ -36,16 +38,19 @@ impl DisplayTransaction {
 
         let rpc_client = RpcClient::new(rpc_url);
 
-        let account_data = match rpc_client.get_account(&transaction_address).await {
-            Ok(account) => account.data,
+        let account = match rpc_client.get_account(&transaction_address).await {
+            Ok(account) => account,
             Err(_) => {
                 println!("Account closed or not found.");
                 return Ok(());
             }
         };
 
-        let vault_tx =
-            VaultTransaction::try_deserialize(&mut account_data.as_slice())?;
+        let vault_tx = decode_checked::<VaultTransaction>(
+            &transaction_address,
+            &account,
+            Some(&squads_multisig_4r::ID),
+        )?;
 
         println!();
         println!("{}", "Transaction Details".bold());
@@ -65,8 +70,8 @@ impl DisplayTransaction {
             .enumerate()
             .map(|(i, key)| AccountEntry {
                 pubkey: *key,
-                is_writable: message.is_static_writable_index(i),
-                is_signer: message.is_signer_index(i),
+                is_writable: is_static_writable_index(message, i),
+                is_signer: is_signer_index(message, i),
             })
             .collect();
 

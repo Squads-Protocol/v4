@@ -54,7 +54,7 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
     /// Create a new vault transaction from a completed transaction buffer account.
     #[access_control(ctx.accounts.validate(&args))]
     pub fn vault_transaction_create_from_buffer(
-        ctx: Context<'_, '_, 'info, 'info, Self>,
+        ctx: Context<'info, Self>,
         args: VaultTransactionCreateArgs,
     ) -> Result<()> {
         // Account infos necessary for reallocation
@@ -69,7 +69,11 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
             .rent_payer
             .to_account_info();
 
-        let system_program = &ctx.accounts.vault_transaction_create.system_program.to_account_info();
+        let system_program = &ctx
+            .accounts
+            .vault_transaction_create
+            .system_program
+            .to_account_info();
 
         // Read-only accounts
         let transaction_buffer = &ctx.accounts.transaction_buffer;
@@ -88,7 +92,7 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
 
         // System Transfer the remaining difference to the vault transaction account
         let transfer_context = CpiContext::new(
-            system_program.to_account_info(),
+            system_program.key(),
             system_program::Transfer {
                 from: rent_payer_account_info.clone(),
                 to: vault_transaction_account_info.clone(),
@@ -98,7 +102,7 @@ impl<'info> VaultTransactionCreateFromBuffer<'info> {
 
         // Reallocate the vault transaction account to the new length of the
         // actual transaction message
-        AccountInfo::realloc(&vault_transaction_account_info, new_len, true)?;
+        vault_transaction_account_info.resize(new_len)?;
 
         // Create the args for the vault transaction create instruction
         let create_args = VaultTransactionCreateArgs {

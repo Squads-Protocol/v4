@@ -154,7 +154,7 @@ impl BatchExecuteTransaction<'_> {
         let protected_accounts = &[proposal.key(), batch_key];
 
         // Execute the transaction message instructions one-by-one.
-        // NOTE: `execute_message()` calls `self.to_instructions_and_accounts()`
+        // NOTE: `execute_message()` calls `self.into_instructions_and_accounts()`
         // which in turn calls `take()` on
         // `self.message.instructions`, therefore after this point no more
         // references or usages of `self.message` should be made to avoid

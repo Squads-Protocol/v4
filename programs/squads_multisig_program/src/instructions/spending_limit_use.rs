@@ -52,12 +52,12 @@ pub struct SpendingLimitUse<'info> {
         ],
         bump
     )]
-    pub vault: AccountInfo<'info>,
+    pub vault: UncheckedAccount<'info>,
 
     /// Destination account to transfer tokens to.
     /// CHECK: We do the checks in `SpendingLimitUse::validate`.
     #[account(mut)]
-    pub destination: AccountInfo<'info>,
+    pub destination: UncheckedAccount<'info>,
 
     /// In case `spending_limit.mint` is SOL.
     pub system_program: Option<Program<'info, System>>,
@@ -183,10 +183,10 @@ impl SpendingLimitUse<'_> {
 
             anchor_lang::system_program::transfer(
                 CpiContext::new_with_signer(
-                    system_program.to_account_info(),
+                    system_program.key(),
                     anchor_lang::system_program::Transfer {
-                        from: vault.clone(),
-                        to: destination.clone(),
+                        from: vault.to_account_info(),
+                        to: destination.to_account_info(),
                     },
                     &[&[
                         SEED_PREFIX,
@@ -233,12 +233,12 @@ impl SpendingLimitUse<'_> {
 
             token_interface::transfer_checked(
                 CpiContext::new_with_signer(
-                    token_program.to_account_info(),
+                    token_program.key(),
                     TransferChecked {
                         from: vault_token_account.to_account_info(),
                         mint: mint.to_account_info(),
                         to: destination_token_account.to_account_info(),
-                        authority: vault.clone(),
+                        authority: vault.to_account_info(),
                     },
                     &[&[
                         SEED_PREFIX,

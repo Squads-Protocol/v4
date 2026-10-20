@@ -5,7 +5,7 @@ use crate::errors::MultisigError;
 
 // Maximum PDA allocation size in an inner ix is 10240 bytes.
 // 10240 - account contents = 10128 bytes
-pub const MAX_BUFFER_SIZE: usize = 10128 ;
+pub const MAX_BUFFER_SIZE: usize = 10128;
 
 #[account]
 #[derive(Default, Debug)]

@@ -26,7 +26,7 @@ pub struct MultisigRemoveSpendingLimit<'info> {
     /// This is usually the same as `config_authority`, but can be a different account if needed.
     /// CHECK: can be any account.
     #[account(mut)]
-    pub rent_collector: AccountInfo<'info>,
+    pub rent_collector: UncheckedAccount<'info>,
 }
 
 impl MultisigRemoveSpendingLimit<'_> {

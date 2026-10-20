@@ -3,6 +3,7 @@ use clap::Parser;
 use command::Command;
 
 mod command;
+mod signer;
 pub mod utils;
 
 #[derive(Parser)]

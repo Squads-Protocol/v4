@@ -145,8 +145,8 @@ mod test {
             let pubkey2 = Pubkey::new_unique();
             let mut input = &[
                 &[0x02], // len (2)
-                &pubkey1.try_to_vec().unwrap()[..],
-                &pubkey2.try_to_vec().unwrap()[..],
+                &borsh::to_vec(&pubkey1).unwrap()[..],
+                &borsh::to_vec(&pubkey2).unwrap()[..],
             ]
             .concat()[..];
 
@@ -174,8 +174,8 @@ mod test {
             let pubkey2 = Pubkey::new_unique();
             let mut input = &[
                 &[0x02, 0x00], // len (2)
-                &pubkey1.try_to_vec().unwrap()[..],
-                &pubkey2.try_to_vec().unwrap()[..],
+                &borsh::to_vec(&pubkey1).unwrap()[..],
+                &borsh::to_vec(&pubkey2).unwrap()[..],
             ]
             .concat()[..];
 

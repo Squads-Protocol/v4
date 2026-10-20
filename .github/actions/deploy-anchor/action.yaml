@@ -34,9 +34,10 @@ runs:
         PROGRAM_NAME: ${{ inputs.program }}
         PROGRAM_ID: ${{ inputs.program_id }}
 
-    - name: Deploy IDL with Anchor
+    - name: Publish IDL through Program Metadata
       run: |
-          anchor idl upgrade --provider.cluster $RPC_URL --provider.wallet ./upgrade-authority.json --filepath target/idl/${PROGRAM_NAME}.json $PROGRAM_ID
+          IDL_ARGS="--provider.cluster $RPC_URL --provider.wallet ./upgrade-authority.json --filepath target/idl/${PROGRAM_NAME}.json $PROGRAM_ID"
+          ~/.cargo/bin/anchor idl upgrade $IDL_ARGS || ~/.cargo/bin/anchor idl init $IDL_ARGS
       shell: bash
       env:
           RPC_URL: ${{ inputs.rpc_url }}

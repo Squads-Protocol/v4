@@ -10,7 +10,7 @@ use crate::state::*;
 #[derive(Accounts)]
 pub struct Deprecated<'info> {
     ///CHECK: Dummy Account
-    pub null: AccountInfo<'info>,
+    pub null: UncheckedAccount<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -41,7 +41,7 @@ pub struct MultisigCreateV2<'info> {
     /// The treasury where the creation fee is transferred to.
     /// CHECK: validation is performed in the `MultisigCreate::validate()` method.
     #[account(mut)]
-    pub treasury: AccountInfo<'info>,
+    pub treasury: UncheckedAccount<'info>,
 
     #[account(
         init,
@@ -102,7 +102,7 @@ impl MultisigCreateV2<'_> {
         if creation_fee > 0 {
             system_program::transfer(
                 CpiContext::new(
-                    ctx.accounts.system_program.to_account_info(),
+                    ctx.accounts.system_program.key(),
                     system_program::Transfer {
                         from: ctx.accounts.creator.to_account_info(),
                         to: ctx.accounts.treasury.to_account_info(),

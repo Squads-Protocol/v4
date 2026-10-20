@@ -1,3 +1,4 @@
+use anchor_lang::prelude::borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
@@ -132,7 +133,9 @@ impl<'info> VaultTransactionCreate<'info> {
 }
 
 /// Unvalidated instruction data, must be treated as untrusted.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+/// Plain borsh derives keep the SmallVec-based types out of the IDL.
+#[derive(BorshSerialize, BorshDeserialize, Clone)]
+#[borsh(crate = "anchor_lang::prelude::borsh")]
 pub struct TransactionMessage {
     /// The number of signer pubkeys in the account_keys vec.
     pub num_signers: u8,
@@ -150,7 +153,8 @@ pub struct TransactionMessage {
 }
 
 // Concise serialization schema for instructions that make up transaction.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Clone)]
+#[borsh(crate = "anchor_lang::prelude::borsh")]
 pub struct CompiledInstruction {
     pub program_id_index: u8,
     /// Indices into the tx's `account_keys` list indicating which accounts to pass to the instruction.
@@ -161,7 +165,8 @@ pub struct CompiledInstruction {
 
 /// Address table lookups describe an on-chain address lookup table to use
 /// for loading more readonly and writable accounts in a single tx.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Clone)]
+#[borsh(crate = "anchor_lang::prelude::borsh")]
 pub struct MessageAddressTableLookup {
     /// Address lookup table account key
     pub account_key: Pubkey,

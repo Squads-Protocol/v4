@@ -1,6 +1,8 @@
-# Squads V4 CLI
+# Squads Multisig 4r CLI
 
-The following is an overview of commands available to interact with the Squads V4 program via CLI.
+The following is an overview of commands available to interact with the Squads Multisig 4r program
+(`SMS4Rd3C3P1V2PdGRSdZCVQ5fPJk7NsV7vAVoUgSvT5`) via CLI. Commands that take `--program-id` default to this
+program. For the frozen Squads v4 program (`SQDS4…`), use `squads-multisig-cli` 0.1.x.
 
 Overview
 
@@ -25,19 +27,33 @@ For this an installation of Rust will be needed. You can find installation steps
 Now, install the Squads CLI.
 
 ```bash
-cargo install squads-multisig-cli
+cargo install squads-multisig-4r-cli --locked
 ```
+
+Ledger support is a default feature. To build without it (and without `libudev`), use
+`cargo install squads-multisig-4r-cli --locked --no-default-features`.
 
 # 2. Supported wallets
 
-The Squads CLI has exactly the same wallet support as the Solana CLI, meaning it supports file system wallets as well as Ledger hardware wallets.
+The `--keypair` argument accepts these signer sources:
+
+| Source | Example |
+|---|---|
+| Keypair file | `/path/to/keypair.json` or `file:///path/to/keypair.json` |
+| Ledger hardware wallet | `usb://ledger`, `usb://ledger?key=0/0` |
+| Seed phrase prompt | `prompt://` |
+| JSON keypair on stdin | `stdin` or `-` |
+| Base58-encoded keypair | `<base58 string>` |
+
+The seed phrase prompt checks the phrase against the BIP39 word lists (English, Chinese,
+Japanese, Spanish, Korean, French, Italian), like the Solana CLI.
 
 ### File system wallets
 
 You can easily use your local filesystem wallet by using it as the "keypair" argument in commands.
 
 ```bash
-squads-multisig-cli example-command --keypair /path/to/keypair.json
+squads-multisig-4r-cli example-command --keypair /path/to/keypair.json
 ```
 
 This specifies the path of the Keypair that you want to use to sign a CLI transaction.
@@ -47,13 +63,13 @@ This specifies the path of the Keypair that you want to use to sign a CLI transa
 To use a Ledger with the Squads CLI, just specify the Ledger device URL in the "keypair" argument.
 
 ```bash
-squads-multisig-cli example-command --keypair usb://ledger
+squads-multisig-4r-cli example-command --keypair usb://ledger
 ```
 
 This will use the default derivation path of your Ledger.
 
 ```bash
-squads-multisig-cli example-command --keypair usb://ledger/BsNsvfXqQTtJnagwFWdBS7FBXgnsK8VZ5CmuznN85swK?key=0/0
+squads-multisig-4r-cli example-command --keypair usb://ledger/BsNsvfXqQTtJnagwFWdBS7FBXgnsK8VZ5CmuznN85swK?key=0/0
 ```
 
 This specifies a custom derivation path. You can read more about it [here](https://docs.solana.com/wallet-guide/hardware-wallets/ledger).
@@ -75,7 +91,7 @@ config-transaction-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypai
 ### Parameters
 
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to the Squads Multisig 4r program ID.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
 - `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
 - `--action <ACTION>`: The action to execute. Format depends on the action type.
@@ -155,7 +171,7 @@ config-transaction-execute --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypa
 ### Parameters
 
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to the Squads Multisig 4r program ID.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
 - `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
 - `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction to be executed.
@@ -181,7 +197,7 @@ multisig-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR
 ### Parameters
 
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to the Squads Multisig 4r program ID.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
 - `--config-authority <CONFIG_AUTHORITY>`: (Optional) Address granted **unilateral** control over the multisig configuration (add/remove members, change threshold, etc.). This makes the multisig "controlled" rather than autonomous — only set it if you intend a single key to govern config changes. This is **not** the rent collector; use `--rent-collector` for that.
 - `--members <MEMBER_...>`: List of members' public keys, separated by spaces.
@@ -227,7 +243,7 @@ proposal-vote --rpc_url <RPC_URL> --program-id <PROGRAM_ID> --keypair <KEYPAIR_P
 ### Parameters
 
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to the Squads Multisig 4r program ID.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
 - `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
 - `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction to vote on.
@@ -273,7 +289,7 @@ vault-transaction_accounts-close --rpc_url <RPC_URL> --program-id <PROGRAM_ID> -
 ### Parameters
 
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to the Squads Multisig 4r program ID.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
 - `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
 - `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction whose accounts are to be closed.
@@ -302,7 +318,7 @@ vault-transaction-create --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypair
 ### Parameters
 
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to the Squads Multisig 4r program ID.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
 - `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
 - `--vault-index <VAULT_INDEX>`: The index of the vault where the transaction is being created.
@@ -332,7 +348,7 @@ vault-transaction-execute --rpc-url <RPC_URL> --program-id <PROGRAM_ID> --keypai
 ### Parameters
 
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet if not specified.
-- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to a standard ID if not specified.
+- `--program-id <PROGRAM_ID>`: (Optional) The ID of the multisig program. Defaults to the Squads Multisig 4r program ID.
 - `--keypair <KEYPAIR_PATH>`: Path to your keypair file.
 - `--multisig-pubkey <MULTISIG_PUBLIC_KEY>`: The public key of the multisig account.
 - `--transaction-index <TRANSACTION_INDEX>`: The index of the transaction to be executed.
@@ -365,7 +381,7 @@ display-transaction --transaction-address <TRANSACTION_ADDRESS> [--rpc-url <RPC_
 ### Example Usage
 
 ```bash
-squads-multisig-cli display-transaction --transaction-address 279SBhVyHLEBsphBkDBNMUbSoA31yRBDtnU5mzSM3d5n
+squads-multisig-4r-cli display-transaction --transaction-address 279SBhVyHLEBsphBkDBNMUbSoA31yRBDtnU5mzSM3d5n
 ```
 
 ## Display Config Transaction
@@ -388,5 +404,5 @@ display-config-transaction --transaction-address <TRANSACTION_ADDRESS> [--rpc-ur
 ### Example Usage
 
 ```bash
-squads-multisig-cli display-config-transaction --transaction-address AQb6VyZGzC2kL7vFU7WqoTJYTNZdHKhKuHmzuxkqGGjV
+squads-multisig-4r-cli display-config-transaction --transaction-address AQb6VyZGzC2kL7vFU7WqoTJYTNZdHKhKuHmzuxkqGGjV
 ```

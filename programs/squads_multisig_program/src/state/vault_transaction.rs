@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 #[allow(deprecated)]
-use solana_borsh::v0_10::get_instance_packed_len;
+use solana_borsh::v1::get_instance_packed_len;
 
 use crate::errors::*;
 use crate::instructions::{CompiledInstruction, MessageAddressTableLookup, TransactionMessage};

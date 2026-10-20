@@ -5,7 +5,7 @@
 // #![deny(clippy::integer_arithmetic)]
 
 // Re-export anchor_lang for convenience.
-pub use anchor_lang;
+pub use ::anchor_lang;
 use anchor_lang::prelude::*;
 #[cfg(not(feature = "no-entrypoint"))]
 use solana_security_txt::security_txt;
@@ -23,23 +23,23 @@ mod utils;
 
 #[cfg(not(feature = "no-entrypoint"))]
 security_txt! {
-    name: "Squads Multisig Program",
+    name: "Squads Multisig 4r Program",
     project_url: "https://squads.so",
     contacts: "email:disclosure@sqds.io,email:contact@osec.io",
     policy: "https://github.com/Squads-Protocol/v4/blob/main/SECURITY.md",
     preferred_languages: "en",
     source_code: "https://github.com/squads-protocol/v4",
-    auditors: "OtterSec, Neodyme"
+    auditors: "4r: pending. Squads v4 code base: OtterSec, Neodyme, Certora, Trail of Bits"
 }
 
 #[cfg(not(feature = "testing"))]
-declare_id!("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
+declare_id!("SMS4Rd3C3P1V2PdGRSdZCVQ5fPJk7NsV7vAVoUgSvT5");
 
 #[cfg(feature = "testing")]
 declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
 
 #[program]
-pub mod squads_multisig_program {
+pub mod squads_multisig_4r_program {
     use errors::MultisigError;
 
     use super::*;
@@ -165,7 +165,7 @@ pub mod squads_multisig_program {
     /// Execute a config transaction.
     /// The transaction must be `Approved`.
     pub fn config_transaction_execute<'info>(
-        ctx: Context<'_, '_, 'info, 'info, ConfigTransactionExecute<'info>>,
+        ctx: Context<'info, ConfigTransactionExecute<'info>>,
     ) -> Result<()> {
         ConfigTransactionExecute::config_transaction_execute(ctx)
     }
@@ -202,7 +202,7 @@ pub mod squads_multisig_program {
     /// Create a new vault transaction from a completed transaction buffer.
     /// Finalized buffer hash must match `final_buffer_hash`
     pub fn vault_transaction_create_from_buffer<'info>(
-        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreateFromBuffer<'info>>,
+        ctx: Context<'info, VaultTransactionCreateFromBuffer<'info>>,
         args: VaultTransactionCreateArgs,
     ) -> Result<()> {
         VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
@@ -268,7 +268,7 @@ pub mod squads_multisig_program {
     /// The previous implemenation still works if the proposal size is in line with the
     /// threshold size.
     pub fn proposal_cancel_v2<'info>(
-        ctx: Context<'_, '_, 'info, 'info, ProposalCancelV2<'info>>,
+        ctx: Context<'info, ProposalCancelV2<'info>>,
         args: ProposalVoteArgs,
     ) -> Result<()> {
         ProposalCancelV2::proposal_cancel_v2(ctx, args)

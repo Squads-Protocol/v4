@@ -19,3 +19,5 @@ lib
 cli/*.sh
 
 .idea
+# golden fixture collection output
+programs/squads_multisig_program/tests/fixtures/golden/tools/raw_*.json

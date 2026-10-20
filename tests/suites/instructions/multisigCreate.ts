@@ -95,7 +95,7 @@ describe("Instructions / multisig_create", () => {
 
     await assert.rejects(
       () => connection.sendTransaction(tx, { skipPreflight: true }),
-      /Transaction signature verification failure/
+      /Transaction signature verification failure|Transaction did not pass signature verification/
     );
   });
 

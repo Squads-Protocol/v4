@@ -1,25 +1,36 @@
 [package]
-name = "squads-multisig"
-version = "2.1.0"
-description = "An SDK for building automated programs on Solana"
+name = "squads-multisig-4r"
+version = "0.1.0"
+description = "Rust client for the Squads Multisig 4r program"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://squads.so"
-authors = ["Valentin Madrid <valentin@incility.com>"]
 repository = "https://github.com/Squads-Protocol/v4"
-documentation = "https://developers.squads.so"
-keywords = ["solana", "multisig", "anchor", "squads", "cpi"]
+documentation = "https://docs.rs/squads-multisig-4r"
+keywords = ["solana", "multisig", "squads", "client", "codama"]
 
 [lib]
-name = "squads_multisig"
-
-[dependencies]
-futures = { version = "0.3.28" , features = ["async-await", "alloc"] }
-squads-multisig-program = { path = "../../programs/squads_multisig_program", features =["cpi", "no-entrypoint"], version = "2.0.0" }
-solana-rpc-client = "2.2"
-solana-rpc-client-api = "2.2"
-solana-message = "2.2"
-thiserror = "1.0.48"
+name = "squads_multisig_4r"
 
 [features]
-default = []
+default = ["fetch"]
+fetch = ["dep:solana-account", "dep:solana-rpc-client", "dep:solana-rpc-client-api"]
+
+[dependencies]
+borsh = { version = "1.5.7", features = ["derive"] }
+num-derive = "0.4"
+num-traits = "0.2"
+solana-account-info = "3.1"
+solana-address = { version = "2.9", features = ["borsh", "copy", "curve25519", "decode"] }
+solana-cpi = "3.1"
+solana-instruction = "3.5"
+solana-message = "4.6"
+solana-program-error = "3.0"
+spl-collections = { version = "0.1.2", features = ["borsh"] }
+thiserror = "2.0.21"
+solana-account = { version = "4.5", optional = true }
+solana-rpc-client = { version = "4.3.2", optional = true }
+solana-rpc-client-api = { version = "4.3.2", optional = true }
+
+[dev-dependencies]
+squads-multisig-4r-program = { path = "../../programs/squads_multisig_program", features = ["no-entrypoint"] }

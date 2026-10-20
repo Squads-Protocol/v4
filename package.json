@@ -1,13 +1,13 @@
 {
 	"private": true,
 	"workspaces": [
-		"sdk/*"
+		"sdk/multisig"
 	],
 	"scripts": {
 		"build": "turbo run build",
-		"test:detached": "turbo run build && anchor test --detach -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
-		"test": "turbo run build && anchor test -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
-		"pretest": "mkdir -p target/deploy && cp ./test-program-keypair.json ./target/deploy/squads_multisig_program-keypair.json",
+		"test:detached": "turbo run build && ANCHOR_BUILD_SBF_ARCH=v3 anchor test --validator legacy --detach -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
+		"test": "turbo run build && ANCHOR_BUILD_SBF_ARCH=v3 anchor test --validator legacy -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
+		"pretest": "mkdir -p target/deploy && cp ./test-program-keypair.json ./target/deploy/squads_multisig_4r_program-keypair.json",
 		"ts": "turbo run ts && yarn tsc --noEmit"
 	},
 	"devDependencies": {

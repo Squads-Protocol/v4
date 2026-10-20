@@ -132,10 +132,9 @@ impl ProposalVote<'_> {
 }
 
 impl<'info> ProposalCancelV2<'info> {
-
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
-    pub fn proposal_cancel_v2(ctx: Context<'_, '_, 'info, 'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_cancel_v2(ctx: Context<'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
         // Readonly accounts
         let multisig = &ctx.accounts.proposal_vote.multisig.clone();
 
@@ -145,7 +144,12 @@ impl<'info> ProposalCancelV2<'info> {
         let system_program_account_info = &ctx.accounts.system_program.to_account_info();
 
         // Create context for cancel instruction
-        let cancel_context = Context::new(ctx.program_id, &mut ctx.accounts.proposal_vote, ctx.remaining_accounts, ctx.bumps.proposal_vote);
+        let cancel_context = Context::new(
+            ctx.program_id,
+            &mut ctx.accounts.proposal_vote,
+            ctx.remaining_accounts,
+            ctx.bumps.proposal_vote,
+        );
 
         // Call cancel instruction
         ProposalVote::proposal_cancel(cancel_context, _args)?;

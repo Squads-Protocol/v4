@@ -1,133 +1,117 @@
-//! Regression tests for MUL-753: the Rust `vault_transaction_execute` helper must emit the
+//! Regression tests: the Rust `vault_transaction_execute` helper must emit the
 //! lookup-table account metas built from `message.address_table_lookups` (in message order),
-//! not from the raw caller-supplied slice. Otherwise an ALT superset or a reordered ALT slice
-//! desyncs the emitted instruction from the on-chain validator, which splits `remaining_accounts`
-//! at `message.address_table_lookups.len()` and requires the leading lookup-table accounts to
-//! match the message by both order and length.
+//! not from the raw caller-supplied slice. The program splits `remaining_accounts` at
+//! `message.address_table_lookups.len()` and requires the tables to match by order and length.
 
+use solana_address::Address;
+use solana_instruction::{AccountMeta, Instruction};
 use solana_message::AddressLookupTableAccount;
-use squads_multisig::{
-    anchor_lang::ToAccountMetas,
-    client::{vault_transaction_execute, VaultTransactionExecuteAccounts},
-    pda::get_vault_pda,
-    solana_program::{pubkey::Pubkey, system_instruction, system_program},
-    state::TransactionMessage,
-    vault_transaction::VaultTransactionMessageExt,
-};
+use squads_multisig_4r::instructions::VaultTransactionExecute;
+use squads_multisig_4r::message::{compile_transaction_message, vault_transaction_execute};
+use squads_multisig_4r::pda::get_vault_pda;
+use squads_multisig_4r::types::VaultTransactionMessage;
 
-fn loaded_account_count(message: &TransactionMessage) -> usize {
-    let address_table_lookups: Vec<_> = message.address_table_lookups.clone().into();
-    address_table_lookups
+const SYSTEM_PROGRAM: Address = Address::new_from_array([0; 32]);
+
+fn system_transfer(from: &Address, to: &Address, lamports: u64) -> Instruction {
+    let data = [&2u32.to_le_bytes()[..], &lamports.to_le_bytes()].concat();
+    Instruction::new_with_bytes(
+        SYSTEM_PROGRAM,
+        &data,
+        vec![AccountMeta::new(*from, true), AccountMeta::new(*to, false)],
+    )
+}
+
+fn execute_accounts(multisig: Address) -> VaultTransactionExecute {
+    VaultTransactionExecute {
+        multisig,
+        proposal: Address::new_unique(),
+        transaction: Address::new_unique(),
+        member: Address::new_unique(),
+    }
+}
+
+fn loaded_account_count(message: &VaultTransactionMessage) -> usize {
+    message
+        .address_table_lookups
         .iter()
         .map(|lookup| lookup.writable_indexes.len() + lookup.readonly_indexes.len())
         .sum()
 }
 
-/// Build a message that references a single lookup table, while the caller is handed a superset
-/// of two tables (one referenced, one unused).
+/// A message that references one lookup table, while the caller holds a superset of two.
 fn compile_superset() -> (
-    TransactionMessage,
+    VaultTransactionMessage,
     AddressLookupTableAccount,
     AddressLookupTableAccount,
-    Pubkey,
+    Address,
 ) {
-    let multisig = Pubkey::new_unique();
-    let vault_index = 0;
-    let vault_pda = get_vault_pda(&multisig, vault_index, None).0;
-    let transfer_destination = Pubkey::new_unique();
-
-    let unused_lookup_table = AddressLookupTableAccount {
-        key: Pubkey::new_unique(),
-        addresses: vec![Pubkey::new_unique(), Pubkey::new_unique()],
+    let multisig = Address::new_unique();
+    let vault = get_vault_pda(&multisig, 0, None).0;
+    let destination = Address::new_unique();
+    let unused = AddressLookupTableAccount {
+        key: Address::new_unique(),
+        addresses: vec![Address::new_unique(), Address::new_unique()],
     };
-    let used_lookup_table = AddressLookupTableAccount {
-        key: Pubkey::new_unique(),
-        addresses: vec![system_program::id(), transfer_destination],
+    let used = AddressLookupTableAccount {
+        key: Address::new_unique(),
+        addresses: vec![SYSTEM_PROGRAM, destination],
     };
-
-    let message = TransactionMessage::try_compile(
-        &vault_pda,
-        &[system_instruction::transfer(
-            &vault_pda,
-            &transfer_destination,
-            1,
-        )],
-        &[unused_lookup_table.clone(), used_lookup_table.clone()],
+    let message = compile_transaction_message(
+        &vault,
+        &[system_transfer(&vault, &destination, 1)],
+        &[unused.clone(), used.clone()],
     )
     .expect("lookup-table superset should compile into a valid message");
-
-    (message, unused_lookup_table, used_lookup_table, multisig)
-}
-
-fn base_account_count() -> usize {
-    VaultTransactionExecuteAccounts {
-        multisig: Pubkey::new_unique(),
-        member: Pubkey::new_unique(),
-        proposal: Pubkey::new_unique(),
-        transaction: Pubkey::new_unique(),
-    }
-    .to_account_metas(Some(false))
-    .len()
+    (
+        VaultTransactionMessage::from(&message),
+        unused,
+        used,
+        multisig,
+    )
 }
 
 #[test]
 fn execute_helper_emits_lookup_tables_in_message_order_not_caller_order() {
-    let (message, unused_lookup_table, used_lookup_table, multisig) = compile_superset();
+    // Arrange
+    let (message, unused, used, multisig) = compile_superset();
+    let base = execute_accounts(multisig).instruction().accounts.len();
+    let expected_remaining = message.address_table_lookups.len()
+        + message.account_keys.len()
+        + loaded_account_count(&message);
 
-    let address_table_lookups: Vec<_> = message.address_table_lookups.clone().into();
     assert_eq!(
-        address_table_lookups.len(),
+        message.address_table_lookups.len(),
         1,
-        "compile should retain only the referenced lookup table",
+        "compile should retain only the referenced lookup table"
     );
-    assert_eq!(address_table_lookups[0].account_key, used_lookup_table.key);
+    assert_eq!(message.address_table_lookups[0].account_key, used.key);
 
-    let base = base_account_count();
-    // The on-chain layout the validator expects: one meta per referenced lookup table, then the
-    // static account keys, then the lookup-loaded accounts. Supplying an extra ALT must NOT add
-    // an extra remaining account.
-    let expected_remaining_account_count =
-        address_table_lookups.len() + message.account_keys.len() + loaded_account_count(&message);
-
-    // The caller supplies the superset in two different orders; both must produce the same layout,
-    // driven by the message rather than the caller's ordering.
     for supplied in [
-        vec![unused_lookup_table.clone(), used_lookup_table.clone()],
-        vec![used_lookup_table.clone(), unused_lookup_table.clone()],
+        vec![unused.clone(), used.clone()],
+        vec![used.clone(), unused.clone()],
     ] {
-        let instruction = vault_transaction_execute(
-            VaultTransactionExecuteAccounts {
-                multisig,
-                member: Pubkey::new_unique(),
-                proposal: Pubkey::new_unique(),
-                transaction: Pubkey::new_unique(),
-            },
-            0,
-            0,
-            &message,
-            &supplied,
-            None,
-        )
-        .expect("execute helper should assemble an instruction");
+        // Act
+        let instruction =
+            vault_transaction_execute(&execute_accounts(multisig), 0, 0, &message, &supplied, None)
+                .expect("execute helper should assemble an instruction");
 
+        // Assert
         let remaining = &instruction.accounts[base..];
-
         assert_eq!(
             remaining.len(),
-            expected_remaining_account_count,
-            "supplying an ALT superset must not change the message-defined remaining-account layout",
+            expected_remaining,
+            "an ALT superset must not change the remaining-account layout"
         );
         assert_eq!(
-            remaining[0].pubkey, used_lookup_table.key,
-            "the only leading lookup-table meta must be the message-referenced table",
+            remaining[0].pubkey, used.key,
+            "the only leading lookup-table meta must be the referenced table"
         );
-        // Exactly one leading lookup-table meta (matches `message.address_table_lookups.len()`),
-        // so the next meta is already a static account key, never the unused table.
         assert!(
             !remaining[1..]
                 .iter()
                 .take(message.account_keys.len())
-                .any(|meta| meta.pubkey == unused_lookup_table.key),
+                .any(|meta| meta.pubkey == unused.key),
             "the unused lookup table must not appear among the emitted accounts",
         );
     }
@@ -135,25 +119,37 @@ fn execute_helper_emits_lookup_tables_in_message_order_not_caller_order() {
 
 #[test]
 fn execute_helper_errors_when_referenced_lookup_table_missing() {
-    let (message, unused_lookup_table, _used_lookup_table, multisig) = compile_superset();
+    // Arrange
+    let (message, unused, _used, multisig) = compile_superset();
 
-    // Supply only the unused table, omitting the one the message actually references.
-    let result = vault_transaction_execute(
-        VaultTransactionExecuteAccounts {
-            multisig,
-            member: Pubkey::new_unique(),
-            proposal: Pubkey::new_unique(),
-            transaction: Pubkey::new_unique(),
-        },
+    // Act
+    let result =
+        vault_transaction_execute(&execute_accounts(multisig), 0, 0, &message, &[unused], None);
+
+    // Assert
+    assert!(
+        result.is_err(),
+        "a missing referenced lookup table must be rejected, not silently dropped"
+    );
+}
+
+#[test]
+fn execute_helper_targets_the_given_program_id() {
+    // Arrange
+    let (message, _unused, used, multisig) = compile_superset();
+    let localnet = Address::new_unique();
+
+    // Act
+    let instruction = vault_transaction_execute(
+        &execute_accounts(multisig),
         0,
         0,
         &message,
-        &[unused_lookup_table],
-        None,
-    );
+        &[used],
+        Some(&localnet),
+    )
+    .expect("execute helper should assemble an instruction");
 
-    assert!(
-        result.is_err(),
-        "a missing referenced lookup table must be rejected, not silently dropped",
-    );
+    // Assert
+    assert_eq!(instruction.program_id, localnet);
 }

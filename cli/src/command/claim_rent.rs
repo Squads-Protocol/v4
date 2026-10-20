@@ -5,29 +5,26 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
-use squads_multisig::anchor_lang::AccountDeserialize;
-use squads_multisig::client::get_multisig;
-use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::BatchAccountsClose as BatchAccountsCloseAccounts;
-use squads_multisig::squads_multisig_program::accounts::ConfigTransactionAccountsClose as ConfigTransactionAccountsCloseAccounts;
-use squads_multisig::squads_multisig_program::accounts::VaultTransactionAccountsClose as VaultTransactionAccountsCloseAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::InstructionData;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::BatchAccountsClose as BatchAccountsCloseData;
-use squads_multisig::squads_multisig_program::instruction::ConfigTransactionAccountsClose as ConfigTransactionAccountsCloseData;
-use squads_multisig::squads_multisig_program::instruction::VaultTransactionAccountsClose as VaultTransactionAccountsCloseData;
-use squads_multisig::squads_multisig_program::state::{Batch, ConfigTransaction, VaultTransaction};
-use squads_multisig::state::{Proposal, ProposalStatus};
+use solana_system_interface::program as system_program;
+use squads_multisig_4r::accounts::{
+    Batch, ConfigTransaction, Multisig, Proposal, VaultTransaction,
+};
+use squads_multisig_4r::instructions::{
+    BatchAccountsClose, ConfigTransactionAccountsClose, VaultTransactionAccountsClose,
+};
+use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
+use squads_multisig_4r::rpc::{decode_checked, fetch_multisig};
+use squads_multisig_4r::types::ProposalStatus;
+use squads_multisig_4r::with_program_id;
 
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
 const DEFAULT_PRIORITY_FEE: u64 = 5000;
 // Max close instructions per outer tx (RPC limits ~1232-byte message; 8 fits reliably).
@@ -97,23 +94,23 @@ impl ClaimRent {
             priority_fee_lamports,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair =
-            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
         let rpc_url_clone = rpc_url.clone();
         let rpc_client = RpcClient::new(rpc_url);
 
-        let multisig_data = get_multisig(&rpc_client, &multisig)
+        let multisig_data = fetch_multisig(&rpc_client, &multisig, Some(&program_id))
             .await
             .map_err(|e| eyre::eyre!("Failed to load multisig: {}", e))?;
 
@@ -166,19 +163,25 @@ impl ClaimRent {
                 continue;
             }
 
-            let kind = if Batch::try_deserialize(&mut tx_acc.data.as_slice()).is_ok() {
+            let (proposal_key, tx_key) = (proposal_pda.0, transaction_pda.0);
+            let kind = if decode_checked::<Batch>(&tx_key, tx_acc, Some(&program_id)).is_ok() {
                 TxAccountKind::Batch
-            } else if VaultTransaction::try_deserialize(&mut tx_acc.data.as_slice()).is_ok() {
+            } else if decode_checked::<VaultTransaction>(&tx_key, tx_acc, Some(&program_id)).is_ok()
+            {
                 TxAccountKind::Vault
-            } else if ConfigTransaction::try_deserialize(&mut tx_acc.data.as_slice()).is_ok() {
+            } else if decode_checked::<ConfigTransaction>(&tx_key, tx_acc, Some(&program_id))
+                .is_ok()
+            {
                 TxAccountKind::Config
             } else {
                 continue;
             };
 
             let proposal = match proposal_acc {
-                Some(p) if !p.data.is_empty() => Proposal::try_deserialize(&mut p.data.as_slice())
-                    .map_err(|e| eyre::eyre!("Failed to deserialize proposal {}: {}", idx, e))?,
+                Some(p) if !p.data.is_empty() => {
+                    decode_checked::<Proposal>(&proposal_key, p, Some(&program_id))
+                        .map_err(|e| eyre::eyre!("Failed to deserialize proposal {}: {}", idx, e))?
+                }
                 _ => {
                     continue;
                 }
@@ -190,7 +193,7 @@ impl ClaimRent {
 
             let batch = if kind == TxAccountKind::Batch {
                 Some(
-                    Batch::try_deserialize(&mut tx_acc.data.as_slice())
+                    decode_checked::<Batch>(&tx_key, tx_acc, Some(&program_id))
                         .map_err(|e| eyre::eyre!("Batch deserialize {}: {}", idx, e))?,
                 )
             } else {
@@ -284,42 +287,39 @@ impl ClaimRent {
             let transaction_pda = get_transaction_pda(&multisig, c.index, Some(&program_id));
 
             let ix = match c.kind {
-                TxAccountKind::Vault => Instruction {
-                    accounts: VaultTransactionAccountsCloseAccounts {
+                TxAccountKind::Vault => with_program_id(
+                    VaultTransactionAccountsClose {
                         multisig,
                         proposal: proposal_pda.0,
                         rent_collector,
                         transaction: transaction_pda.0,
-                        system_program: system_program::id(),
+                        system_program: system_program::ID,
                     }
-                    .to_account_metas(Some(false)),
-                    data: VaultTransactionAccountsCloseData {}.data(),
-                    program_id,
-                },
-                TxAccountKind::Config => Instruction {
-                    accounts: ConfigTransactionAccountsCloseAccounts {
+                    .instruction(),
+                    &program_id,
+                ),
+                TxAccountKind::Config => with_program_id(
+                    ConfigTransactionAccountsClose {
                         multisig,
                         proposal: proposal_pda.0,
                         rent_collector,
                         transaction: transaction_pda.0,
-                        system_program: system_program::id(),
+                        system_program: system_program::ID,
                     }
-                    .to_account_metas(Some(false)),
-                    data: ConfigTransactionAccountsCloseData {}.data(),
-                    program_id,
-                },
-                TxAccountKind::Batch => Instruction {
-                    accounts: BatchAccountsCloseAccounts {
+                    .instruction(),
+                    &program_id,
+                ),
+                TxAccountKind::Batch => with_program_id(
+                    BatchAccountsClose {
                         multisig,
                         proposal: proposal_pda.0,
                         batch: transaction_pda.0,
                         rent_collector,
-                        system_program: system_program::id(),
+                        system_program: system_program::ID,
                     }
-                    .to_account_metas(Some(false)),
-                    data: BatchAccountsCloseData {}.data(),
-                    program_id,
-                },
+                    .instruction(),
+                    &program_id,
+                ),
             };
 
             if current.len() >= MAX_CLOSE_IX_PER_TX {
@@ -397,17 +397,11 @@ fn format_proposal_status(status: &ProposalStatus) -> String {
         ProposalStatus::Rejected { timestamp } => format!("Rejected(ts={})", timestamp),
         ProposalStatus::Executed { timestamp } => format!("Executed(ts={})", timestamp),
         ProposalStatus::Cancelled { timestamp } => format!("Cancelled(ts={})", timestamp),
-        #[allow(deprecated)]
         ProposalStatus::Executing => "Executing".to_string(),
-        _ => "(unknown)".to_string(),
     }
 }
 
-fn can_close_vault_style(
-    status: &ProposalStatus,
-    multisig: &squads_multisig::state::Multisig,
-    tx_index: u64,
-) -> bool {
+fn can_close_vault_style(status: &ProposalStatus, multisig: &Multisig, tx_index: u64) -> bool {
     let is_stale = tx_index <= multisig.stale_transaction_index;
     match status {
         ProposalStatus::Draft { .. } => is_stale,
@@ -416,17 +410,11 @@ fn can_close_vault_style(
         ProposalStatus::Rejected { .. } => true,
         ProposalStatus::Executed { .. } => true,
         ProposalStatus::Cancelled { .. } => true,
-        #[allow(deprecated)]
         ProposalStatus::Executing => false,
-        _ => false,
     }
 }
 
-fn can_close_config_style(
-    status: &ProposalStatus,
-    multisig: &squads_multisig::state::Multisig,
-    tx_index: u64,
-) -> bool {
+fn can_close_config_style(status: &ProposalStatus, multisig: &Multisig, tx_index: u64) -> bool {
     let is_stale = tx_index <= multisig.stale_transaction_index;
     match status {
         ProposalStatus::Draft { .. } => is_stale,
@@ -435,11 +423,7 @@ fn can_close_config_style(
         ProposalStatus::Rejected { .. } => true,
         ProposalStatus::Executed { .. } => true,
         ProposalStatus::Cancelled { .. } => true,
-        #[allow(deprecated)]
         ProposalStatus::Executing => false,
-        // The enum was declared #[non_exhaustive].
-        // This program is frozen so this should be reachable
-        _ => unreachable!("non_exhaustive enum variant. frozen program"),
     }
 }
 

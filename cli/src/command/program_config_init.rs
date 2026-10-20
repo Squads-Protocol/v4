@@ -5,22 +5,20 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::system_program;
 use solana_sdk::transaction::VersionedTransaction;
-use solana_sdk::{compute_budget::ComputeBudgetInstruction, instruction::Instruction};
+use solana_system_interface::program as system_program;
+use squads_multisig_4r::instructions::{
+    ProgramConfigInit as ProgramConfigInitAccounts, ProgramConfigInitInstructionArgs,
+};
+use squads_multisig_4r::pda::get_program_config_pda;
+use squads_multisig_4r::with_program_id;
 
-use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::pda::get_program_config_pda;
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ProgramConfigInit as ProgramConfigInitAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ProgramConfigInit as ProgramConfigInitData;
-use squads_multisig::squads_multisig_program::ProgramConfigInitArgs;
-
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
 /// Initialize the global program config account (one-time setup, authority only).
 #[derive(Args)]
@@ -70,17 +68,18 @@ impl ProgramConfigInit {
             priority_fee_lamports,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
         let program_config_authority = Pubkey::from_str(&program_config_authority)
             .expect("Invalid program config authority address");
         let treasury = Pubkey::from_str(&treasury).expect("Invalid treasury address");
 
-        let transaction_creator_keypair = create_signer_from_path(initializer_keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&initializer_keypair)?;
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let program_config = get_program_config_pda(Some(&program_id)).0;
@@ -131,23 +130,19 @@ impl ProgramConfigInit {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                Instruction {
-                    accounts: ProgramConfigInitAccounts {
+                with_program_id(
+                    ProgramConfigInitAccounts {
                         program_config,
                         initializer: transaction_creator,
-                        system_program: system_program::id(),
+                        system_program: system_program::ID,
                     }
-                    .to_account_metas(Some(false)),
-                    data: ProgramConfigInitData {
-                        args: ProgramConfigInitArgs {
-                            authority: program_config_authority,
-                            multisig_creation_fee,
-                            treasury,
-                        },
-                    }
-                    .data(),
-                    program_id,
-                },
+                    .instruction(ProgramConfigInitInstructionArgs {
+                        authority: program_config_authority,
+                        multisig_creation_fee,
+                        treasury,
+                    }),
+                    &program_id,
+                ),
             ],
             &[],
             blockhash,

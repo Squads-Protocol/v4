@@ -1,5 +1,6 @@
 {
   "name": "@sqds/multisig",
+  "private": true,
   "version": "2.1.4",
   "description": "SDK for Squads Multisig Program v4",
   "main": "lib/index.js",

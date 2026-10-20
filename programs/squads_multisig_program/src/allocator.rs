@@ -98,6 +98,7 @@ use std::{alloc::Layout, mem::size_of, ptr::null_mut};
 /// Length of the memory region used for program heap.
 pub const HEAP_LENGTH: usize = 8 * 32 * 1024;
 
+#[cfg_attr(not(target_os = "solana"), allow(dead_code))]
 struct BumpAllocator;
 
 unsafe impl std::alloc::GlobalAlloc for BumpAllocator {
@@ -127,7 +128,8 @@ unsafe impl std::alloc::GlobalAlloc for BumpAllocator {
     }
 }
 
-// Only use the allocator if we're not in a no-entrypoint context
-#[cfg(not(feature = "no-entrypoint"))]
+// Only use the allocator on-chain (the SBF heap address does not exist on the host)
+// and only when the program provides its own entrypoint.
+#[cfg(all(target_os = "solana", not(feature = "no-entrypoint")))]
 #[global_allocator]
 static A: BumpAllocator = BumpAllocator;

@@ -5,25 +5,21 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::hash::hash;
-use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
+use squads_multisig_4r::instructions::{
+    ProposalApprove, ProposalApproveInstructionArgs, ProposalCancel, ProposalCancelInstructionArgs,
+    ProposalReject, ProposalRejectInstructionArgs,
+};
+use squads_multisig_4r::pda::get_proposal_pda;
+use squads_multisig_4r::with_program_id;
 
-use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::pda::get_proposal_pda;
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
-use squads_multisig::squads_multisig_program::instruction::ProposalCancel;
-use squads_multisig::squads_multisig_program::instruction::ProposalReject;
-use squads_multisig::squads_multisig_program::ProposalVoteArgs;
-
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
 /// Cast an approve or reject vote on an existing proposal.
 #[derive(Args)]
@@ -78,12 +74,11 @@ impl ProposalVote {
             fee_payer_keypair,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
 
         let transaction_creator = transaction_creator_keypair.pubkey();
 
@@ -93,7 +88,9 @@ impl ProposalVote {
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
 
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         // Build the message first so we can show the hash before confirmation
@@ -104,19 +101,27 @@ impl ProposalVote {
             .await
             .expect("Failed to get blockhash");
 
-        let data = match action.to_lowercase().as_str() {
+        let proposal = proposal_pda.0;
+        let member = transaction_creator;
+        let vote_instruction = match action.to_lowercase().as_str() {
             "approve" | "ap" => ProposalApprove {
-                args: ProposalVoteArgs { memo },
+                multisig,
+                member,
+                proposal,
             }
-            .data(),
+            .instruction(ProposalApproveInstructionArgs { memo }),
             "reject" | "rj" => ProposalReject {
-                args: ProposalVoteArgs { memo },
+                multisig,
+                member,
+                proposal,
             }
-            .data(),
+            .instruction(ProposalRejectInstructionArgs { memo }),
             "cancel" | "cl" => ProposalCancel {
-                args: ProposalVoteArgs { memo },
+                multisig,
+                member,
+                proposal,
             }
-            .data(),
+            .instruction(ProposalCancelInstructionArgs { memo }),
             _ => {
                 eprintln!("Invalid action. Please use one of: Approve, Reject, Cancel, Activate (or their short forms)");
                 std::process::exit(1);
@@ -131,16 +136,7 @@ impl ProposalVote {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                Instruction {
-                    accounts: ProposalVoteAccounts {
-                        member: transaction_creator,
-                        multisig,
-                        proposal: proposal_pda.0,
-                    }
-                    .to_account_metas(Some(false)),
-                    data,
-                    program_id,
-                },
+                with_program_id(vote_instruction, &program_id),
             ],
             &[],
             blockhash,

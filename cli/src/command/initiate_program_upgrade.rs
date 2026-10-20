@@ -5,32 +5,25 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_program::bpf_loader_upgradeable::upgrade;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_loader_v3_interface::instruction::upgrade;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::hash::hash;
-use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
+use solana_system_interface::program as system_program;
+use squads_multisig_4r::instructions::{
+    ProposalApprove, ProposalApproveInstructionArgs, ProposalCreate, ProposalCreateInstructionArgs,
+    VaultTransactionCreate, VaultTransactionCreateInstructionArgs,
+};
+use squads_multisig_4r::message::transaction_message_bytes;
+use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
+use squads_multisig_4r::rpc::fetch_multisig;
+use squads_multisig_4r::with_program_id;
 
-use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::client::get_multisig;
-use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
-use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
-use squads_multisig::squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
-use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
-use squads_multisig::squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
-use squads_multisig::squads_multisig_program::ProposalCreateArgs;
-use squads_multisig::squads_multisig_program::ProposalVoteArgs;
-use squads_multisig::squads_multisig_program::VaultTransactionCreateArgs;
-use squads_multisig::state::Permission;
-
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{has_permission, send_and_confirm_transaction, signer_from_path, Permission};
 
 /// Create and activate a vault transaction that upgrades a BPF upgradeable program.
 #[derive(Args)]
@@ -100,14 +93,15 @@ impl InitiateProgramUpgrade {
             approve,
         } = self;
 
-        let program_id = squads_program_id
-            .unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = squads_program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let program_to_upgrade =
@@ -121,14 +115,13 @@ impl InitiateProgramUpgrade {
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
 
-        let multisig_data = get_multisig(rpc_client, &multisig).await?;
+        let multisig_data = fetch_multisig(rpc_client, &multisig, Some(&program_id)).await?;
 
         // Check if the proposer has Vote permission when --approve is used
         if approve {
-            let has_vote_permission = multisig_data
-                .members
-                .iter()
-                .any(|m| m.key == transaction_creator && m.permissions.has(Permission::Vote));
+            let has_vote_permission = multisig_data.members.iter().any(|m| {
+                m.key == transaction_creator && has_permission(&m.permissions, Permission::Vote)
+            });
             if !has_vote_permission {
                 return Err(eyre::eyre!(
                     "Cannot use --approve: {} does not have Vote permission in this multisig",
@@ -157,69 +150,58 @@ impl InitiateProgramUpgrade {
             &spill_address_id,
         );
 
-        let upgrade_program_message =
-            Message::try_compile(&vault_pda.0, &[instruction], &[], blockhash).unwrap();
-
         let payer = fee_payer.unwrap_or(transaction_creator);
 
         let mut instructions = vec![
             ComputeBudgetInstruction::set_compute_unit_price(
                 priority_fee_lamports.unwrap_or(200_000),
             ),
-            Instruction {
-                accounts: VaultTransactionCreateAccounts {
+            with_program_id(
+                VaultTransactionCreate {
                     creator: transaction_creator,
                     rent_payer: fee_payer.unwrap_or(transaction_creator),
                     transaction: transaction_pda.0,
                     multisig,
-                    system_program: solana_sdk::system_program::id(),
+                    system_program: system_program::ID,
                 }
-                .to_account_metas(Some(false)),
-                data: VaultTransactionCreateData {
-                    args: VaultTransactionCreateArgs {
-                        ephemeral_signers: 0,
-                        vault_index,
-                        memo: memo.clone(),
-                        transaction_message: upgrade_program_message.serialize(),
-                    },
-                }
-                .data(),
-                program_id,
-            },
-            Instruction {
-                accounts: ProposalCreateAccounts {
+                .instruction(VaultTransactionCreateInstructionArgs {
+                    ephemeral_signers: 0,
+                    vault_index,
+                    memo: memo.clone(),
+                    transaction_message: transaction_message_bytes(
+                        &vault_pda.0,
+                        &[instruction],
+                        &[],
+                    )?,
+                }),
+                &program_id,
+            ),
+            with_program_id(
+                ProposalCreate {
                     creator: transaction_creator,
                     rent_payer: fee_payer.unwrap_or(transaction_creator),
                     proposal: proposal_pda.0,
                     multisig,
-                    system_program: solana_sdk::system_program::id(),
+                    system_program: system_program::ID,
                 }
-                .to_account_metas(Some(false)),
-                data: ProposalCreateData {
-                    args: ProposalCreateArgs {
-                        draft: false,
-                        transaction_index,
-                    },
-                }
-                .data(),
-                program_id,
-            },
+                .instruction(ProposalCreateInstructionArgs {
+                    draft: false,
+                    transaction_index,
+                }),
+                &program_id,
+            ),
         ];
 
         if approve {
-            instructions.push(Instruction {
-                accounts: ProposalVoteAccounts {
+            instructions.push(with_program_id(
+                ProposalApprove {
                     member: transaction_creator,
                     multisig,
                     proposal: proposal_pda.0,
                 }
-                .to_account_metas(Some(false)),
-                data: ProposalApprove {
-                    args: ProposalVoteArgs { memo },
-                }
-                .data(),
-                program_id,
-            });
+                .instruction(ProposalApproveInstructionArgs { memo }),
+                &program_id,
+            ));
         }
 
         let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
@@ -268,7 +250,7 @@ impl InitiateProgramUpgrade {
         let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
             .expect("Failed to create transaction");
 
-        let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
+        let signature = send_and_confirm_transaction(&transaction, rpc_client).await?;
 
         if approve {
             println!(
