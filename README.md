@@ -71,7 +71,7 @@ Requirements:
 - Rust: `rust-toolchain.toml` selects the version (1.98.1) and components automatically.
 - Agave (Solana) 4.3.2: `sh -c "$(curl -sSfL https://release.anza.xyz/v4.3.2/install)"`
 - Anchor CLI 1.2.1: `cargo install anchor-cli --version 1.2.1 --locked`
-- Node.js 22 and Yarn 1.
+- Node.js 22 and Bun 1.3 (the repository package manager; the integration tests run on Node.js).
 
 Build the program for SBPF v3 (the only supported target):
 
@@ -83,11 +83,11 @@ Run the tests:
 
 ```
 cargo test --workspace                 # program, Rust client and CLI unit tests, golden wire-format tests
-yarn install && yarn test              # TypeScript integration tests on solana-test-validator
+bun install && bun run test            # TypeScript integration tests on solana-test-validator
 cd sdk/multisig-4r && npm ci && npm test  # @sqds/multisig-4r unit tests
 ```
 
-`yarn test` builds with the `testing` feature (test program ID `GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD`)
+`bun run test` builds with the `testing` feature (test program ID `GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD`)
 and starts `solana-test-validator` (`anchor test --validator legacy`).
 
 Regenerate the IDL and the Codama clients after a program interface change:

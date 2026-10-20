@@ -20,10 +20,10 @@
   "scripts": {
     "build:js": "tsup src/index.ts --format esm,cjs --outDir lib",
     "build:types": "tsc --emitDeclarationOnly",
-    "build": "yarn build:js && yarn build:types",
-    "generate": "yarn solita",
+    "build": "bun run build:js && bun run build:types",
+    "generate": "solita",
     "ts": "tsc --noEmit",
-    "prepare:canary": "yarn build && npm version --prerelease --preid=canary"
+    "prepare:canary": "bun run build && npm version --prerelease --preid=canary"
   },
   "dependencies": {
     "@metaplex-foundation/beet": "0.7.1",

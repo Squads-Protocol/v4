@@ -57,6 +57,8 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
 - The program is built for **SBPF v3** only. Compared with SBPF v0, the binary is 6% smaller
   and uses 0.1–0.6% fewer compute units per instruction.
 - Verifiable builds: `solana-verify build --base-image solanafoundation/solana-verifiable-build:4.3.0 --arch v3`.
+- The repository uses Bun 1.3 as its package manager (`bun install`, `bun run test`). Yarn and Turbo
+  are removed. `sdk/multisig-4r` is a standalone npm package.
 
 ### Fixes
 

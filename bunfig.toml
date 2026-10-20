@@ -1,0 +1,3 @@
+[install]
+# Hoisted node_modules, like the former Yarn `nodeLinker: node-modules`.
+linker = "hoisted"
