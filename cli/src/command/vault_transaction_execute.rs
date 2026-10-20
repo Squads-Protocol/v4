@@ -14,12 +14,13 @@ use solana_sdk::message::AddressLookupTableAccount;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
-use squads_multisig_4r::accounts::VaultTransaction;
-use squads_multisig_4r::instructions::VaultTransactionExecute as VaultTransactionExecuteAccounts;
-use squads_multisig_4r::message::vault_transaction_execute;
+use squads_multisig_4r::builders::VaultTransactionExecute as VaultTransactionExecuteAccounts;
+use squads_multisig_4r::message::{
+    vault_transaction_execute, AddressLookupTableAccount as VaultLookupTable,
+};
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig_4r::rpc::decode_checked;
-use squads_multisig_4r::types::VaultTransactionMessage;
+use squads_multisig_4r::state::{VaultTransaction, VaultTransactionMessage};
 
 use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
@@ -139,6 +140,13 @@ impl VaultTransactionExecute {
 
         let address_lookup_table_accounts =
             fetch_address_lookup_tables(&rpc_client, &vault_transaction.message).await?;
+        let vault_lookup_tables: Vec<VaultLookupTable> = address_lookup_table_accounts
+            .iter()
+            .map(|table| VaultLookupTable {
+                key: table.key,
+                addresses: table.addresses.clone(),
+            })
+            .collect();
 
         let execute_instruction = vault_transaction_execute(
             &VaultTransactionExecuteAccounts {
@@ -150,7 +158,7 @@ impl VaultTransactionExecute {
             vault_transaction.vault_index,
             u8::try_from(vault_transaction.ephemeral_signer_bumps.len())?,
             &vault_transaction.message,
-            &address_lookup_table_accounts,
+            &vault_lookup_tables,
             Some(&program_id),
         )?;
         let progress = ProgressBar::new_spinner().with_message("Sending transaction...");

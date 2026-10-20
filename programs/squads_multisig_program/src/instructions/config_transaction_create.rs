@@ -1,14 +1,20 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ConfigTransactionCreateArgs {
     pub actions: Vec<ConfigAction>,
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: ConfigTransactionCreateArgs)]
 pub struct ConfigTransactionCreate<'info> {
@@ -43,6 +49,7 @@ pub struct ConfigTransactionCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl ConfigTransactionCreate<'_> {
     fn validate(&self, args: &ConfigTransactionCreateArgs) -> Result<()> {
         // multisig

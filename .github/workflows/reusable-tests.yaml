@@ -28,7 +28,7 @@ env:
 
 jobs:
   rust:
-    name: Rust (fmt, check, unit + golden wire-format tests)
+    name: Rust (fmt, check, tests, core without Anchor)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -60,6 +60,22 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
+
+      - name: Core without Anchor (clippy, tests)
+        run: |
+          cargo clippy -p squads-multisig-4r-program --no-default-features --all-targets -- -D warnings
+          cargo test -p squads-multisig-4r-program --no-default-features
+
+      - name: Core dependency tree has no Anchor or solana-program
+        shell: bash
+        run: |
+          for crate in squads-multisig-4r-program squads-multisig-4r; do
+            tree=$(cargo tree -p "$crate" --no-default-features -e normal --prefix none)
+            if grep -E '^(anchor-|solana-program )' <<<"$tree"; then
+              echo "::error::$crate pulls Anchor or solana-program without default features"
+              exit 1
+            fi
+          done
 
   ts-sdk:
     name: "@sqds/multisig-4r (typecheck, unit tests)"

@@ -1,23 +1,32 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProgramConfigSetAuthorityArgs {
     pub new_authority: Pubkey,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProgramConfigSetMultisigCreationFeeArgs {
     pub new_multisig_creation_fee: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProgramConfigSetTreasuryArgs {
     pub new_treasury: Pubkey,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct ProgramConfig<'info> {
     #[account(
@@ -30,6 +39,7 @@ pub struct ProgramConfig<'info> {
     pub authority: Signer<'info>,
 }
 
+#[cfg(feature = "program")]
 impl ProgramConfig<'_> {
     fn validate(&self) -> Result<()> {
         let Self {

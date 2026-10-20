@@ -1,9 +1,15 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProposalCreateArgs {
     /// Index of the multisig transaction this proposal is associated with.
     pub transaction_index: u64,
@@ -11,6 +17,7 @@ pub struct ProposalCreateArgs {
     pub draft: bool,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: ProposalCreateArgs)]
 pub struct ProposalCreate<'info> {
@@ -45,6 +52,7 @@ pub struct ProposalCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl ProposalCreate<'_> {
     fn validate(&self, args: &ProposalCreateArgs) -> Result<()> {
         let Self {

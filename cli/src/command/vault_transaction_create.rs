@@ -13,14 +13,14 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use solana_system_interface::program as system_program;
+use squads_multisig_4r::builders::{
+    ProposalApprove, ProposalCreate, VaultTransactionCreate as VaultTransactionCreateAccounts,
+};
 use squads_multisig_4r::instructions::{
-    ProposalApprove, ProposalApproveInstructionArgs, ProposalCreate, ProposalCreateInstructionArgs,
-    VaultTransactionCreate as VaultTransactionCreateAccounts,
-    VaultTransactionCreateInstructionArgs,
+    ProposalCreateArgs, ProposalVoteArgs, VaultTransactionCreateArgs,
 };
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig_4r::rpc::fetch_multisig;
-use squads_multisig_4r::with_program_id;
 
 use crate::utils::{has_permission, send_and_confirm_transaction, signer_from_path, Permission};
 
@@ -123,48 +123,47 @@ impl VaultTransactionCreate {
 
         let mut instructions = vec![
             ComputeBudgetInstruction::set_compute_unit_price(priority_fee_lamports.unwrap_or(5000)),
-            with_program_id(
-                VaultTransactionCreateAccounts {
-                    creator: transaction_creator,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    transaction: transaction_pda.0,
-                    multisig,
-                    system_program: system_program::ID,
-                }
-                .instruction(VaultTransactionCreateInstructionArgs {
+            VaultTransactionCreateAccounts {
+                creator: transaction_creator,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                transaction: transaction_pda.0,
+                multisig,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                VaultTransactionCreateArgs {
                     ephemeral_signers: 0,
                     vault_index,
                     memo: memo.clone(),
                     transaction_message,
-                }),
-                &program_id,
-            ),
-            with_program_id(
-                ProposalCreate {
-                    creator: transaction_creator,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    proposal: proposal_pda.0,
-                    multisig,
-                    system_program: system_program::ID,
-                }
-                .instruction(ProposalCreateInstructionArgs {
+                },
+                Some(&program_id),
+            )?,
+            ProposalCreate {
+                creator: transaction_creator,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                proposal: proposal_pda.0,
+                multisig,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                ProposalCreateArgs {
                     draft: false,
                     transaction_index,
-                }),
-                &program_id,
-            ),
+                },
+                Some(&program_id),
+            )?,
         ];
 
         if approve {
-            instructions.push(with_program_id(
+            instructions.push(
                 ProposalApprove {
                     member: transaction_creator,
                     multisig,
                     proposal: proposal_pda.0,
                 }
-                .instruction(ProposalApproveInstructionArgs { memo }),
-                &program_id,
-            ));
+                .instruction(ProposalVoteArgs { memo }, Some(&program_id))?,
+            );
         }
 
         let blockhash = rpc_client

@@ -7,7 +7,7 @@ use solana_rpc_client_api::{
     response::RpcSimulateTransactionResult,
 };
 use solana_sdk::transaction::VersionedTransaction;
-use squads_multisig_4r::types::{Permissions, VaultTransactionMessage};
+use squads_multisig_4r::state::{Permissions, VaultTransactionMessage};
 
 pub use crate::signer::signer_from_path;
 

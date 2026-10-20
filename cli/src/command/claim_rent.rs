@@ -13,16 +13,14 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use solana_system_interface::program as system_program;
-use squads_multisig_4r::accounts::{
-    Batch, ConfigTransaction, Multisig, Proposal, VaultTransaction,
-};
-use squads_multisig_4r::instructions::{
+use squads_multisig_4r::builders::{
     BatchAccountsClose, ConfigTransactionAccountsClose, VaultTransactionAccountsClose,
 };
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig_4r::rpc::{decode_checked, fetch_multisig};
-use squads_multisig_4r::types::ProposalStatus;
-use squads_multisig_4r::with_program_id;
+use squads_multisig_4r::state::{
+    Batch, ConfigTransaction, Multisig, Proposal, ProposalStatus, VaultTransaction,
+};
 
 use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
@@ -287,39 +285,30 @@ impl ClaimRent {
             let transaction_pda = get_transaction_pda(&multisig, c.index, Some(&program_id));
 
             let ix = match c.kind {
-                TxAccountKind::Vault => with_program_id(
-                    VaultTransactionAccountsClose {
-                        multisig,
-                        proposal: proposal_pda.0,
-                        rent_collector,
-                        transaction: transaction_pda.0,
-                        system_program: system_program::ID,
-                    }
-                    .instruction(),
-                    &program_id,
-                ),
-                TxAccountKind::Config => with_program_id(
-                    ConfigTransactionAccountsClose {
-                        multisig,
-                        proposal: proposal_pda.0,
-                        rent_collector,
-                        transaction: transaction_pda.0,
-                        system_program: system_program::ID,
-                    }
-                    .instruction(),
-                    &program_id,
-                ),
-                TxAccountKind::Batch => with_program_id(
-                    BatchAccountsClose {
-                        multisig,
-                        proposal: proposal_pda.0,
-                        batch: transaction_pda.0,
-                        rent_collector,
-                        system_program: system_program::ID,
-                    }
-                    .instruction(),
-                    &program_id,
-                ),
+                TxAccountKind::Vault => VaultTransactionAccountsClose {
+                    multisig,
+                    proposal: proposal_pda.0,
+                    rent_collector,
+                    transaction: transaction_pda.0,
+                    system_program: system_program::ID,
+                }
+                .instruction(Some(&program_id)),
+                TxAccountKind::Config => ConfigTransactionAccountsClose {
+                    multisig,
+                    proposal: proposal_pda.0,
+                    rent_collector,
+                    transaction: transaction_pda.0,
+                    system_program: system_program::ID,
+                }
+                .instruction(Some(&program_id)),
+                TxAccountKind::Batch => BatchAccountsClose {
+                    multisig,
+                    proposal: proposal_pda.0,
+                    batch: transaction_pda.0,
+                    rent_collector,
+                    system_program: system_program::ID,
+                }
+                .instruction(Some(&program_id)),
             };
 
             if current.len() >= MAX_CLOSE_IX_PER_TX {
@@ -389,6 +378,7 @@ impl ClaimRent {
     }
 }
 
+#[allow(deprecated)]
 fn format_proposal_status(status: &ProposalStatus) -> String {
     match status {
         ProposalStatus::Draft { timestamp } => format!("Draft(ts={})", timestamp),
@@ -398,9 +388,11 @@ fn format_proposal_status(status: &ProposalStatus) -> String {
         ProposalStatus::Executed { timestamp } => format!("Executed(ts={})", timestamp),
         ProposalStatus::Cancelled { timestamp } => format!("Cancelled(ts={})", timestamp),
         ProposalStatus::Executing => "Executing".to_string(),
+        other => format!("{:?}", other),
     }
 }
 
+#[allow(deprecated)]
 fn can_close_vault_style(status: &ProposalStatus, multisig: &Multisig, tx_index: u64) -> bool {
     let is_stale = tx_index <= multisig.stale_transaction_index;
     match status {
@@ -411,9 +403,11 @@ fn can_close_vault_style(status: &ProposalStatus, multisig: &Multisig, tx_index:
         ProposalStatus::Executed { .. } => true,
         ProposalStatus::Cancelled { .. } => true,
         ProposalStatus::Executing => false,
+        _ => false,
     }
 }
 
+#[allow(deprecated)]
 fn can_close_config_style(status: &ProposalStatus, multisig: &Multisig, tx_index: u64) -> bool {
     let is_stale = tx_index <= multisig.stale_transaction_index;
     match status {
@@ -424,6 +418,7 @@ fn can_close_config_style(status: &ProposalStatus, multisig: &Multisig, tx_index
         ProposalStatus::Executed { .. } => true,
         ProposalStatus::Cancelled { .. } => true,
         ProposalStatus::Executing => false,
+        _ => false,
     }
 }
 

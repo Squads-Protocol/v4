@@ -1,13 +1,19 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
-#[allow(deprecated)]
-use solana_borsh::v1::get_instance_packed_len;
 
 use super::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 
 /// Stores data required for execution of a multisig configuration transaction.
 /// Config transaction can perform a predefined set of actions on the Multisig PDA, such as adding/removing members,
 /// changing the threshold, etc.
-#[account]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ConfigTransaction {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -25,7 +31,7 @@ impl ConfigTransaction {
     pub fn size(actions: &[ConfigAction]) -> usize {
         let actions_size: usize = actions
             .iter()
-            .map(|action| get_instance_packed_len(action).unwrap())
+            .map(|action| borsh::object_length(action).unwrap())
             .sum();
 
         8 +   // anchor account discriminator
@@ -38,7 +44,9 @@ impl ConfigTransaction {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Clone, PartialEq, Eq, Debug)]
 #[non_exhaustive]
 pub enum ConfigAction {
     /// Add a new member to the multisig.

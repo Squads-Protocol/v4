@@ -6,8 +6,8 @@ use solana_address_lookup_table_interface::state::AddressLookupTable;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::bs58;
 use solana_sdk::pubkey::Pubkey;
-use squads_multisig_4r::accounts::VaultTransaction;
 use squads_multisig_4r::rpc::decode_checked;
+use squads_multisig_4r::state::VaultTransaction;
 
 use crate::utils::{is_signer_index, is_static_writable_index};
 

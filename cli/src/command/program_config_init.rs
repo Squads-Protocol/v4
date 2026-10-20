@@ -12,11 +12,9 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use solana_system_interface::program as system_program;
-use squads_multisig_4r::instructions::{
-    ProgramConfigInit as ProgramConfigInitAccounts, ProgramConfigInitInstructionArgs,
-};
+use squads_multisig_4r::builders::ProgramConfigInit as ProgramConfigInitAccounts;
+use squads_multisig_4r::instructions::ProgramConfigInitArgs;
 use squads_multisig_4r::pda::get_program_config_pda;
-use squads_multisig_4r::with_program_id;
 
 use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
@@ -130,19 +128,19 @@ impl ProgramConfigInit {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                with_program_id(
-                    ProgramConfigInitAccounts {
-                        program_config,
-                        initializer: transaction_creator,
-                        system_program: system_program::ID,
-                    }
-                    .instruction(ProgramConfigInitInstructionArgs {
+                ProgramConfigInitAccounts {
+                    program_config,
+                    initializer: transaction_creator,
+                    system_program: system_program::ID,
+                }
+                .instruction(
+                    ProgramConfigInitArgs {
                         authority: program_config_authority,
                         multisig_creation_fee,
                         treasury,
-                    }),
-                    &program_id,
-                ),
+                    },
+                    Some(&program_id),
+                )?,
             ],
             &[],
             blockhash,

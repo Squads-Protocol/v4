@@ -1,16 +1,24 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
+#[cfg(feature = "program")]
 use crate::TransactionMessage;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct BatchAddTransactionArgs {
     /// Number of ephemeral signing PDAs required by the transaction.
     pub ephemeral_signers: u8,
     pub transaction_message: Vec<u8>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: BatchAddTransactionArgs)]
 pub struct BatchAddTransaction<'info> {
@@ -73,6 +81,7 @@ pub struct BatchAddTransaction<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl BatchAddTransaction<'_> {
     fn validate(&self) -> Result<()> {
         let Self {

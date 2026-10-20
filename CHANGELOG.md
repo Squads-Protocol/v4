@@ -42,14 +42,28 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
 | `@sqds/multisig-4r` (npm) | 0.1.0 | `@sqds/multisig` 2.1.x |
 | `squads-multisig-4r-cli` (crates.io) | 0.1.0 | `squads-multisig-cli` 0.1.x |
 
-- `squads-multisig-4r` is generated with Codama and no longer depends on the program crate or
-  on Anchor. Account fetch helpers in `rpc` check the owner and the discriminator.
+- `squads-multisig-4r-program` has a **core** that is always compiled and needs no Anchor:
+  account types, instruction args, `TransactionMessage` types, permissions, errors, seeds, PDAs,
+  discriminators, owner-checked account decoding, builders for every live instruction and the
+  vault message compiler. It depends only on `borsh`, `solana-address`, `solana-instruction` and
+  `thiserror`, and it builds for SBF. The Anchor program is the default `program` feature. Clients
+  and other programs use `default-features = false`.
+- The core exports `LEGACY_V4_PROGRAM_ID` (`SQDS4…`). With it as `program_id`, the core builders,
+  PDA helpers and decoders work with the frozen v4 program, which has the same layout.
+- `squads-multisig-4r` re-exports that core and adds async owner-checked fetches (`rpc`, feature
+  `fetch`). It does not depend on Anchor.
 - `@sqds/multisig-4r` is generated with Codama for `@solana/kit`. It replaces the
   web3.js v1 / Solita API of `@sqds/multisig`.
 - The IDL is `idl/squads_multisig_4r_program.json` (Anchor IDL spec 0.1.0) and is published
   through Program Metadata. Programs on other Anchor versions can use `declare_program!`.
 - The 0.x versions are for the audit and formal verification period; 1.0.0 follows at the
   mainnet release.
+
+### Behavior changes in the program crate
+
+- `TryFrom<TransactionMessage> for VaultTransactionMessage` now returns `MultisigError` (core)
+  instead of an Anchor `Error`. The program still fails with `InvalidTransactionMessage` (6006);
+  only the "Error thrown at" source location in the log changes.
 
 ### Toolchain
 

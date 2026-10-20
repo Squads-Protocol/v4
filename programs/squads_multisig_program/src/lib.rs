@@ -1,3 +1,6 @@
+//! Squads Multisig 4r. The core (account types, instruction args and builders, PDAs, messages,
+//! errors) is always compiled and needs no Anchor. The default `program` feature adds the Anchor
+//! program; clients use `default-features = false`.
 #![allow(clippy::result_large_err)]
 #![deny(arithmetic_overflow)]
 #![deny(unused_must_use)]
@@ -5,23 +8,34 @@
 // #![deny(clippy::integer_arithmetic)]
 
 // Re-export anchor_lang for convenience.
+#[cfg(feature = "program")]
 pub use ::anchor_lang;
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
-#[cfg(not(feature = "no-entrypoint"))]
+#[cfg(all(feature = "program", not(feature = "no-entrypoint")))]
 use solana_security_txt::security_txt;
 
+#[cfg(feature = "program")]
 pub use instructions::ProgramConfig;
 pub use instructions::*;
 pub use state::*;
 pub use utils::SmallVec;
 
+pub mod account;
+#[cfg(feature = "program")]
 pub mod allocator;
+pub mod builders;
+pub mod discriminator;
+pub mod error;
 pub mod errors;
 pub mod instructions;
+pub mod message;
+pub mod pda;
+pub mod prelude;
 pub mod state;
 mod utils;
 
-#[cfg(not(feature = "no-entrypoint"))]
+#[cfg(all(feature = "program", not(feature = "no-entrypoint")))]
 security_txt! {
     name: "Squads Multisig 4r Program",
     project_url: "https://squads.so",
@@ -32,12 +46,24 @@ security_txt! {
     auditors: "4r: pending. Squads v4 code base: OtterSec, Neodyme, Certora, Trail of Bits"
 }
 
-#[cfg(not(feature = "testing"))]
+#[cfg(all(feature = "program", not(feature = "testing")))]
 declare_id!("SMS4Rd3C3P1V2PdGRSdZCVQ5fPJk7NsV7vAVoUgSvT5");
 
-#[cfg(feature = "testing")]
+#[cfg(all(feature = "program", feature = "testing"))]
 declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
 
+#[cfg(all(not(feature = "program"), not(feature = "testing")))]
+solana_address::declare_id!("SMS4Rd3C3P1V2PdGRSdZCVQ5fPJk7NsV7vAVoUgSvT5");
+
+#[cfg(all(not(feature = "program"), feature = "testing"))]
+solana_address::declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
+
+/// The frozen Squads v4 program. It has the same account and instruction layout, so the core
+/// builders, PDA helpers and decoders work with v4 when given this ID as `program_id`.
+pub const LEGACY_V4_PROGRAM_ID: solana_address::Address =
+    solana_address::Address::from_str_const("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
+
+#[cfg(feature = "program")]
 #[program]
 pub mod squads_multisig_4r_program {
     use errors::MultisigError;

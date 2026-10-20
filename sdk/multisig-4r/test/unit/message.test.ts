@@ -6,7 +6,7 @@ import { toHex } from "./fixtures";
 
 const key = (byte: number): Address => getAddressDecoder().decode(new Uint8Array(32).fill(byte));
 
-// Same input and bytes as sdk/rs/tests/message_vector.rs.
+// Same input and bytes as programs/squads_multisig_program/tests/core.rs (compiled_message_matches_the_shared_cross_sdk_vector).
 const EXPECTED_HEX =
   "0201010609090909090909090909090909090909090909090909090909090909090909090505050505050505" +
   "0505050505050505050505050505050505050505050505050707070707070707070707070707070707070707" +

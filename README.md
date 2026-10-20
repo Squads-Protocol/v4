@@ -13,9 +13,10 @@ It does not change, and its SDKs receive security and runtime fixes only, from t
 
 This repository contains:
 
-- The Squads Multisig 4r program (`programs/squads_multisig_program`).
+- The Squads Multisig 4r program (`programs/squads_multisig_program`). Its core types and
+  instruction builders can be used without Anchor (see [Using the core](#using-the-core)).
 - The `@sqds/multisig-4r` TypeScript SDK, built on `@solana/kit` (`sdk/multisig-4r`).
-- The `squads-multisig-4r` Rust client (`sdk/rs`), generated with [Codama](https://github.com/codama-idl/codama).
+- The `squads-multisig-4r` Rust client (`sdk/rs`): the program core plus async account fetches.
 - The `squads-multisig-4r-cli` command line interface (`cli`).
 - The frozen v4 TypeScript SDK `@sqds/multisig` (`sdk/multisig`), used here as a v4-compatibility test harness.
 
@@ -56,13 +57,45 @@ By using a multisig, it is important to acknowledge certain concepts. Here are s
 | Package | Registry | Program |
 |---|---|---|
 | `@sqds/multisig-4r` | npm | 4r |
-| `squads-multisig-4r` | crates.io | 4r (off-chain client, CPI builders) |
-| `squads-multisig-4r-program` | crates.io | 4r (program crate with `cpi` feature, Anchor 1.x) |
+| `squads-multisig-4r` | crates.io | 4r (core re-export + async RPC fetches) |
+| `squads-multisig-4r-program` | crates.io | 4r (core without Anchor; full program with the default `program` feature) |
 | `squads-multisig-4r-cli` | crates.io | 4r |
 | `@sqds/multisig` 2.1.x, `squads-multisig` 2.1.x, `squads-multisig-program` 2.0.x | npm / crates.io | v4 (frozen) |
 
 Programs on another Anchor version can generate a CPI client from `idl/squads_multisig_4r_program.json`
 with Anchor's `declare_program!`.
+
+### Using the core
+
+`squads-multisig-4r-program` has two layers:
+
+- **core** (always compiled): account types, instruction args, `TransactionMessage` types,
+  permissions, errors, seeds, PDAs (`pda`), discriminators, account decoding with owner checks
+  (`account`), instruction builders for every live instruction (`builders`) and the vault message
+  compiler (`message`). Dependencies: `borsh`, `solana-address`, `solana-instruction`, `thiserror`.
+  It builds for the host and for SBF.
+- **program** (default feature): the Anchor program, its entrypoint, the `cpi` module and the IDL.
+
+Clients and other programs import only the core:
+
+```toml
+[dependencies]
+squads-multisig-4r-program = { version = "0.1", default-features = false }
+```
+
+```rust
+use squads_multisig_4r_program::{builders, instructions::ProposalVoteArgs, pda};
+
+let (proposal, _) = pda::get_proposal_pda(&multisig, transaction_index, None);
+let approve = builders::ProposalApprove { multisig, member, proposal }
+    .instruction(ProposalVoteArgs { memo: None }, None)?;
+// Off-chain: add `approve` to a transaction. On-chain: solana_cpi::invoke_signed(&approve, ..).
+```
+
+The builders take `Option<&Address>` for the program ID (default: the mainnet ID). An omitted
+optional account is encoded as that program ID, as Anchor expects. The frozen v4 program has the
+same layout: pass `Some(&LEGACY_V4_PROGRAM_ID)` (`SQDS4…`) to use the core with v4 accounts. Tests check every builder
+against the IDL, against Anchor's own account metas and data, and against mainnet instruction bytes.
 
 ## Compiling and testing
 
@@ -82,7 +115,8 @@ anchor build --arch v3
 Run the tests:
 
 ```
-cargo test --workspace                 # program, Rust client and CLI unit tests, golden wire-format tests
+cargo test --workspace                 # program, core-vs-Anchor, golden wire-format and CLI tests
+cargo test -p squads-multisig-4r-program --no-default-features  # core only, without Anchor
 bun install && bun run test            # TypeScript integration tests on solana-test-validator
 cd sdk/multisig-4r && npm ci && npm test  # @sqds/multisig-4r unit tests
 ```
@@ -90,7 +124,8 @@ cd sdk/multisig-4r && npm ci && npm test  # @sqds/multisig-4r unit tests
 `bun run test` builds with the `testing` feature (test program ID `GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD`)
 and starts `solana-test-validator` (`anchor test --validator legacy`).
 
-Regenerate the IDL and the Codama clients after a program interface change:
+Regenerate the IDL and the Codama TypeScript client after a program interface change. Update the
+core builders (`src/builders/`) by hand; the core tests fail if they no longer match the IDL:
 
 ```
 anchor idl build -p squads_multisig_4r_program -o idl/squads_multisig_4r_program.json

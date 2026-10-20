@@ -17,14 +17,13 @@ use solana_system_interface::instruction as system_instruction;
 use solana_system_interface::program as system_program;
 use spl_associated_token_account_interface::address::get_associated_token_address_with_program_id;
 use spl_token_interface::instruction::transfer;
+use squads_multisig_4r::builders::{ProposalApprove, ProposalCreate, VaultTransactionCreate};
 use squads_multisig_4r::instructions::{
-    ProposalApprove, ProposalApproveInstructionArgs, ProposalCreate, ProposalCreateInstructionArgs,
-    VaultTransactionCreate, VaultTransactionCreateInstructionArgs,
+    ProposalCreateArgs, ProposalVoteArgs, VaultTransactionCreateArgs,
 };
 use squads_multisig_4r::message::transaction_message_bytes;
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
 use squads_multisig_4r::rpc::fetch_multisig;
-use squads_multisig_4r::with_program_id;
 
 use crate::command::transfer_common::{
     fetch_mint_decimals_and_token_program, format_token_amount, parse_pubkey,
@@ -282,48 +281,47 @@ impl InitiateBatchTransfer {
             ComputeBudgetInstruction::set_compute_unit_price(
                 priority_fee_lamports.unwrap_or(200_000),
             ),
-            with_program_id(
-                VaultTransactionCreate {
-                    creator: transaction_creator,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    transaction: transaction_pda.0,
-                    multisig,
-                    system_program: system_program::ID,
-                }
-                .instruction(VaultTransactionCreateInstructionArgs {
+            VaultTransactionCreate {
+                creator: transaction_creator,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                transaction: transaction_pda.0,
+                multisig,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                VaultTransactionCreateArgs {
                     ephemeral_signers: 0,
                     vault_index,
                     memo: memo.clone(),
                     transaction_message: transfer_message,
-                }),
-                &program_id,
-            ),
-            with_program_id(
-                ProposalCreate {
-                    creator: transaction_creator,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    proposal: proposal_pda.0,
-                    multisig,
-                    system_program: system_program::ID,
-                }
-                .instruction(ProposalCreateInstructionArgs {
+                },
+                Some(&program_id),
+            )?,
+            ProposalCreate {
+                creator: transaction_creator,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                proposal: proposal_pda.0,
+                multisig,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                ProposalCreateArgs {
                     draft: false,
                     transaction_index,
-                }),
-                &program_id,
-            ),
+                },
+                Some(&program_id),
+            )?,
         ];
 
         if approve {
-            instructions.push(with_program_id(
+            instructions.push(
                 ProposalApprove {
                     member: transaction_creator,
                     multisig,
                     proposal: proposal_pda.0,
                 }
-                .instruction(ProposalApproveInstructionArgs { memo }),
-                &program_id,
-            ));
+                .instruction(ProposalVoteArgs { memo }, Some(&program_id))?,
+            );
         }
 
         let blockhash = rpc_client

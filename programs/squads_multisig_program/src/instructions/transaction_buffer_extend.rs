@@ -1,14 +1,21 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct TransactionBufferExtendArgs {
     // Buffer to extend the TransactionBuffer with.
     pub buffer: Vec<u8>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: TransactionBufferExtendArgs)]
 pub struct TransactionBufferExtend<'info> {
@@ -37,6 +44,7 @@ pub struct TransactionBufferExtend<'info> {
     pub creator: Signer<'info>,
 }
 
+#[cfg(feature = "program")]
 impl TransactionBufferExtend<'_> {
     fn validate(&self, args: &TransactionBufferExtendArgs) -> Result<()> {
         let Self {

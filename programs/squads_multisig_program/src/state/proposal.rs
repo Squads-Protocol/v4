@@ -1,15 +1,26 @@
 #![allow(deprecated)]
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
 use crate::id;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 
+#[cfg(feature = "program")]
 use anchor_lang::system_program;
 
 /// Stores the data required for tracking the status of a multisig proposal.
 /// Each `Proposal` has a 1:1 association with a transaction account, e.g. a `VaultTransaction` or a `ConfigTransaction`;
 /// the latter can be executed only after the `Proposal` has been approved and its time lock is released.
-#[account]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Proposal {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -41,6 +52,7 @@ impl Proposal {
     }
 
     /// Register an approval vote.
+    #[cfg(feature = "program")]
     pub fn approve(&mut self, member: Pubkey, threshold: usize) -> Result<()> {
         // If `member` has previously voted to reject, remove that vote.
         if let Some(vote_index) = self.has_voted_reject(member.key()) {
@@ -64,6 +76,7 @@ impl Proposal {
     }
 
     /// Register a rejection vote.
+    #[cfg(feature = "program")]
     pub fn reject(&mut self, member: Pubkey, cutoff: usize) -> Result<()> {
         // If `member` has previously voted to approve, remove that vote.
         if let Some(vote_index) = self.has_voted_approve(member.key()) {
@@ -87,6 +100,7 @@ impl Proposal {
     }
 
     /// Registers a cancellation vote.
+    #[cfg(feature = "program")]
     pub fn cancel(&mut self, member: Pubkey, threshold: usize) -> Result<()> {
         // Insert the vote of cancellation.
         match self.cancelled.binary_search(&member) {
@@ -106,22 +120,26 @@ impl Proposal {
 
     /// Check if the member approved the transaction.
     /// Returns `Some(index)` if `member` has approved the transaction, with `index` into the `approved` vec.
+    #[cfg(feature = "program")]
     fn has_voted_approve(&self, member: Pubkey) -> Option<usize> {
         self.approved.binary_search(&member).ok()
     }
 
     /// Check if the member rejected the transaction.
     /// Returns `Some(index)` if `member` has rejected the transaction, with `index` into the `rejected` vec.
+    #[cfg(feature = "program")]
     fn has_voted_reject(&self, member: Pubkey) -> Option<usize> {
         self.rejected.binary_search(&member).ok()
     }
 
     /// Delete the vote of rejection at the `index`.
+    #[cfg(feature = "program")]
     fn remove_rejection_vote(&mut self, index: usize) {
         self.rejected.remove(index);
     }
 
     /// Delete the vote of approval at the `index`.
+    #[cfg(feature = "program")]
     fn remove_approval_vote(&mut self, index: usize) {
         self.approved.remove(index);
     }
@@ -129,6 +147,7 @@ impl Proposal {
     /// Check if the proposal account space needs to be reallocated to accommodate `cancelled` vec.
     /// Proposal size is crated at creation, and thus may not accomodate enough space for all members to cancel if more are added or changed
     /// Returns `true` if the account was reallocated.
+    #[cfg(feature = "program")]
     pub fn realloc_if_needed<'a>(
         proposal: AccountInfo<'a>,
         members_length: usize,
@@ -185,7 +204,9 @@ impl Proposal {
 
 /// The status of a proposal.
 /// Each variant wraps a timestamp of when the status was set.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Clone, PartialEq, Eq, Debug)]
 #[non_exhaustive]
 pub enum ProposalStatus {
     /// Proposal is in the draft mode and can be voted on.

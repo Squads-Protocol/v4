@@ -12,9 +12,8 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use solana_system_interface::program as system_program;
-use squads_multisig_4r::instructions::VaultTransactionAccountsClose as VaultTransactionAccountsCloseAccounts;
+use squads_multisig_4r::builders::VaultTransactionAccountsClose as VaultTransactionAccountsCloseAccounts;
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig_4r::with_program_id;
 
 use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
@@ -128,17 +127,14 @@ impl VaultTransactionAccountsClose {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                with_program_id(
-                    VaultTransactionAccountsCloseAccounts {
-                        multisig,
-                        proposal: proposal_pda.0,
-                        rent_collector: rent_collector_key,
-                        transaction: transaction_pda.0,
-                        system_program: system_program::ID,
-                    }
-                    .instruction(),
-                    &program_id,
-                ),
+                VaultTransactionAccountsCloseAccounts {
+                    multisig,
+                    proposal: proposal_pda.0,
+                    rent_collector: rent_collector_key,
+                    transaction: transaction_pda.0,
+                    system_program: system_program::ID,
+                }
+                .instruction(Some(&program_id)),
             ],
             &[],
             blockhash,

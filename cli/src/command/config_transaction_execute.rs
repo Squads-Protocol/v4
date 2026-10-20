@@ -12,9 +12,8 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 use solana_system_interface::program as system_program;
-use squads_multisig_4r::instructions::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
+use squads_multisig_4r::builders::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig_4r::with_program_id;
 
 use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
@@ -122,18 +121,15 @@ impl ConfigTransactionExecute {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                with_program_id(
-                    ConfigTransactionExecuteAccounts {
-                        member: transaction_creator,
-                        transaction: transaction_pda.0,
-                        rent_payer: Some(fee_payer.unwrap_or(transaction_creator)),
-                        multisig,
-                        proposal: proposal_pda.0,
-                        system_program: Some(system_program::ID),
-                    }
-                    .instruction(),
-                    &program_id,
-                ),
+                ConfigTransactionExecuteAccounts {
+                    member: transaction_creator,
+                    transaction: transaction_pda.0,
+                    rent_payer: Some(fee_payer.unwrap_or(transaction_creator)),
+                    multisig,
+                    proposal: proposal_pda.0,
+                    system_program: Some(system_program::ID),
+                }
+                .instruction(Some(&program_id)),
             ],
             &[],
             blockhash,

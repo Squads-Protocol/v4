@@ -1,13 +1,20 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProposalVoteArgs {
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct ProposalVote<'info> {
     #[account(
@@ -33,6 +40,7 @@ pub struct ProposalVote<'info> {
     pub proposal: Account<'info, Proposal>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct ProposalCancelV2<'info> {
     // The context needed for the ProposalVote instruction
@@ -41,6 +49,7 @@ pub struct ProposalCancelV2<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl ProposalVote<'_> {
     fn validate(&self, vote: Vote) -> Result<()> {
         let Self {
@@ -131,6 +140,7 @@ impl ProposalVote<'_> {
     }
 }
 
+#[cfg(feature = "program")]
 impl<'info> ProposalCancelV2<'info> {
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
@@ -165,6 +175,7 @@ impl<'info> ProposalCancelV2<'info> {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Vote {
     Approve,
     Reject,

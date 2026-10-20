@@ -1,10 +1,17 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::MAX_BUFFER_SIZE;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct TransactionBufferCreateArgs {
     /// Index of the buffer account to seed the account derivation
     pub buffer_index: u8,
@@ -18,6 +25,7 @@ pub struct TransactionBufferCreateArgs {
     pub buffer: Vec<u8>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: TransactionBufferCreateArgs)]
 pub struct TransactionBufferCreate<'info> {
@@ -52,6 +60,7 @@ pub struct TransactionBufferCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl TransactionBufferCreate<'_> {
     fn validate(&self, args: &TransactionBufferCreateArgs) -> Result<()> {
         let Self {

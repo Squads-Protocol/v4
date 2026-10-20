@@ -1,19 +1,27 @@
 #![allow(deprecated)]
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
+#[cfg(feature = "program")]
 use anchor_lang::system_program;
+#[cfg(feature = "program")]
 use solana_program::native_token::LAMPORTS_PER_SOL;
 
+#[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 use crate::state::*;
 
 // Dummy Account context for multisigCreate, since Anchor doesn't allow empty instructions.
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct Deprecated<'info> {
     ///CHECK: Dummy Account
     pub null: UncheckedAccount<'info>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigCreateArgsV2 {
     /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
     /// Should be set to `None` for autonomous multisigs.
@@ -31,6 +39,7 @@ pub struct MultisigCreateArgsV2 {
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: MultisigCreateArgsV2)]
 pub struct MultisigCreateV2<'info> {
@@ -63,6 +72,7 @@ pub struct MultisigCreateV2<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl MultisigCreateV2<'_> {
     fn validate(&self) -> Result<()> {
         //region treasury

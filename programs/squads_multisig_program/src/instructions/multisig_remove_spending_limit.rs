@@ -1,14 +1,21 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigRemoveSpendingLimitArgs {
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct MultisigRemoveSpendingLimit<'info> {
     #[account(
@@ -29,6 +36,7 @@ pub struct MultisigRemoveSpendingLimit<'info> {
     pub rent_collector: UncheckedAccount<'info>,
 }
 
+#[cfg(feature = "program")]
 impl MultisigRemoveSpendingLimit<'_> {
     fn validate(&self) -> Result<()> {
         // config_authority

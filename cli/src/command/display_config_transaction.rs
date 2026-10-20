@@ -4,9 +4,8 @@ use clap::Args;
 use colored::Colorize;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;
-use squads_multisig_4r::accounts::ConfigTransaction;
 use squads_multisig_4r::rpc::{decode_checked, fetch_spending_limit};
-use squads_multisig_4r::types::{ConfigAction, Period, Permissions};
+use squads_multisig_4r::state::{ConfigAction, ConfigTransaction, Period, Permissions};
 
 use crate::utils::{has_permission, Permission};
 
@@ -222,6 +221,10 @@ impl DisplayConfigTransaction {
                         Some(key) => println!("  New Rent Collector: {}", key),
                         None => println!("  New Rent Collector: (disabled)"),
                     }
+                }
+                other => {
+                    println!("{}", format!("Action {}: Unknown", i + 1).yellow().bold());
+                    println!("  {:?}", other);
                 }
             }
             println!();

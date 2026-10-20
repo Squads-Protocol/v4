@@ -12,12 +12,9 @@ use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
-use squads_multisig_4r::instructions::{
-    ProposalApprove, ProposalApproveInstructionArgs, ProposalCancel, ProposalCancelInstructionArgs,
-    ProposalReject, ProposalRejectInstructionArgs,
-};
+use squads_multisig_4r::builders::{ProposalApprove, ProposalCancel, ProposalReject};
+use squads_multisig_4r::instructions::ProposalVoteArgs;
 use squads_multisig_4r::pda::get_proposal_pda;
-use squads_multisig_4r::with_program_id;
 
 use crate::utils::{send_and_confirm_transaction, signer_from_path};
 
@@ -109,19 +106,19 @@ impl ProposalVote {
                 member,
                 proposal,
             }
-            .instruction(ProposalApproveInstructionArgs { memo }),
+            .instruction(ProposalVoteArgs { memo }, Some(&program_id))?,
             "reject" | "rj" => ProposalReject {
                 multisig,
                 member,
                 proposal,
             }
-            .instruction(ProposalRejectInstructionArgs { memo }),
+            .instruction(ProposalVoteArgs { memo }, Some(&program_id))?,
             "cancel" | "cl" => ProposalCancel {
                 multisig,
                 member,
                 proposal,
             }
-            .instruction(ProposalCancelInstructionArgs { memo }),
+            .instruction(ProposalVoteArgs { memo }, Some(&program_id))?,
             _ => {
                 eprintln!("Invalid action. Please use one of: Approve, Reject, Cancel, Activate (or their short forms)");
                 std::process::exit(1);
@@ -136,7 +133,7 @@ impl ProposalVote {
                 ComputeBudgetInstruction::set_compute_unit_price(
                     priority_fee_lamports.unwrap_or(5000),
                 ),
-                with_program_id(vote_instruction, &program_id),
+                vote_instruction,
             ],
             &[],
             blockhash,

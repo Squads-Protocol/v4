@@ -1,15 +1,26 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
+#[cfg(feature = "program")]
 #[allow(deprecated)]
 use solana_borsh::v1::get_instance_packed_len;
 
-use crate::{TransactionMessage, VaultTransactionMessage};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
+use crate::TransactionMessage;
+use crate::VaultTransactionMessage;
 
 /// Stores data required for serial execution of a batch of multisig vault transactions.
 /// Vault transaction is a transaction that's executed on behalf of the multisig vault PDA
 /// and wraps arbitrary Solana instructions, typically calling into other Solana programs.
 /// The transactions themselves are stored in separate PDAs associated with the this account.
-#[account]
-#[derive(InitSpace)]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[cfg_attr(feature = "program", derive(InitSpace))]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Batch {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -31,6 +42,10 @@ pub struct Batch {
 }
 
 impl Batch {
+    /// Serialized size without the 8-byte discriminator.
+    pub const LEN: usize = 32 + 32 + 8 + 1 + 1 + 1 + 4 + 4;
+
+    #[cfg(feature = "program")]
     pub fn invariant(&self) -> Result<()> {
         // Just a sanity check.
         require_gte!(self.size, self.executed_transaction_index);
@@ -40,8 +55,12 @@ impl Batch {
 }
 
 /// Stores data required for execution of one transaction from a batch.
-#[account]
-#[derive(Default)]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct VaultBatchTransaction {
     /// PDA bump.
     pub bump: u8,
@@ -58,6 +77,7 @@ pub struct VaultBatchTransaction {
 }
 
 impl VaultBatchTransaction {
+    #[cfg(feature = "program")]
     pub fn size(ephemeral_signers_length: u8, transaction_message: &[u8]) -> Result<usize> {
         let transaction_message: VaultTransactionMessage =
             TransactionMessage::deserialize(&mut &transaction_message[..])?.try_into()?;

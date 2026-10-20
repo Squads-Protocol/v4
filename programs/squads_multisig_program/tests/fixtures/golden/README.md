@@ -1,12 +1,13 @@
 # Golden wire-format fixtures
 
 These fixtures pin the Squads v4 wire format that Squads Multisig 4r keeps unchanged.
-Three test suites read them:
+Four test suites read them:
 
 | Suite | Checks |
 |---|---|
 | `programs/squads_multisig_program/tests/golden_wire_format.rs` | The program's Anchor types decode every fixture and encode the same bytes; account sizes match the program's `size()` helpers; every account type and live instruction has a fixture. |
-| `sdk/rs/tests/program_contract.rs` | The Codama Rust client decodes and encodes the same bytes; its discriminators equal the program's. |
+| `programs/squads_multisig_program/tests/core.rs` | The core types (no Anchor) decode and encode the same bytes; every core instruction builder rebuilds the mainnet instruction data. |
+| `programs/squads_multisig_program/tests/core_matches_anchor.rs` | Every core builder produces the same account metas and data as Anchor (the instruction data comes from these fixtures). |
 | `sdk/multisig-4r/test/unit/golden.test.ts` | The Codama TypeScript client decodes and encodes the same bytes, including embedded `TransactionMessage` bytes. |
 
 ## Format

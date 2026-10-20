@@ -1,5 +1,5 @@
-// Generates the TypeScript (src/generated) and Rust (../rs/src/generated) clients
-// for the Squads Multisig 4r program from idl/squads_multisig_4r_program.json.
+// Generates the TypeScript client (src/generated) for the Squads Multisig 4r program from
+// idl/squads_multisig_4r_program.json. The Rust client re-exports the program crate's core.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +27,6 @@ import {
 } from "codama";
 import { rootNodeFromAnchor } from "@codama/nodes-from-anchor";
 import { renderVisitor as renderJs } from "@codama/renderers-js";
-import { renderVisitor as renderRust } from "@codama/renderers-rust";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..", "..", "..");
@@ -104,27 +103,6 @@ await codama.accept(
     syncPackageJson: false,
     formatCode: true,
     kitImportStrategy: "rootOnly",
-  }),
-);
-codama.accept(
-  renderRust(join(repo, "sdk", "rs"), {
-    generatedFolder: "src/generated",
-    deleteFolderBeforeRendering: true,
-    formatCode: true,
-    syncCargoToml: false,
-    anchorTraits: false,
-    dependencyVersions: {
-      borsh: "1.5.7",
-      "solana-account": "4.5",
-      "solana-account-info": "3.1",
-      "solana-address": { features: ["borsh", "copy", "curve25519", "decode"], version: "2.9" },
-      "solana-cpi": "3.1",
-      "solana-instruction": "3.5",
-      "solana-program-error": "3.0",
-      "spl-collections": { features: ["borsh"], version: "0.1.2" },
-      "solana-rpc-client": { optional: true, version: "4.3.2" },
-      thiserror: "2.0",
-    },
   }),
 );
 console.log(`generated ${PROGRAM}: ${argsTypes.length} args structs flattened, ${pdas.length} PDAs added`);

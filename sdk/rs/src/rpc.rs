@@ -1,60 +1,26 @@
-//! Owner- and discriminator-checked account fetches. The generated `fetch_*` functions
-//! check neither, so a v4 (`SQDS4…`) account or a look-alike would decode without error.
+//! Async account fetches that check the owner (default: the mainnet program ID) and the
+//! discriminator before decoding, so a v4 (`SQDS4…`) account or a look-alike is rejected.
 
 use solana_account::Account;
 use solana_address::Address;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use squads_multisig_4r_program::account::ProgramAccount;
+use squads_multisig_4r_program::state::{Multisig, SpendingLimit, VaultTransaction};
 
-use crate::accounts::*;
-use crate::error::{ClientError, ClientResult};
-use crate::ID;
+use crate::error::ClientResult;
 
-/// An account type of this program, identified by its Anchor discriminator.
-pub trait ProgramAccount: Sized {
-    const DISCRIMINATOR: [u8; 8];
-    fn decode(data: &[u8]) -> std::io::Result<Self>;
-}
-
-macro_rules! program_accounts {
-    ($($ty:ident => $disc:ident),* $(,)?) => {
-        $(impl ProgramAccount for $ty {
-            const DISCRIMINATOR: [u8; 8] = $disc;
-            fn decode(data: &[u8]) -> std::io::Result<Self> { $ty::from_bytes(data) }
-        })*
-    };
-}
-
-program_accounts!(
-    Batch => BATCH_DISCRIMINATOR,
-    ConfigTransaction => CONFIG_TRANSACTION_DISCRIMINATOR,
-    Multisig => MULTISIG_DISCRIMINATOR,
-    ProgramConfig => PROGRAM_CONFIG_DISCRIMINATOR,
-    Proposal => PROPOSAL_DISCRIMINATOR,
-    SpendingLimit => SPENDING_LIMIT_DISCRIMINATOR,
-    TransactionBuffer => TRANSACTION_BUFFER_DISCRIMINATOR,
-    VaultBatchTransaction => VAULT_BATCH_TRANSACTION_DISCRIMINATOR,
-    VaultTransaction => VAULT_TRANSACTION_DISCRIMINATOR,
-);
-
-/// Decodes `account` as `T` after checking the owner (default: the mainnet program ID)
-/// and the discriminator.
+/// Decodes `account` as `T` after checking its owner and discriminator.
 pub fn decode_checked<T: ProgramAccount>(
     address: &Address,
     account: &Account,
     program_id: Option<&Address>,
 ) -> ClientResult<T> {
-    let expected = *program_id.unwrap_or(&ID);
-    if account.owner != expected {
-        return Err(ClientError::WrongOwner {
-            address: *address,
-            owner: account.owner,
-            expected,
-        });
-    }
-    if account.data.get(..8) != Some(&T::DISCRIMINATOR[..]) {
-        return Err(ClientError::WrongDiscriminator(*address));
-    }
-    T::decode(&account.data).map_err(|_| ClientError::Deserialization(*address))
+    Ok(squads_multisig_4r_program::account::decode_checked(
+        address,
+        &account.owner,
+        &account.data,
+        program_id,
+    )?)
 }
 
 pub async fn fetch<T: ProgramAccount>(

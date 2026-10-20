@@ -1,12 +1,22 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
+#[cfg(feature = "program")]
 use anchor_spl::token_2022::TransferChecked;
+#[cfg(feature = "program")]
 use anchor_spl::token_interface;
+#[cfg(feature = "program")]
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Clone)]
 pub struct SpendingLimitUseArgs {
     /// Amount of tokens to transfer.
     pub amount: u64,
@@ -16,6 +26,7 @@ pub struct SpendingLimitUseArgs {
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct SpendingLimitUse<'info> {
     /// The multisig account the `spending_limit` is for.
@@ -86,6 +97,7 @@ pub struct SpendingLimitUse<'info> {
     pub token_program: Option<Interface<'info, TokenInterface>>,
 }
 
+#[cfg(feature = "program")]
 impl SpendingLimitUse<'_> {
     fn validate(&self) -> Result<()> {
         let Self {

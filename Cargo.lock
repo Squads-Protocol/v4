@@ -4480,15 +4480,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spl-collections"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c92cbf30dd74a1aaedc93d1c4f8c08ed8b520103d27cdd8e646606a253839c86"
-dependencies = [
- "borsh",
-]
-
-[[package]]
 name = "spl-discriminator"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4664,19 +4655,10 @@ dependencies = [
 name = "squads-multisig-4r"
 version = "0.1.0"
 dependencies = [
- "borsh",
- "num-derive 0.4.2",
- "num-traits",
  "solana-account",
- "solana-account-info",
  "solana-address 2.9.0",
- "solana-cpi",
- "solana-instruction 3.5.1",
- "solana-message",
- "solana-program-error",
  "solana-rpc-client",
  "solana-rpc-client-api",
- "spl-collections",
  "squads-multisig-4r-program",
  "thiserror 2.0.21",
 ]
@@ -4716,10 +4698,15 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "borsh",
+ "serde_json",
+ "solana-address 2.9.0",
  "solana-address-lookup-table-interface",
  "solana-borsh",
+ "solana-instruction 3.5.1",
  "solana-program",
  "solana-security-txt",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

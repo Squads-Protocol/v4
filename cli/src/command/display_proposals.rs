@@ -6,12 +6,11 @@ use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::clock::Clock;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::sysvar;
-use squads_multisig_4r::accounts::{
-    Batch, ConfigTransaction, Multisig, Proposal, VaultTransaction,
-};
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig_4r::rpc::decode_checked;
-use squads_multisig_4r::types::ProposalStatus;
+use squads_multisig_4r::state::{
+    Batch, ConfigTransaction, Multisig, Proposal, ProposalStatus, VaultTransaction,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TxKind {

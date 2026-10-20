@@ -1,15 +1,23 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
+#[cfg(feature = "program")]
 #[allow(deprecated)]
 use solana_borsh::v1::get_instance_packed_len;
 
 use crate::errors::*;
 use crate::instructions::{CompiledInstruction, MessageAddressTableLookup, TransactionMessage};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 
 /// Stores data required for tracking the voting and execution status of a vault transaction.
 /// Vault transaction is a transaction that's executed on behalf of the multisig vault PDA
 /// and wraps arbitrary Solana instructions, typically calling into other Solana programs.
-#[account]
-#[derive(Default)]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct VaultTransaction {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -36,6 +44,7 @@ pub struct VaultTransaction {
 }
 
 impl VaultTransaction {
+    #[cfg(feature = "program")]
     pub fn size(ephemeral_signers_length: u8, transaction_message: &[u8]) -> Result<usize> {
         let transaction_message: VaultTransactionMessage =
             TransactionMessage::deserialize(&mut &transaction_message[..])?.try_into()?;
@@ -60,7 +69,9 @@ impl VaultTransaction {
     }
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct VaultTransactionMessage {
     /// The number of signer pubkeys in the account_keys vec.
     pub num_signers: u8,
@@ -132,9 +143,13 @@ impl VaultTransactionMessage {
 }
 
 impl TryFrom<TransactionMessage> for VaultTransactionMessage {
-    type Error = Error;
+    type Error = MultisigError;
 
-    fn try_from(message: TransactionMessage) -> Result<Self> {
+    fn try_from(message: TransactionMessage) -> core::result::Result<Self, Self::Error> {
+        let check = |valid: bool| match valid {
+            true => Ok(()),
+            false => Err(MultisigError::InvalidTransactionMessage),
+        };
         let account_keys: Vec<Pubkey> = message.account_keys.into();
         let instructions: Vec<CompiledInstruction> = message.instructions.into();
         let instructions: Vec<MultisigCompiledInstruction> = instructions
@@ -150,34 +165,21 @@ impl TryFrom<TransactionMessage> for VaultTransactionMessage {
                 .map(|lookup| lookup.writable_indexes.len() + lookup.readonly_indexes.len())
                 .sum::<usize>();
 
-        require!(
-            usize::from(message.num_signers) <= account_keys.len(),
-            MultisigError::InvalidTransactionMessage
-        );
-        require!(
-            message.num_writable_signers <= message.num_signers,
-            MultisigError::InvalidTransactionMessage
-        );
-        require!(
+        check(usize::from(message.num_signers) <= account_keys.len())?;
+        check(message.num_writable_signers <= message.num_signers)?;
+        check(
             usize::from(message.num_writable_non_signers)
                 <= account_keys
                     .len()
                     .saturating_sub(usize::from(message.num_signers)),
-            MultisigError::InvalidTransactionMessage
-        );
+        )?;
 
         // Validate that all program ID indices and account indices are within the bounds of the account keys.
         for instruction in &instructions {
-            require!(
-                usize::from(instruction.program_id_index) < num_all_account_keys,
-                MultisigError::InvalidTransactionMessage
-            );
+            check(usize::from(instruction.program_id_index) < num_all_account_keys)?;
 
             for account_index in &instruction.account_indexes {
-                require!(
-                    usize::from(*account_index) < num_all_account_keys,
-                    MultisigError::InvalidTransactionMessage
-                );
+                check(usize::from(*account_index) < num_all_account_keys)?;
             }
         }
 
@@ -197,7 +199,9 @@ impl TryFrom<TransactionMessage> for VaultTransactionMessage {
 
 /// Concise serialization schema for instructions that make up a transaction.
 /// Closely mimics the Solana transaction wire format.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MultisigCompiledInstruction {
     pub program_id_index: u8,
     /// Indices into the tx's `account_keys` list indicating which accounts to pass to the instruction.
@@ -218,7 +222,9 @@ impl From<CompiledInstruction> for MultisigCompiledInstruction {
 
 /// Address table lookups describe an on-chain address lookup table to use
 /// for loading more readonly and writable accounts into a transaction.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MultisigMessageAddressTableLookup {
     /// Address lookup table account key.
     pub account_key: Pubkey,

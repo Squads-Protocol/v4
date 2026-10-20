@@ -1,50 +1,61 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigAddMemberArgs {
     pub new_member: Member,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigRemoveMemberArgs {
     pub old_member: Pubkey,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigChangeThresholdArgs {
     pub new_threshold: u16,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigSetTimeLockArgs {
     pub time_lock: u32,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigSetConfigAuthorityArgs {
     pub config_authority: Pubkey,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigSetRentCollectorArgs {
     pub rent_collector: Option<Pubkey>,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct MultisigConfig<'info> {
     #[account(
@@ -67,6 +78,7 @@ pub struct MultisigConfig<'info> {
     pub system_program: Option<Program<'info, System>>,
 }
 
+#[cfg(feature = "program")]
 impl MultisigConfig<'_> {
     fn validate(&self) -> Result<()> {
         require_keys_eq!(
