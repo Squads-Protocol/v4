@@ -3,13 +3,14 @@
 //! An omitted optional account (`None`) is encoded as the program ID, as Anchor expects.
 
 use solana_address::Address;
-use solana_instruction::AccountMeta;
+use solana_instruction::{AccountMeta, Instruction};
 
 use crate::error::{CoreError, CoreResult};
 use crate::prelude::BorshSerialize;
 
 mod batch;
 mod config_transaction;
+mod log_event;
 mod multisig;
 mod program_config;
 mod proposal;
@@ -19,12 +20,24 @@ mod vault_transaction;
 
 pub use batch::*;
 pub use config_transaction::*;
+pub use log_event::*;
 pub use multisig::*;
 pub use program_config::*;
 pub use proposal::*;
 pub use spending_limit::*;
 pub use transaction_buffer::*;
 pub use vault_transaction::*;
+
+/// Enables events: appends the program ID as a trailing read-only account. Apply it last, after
+/// any remaining accounts. A no-op for [`crate::LEGACY_V4_PROGRAM_ID`], which has no events.
+pub fn with_events(mut instruction: Instruction) -> Instruction {
+    if instruction.program_id != crate::LEGACY_V4_PROGRAM_ID {
+        instruction
+            .accounts
+            .push(meta(instruction.program_id, false, false));
+    }
+    instruction
+}
 
 /// The System Program address, for the `system_program` accounts.
 pub const SYSTEM_PROGRAM_ID: Address = Address::new_from_array([0; 32]);

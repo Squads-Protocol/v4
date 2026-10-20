@@ -10,7 +10,8 @@ crate-type = ["cdylib", "lib"]
 name = "squads_multisig_4r_program"
 
 [features]
-default = ["program", "custom-heap"]
+# `no-log-ix-name`: no "Instruction: <name>" log line. Events replace log-based indexing.
+default = ["program", "custom-heap", "no-log-ix-name", "custom-entrypoint"]
 # The Anchor program: handlers, entrypoint, CPI module and IDL. Without it, only the core
 # types, builders and helpers are compiled (no Anchor, no solana-program).
 program = [
@@ -25,6 +26,10 @@ custom-heap = ["program"]
 custom-panic = ["program"]
 anchor-debug = ["program"]
 no-entrypoint = ["program"]
+# Our entrypoint (src/entrypoint.rs): `log_event` returns before Anchor's dispatch. It replaces
+# Anchor's entrypoint, so it turns on `no-entrypoint`. Libraries use `cpi` or the core
+# (`default-features = false`), never `no-entrypoint` with the default features.
+custom-entrypoint = ["program", "no-entrypoint"]
 no-idl = ["program"]
 no-log-ix-name = ["program"]
 cpi = ["program", "no-entrypoint"]

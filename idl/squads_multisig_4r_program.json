@@ -1279,6 +1279,41 @@
       "args": []
     },
     {
+      "name": "log_event",
+      "docs": [
+        "Carry an event in the instruction data. Only the program itself calls it, through a CPI."
+      ],
+      "discriminator": [
+        5,
+        9,
+        90,
+        141,
+        223,
+        134,
+        57,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "log_authority",
+          "docs": [
+            "A `Multisig` or `ProgramConfig` PDA. Only this program can sign for it."
+          ],
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "LogEventArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "multisig_add_member",
       "docs": [
         "Add a new member to the controlled multisig."
@@ -5001,6 +5036,11 @@
       "code": 6044,
       "name": "MultisigCreateDeprecated",
       "msg": "multisig_create has been deprecated. Use multisig_create_v2 instead."
+    },
+    {
+      "code": 6045,
+      "name": "ProtectedInstruction",
+      "msg": "Instruction is protected: log_event runs only as a self-CPI by the program"
     }
   ],
   "types": [
@@ -5329,6 +5369,21 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "LogEventArgs",
+      "docs": [
+        "`event` is a borsh-encoded [`crate::events::MultisigEvent`]."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "event",
+            "type": "bytes"
           }
         ]
       }

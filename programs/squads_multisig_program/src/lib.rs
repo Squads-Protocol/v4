@@ -12,7 +12,14 @@
 pub use ::anchor_lang;
 #[cfg(feature = "program")]
 use anchor_lang::prelude::*;
-#[cfg(all(feature = "program", not(feature = "no-entrypoint")))]
+// The build has an entrypoint: Anchor's, or ours (`custom-entrypoint`) when it is not a CPI client.
+#[cfg(all(
+    feature = "program",
+    any(
+        not(feature = "no-entrypoint"),
+        all(feature = "custom-entrypoint", not(feature = "cpi"))
+    )
+))]
 use solana_security_txt::security_txt;
 
 #[cfg(feature = "program")]
@@ -26,8 +33,11 @@ pub mod account;
 pub mod allocator;
 pub mod builders;
 pub mod discriminator;
+#[cfg(all(feature = "custom-entrypoint", not(feature = "cpi")))]
+mod entrypoint;
 pub mod error;
 pub mod errors;
+pub mod events;
 pub mod instructions;
 pub mod message;
 pub mod pda;
@@ -35,7 +45,13 @@ pub mod prelude;
 pub mod state;
 mod utils;
 
-#[cfg(all(feature = "program", not(feature = "no-entrypoint")))]
+#[cfg(all(
+    feature = "program",
+    any(
+        not(feature = "no-entrypoint"),
+        all(feature = "custom-entrypoint", not(feature = "cpi"))
+    )
+))]
 security_txt! {
     name: "Squads Multisig 4r Program",
     project_url: "https://squads.so",
@@ -346,5 +362,10 @@ pub mod squads_multisig_4r_program {
     /// in the `batch` are already closed: `batch.size == 0`.
     pub fn batch_accounts_close(ctx: Context<BatchAccountsClose>) -> Result<()> {
         BatchAccountsClose::batch_accounts_close(ctx)
+    }
+
+    /// Carry an event in the instruction data. Only the program itself calls it, through a CPI.
+    pub fn log_event(ctx: Context<LogEvent>, args: LogEventArgs) -> Result<()> {
+        LogEvent::log_event(ctx, args)
     }
 }

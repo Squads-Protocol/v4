@@ -6,10 +6,28 @@ use solana_rpc_client_api::{
     request::{RpcError, RpcResponseErrorData},
     response::RpcSimulateTransactionResult,
 };
+use solana_sdk::instruction::Instruction;
+use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
+use squads_multisig_4r::builders;
 use squads_multisig_4r::state::{Permissions, VaultTransactionMessage};
 
 pub use crate::signer::signer_from_path;
+
+/// Enables events on the instructions to `program_id`: each one gets the program ID as a trailing
+/// account ([`builders::with_events`]). Other instructions do not change.
+pub fn with_events(
+    instructions: impl IntoIterator<Item = Instruction>,
+    program_id: &Pubkey,
+) -> Vec<Instruction> {
+    instructions
+        .into_iter()
+        .map(|instruction| match instruction.program_id == *program_id {
+            true => builders::with_events(instruction),
+            false => instruction,
+        })
+        .collect()
+}
 
 /// A multisig member permission; the value is its bit in `Permissions::mask`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

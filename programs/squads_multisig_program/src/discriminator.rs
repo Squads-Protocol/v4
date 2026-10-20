@@ -23,6 +23,7 @@ pub mod instruction {
     pub const CONFIG_TRANSACTION_ACCOUNTS_CLOSE: [u8; 8] = [80, 203, 84, 53, 151, 112, 187, 186];
     pub const CONFIG_TRANSACTION_CREATE: [u8; 8] = [155, 236, 87, 228, 137, 75, 81, 39];
     pub const CONFIG_TRANSACTION_EXECUTE: [u8; 8] = [114, 146, 244, 189, 252, 140, 36, 40];
+    pub const LOG_EVENT: [u8; 8] = [5, 9, 90, 141, 223, 134, 57, 217];
     pub const MULTISIG_ADD_MEMBER: [u8; 8] = [1, 219, 215, 108, 184, 229, 214, 8];
     pub const MULTISIG_ADD_SPENDING_LIMIT: [u8; 8] = [11, 242, 159, 42, 86, 197, 89, 115];
     pub const MULTISIG_CHANGE_THRESHOLD: [u8; 8] = [141, 42, 15, 126, 169, 92, 62, 181];

@@ -12,14 +12,17 @@ import {
   createSolanaRpcSubscriptions,
   createTransactionMessage,
   generateKeyPairSigner,
+  getSignatureFromTransaction,
   lamports,
   pipe,
   sendAndConfirmTransactionFactory,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
+  type Address,
   type Instruction,
   type KeyPairSigner,
+  type Signature,
 } from "@solana/kit";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -34,12 +37,17 @@ import {
   findTransactionPda,
   findVaultPda,
   getMultisigCreateV2InstructionAsync,
+  getMultisigEventsFromTransaction,
   getProgramConfigInitInstructionAsync,
   getProposalApproveInstruction,
   getProposalCreateInstruction,
   getTransactionMessageBytes,
   getVaultTransactionCreateInstruction,
   getVaultTransactionExecuteInstructionWithAccounts,
+  ProposalEventKind,
+  TransactionEventKind,
+  withEvents,
+  type MultisigEvent,
 } from "../../src";
 
 // Runs against `solana-test-validator` with the program built with `--features testing`.
@@ -62,6 +70,16 @@ async function send(payer: KeyPairSigner, instructions: Instruction[]) {
   );
   const signed = await signTransactionMessageWithSigners(message);
   await sendAndConfirm(signed as Parameters<typeof sendAndConfirm>[0], { commitment: "confirmed" });
+  return getSignatureFromTransaction(signed);
+}
+
+/** The verified events of a confirmed transaction. */
+async function eventsOf(signature: Signature, program: Address): Promise<MultisigEvent[]> {
+  const transaction = await rpc
+    .getTransaction(signature, { commitment: "confirmed", encoding: "json", maxSupportedTransactionVersion: 0 })
+    .send();
+  if (!transaction) throw new Error("transaction not found");
+  return getMultisigEventsFromTransaction(transaction, program);
 }
 
 async function fundedSigner(sol: bigint): Promise<KeyPairSigner> {
@@ -144,16 +162,23 @@ describe("vault transaction flow on a local validator", () => {
       getProposalApproveInstruction({ multisig, member: payer, proposal, memo: null }, config),
     ]);
     const { data: vaultTransaction } = await fetchVaultTransactionChecked(rpc, transaction, config);
-    await send(payer, [
-      await getVaultTransactionExecuteInstructionWithAccounts(
-        { multisig, proposal, transaction, member: payer, message: vaultTransaction.message, vaultIndex: 0 },
-        config,
+    const execute = await send(payer, [
+      withEvents(
+        await getVaultTransactionExecuteInstructionWithAccounts(
+          { multisig, proposal, transaction, member: payer, message: vaultTransaction.message, vaultIndex: 0 },
+          config,
+        ),
       ),
     ]);
 
     // Assert
     const { value: received } = await rpc.getBalance(recipient, { commitment: "confirmed" }).send();
     expect(received).toBe(1_000_000n);
+    const events = await eventsOf(execute, TEST_PROGRAM);
+    expect(events).toMatchObject([
+      { __kind: "Transaction", kind: TransactionEventKind.Execute, multisig, transaction, transactionIndex },
+      { __kind: "Proposal", kind: ProposalEventKind.Execute, multisig, proposal, transactionIndex },
+    ]);
   });
 
   it("refuses to decode a 4r-layout account owned by another program ID", async () => {

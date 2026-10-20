@@ -1,5 +1,12 @@
 #[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, LogAuthority, MultisigEvent, ProgramConfigEvent, ProgramConfigEventKind,
+};
 #[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
@@ -63,6 +70,23 @@ impl ProgramConfigInit<'_> {
 
         program_config.invariant()?;
 
-        Ok(())
+        let enabled = events::enabled(ctx.remaining_accounts);
+        if enabled {
+            // `log_event` checks the discriminator, so the new account must be written first.
+            ctx.accounts.program_config.exit(&crate::ID)?;
+        }
+        let program_config = &ctx.accounts.program_config;
+        events::emit(
+            enabled,
+            || LogAuthority::program_config(program_config, ctx.bumps.program_config),
+            || {
+                vec![MultisigEvent::ProgramConfig(ProgramConfigEvent {
+                    kind: ProgramConfigEventKind::Init,
+                    program_config: program_config.key(),
+                    authority: ctx.accounts.initializer.key(),
+                    snapshot: Cow::Borrowed(program_config),
+                })]
+            },
+        )
     }
 }

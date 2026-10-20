@@ -1,8 +1,15 @@
 #[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
 #[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, LogAuthority, MultisigEvent, TransactionContent, TransactionEvent, TransactionEventKind,
+};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 #[cfg(feature = "program")]
@@ -106,9 +113,22 @@ impl BatchCreate<'_> {
 
         multisig.invariant()?;
 
-        // Logs for indexing.
-        msg!("batch index: {}", index);
-
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        let transaction = &ctx.accounts.batch;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::Transaction(TransactionEvent {
+                    kind: TransactionEventKind::Create,
+                    multisig: multisig.key(),
+                    transaction: transaction.key(),
+                    transaction_index: index,
+                    member: Some(ctx.accounts.creator.key()),
+                    memo: args.memo,
+                    content: Some(TransactionContent::Batch(Cow::Borrowed(transaction))),
+                })]
+            },
+        )
     }
 }

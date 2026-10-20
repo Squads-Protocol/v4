@@ -22,7 +22,9 @@ use squads_multisig_4r::instructions::{
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig_4r::rpc::fetch_multisig;
 
-use crate::utils::{has_permission, send_and_confirm_transaction, signer_from_path, Permission};
+use crate::utils::{
+    has_permission, send_and_confirm_transaction, signer_from_path, with_events, Permission,
+};
 
 /// Create a new vault transaction and activate its proposal for voting.
 #[derive(Args)]
@@ -171,7 +173,13 @@ impl VaultTransactionCreate {
             .await
             .expect("Failed to get blockhash");
 
-        let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
+        let message = Message::try_compile(
+            &payer,
+            &with_events(instructions, &program_id),
+            &[],
+            blockhash,
+        )
+        .unwrap();
         let message_hash = hash(&message.serialize());
 
         println!();

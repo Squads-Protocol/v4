@@ -15,7 +15,7 @@ use solana_system_interface::program as system_program;
 use squads_multisig_4r::builders::VaultTransactionAccountsClose as VaultTransactionAccountsCloseAccounts;
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 
-use crate::utils::{send_and_confirm_transaction, signer_from_path};
+use crate::utils::{send_and_confirm_transaction, signer_from_path, with_events};
 
 /// Reclaim rent by closing the accounts of an executed, rejected, or cancelled vault transaction.
 #[derive(Args)]
@@ -123,19 +123,22 @@ impl VaultTransactionAccountsClose {
         let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
             &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                VaultTransactionAccountsCloseAccounts {
-                    multisig,
-                    proposal: proposal_pda.0,
-                    rent_collector: rent_collector_key,
-                    transaction: transaction_pda.0,
-                    system_program: system_program::ID,
-                }
-                .instruction(Some(&program_id)),
-            ],
+            &with_events(
+                [
+                    ComputeBudgetInstruction::set_compute_unit_price(
+                        priority_fee_lamports.unwrap_or(5000),
+                    ),
+                    VaultTransactionAccountsCloseAccounts {
+                        multisig,
+                        proposal: proposal_pda.0,
+                        rent_collector: rent_collector_key,
+                        transaction: transaction_pda.0,
+                        system_program: system_program::ID,
+                    }
+                    .instruction(Some(&program_id)),
+                ],
+                &program_id,
+            ),
             &[],
             blockhash,
         )

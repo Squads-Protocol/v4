@@ -70,6 +70,7 @@ import {
   getConfigTransactionAccountsCloseInstruction,
   getConfigTransactionCreateInstruction,
   getConfigTransactionExecuteInstruction,
+  getLogEventInstruction,
   getMultisigAddMemberInstruction,
   getMultisigAddSpendingLimitInstruction,
   getMultisigChangeThresholdInstruction,
@@ -106,6 +107,7 @@ import {
   parseConfigTransactionAccountsCloseInstruction,
   parseConfigTransactionCreateInstruction,
   parseConfigTransactionExecuteInstruction,
+  parseLogEventInstruction,
   parseMultisigAddMemberInstruction,
   parseMultisigAddSpendingLimitInstruction,
   parseMultisigChangeThresholdInstruction,
@@ -142,6 +144,7 @@ import {
   type ConfigTransactionAccountsCloseInput,
   type ConfigTransactionCreateInput,
   type ConfigTransactionExecuteInput,
+  type LogEventInput,
   type MultisigAddMemberInput,
   type MultisigAddSpendingLimitInput,
   type MultisigChangeThresholdInput,
@@ -159,6 +162,7 @@ import {
   type ParsedConfigTransactionAccountsCloseInstruction,
   type ParsedConfigTransactionCreateInstruction,
   type ParsedConfigTransactionExecuteInstruction,
+  type ParsedLogEventInstruction,
   type ParsedMultisigAddMemberInstruction,
   type ParsedMultisigAddSpendingLimitInstruction,
   type ParsedMultisigChangeThresholdInstruction,
@@ -352,6 +356,7 @@ export enum SquadsMultisig4rInstruction {
   ConfigTransactionAccountsClose,
   ConfigTransactionCreate,
   ConfigTransactionExecute,
+  LogEvent,
   MultisigAddMember,
   MultisigAddSpendingLimit,
   MultisigChangeThreshold,
@@ -463,6 +468,17 @@ export function identifySquadsMultisig4rInstruction(
     )
   ) {
     return SquadsMultisig4rInstruction.ConfigTransactionExecute;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([5, 9, 90, 141, 223, 134, 57, 217]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.LogEvent;
   }
   if (
     containsBytes(
@@ -814,6 +830,9 @@ export type ParsedSquadsMultisig4rInstruction<
       instructionType: SquadsMultisig4rInstruction.ConfigTransactionExecute;
     } & ParsedConfigTransactionExecuteInstruction<TProgram>)
   | ({
+      instructionType: SquadsMultisig4rInstruction.LogEvent;
+    } & ParsedLogEventInstruction<TProgram>)
+  | ({
       instructionType: SquadsMultisig4rInstruction.MultisigAddMember;
     } & ParsedMultisigAddMemberInstruction<TProgram>)
   | ({
@@ -954,6 +973,13 @@ export function parseSquadsMultisig4rInstruction<TProgram extends string>(
       return {
         instructionType: SquadsMultisig4rInstruction.ConfigTransactionExecute,
         ...parseConfigTransactionExecuteInstruction(instruction),
+      };
+    }
+    case SquadsMultisig4rInstruction.LogEvent: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: SquadsMultisig4rInstruction.LogEvent,
+        ...parseLogEventInstruction(instruction),
       };
     }
     case SquadsMultisig4rInstruction.MultisigAddMember: {
@@ -1233,6 +1259,9 @@ export type SquadsMultisig4rPluginInstructions = {
     input: ConfigTransactionExecuteInput,
   ) => ReturnType<typeof getConfigTransactionExecuteInstruction> &
     SelfPlanAndSendFunctions;
+  logEvent: (
+    input: LogEventInput,
+  ) => ReturnType<typeof getLogEventInstruction> & SelfPlanAndSendFunctions;
   multisigAddMember: (
     input: MultisigAddMemberInput,
   ) => ReturnType<typeof getMultisigAddMemberInstruction> &
@@ -1436,6 +1465,8 @@ export function squadsMultisig4rProgram() {
               client,
               getConfigTransactionExecuteInstruction(input),
             ),
+          logEvent: (input) =>
+            addSelfPlanAndSendFunctions(client, getLogEventInstruction(input)),
           multisigAddMember: (input) =>
             addSelfPlanAndSendFunctions(
               client,

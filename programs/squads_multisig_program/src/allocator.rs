@@ -129,7 +129,13 @@ unsafe impl std::alloc::GlobalAlloc for BumpAllocator {
 }
 
 // Only use the allocator on-chain (the SBF heap address does not exist on the host)
-// and only when the program provides its own entrypoint.
-#[cfg(all(target_os = "solana", not(feature = "no-entrypoint")))]
+// and only when the build has an entrypoint (the same condition as `security_txt!` in lib.rs).
+#[cfg(all(
+    target_os = "solana",
+    any(
+        not(feature = "no-entrypoint"),
+        all(feature = "custom-entrypoint", not(feature = "cpi"))
+    )
+))]
 #[global_allocator]
 static A: BumpAllocator = BumpAllocator;

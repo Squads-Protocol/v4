@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 
 #[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{self, proposal_event, LogAuthority, ProposalEventKind};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 #[cfg(feature = "program")]
@@ -114,6 +116,17 @@ impl ProposalCreate<'_> {
         proposal.rejected = vec![];
         proposal.cancelled = vec![];
 
-        Ok(())
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![proposal_event(
+                    ProposalEventKind::Create,
+                    &ctx.accounts.proposal,
+                    Some(ctx.accounts.creator.key()),
+                    None,
+                )]
+            },
+        )
     }
 }

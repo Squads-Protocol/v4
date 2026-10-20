@@ -66,6 +66,11 @@ jobs:
           cargo clippy -p squads-multisig-4r-program --no-default-features --all-targets -- -D warnings
           cargo test -p squads-multisig-4r-program --no-default-features
 
+      - name: Program entrypoint variants (cpi client, Anchor entrypoint)
+        run: |
+          cargo clippy -p squads-multisig-4r-program --features cpi --all-targets -- -D warnings
+          cargo clippy -p squads-multisig-4r-program --no-default-features --features program,custom-heap,no-log-ix-name --all-targets -- -D warnings
+
       - name: Core dependency tree has no Anchor or solana-program
         shell: bash
         run: |

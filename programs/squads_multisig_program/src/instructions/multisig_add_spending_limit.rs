@@ -1,8 +1,15 @@
 #[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
 #[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, ConfigSource, LogAuthority, MultisigEvent, SpendingLimitEvent, SpendingLimitEventKind,
+};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 use crate::state::*;
@@ -111,6 +118,23 @@ impl MultisigAddSpendingLimit<'_> {
 
         spending_limit.invariant()?;
 
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        let spending_limit = &ctx.accounts.spending_limit;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::SpendingLimit(SpendingLimitEvent {
+                    kind: SpendingLimitEventKind::Add,
+                    multisig: multisig.key(),
+                    spending_limit: spending_limit.key(),
+                    source: ConfigSource::ConfigAuthority {
+                        authority: ctx.accounts.config_authority.key(),
+                    },
+                    memo: args.memo,
+                    snapshot: Some(Cow::Borrowed(spending_limit)),
+                })]
+            },
+        )
     }
 }

@@ -13,6 +13,7 @@ export * from "./batchExecuteTransaction";
 export * from "./configTransactionAccountsClose";
 export * from "./configTransactionCreate";
 export * from "./configTransactionExecute";
+export * from "./logEvent";
 export * from "./multisigAddMember";
 export * from "./multisigAddSpendingLimit";
 export * from "./multisigChangeThreshold";

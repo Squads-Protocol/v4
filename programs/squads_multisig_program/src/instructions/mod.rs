@@ -5,6 +5,7 @@ pub use batch_execute_transaction::*;
 pub use config_transaction_create::*;
 #[cfg(feature = "program")]
 pub use config_transaction_execute::*;
+pub use log_event::*;
 pub use multisig_add_spending_limit::*;
 pub use multisig_config::*;
 pub use multisig_create::*;
@@ -35,6 +36,7 @@ mod batch_execute_transaction;
 mod config_transaction_create;
 #[cfg(feature = "program")]
 mod config_transaction_execute;
+mod log_event;
 mod multisig_add_spending_limit;
 mod multisig_config;
 mod multisig_create;

@@ -15,7 +15,7 @@ use solana_system_interface::program as system_program;
 use squads_multisig_4r::builders::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
 use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 
-use crate::utils::{send_and_confirm_transaction, signer_from_path};
+use crate::utils::{send_and_confirm_transaction, signer_from_path, with_events};
 
 /// Execute an approved config transaction on-chain.
 #[derive(Args)]
@@ -117,20 +117,23 @@ impl ConfigTransactionExecute {
         let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
             &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                ConfigTransactionExecuteAccounts {
-                    member: transaction_creator,
-                    transaction: transaction_pda.0,
-                    rent_payer: Some(fee_payer.unwrap_or(transaction_creator)),
-                    multisig,
-                    proposal: proposal_pda.0,
-                    system_program: Some(system_program::ID),
-                }
-                .instruction(Some(&program_id)),
-            ],
+            &with_events(
+                [
+                    ComputeBudgetInstruction::set_compute_unit_price(
+                        priority_fee_lamports.unwrap_or(5000),
+                    ),
+                    ConfigTransactionExecuteAccounts {
+                        member: transaction_creator,
+                        transaction: transaction_pda.0,
+                        rent_payer: Some(fee_payer.unwrap_or(transaction_creator)),
+                        multisig,
+                        proposal: proposal_pda.0,
+                        system_program: Some(system_program::ID),
+                    }
+                    .instruction(Some(&program_id)),
+                ],
+                &program_id,
+            ),
             &[],
             blockhash,
         )

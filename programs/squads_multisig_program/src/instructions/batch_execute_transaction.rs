@@ -1,6 +1,10 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
+use crate::events::{
+    self, proposal_event, split_event_account, BatchTransactionEvent, BatchTransactionEventKind,
+    LogAuthority, MultisigEvent, ProposalEventKind,
+};
 use crate::state::*;
 use crate::utils::*;
 
@@ -128,13 +132,17 @@ impl BatchExecuteTransaction<'_> {
 
         let transaction_message = transaction.message;
         let num_lookups = transaction_message.address_table_lookups.len();
+        let (remaining_accounts, events_enabled) = split_event_account(
+            ctx.remaining_accounts,
+            num_lookups + transaction_message.num_all_account_keys(),
+            &crate::ID,
+            |account| account.key,
+        );
 
-        let message_account_infos = ctx
-            .remaining_accounts
+        let message_account_infos = remaining_accounts
             .get(num_lookups..)
             .ok_or(MultisigError::InvalidNumberOfAccounts)?;
-        let address_lookup_table_account_infos = ctx
-            .remaining_accounts
+        let address_lookup_table_account_infos = remaining_accounts
             .get(..num_lookups)
             .ok_or(MultisigError::InvalidNumberOfAccounts)?;
 
@@ -180,6 +188,33 @@ impl BatchExecuteTransaction<'_> {
 
         batch.invariant()?;
 
-        Ok(())
+        let batch = &ctx.accounts.batch;
+        let member = ctx.accounts.member.key();
+        let last = batch.executed_transaction_index == batch.size;
+        events::emit(
+            events_enabled,
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                std::iter::once(MultisigEvent::BatchTransaction(BatchTransactionEvent {
+                    kind: BatchTransactionEventKind::Execute,
+                    multisig: multisig_key,
+                    batch: batch_key,
+                    transaction: ctx.accounts.transaction.key(),
+                    batch_index: batch.index,
+                    transaction_index: batch.executed_transaction_index,
+                    member: Some(member),
+                    snapshot: None,
+                }))
+                .chain(last.then(|| {
+                    proposal_event(
+                        ProposalEventKind::Execute,
+                        &ctx.accounts.proposal,
+                        Some(member),
+                        None,
+                    )
+                }))
+                .collect()
+            },
+        )
     }
 }

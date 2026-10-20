@@ -7,6 +7,6 @@ pub mod error;
 pub mod rpc;
 
 pub use squads_multisig_4r_program::{
-    account, builders, discriminator, errors, instructions, message, pda, prelude, state, SmallVec,
-    ID, LEGACY_V4_PROGRAM_ID,
+    account, builders, discriminator, errors, events, instructions, message, pda, prelude, state,
+    SmallVec, ID, LEGACY_V4_PROGRAM_ID,
 };

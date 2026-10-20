@@ -19,7 +19,7 @@ use squads_multisig_4r::pda::{get_multisig_pda, get_program_config_pda};
 use squads_multisig_4r::rpc::decode_checked;
 use squads_multisig_4r::state::{Member, Permissions, ProgramConfig};
 
-use crate::utils::{send_and_confirm_transaction, signer_from_path};
+use crate::utils::{send_and_confirm_transaction, signer_from_path, with_events};
 
 /// Create a new Squads multisig with the specified members and threshold.
 #[derive(Args)]
@@ -185,30 +185,33 @@ impl MultisigCreate {
         let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
             &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                MultisigCreateV2 {
-                    create_key: seed_keypair.pubkey(),
-                    creator: transaction_creator,
-                    multisig: multisig_key.0,
-                    system_program: system_program::ID,
-                    program_config: program_config_pda.0,
-                    treasury,
-                }
-                .instruction(
-                    MultisigCreateArgsV2 {
-                        config_authority,
-                        members,
-                        threshold,
-                        time_lock: 0,
-                        memo: None,
-                        rent_collector,
-                    },
-                    Some(&program_id),
-                )?,
-            ],
+            &with_events(
+                [
+                    ComputeBudgetInstruction::set_compute_unit_price(
+                        priority_fee_lamports.unwrap_or(5000),
+                    ),
+                    MultisigCreateV2 {
+                        create_key: seed_keypair.pubkey(),
+                        creator: transaction_creator,
+                        multisig: multisig_key.0,
+                        system_program: system_program::ID,
+                        program_config: program_config_pda.0,
+                        treasury,
+                    }
+                    .instruction(
+                        MultisigCreateArgsV2 {
+                            config_authority,
+                            members,
+                            threshold,
+                            time_lock: 0,
+                            memo: None,
+                            rent_collector,
+                        },
+                        Some(&program_id),
+                    )?,
+                ],
+                &program_id,
+            ),
             &[],
             blockhash,
         )

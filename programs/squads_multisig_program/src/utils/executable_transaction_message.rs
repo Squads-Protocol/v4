@@ -8,6 +8,7 @@ use solana_program::instruction::Instruction;
 use solana_program::program::invoke_signed;
 
 use crate::errors::*;
+use crate::events::is_log_event_call;
 use crate::state::*;
 
 /// Sanitized and validated combination of a `MsTransactionMessage` and `AccountInfo`s it references.
@@ -208,6 +209,11 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::ProtectedAccount
                 );
             }
+            // Only the program itself may emit events.
+            require!(
+                !is_log_event_call(&ix.program_id, &ix.data, &crate::ID),
+                MultisigError::ProtectedInstruction
+            );
             invoke_signed(ix, account_infos, &signer_seeds)?;
         }
         Ok(())

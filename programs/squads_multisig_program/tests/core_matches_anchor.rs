@@ -466,3 +466,30 @@ fn account_discriminators_match_anchor() {
     check::<VaultBatchTransaction>();
     check::<VaultTransaction>();
 }
+
+#[test]
+fn log_event_builder_matches_anchor() {
+    // Arrange
+    let builder = builders::LogEvent {
+        log_authority: unique(),
+    };
+    let args = || LogEventArgs { event: vec![7; 40] };
+
+    // Act
+    let core = builder.instruction(args(), None).expect("builder");
+    let anchor = Instruction {
+        program_id: program::ID,
+        accounts: program::accounts::LogEvent {
+            log_authority: builder.log_authority,
+        }
+        .to_account_metas(None),
+        data: program::instruction::LogEvent { args: args() }.data(),
+    };
+
+    // Assert
+    assert_eq!(core, anchor);
+    assert_eq!(
+        program::instruction::LogEvent::DISCRIMINATOR,
+        squads_multisig_4r_program::discriminator::instruction::LOG_EVENT
+    );
+}

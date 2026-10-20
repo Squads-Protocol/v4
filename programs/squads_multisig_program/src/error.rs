@@ -30,6 +30,10 @@ pub enum CoreError {
     AddressTableLookupIndexOverflow,
     #[error("invalid transaction message")]
     InvalidTransactionMessage,
+    #[error("log_event data does not decode as a multisig event")]
+    InvalidEventData,
+    #[error("log_event is not signed by the multisig (or program config) that the event names")]
+    EventAuthorityMismatch,
 }
 
 pub type CoreResult<T> = Result<T, CoreError>;

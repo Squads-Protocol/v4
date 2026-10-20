@@ -29,7 +29,9 @@ use crate::command::transfer_common::{
     fetch_mint_decimals_and_token_program, format_token_amount, parse_pubkey,
     resolve_recipient_token_account,
 };
-use crate::utils::{has_permission, send_and_confirm_transaction, signer_from_path, Permission};
+use crate::utils::{
+    has_permission, send_and_confirm_transaction, signer_from_path, with_events, Permission,
+};
 
 /// Batch native SOL (`SystemProgram::transfer`) and SPL token transfers from the vault in one
 /// Squads vault transaction. Pass each leg with `--transfer` (repeatable):
@@ -329,7 +331,13 @@ impl InitiateBatchTransfer {
             .await
             .expect("Failed to get blockhash");
 
-        let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
+        let message = Message::try_compile(
+            &payer,
+            &with_events(instructions, &program_id),
+            &[],
+            blockhash,
+        )
+        .unwrap();
         let message_hash = hash(&message.serialize());
 
         println!();

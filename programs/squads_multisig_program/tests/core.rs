@@ -659,3 +659,42 @@ fn legacy_v4_program_id_targets_the_frozen_program() {
         .iter()
         .all(|meta| *meta == AccountMeta::new_readonly(LEGACY_V4_PROGRAM_ID, false)));
 }
+
+#[test]
+fn log_event_builder_and_discriminator_match_the_idl() {
+    // Arrange
+    let idl = idl();
+    let entry = idl["instructions"]
+        .as_array()
+        .expect("instructions")
+        .iter()
+        .find(|instruction| instruction["name"] == "log_event")
+        .expect("log_event in the IDL");
+    let expected: Vec<u8> = entry["discriminator"]
+        .as_array()
+        .expect("discriminator")
+        .iter()
+        .map(|b| b.as_u64().expect("byte") as u8)
+        .collect();
+    let data = [
+        squads_multisig_4r_program::discriminator::instruction::LOG_EVENT.as_slice(),
+        &[3, 0, 0, 0, 1, 2, 3],
+    ]
+    .concat();
+
+    // Act
+    let instruction = builders::LogEvent {
+        log_authority: unique(),
+    }
+    .instruction(
+        LogEventArgs {
+            event: vec![1, 2, 3],
+        },
+        None,
+    )
+    .expect("builder");
+
+    // Assert
+    assert_eq!(data[..8], expected[..]);
+    check("log_event", &data, &instruction, &instruction);
+}

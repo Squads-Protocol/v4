@@ -16,7 +16,7 @@ use squads_multisig_4r::builders::{ProposalApprove, ProposalCancel, ProposalReje
 use squads_multisig_4r::instructions::ProposalVoteArgs;
 use squads_multisig_4r::pda::get_proposal_pda;
 
-use crate::utils::{send_and_confirm_transaction, signer_from_path};
+use crate::utils::{send_and_confirm_transaction, signer_from_path, with_events};
 
 /// Cast an approve or reject vote on an existing proposal.
 #[derive(Args)]
@@ -129,12 +129,15 @@ impl ProposalVote {
 
         let message = Message::try_compile(
             &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                vote_instruction,
-            ],
+            &with_events(
+                [
+                    ComputeBudgetInstruction::set_compute_unit_price(
+                        priority_fee_lamports.unwrap_or(5000),
+                    ),
+                    vote_instruction,
+                ],
+                &program_id,
+            ),
             &[],
             blockhash,
         )

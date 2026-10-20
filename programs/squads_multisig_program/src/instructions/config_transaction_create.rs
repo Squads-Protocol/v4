@@ -1,8 +1,15 @@
 #[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
 #[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, LogAuthority, MultisigEvent, TransactionContent, TransactionEvent, TransactionEventKind,
+};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 use crate::state::*;
@@ -115,9 +122,22 @@ impl ConfigTransactionCreate<'_> {
 
         multisig.invariant()?;
 
-        // Logs for indexing.
-        msg!("transaction index: {}", transaction_index);
-
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        let transaction = &ctx.accounts.transaction;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::Transaction(TransactionEvent {
+                    kind: TransactionEventKind::Create,
+                    multisig: multisig.key(),
+                    transaction: transaction.key(),
+                    transaction_index,
+                    member: Some(ctx.accounts.creator.key()),
+                    memo: args.memo,
+                    content: Some(TransactionContent::Config(Cow::Borrowed(transaction))),
+                })]
+            },
+        )
     }
 }

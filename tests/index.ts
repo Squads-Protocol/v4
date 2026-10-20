@@ -20,6 +20,7 @@ import "./suites/instructions/vaultBatchTransactionAccountClose";
 import "./suites/instructions/vaultTransactionAccountsClose";
 import "./suites/instructions/vaultTransactionCreateFromBuffer";
 import "./suites/multisig-sdk";
+import "./suites/events";
 
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";

@@ -22,7 +22,7 @@ use squads_multisig_4r::state::{
     Batch, ConfigTransaction, Multisig, Proposal, ProposalStatus, VaultTransaction,
 };
 
-use crate::utils::{send_and_confirm_transaction, signer_from_path};
+use crate::utils::{send_and_confirm_transaction, signer_from_path, with_events};
 
 const DEFAULT_PRIORITY_FEE: u64 = 5000;
 // Max close instructions per outer tx (RPC limits ~1232-byte message; 8 fits reliably).
@@ -356,8 +356,13 @@ impl ClaimRent {
                 .await
                 .expect("Failed to get blockhash");
 
-            let message = Message::try_compile(&payer, &instructions, &[], blockhash)
-                .map_err(|e| eyre::eyre!("Message compile failed (batch {}): {}", gi + 1, e))?;
+            let message = Message::try_compile(
+                &payer,
+                &with_events(instructions, &program_id),
+                &[],
+                blockhash,
+            )
+            .map_err(|e| eyre::eyre!("Message compile failed (batch {}): {}", gi + 1, e))?;
 
             let transaction =
                 VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)

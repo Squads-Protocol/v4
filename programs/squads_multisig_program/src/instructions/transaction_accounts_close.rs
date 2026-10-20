@@ -12,8 +12,42 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
+use crate::events::{
+    self, BatchTransactionEvent, BatchTransactionEventKind, LogAuthority, MultisigEvent,
+    ProposalEvent, ProposalEventKind, TransactionEvent, TransactionEventKind,
+};
 use crate::state::*;
 use crate::utils;
+
+/// The close events of a transaction (or batch) and, if it existed, its proposal.
+fn close_events(
+    multisig: Pubkey,
+    transaction: Pubkey,
+    transaction_index: u64,
+    proposal: Option<Pubkey>,
+) -> Vec<MultisigEvent<'static>> {
+    std::iter::once(MultisigEvent::Transaction(TransactionEvent {
+        kind: TransactionEventKind::Close,
+        multisig,
+        transaction,
+        transaction_index,
+        member: None,
+        memo: None,
+        content: None,
+    }))
+    .chain(proposal.map(|proposal| {
+        MultisigEvent::Proposal(ProposalEvent {
+            kind: ProposalEventKind::Close,
+            multisig,
+            proposal,
+            transaction_index,
+            member: None,
+            memo: None,
+            snapshot: None,
+        })
+    }))
+    .collect()
+}
 
 #[derive(Accounts)]
 pub struct ConfigTransactionAccountsClose<'info> {
@@ -116,7 +150,19 @@ impl ConfigTransactionAccountsClose<'_> {
         }
 
         // Anchor will close the `transaction` account for us.
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                close_events(
+                    multisig.key(),
+                    ctx.accounts.transaction.key(),
+                    ctx.accounts.transaction.index,
+                    proposal_account.map(|_| ctx.accounts.proposal.key()),
+                )
+            },
+        )
     }
 }
 
@@ -223,7 +269,19 @@ impl VaultTransactionAccountsClose<'_> {
         }
 
         // Anchor will close the `transaction` account for us.
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                close_events(
+                    multisig.key(),
+                    ctx.accounts.transaction.key(),
+                    ctx.accounts.transaction.index,
+                    proposal_account.map(|_| ctx.accounts.proposal.key()),
+                )
+            },
+        )
     }
 }
 
@@ -343,12 +401,29 @@ impl VaultBatchTransactionAccountClose<'_> {
     #[access_control(ctx.accounts.validate())]
     pub fn vault_batch_transaction_account_close(ctx: Context<Self>) -> Result<()> {
         let batch = &mut ctx.accounts.batch;
+        let transaction_index = batch.size;
 
         batch.size = batch.size.checked_sub(1).expect("overflow");
 
         // Anchor macro will close the `transaction` account for us.
 
-        Ok(())
+        let batch = &ctx.accounts.batch;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![MultisigEvent::BatchTransaction(BatchTransactionEvent {
+                    kind: BatchTransactionEventKind::Close,
+                    multisig: batch.multisig,
+                    batch: batch.key(),
+                    transaction: ctx.accounts.transaction.key(),
+                    batch_index: batch.index,
+                    transaction_index,
+                    member: None,
+                    snapshot: None,
+                })]
+            },
+        )
     }
 }
 //endregion
@@ -460,7 +535,19 @@ impl BatchAccountsClose<'_> {
         }
 
         // Anchor will close the `batch` account for us.
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                close_events(
+                    multisig.key(),
+                    ctx.accounts.batch.key(),
+                    ctx.accounts.batch.index,
+                    proposal_account.map(|_| ctx.accounts.proposal.key()),
+                )
+            },
+        )
     }
 }
 //endregion

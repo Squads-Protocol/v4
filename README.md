@@ -97,6 +97,25 @@ optional account is encoded as that program ID, as Anchor expects. The frozen v4
 same layout: pass `Some(&LEGACY_V4_PROGRAM_ID)` (`SQDS4…`) to use the core with v4 accounts. Tests check every builder
 against the IDL, against Anchor's own account metas and data, and against mainnet instruction bytes.
 
+### Events
+
+The program emits events as `log_event` inner instructions (a self-CPI signed by the multisig
+PDA). Events are opt-in: add the program ID as the last account of an instruction.
+
+```rust
+use squads_multisig_4r_program::{builders::with_events, events::decode_verified_log_event, ID};
+
+let approve = with_events(approve); // after any remaining accounts
+// Indexer: for each inner instruction (program ID, account keys, data):
+if let Some(event) = decode_verified_log_event(&ID, &program_id, &account_keys, &data)? {
+    // A MultisigEvent, signed by the multisig (or program config) that it names.
+}
+```
+
+TypeScript: `withEvents(instruction)` and `getMultisigEventsFromTransaction(transaction)` from
+`@sqds/multisig-4r`.
+Instructions without the extra account emit nothing, so v4 clients keep working.
+
 ## Compiling and testing
 
 Requirements:

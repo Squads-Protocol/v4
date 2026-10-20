@@ -22,7 +22,7 @@ use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 use squads_multisig_4r::rpc::decode_checked;
 use squads_multisig_4r::state::{VaultTransaction, VaultTransactionMessage};
 
-use crate::utils::{send_and_confirm_transaction, signer_from_path};
+use crate::utils::{send_and_confirm_transaction, signer_from_path, with_events};
 
 /// Execute an approved vault transaction on-chain.
 #[derive(Args)]
@@ -173,15 +173,18 @@ impl VaultTransactionExecute {
 
         let message = Message::try_compile(
             &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_limit(
-                    compute_unit_limit.unwrap_or(200_000),
-                ),
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                execute_instruction,
-            ],
+            &with_events(
+                [
+                    ComputeBudgetInstruction::set_compute_unit_limit(
+                        compute_unit_limit.unwrap_or(200_000),
+                    ),
+                    ComputeBudgetInstruction::set_compute_unit_price(
+                        priority_fee_lamports.unwrap_or(5000),
+                    ),
+                    execute_instruction,
+                ],
+                &program_id,
+            ),
             &address_lookup_table_accounts,
             blockhash,
         )

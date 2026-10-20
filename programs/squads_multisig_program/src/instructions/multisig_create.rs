@@ -1,13 +1,16 @@
 #![allow(deprecated)]
 #[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 #[cfg(feature = "program")]
 use anchor_lang::system_program;
-#[cfg(feature = "program")]
-use solana_program::native_token::LAMPORTS_PER_SOL;
 
 #[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(feature = "program")]
+use crate::events::{self, LogAuthority, MultisigCreateEvent, MultisigEvent};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 use crate::state::*;
@@ -120,9 +123,26 @@ impl MultisigCreateV2<'_> {
                 ),
                 creation_fee,
             )?;
-            msg!("Creation fee: {}", creation_fee / LAMPORTS_PER_SOL);
         }
 
-        Ok(())
+        let enabled = events::enabled(ctx.remaining_accounts);
+        if enabled {
+            // `log_event` checks the discriminator, so the new account must be written first.
+            ctx.accounts.multisig.exit(&crate::ID)?;
+        }
+        let multisig = &ctx.accounts.multisig;
+        events::emit(
+            enabled,
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::MultisigCreate(MultisigCreateEvent {
+                    multisig: multisig.key(),
+                    create_key: ctx.accounts.create_key.key(),
+                    creator: ctx.accounts.creator.key(),
+                    memo: args.memo,
+                    snapshot: Some(Cow::Borrowed(multisig)),
+                })]
+            },
+        )
     }
 }

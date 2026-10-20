@@ -9,7 +9,8 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
 ### Compatibility
 
 - **Account and instruction wire format: unchanged.** Account layouts, instruction
-  arguments and Anchor discriminators are byte-for-byte identical to Squads v4.
+  arguments and Anchor discriminators are byte-for-byte identical to Squads v4. 4r adds one
+  instruction (`log_event`) and one error (`ProtectedInstruction`, 6045); see Events.
   `programs/squads_multisig_program/tests/golden_wire_format.rs` checks this against
   real mainnet data. A v4 decoder reads 4r data when it filters on the 4r program ID.
 - **All PDAs are different.** Every PDA (multisig, vault, proposal, transaction,
@@ -18,8 +19,47 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
   the v4 program.
 - **Do not mix SDKs.** Use the 4r packages for 4r and the v4 packages for v4.
 
+### Events (new)
+
+- The program emits events as inner instructions: a self-CPI to the new `log_event`
+  instruction, signed by the `Multisig` PDA (or the `ProgramConfig` PDA). The instruction data
+  carries a borsh `MultisigEvent` enum. Inner-instruction data is not truncated, as program logs
+  can be.
+- **Events are opt-in.** A client appends the program ID as one extra read-only account at the
+  end of the instruction (after any remaining accounts). Without it, the program emits nothing
+  and behaves as before. Old clients, including `@sqds/multisig`, keep working.
+- Events carry account snapshots (multisig, proposal, transaction, spending limit). If an event
+  would be longer than the 10 KiB CPI data limit, its snapshots are left out.
+- Helpers: `builders::with_events` and `events::decode_verified_log_event` (Rust core),
+  `withEvents`, `decodeVerifiedLogEvent` and `getMultisigEventsFromTransaction`
+  (`@sqds/multisig-4r`). The verified decoders check that the multisig (or program config) that
+  the event names signed it. The CLI enables events by default.
+- Cost: about 2,200 compute units per event with small snapshots; more for large ones.
+  Measured: `vault_transaction_execute` uses 15,577 CU without events and 19,999 CU with its
+  2 events. The program binary grows from 703,928 to 811,792 bytes.
+- In the Rust core, snapshot and content fields are `Cow`: the program borrows the accounts
+  (no copy, no heap), and `decode_log_event` returns owned values (`MultisigEvent<'static>`).
+- The program has its own entrypoint (default feature `custom-entrypoint`). It answers
+  `log_event` before Anchor's dispatch, with the same checks and errors as the Anchor handler:
+  550 instead of 779 compute units in each `log_event` call. All other instructions go to
+  Anchor's `entry` unchanged.
+- Heap: events add little heap use, because they do not copy the accounts. At the default 32 KiB
+  heap, `multisig_add_member` works up to about 244 members with or without events, and
+  `vault_transaction_create_from_buffer` with events works with a 5 KB buffer. Larger multisigs and
+  buffers need a heap frame (`ComputeBudgetProgram.requestHeapFrame`, up to 256 KiB) also without
+  events.
+- An emitting instruction uses one more CPI level and more compute units. A program that calls
+  4r at the maximum CPI depth must not add the event account.
+- `log_event` runs only as a CPI from the program itself. A vault transaction that calls it fails
+  with `ProtectedInstruction` (6045).
+
 ### Behavior changes
 
+- **Fewer program logs.** There is no `Instruction: <Name>` log line (Anchor `no-log-ix-name`),
+  and the v4 log lines for indexing are removed: `transaction index`, `batch index`, `batch size`,
+  `Creation fee`, and the `spending_limit_use` SPL line with four base58 addresses. Events replace
+  them. Each instruction uses about 100 fewer compute units; the SPL path of `spending_limit_use`
+  uses 61% fewer (48,846 to 19,031 CU in the local test).
 - **`spending_limit_use`: SPL transfer to the vault's own token account now fails.**
   Anchor 1.x rejects duplicate mutable accounts. When `destination` is the vault and
   `vault_token_account == destination_token_account`, the instruction fails with Anchor
@@ -42,12 +82,16 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
 | `@sqds/multisig-4r` (npm) | 0.1.0 | `@sqds/multisig` 2.1.x |
 | `squads-multisig-4r-cli` (crates.io) | 0.1.0 | `squads-multisig-cli` 0.1.x |
 
+- Program crate features for libraries: use the core (`default-features = false`) or `cpi`.
+  Do not use `no-entrypoint` together with the default features: `custom-entrypoint` then still
+  adds the program entrypoint to your crate.
 - `squads-multisig-4r-program` has a **core** that is always compiled and needs no Anchor:
   account types, instruction args, `TransactionMessage` types, permissions, errors, seeds, PDAs,
   discriminators, owner-checked account decoding, builders for every live instruction and the
   vault message compiler. It depends only on `borsh`, `solana-address`, `solana-instruction` and
   `thiserror`, and it builds for SBF. The Anchor program is the default `program` feature. Clients
   and other programs use `default-features = false`.
+- The core has the event types and their encoder and decoder (`events`).
 - The core exports `LEGACY_V4_PROGRAM_ID` (`SQDS4…`). With it as `program_id`, the core builders,
   PDA helpers and decoders work with the frozen v4 program, which has the same layout.
 - `squads-multisig-4r` re-exports that core and adds async owner-checked fetches (`rpc`, feature

@@ -104,6 +104,8 @@ export const SQUADS_MULTISIG4R_ERROR__FINAL_BUFFER_SIZE_EXCEEDED = 0x179a; // 60
 export const SQUADS_MULTISIG4R_ERROR__FINAL_BUFFER_SIZE_MISMATCH = 0x179b; // 6043
 /** MultisigCreateDeprecated: multisig_create has been deprecated. Use multisig_create_v2 instead. */
 export const SQUADS_MULTISIG4R_ERROR__MULTISIG_CREATE_DEPRECATED = 0x179c; // 6044
+/** ProtectedInstruction: Instruction is protected: log_event runs only as a self-CPI by the program */
+export const SQUADS_MULTISIG4R_ERROR__PROTECTED_INSTRUCTION = 0x179d; // 6045
 
 export type SquadsMultisig4rError =
   | typeof SQUADS_MULTISIG4R_ERROR__ALREADY_APPROVED
@@ -138,6 +140,7 @@ export type SquadsMultisig4rError =
   | typeof SQUADS_MULTISIG4R_ERROR__NO_VOTERS
   | typeof SQUADS_MULTISIG4R_ERROR__PROPOSAL_FOR_ANOTHER_MULTISIG
   | typeof SQUADS_MULTISIG4R_ERROR__PROTECTED_ACCOUNT
+  | typeof SQUADS_MULTISIG4R_ERROR__PROTECTED_INSTRUCTION
   | typeof SQUADS_MULTISIG4R_ERROR__REMOVE_LAST_MEMBER
   | typeof SQUADS_MULTISIG4R_ERROR__RENT_RECLAMATION_DISABLED
   | typeof SQUADS_MULTISIG4R_ERROR__SPENDING_LIMIT_EXCEEDED
@@ -188,6 +191,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [SQUADS_MULTISIG4R_ERROR__NO_VOTERS]: `Members don't include any voters`,
     [SQUADS_MULTISIG4R_ERROR__PROPOSAL_FOR_ANOTHER_MULTISIG]: `Proposal is for another multisig`,
     [SQUADS_MULTISIG4R_ERROR__PROTECTED_ACCOUNT]: `Account is protected, it cannot be passed into a CPI as writable`,
+    [SQUADS_MULTISIG4R_ERROR__PROTECTED_INSTRUCTION]: `Instruction is protected: log_event runs only as a self-CPI by the program`,
     [SQUADS_MULTISIG4R_ERROR__REMOVE_LAST_MEMBER]: `Cannot remove last member`,
     [SQUADS_MULTISIG4R_ERROR__RENT_RECLAMATION_DISABLED]: `Rent reclamation is disabled for this multisig`,
     [SQUADS_MULTISIG4R_ERROR__SPENDING_LIMIT_EXCEEDED]: `Spending limit exceeded`,

@@ -26,7 +26,9 @@ use squads_multisig_4r::rpc::fetch_multisig;
 use crate::command::transfer_common::{
     fetch_mint_decimals, format_token_amount, resolve_recipient_token_account,
 };
-use crate::utils::{has_permission, send_and_confirm_transaction, signer_from_path, Permission};
+use crate::utils::{
+    has_permission, send_and_confirm_transaction, signer_from_path, with_events, Permission,
+};
 
 /// Create and activate a vault transaction that transfers SOL or SPL tokens from the vault.
 #[derive(Args)]
@@ -236,7 +238,13 @@ impl InitiateTransfer {
             .await
             .expect("Failed to get blockhash");
 
-        let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
+        let message = Message::try_compile(
+            &payer,
+            &with_events(instructions, &program_id),
+            &[],
+            blockhash,
+        )
+        .unwrap();
         let message_hash = hash(&message.serialize());
 
         println!();

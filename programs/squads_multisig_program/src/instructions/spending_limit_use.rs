@@ -1,4 +1,7 @@
 #[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 #[cfg(feature = "program")]
 use anchor_spl::token_2022::TransferChecked;
@@ -9,6 +12,8 @@ use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 #[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{self, LogAuthority, MultisigEvent, SpendingLimitUseEvent};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 #[cfg(feature = "program")]
@@ -233,16 +238,6 @@ impl SpendingLimitUse<'_> {
                 .as_ref()
                 .ok_or(MultisigError::MissingAccount)?;
 
-            msg!(
-                "token_program {} mint {} vault {} destination {} amount {} decimals {}",
-                &token_program.key,
-                &mint.key(),
-                &vault.key,
-                &destination.key,
-                &args.amount,
-                &args.decimals
-            );
-
             token_interface::transfer_checked(
                 CpiContext::new_with_signer(
                     token_program.key(),
@@ -265,6 +260,24 @@ impl SpendingLimitUse<'_> {
             )?;
         }
 
-        Ok(())
+        let spending_limit = &ctx.accounts.spending_limit;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![MultisigEvent::SpendingLimitUse(SpendingLimitUseEvent {
+                    multisig: multisig_key,
+                    spending_limit: spending_limit.key(),
+                    member: ctx.accounts.member.key(),
+                    vault: ctx.accounts.vault.key(),
+                    destination: ctx.accounts.destination.key(),
+                    mint: (spending_limit.mint != Pubkey::default()).then_some(spending_limit.mint),
+                    decimals: args.decimals,
+                    amount: args.amount,
+                    memo: args.memo,
+                    snapshot: Some(Cow::Borrowed(spending_limit)),
+                })]
+            },
+        )
     }
 }

@@ -1,8 +1,15 @@
 #[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
 #[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, BatchTransactionEvent, BatchTransactionEventKind, LogAuthority, MultisigEvent,
+};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 #[cfg(feature = "program")]
@@ -149,10 +156,23 @@ impl BatchAddTransaction<'_> {
         // Increment the batch size.
         batch.size = batch.size.checked_add(1).expect("overflow");
 
-        // Logs for indexing.
-        msg!("batch index: {}", batch.index);
-        msg!("batch size: {}", batch.size);
-
-        Ok(())
+        let batch = &ctx.accounts.batch;
+        let transaction = &ctx.accounts.transaction;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![MultisigEvent::BatchTransaction(BatchTransactionEvent {
+                    kind: BatchTransactionEventKind::Add,
+                    multisig: batch.multisig,
+                    batch: batch.key(),
+                    transaction: transaction.key(),
+                    batch_index: batch.index,
+                    transaction_index: batch.size,
+                    member: Some(ctx.accounts.member.key()),
+                    snapshot: Some(Cow::Borrowed(transaction)),
+                })]
+            },
+        )
     }
 }
