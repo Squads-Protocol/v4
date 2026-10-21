@@ -149,8 +149,31 @@ jobs:
         run: bun run test
 
       - name: "@sqds/multisig-4r integration test"
+        # `anchor test` sends SIGKILL to its validator and does not wait for it to exit, so the
+        # default RPC (8899) and faucet (9900) ports can still be bound when this step starts.
+        # These ports are outside the default dynamic port range (8000-10000) of both validators.
+        env:
+          RPC_PORT: 18899
+          FAUCET_PORT: 19900
+          RPC_URL: http://127.0.0.1:18899
+          RPC_WS_URL: ws://127.0.0.1:18900
         run: |
           solana-test-validator --reset --quiet --ledger /tmp/sdk-ledger \
+            --rpc-port "$RPC_PORT" --faucet-port "$FAUCET_PORT" \
             --bpf-program GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD target/deploy/squads_multisig_4r_program.so &
-          for _ in $(seq 1 60); do solana -ul cluster-version >/dev/null 2>&1 && break; sleep 1; done
+          validator=$!
+          for _ in $(seq 1 60); do
+            solana -u "$RPC_URL" cluster-version >/dev/null 2>&1 && break
+            if ! kill -0 "$validator" 2>/dev/null; then
+              echo "::error::solana-test-validator exited during startup"
+              sudo ss -ltnp
+              exit 1
+            fi
+            sleep 1
+          done
+          if ! solana -u "$RPC_URL" cluster-version >/dev/null 2>&1; then
+            echo "::error::solana-test-validator did not answer RPC after 60 s"
+            exit 1
+          fi
+
           cd sdk/multisig-4r && npm ci --ignore-scripts && npm run test:integration
