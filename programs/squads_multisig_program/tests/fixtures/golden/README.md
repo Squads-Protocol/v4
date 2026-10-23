@@ -32,6 +32,9 @@ start with `#` are comments.
 
 - `log_event` has no fixture. It is new in 4r, so there is no v4 encoding. `tests/core.rs`,
   `tests/core_matches_anchor.rs` and `tests/events.rs` check it against the IDL and Anchor.
+- `multisig_create_from` and the six `multisig_migrate_*` instructions have no fixture. They are
+  new in 4r (migration from v4). `tests/migration.rs` and `tests/core_matches_anchor.rs` check
+  them against the IDL and Anchor.
 - `multisig_create` (v1) has no data fixture. The program deprecated it before the freeze:
   it takes no arguments and always fails. Mainnet samples from before the deprecation carry
   arguments that neither v4 nor 4r accepts. The discriminator checks still cover it.

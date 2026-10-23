@@ -3,10 +3,12 @@
 //! async owner-checked account fetches (`rpc`, feature `fetch`).
 
 pub mod error;
+pub mod lookup_tables;
+pub mod planner;
 #[cfg(feature = "fetch")]
 pub mod rpc;
 
 pub use squads_multisig_4r_program::{
-    account, builders, discriminator, errors, events, instructions, message, pda, prelude, state,
-    SmallVec, ID, LEGACY_V4_PROGRAM_ID,
+    account, builders, discriminator, errors, events, instructions, message, migration, pda,
+    prelude, state, SmallVec, ID, LEGACY_V4_PROGRAM_ID,
 };

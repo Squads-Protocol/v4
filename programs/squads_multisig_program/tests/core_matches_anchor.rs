@@ -493,3 +493,268 @@ fn log_event_builder_matches_anchor() {
         squads_multisig_4r_program::discriminator::instruction::LOG_EVENT
     );
 }
+
+#[test]
+fn migration_builders_match_anchor() {
+    // Arrange
+    use program::accounts;
+    use program::instruction as ix;
+    let source = unique();
+    let create_from = builders::MultisigCreateFrom::new(source, 1, unique(), None);
+    let migration = builders::MigrationAccounts::new(source, 1, None);
+    let anchor_migration = || accounts::MigrationAccounts {
+        source_multisig: migration.source_multisig,
+        source_vault: migration.source_vault,
+        multisig: migration.multisig,
+        vault: migration.vault,
+    };
+    let create_from_args = || MultisigCreateFromArgs {
+        vault_index: 1,
+        config_authority_vault_index: Some(1),
+        rent_collector_vault_index: None,
+        max_creation_fee: 7,
+        memo: Some("move".into()),
+    };
+    let sol_args = || MigrateSolArgs {
+        vault_index: 1,
+        config_authority_vault_index: None,
+        keep: 0,
+        memo: None,
+    };
+    let tokens_args = || MigrateTokensArgs {
+        vault_index: 1,
+        config_authority_vault_index: None,
+        close_source: true,
+        memo: None,
+    };
+    let authorities_args = || MigrateTokenAuthoritiesArgs {
+        vault_index: 1,
+        config_authority_vault_index: None,
+        items: vec![TokenAuthorityKind::MetadataUpdate],
+        memo: None,
+    };
+    let other_args = || MigrateAuthoritiesArgs {
+        vault_index: 1,
+        config_authority_vault_index: Some(0),
+        memo: Some("m".into()),
+    };
+    let tokens = builders::MultisigMigrateTokens::new(migration, anchor_spl::token_2022::ID);
+    let authorities =
+        builders::MultisigMigrateTokenAuthorities::new(migration, anchor_spl::token::ID);
+    let stakes = builders::MultisigMigrateStakes::new(migration);
+    let votes = builders::MultisigMigrateVoteAccounts::new(migration);
+    let programs = builders::MultisigMigratePrograms::new(migration);
+    let anchor = |metas: Vec<solana_instruction::AccountMeta>, data: Vec<u8>| Instruction {
+        program_id: program::ID,
+        accounts: metas,
+        data,
+    };
+
+    // Act
+    let core = [
+        create_from.instruction(create_from_args(), None),
+        builders::MultisigMigrateSol::new(migration).instruction(sol_args(), None),
+        tokens.instruction(tokens_args(), &[], None),
+        authorities.instruction(authorities_args(), &[], None),
+        stakes.instruction(other_args(), &[], None),
+        votes.instruction(other_args(), &[], None),
+        programs.instruction(other_args(), &[], None),
+    ]
+    .map(|instruction| instruction.expect("builder"));
+    let expected = [
+        anchor(
+            accounts::MultisigCreateFrom {
+                program_config: create_from.program_config,
+                treasury: create_from.treasury,
+                source_multisig: create_from.source_multisig,
+                source_vault: create_from.source_vault,
+                multisig: create_from.multisig,
+                system_program: create_from.system_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigCreateFrom {
+                args: create_from_args(),
+            }
+            .data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateSol {
+                migration: anchor_migration(),
+                system_program: builders::SYSTEM_PROGRAM_ID,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateSol { args: sol_args() }.data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateTokens {
+                migration: anchor_migration(),
+                token_program: tokens.token_program,
+                associated_token_program: tokens.associated_token_program,
+                system_program: tokens.system_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateTokens {
+                args: tokens_args(),
+            }
+            .data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateTokenAuthorities {
+                migration: anchor_migration(),
+                token_program: authorities.token_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateTokenAuthorities {
+                args: authorities_args(),
+            }
+            .data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateStakes {
+                migration: anchor_migration(),
+                clock: stakes.clock,
+                stake_program: stakes.stake_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateStakes { args: other_args() }.data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateVoteAccounts {
+                migration: anchor_migration(),
+                clock: votes.clock,
+                vote_program: votes.vote_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateVoteAccounts { args: other_args() }.data(),
+        ),
+        anchor(
+            accounts::MultisigMigratePrograms {
+                migration: anchor_migration(),
+                bpf_loader_upgradeable: programs.bpf_loader_upgradeable,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigratePrograms { args: other_args() }.data(),
+        ),
+    ];
+
+    // Assert
+    assert_eq!(core, expected);
+}
+
+#[test]
+fn token_authority_kinds_follow_the_token_2022_authority_types() {
+    // Arrange
+    use anchor_spl::token_2022::spl_token_2022::instruction::AuthorityType;
+    let kinds = [
+        (TokenAuthorityKind::MintTokens, AuthorityType::MintTokens),
+        (
+            TokenAuthorityKind::FreezeAccount,
+            AuthorityType::FreezeAccount,
+        ),
+        (
+            TokenAuthorityKind::AccountOwner,
+            AuthorityType::AccountOwner,
+        ),
+        (
+            TokenAuthorityKind::CloseAccount,
+            AuthorityType::CloseAccount,
+        ),
+        (
+            TokenAuthorityKind::TransferFeeConfig,
+            AuthorityType::TransferFeeConfig,
+        ),
+        (
+            TokenAuthorityKind::WithheldWithdraw,
+            AuthorityType::WithheldWithdraw,
+        ),
+        (TokenAuthorityKind::CloseMint, AuthorityType::CloseMint),
+        (
+            TokenAuthorityKind::InterestRate,
+            AuthorityType::InterestRate,
+        ),
+        (
+            TokenAuthorityKind::PermanentDelegate,
+            AuthorityType::PermanentDelegate,
+        ),
+        (
+            TokenAuthorityKind::ConfidentialTransferMint,
+            AuthorityType::ConfidentialTransferMint,
+        ),
+        (
+            TokenAuthorityKind::TransferHookProgramId,
+            AuthorityType::TransferHookProgramId,
+        ),
+        (
+            TokenAuthorityKind::ConfidentialTransferFeeConfig,
+            AuthorityType::ConfidentialTransferFeeConfig,
+        ),
+        (
+            TokenAuthorityKind::MetadataPointer,
+            AuthorityType::MetadataPointer,
+        ),
+        (
+            TokenAuthorityKind::GroupPointer,
+            AuthorityType::GroupPointer,
+        ),
+        (
+            TokenAuthorityKind::GroupMemberPointer,
+            AuthorityType::GroupMemberPointer,
+        ),
+        (
+            TokenAuthorityKind::ScaledUiAmount,
+            AuthorityType::ScaledUiAmount,
+        ),
+        (TokenAuthorityKind::Pause, AuthorityType::Pause),
+        (
+            TokenAuthorityKind::PermissionedBurn,
+            AuthorityType::PermissionedBurn,
+        ),
+    ];
+
+    // Act
+    let tags: Vec<(u8, u8)> = kinds
+        .iter()
+        .map(|(kind, authority)| {
+            (
+                borsh::to_vec(kind).expect("encode")[0],
+                authority.clone() as u8,
+            )
+        })
+        .collect();
+
+    // Assert: the same byte for each authority; `MetadataUpdate` comes after them.
+    tags.iter()
+        .for_each(|(ours, theirs)| assert_eq!(ours, theirs));
+    assert_eq!(
+        borsh::to_vec(&TokenAuthorityKind::MetadataUpdate).expect("encode"),
+        [18]
+    );
+}
+
+#[test]
+fn migration_program_ids_match_the_official_crates() {
+    // Arrange
+    use anchor_lang::prelude::Clock;
+    use anchor_lang::solana_program::bpf_loader_upgradeable;
+    use anchor_lang::solana_program::sysvar::SysvarId;
+    use squads_multisig_4r_program::migration::*;
+
+    // Act
+    let ours = [
+        TOKEN_PROGRAM_ID,
+        TOKEN_2022_PROGRAM_ID,
+        STAKE_PROGRAM_ID,
+        BPF_LOADER_UPGRADEABLE_ID,
+        CLOCK_SYSVAR_ID,
+    ];
+    let official = [
+        anchor_spl::token::ID,
+        anchor_spl::token_2022::ID,
+        anchor_spl::compat::solana_stake_interface::program::ID,
+        bpf_loader_upgradeable::ID,
+        Clock::id(),
+    ];
+
+    // Assert: ASSOCIATED_TOKEN_PROGRAM_ID has no crate here; the integration test runs it.
+    assert_eq!(ours, official);
+}

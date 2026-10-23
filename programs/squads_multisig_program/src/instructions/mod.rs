@@ -6,9 +6,11 @@ pub use config_transaction_create::*;
 #[cfg(feature = "program")]
 pub use config_transaction_execute::*;
 pub use log_event::*;
+pub use migrate::*;
 pub use multisig_add_spending_limit::*;
 pub use multisig_config::*;
 pub use multisig_create::*;
+pub use multisig_create_from::*;
 pub use multisig_remove_spending_limit::*;
 pub use program_config::*;
 pub use program_config_init::*;
@@ -37,9 +39,11 @@ mod config_transaction_create;
 #[cfg(feature = "program")]
 mod config_transaction_execute;
 mod log_event;
+mod migrate;
 mod multisig_add_spending_limit;
 mod multisig_config;
 mod multisig_create;
+mod multisig_create_from;
 mod multisig_remove_spending_limit;
 mod program_config;
 mod program_config_init;

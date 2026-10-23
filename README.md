@@ -140,8 +140,22 @@ bun install && bun run test            # TypeScript integration tests on solana-
 cd sdk/multisig-4r && npm ci && npm test  # @sqds/multisig-4r unit tests
 ```
 
+The account reader property tests (`proptest`) run with `cargo test`. The TS unit tests read
+cases from `sdk/rs/tests/fixtures/account_readers.json`. After you change a generator, rewrite it
+with `UPDATE_FIXTURES=1 cargo test -p squads-multisig-4r --test account_readers`.
+
 `bun run test` builds with the `testing` feature (test program ID `GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD`)
 and starts `solana-test-validator` (`anchor test --validator legacy`).
+
+Prove the migration rules with [Kani](https://github.com/model-checking/kani) (optional; CI runs
+it). The proofs are in `programs/squads_multisig_program/src/migration/proofs.rs` and compile only
+under `cargo kani`, so they do not change the program. Run from the repository root, where
+`[workspace.metadata.kani]` in `Cargo.toml` sets the options:
+
+```
+cargo install --locked kani-verifier --version 0.68.0 && cargo kani setup
+cargo kani -p squads-multisig-4r-program --no-default-features
+```
 
 Regenerate the IDL and the Codama TypeScript client after a program interface change. Update the
 core builders (`src/builders/`) by hand; the core tests fail if they no longer match the IDL:

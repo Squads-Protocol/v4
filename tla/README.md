@@ -1,7 +1,8 @@
 # Squads multisig 4r TLA+ specifications
 
 These specifications describe the multisig account, its proposals and transactions, and its vault
-as one state machine. TLC, the TLA+ model checker, checks them. They do not describe message
+as one state machine, and the migration from v4 (successor creation, governance check, creation
+fee, stake roles). TLC, the TLA+ model checker, checks them. They do not describe message
 compilation, account metas, address lookup tables, or account sizes. The Anchor integration tests
 check those parts.
 
@@ -9,6 +10,8 @@ check those parts.
 | --- | --- | --- |
 | `Multisig.tla` | One multisig: members, permissions, threshold, time lock, config authority, stale index; vault, config, and batch transactions; proposals and votes; execution, including inner instructions that the vault signs; rent reclaim; one spending limit | `state/{multisig,proposal,batch}.rs`, `instructions/proposal_*.rs`, `instructions/{vault,config}_transaction_*.rs`, `instructions/batch_*.rs`, `instructions/multisig_config.rs`, `instructions/transaction_accounts_close.rs`, `utils/executable_transaction_message.rs` |
 | `SpendingLimit.tla` | The budget arithmetic of one spending limit over real times: lazy reset, `last_reset` alignment, one-time limits | `instructions/spending_limit_use.rs`, `state/spending_limit.rs` |
+| `Migration.tla` | The move from v4: one v4 multisig, its 4r successor, config changes on both sides, a squatter, the creation fee and its approved cap, and the assets of one v4 vault | `migration.rs`, `instructions/multisig_create_from.rs`, `instructions/migrate/`, `instructions/program_config.rs` |
+| `MigrationStake.tla` | One stake account and `multisig_migrate_stakes`: the staker, withdrawer and lockup custodian roles, the Stake program signer rules, lockups that start and end, and the order of the CPIs | `instructions/migrate/stakes.rs` |
 
 ## The consensus contract
 
@@ -59,6 +62,20 @@ Spending limits:
   member of the multisig.
 - Each reset window moves at most `amount`.
 
+Migration from v4 (`Migration.tla`, `MigrationStake.tla`; the safety argument is
+`MIGRATION_SAFETY.md`):
+
+- Only `multisig_create_from`, signed by a v4 vault, creates the successor. Nobody can sign as its
+  `create_key` (the v4 multisig PDA).
+- Each `multisig_migrate_*` instruction moves an item only while the successor has the same
+  governance as the v4 multisig (`check_same_governance`).
+- The v4 vault pays a creation fee only up to the `max_creation_fee` that the members approved,
+  although the program config authority can change the fee at any time.
+- A stake migration never fails for a missing signature, gives roles only to the successor vault,
+  and leaves a role with the v4 vault only in two cases: a withdrawer under a lockup that another
+  party holds as custodian (`Locked`), and a custodian without a lockup in force and with another
+  withdrawer (it has no power then).
+
 ## Run the checks
 
 You need Java 11 or later and `tla2tools.jar` from the
@@ -107,6 +124,16 @@ files next to the spec; do not commit these files.
 | `SpendingLimit.cfg` | pass | Reset alignment, remaining = amount - window use, window budget, 2 * amount per closed span |
 | `SpendingLimitOneTime.cfg` | pass | A one-time limit moves at most `amount` in total |
 | `SpendingLimitSliding.cfg` | fail | Design D3: 2 * amount can move in less than one period, across a window edge |
+| `Migration.cfg` | pass | Only `multisig_create_from` creates the successor; every migrate runs with equal governance; a migrate gives Eve an asset only when Eve already rules v4; the v4 vault never pays a creation fee above the approved cap |
+| `MigrationSquatContained.cfg` | pass | Defense in depth: if someone could squat the successor, the governance check still stops theft |
+| `MigrationReach.cfg` | fail | Witness: every asset can reach the successor |
+| `MigrationSquat.cfg` | fail | Regression model: with a create key that someone can sign (for example the v4 `create_key`), a squatter creates the successor |
+| `MigrationDrift.cfg` | fail | Regression model: without `check_same_governance`, the successor drifts to Eve, and a v4 migrate moves assets to her |
+| `MigrationFee.cfg` | fail | Regression model: without the `max_creation_fee` check, the fee rises after the approval, and `multisig_create_from` pays more than the members approved |
+| `MigrationStake.cfg` | pass | Any roles and lockups, and changes by every holder between calls: a stake migration never fails for a missing signature, leaves no movable role behind, and gives roles only to the successor |
+| `MigrationStakeReach.cfg` | fail | Witness: every stake role can reach the successor |
+| `MigrationStakeOrder.cfg` | fail | Regression model: if the custodian always moved after the withdrawer, a stake without a lockup in force makes the instruction fail (`SetLockup` needs the withdrawer, which is already the successor) |
+| `MigrationStakeCustodian.cfg` | fail | Regression model: the program before 2026-10-23 did not move the custodian, so the v4 vault kept it |
 
 ## Verification status
 
@@ -131,6 +158,24 @@ the expected result.
 | `SpendingLimit.cfg` | pass | 205,024 | 1 s |
 | `SpendingLimitOneTime.cfg` | pass | 285 | less than 1 s |
 | `SpendingLimitSliding.cfg` | fail (expected: `SlidingBudget`, D3) | 200 | 1 s |
+
+Results of TLC 2026.10.23 (nightly) on Java 21, 2026-10-23. A full run of `check.sh` (with
+`CHECK_SLOW=1`) gave the expected result for all 26 configurations. The `Multisig*` and
+`SpendingLimit*` configs gave the same distinct-state counts as above for the `pass` rows
+(`Multisig.cfg`: 2 min 12 s). The migration configs:
+
+| Config | Result | Distinct states | Time |
+| --- | --- | --- | --- |
+| `Migration.cfg` | pass | 378 | less than 1 s |
+| `MigrationSquatContained.cfg` | pass | 1,026 | less than 1 s |
+| `MigrationReach.cfg` | fail (expected: `NotAllMigrated`) | 277 | 1 s |
+| `MigrationSquat.cfg` | fail (expected: `SuccessorFromLineage`) | 18 | less than 1 s |
+| `MigrationDrift.cfg` | fail (expected: `NoTheftByMigration`) | 374 | less than 1 s |
+| `MigrationFee.cfg` | fail (expected: `NoFeeAboveApproval`) | 114 | 1 s |
+| `MigrationStake.cfg` | pass | 54 | less than 1 s |
+| `MigrationStakeReach.cfg` | fail (expected: `NotAllMoved`) | 54 | less than 1 s |
+| `MigrationStakeOrder.cfg` | fail (expected: `MigrateNeverReverts`) | 63 | 1 s |
+| `MigrationStakeCustodian.cfg` | fail (expected: `NoRoleLeftBehind`) | 60 | less than 1 s |
 
 TLC stops at the first violation, so the distinct-state counts of the `fail` rows are partial.
 
@@ -184,6 +229,15 @@ fix used it to stop re-entry. Protected accounts replace it. The model has no `E
 | `SpendLimit`, `ResetLimit` | `spending_limit_use`; `AddSpendingLimit` / `RemoveSpendingLimit` and `multisig_{add,remove}_spending_limit` |
 | `Tick` | `Clock::unix_timestamp` minus the Approved timestamp |
 | `Valid` | `Multisig::invariant` |
+| `ApproveCreate` | The v4 members approve `multisig_create_from` with `max_creation_fee` (the planners use the fee at planning time) |
+| `CreateFrom` | `multisig_create_from`: Anchor `init` at the successor PDA; `migration::mirror` reads v4 at execution; the fee is read at execution and must not exceed `max_creation_fee` (`MigrationCreationFeeTooHigh`) |
+| `SetFee` | `program_config_set_multisig_creation_fee` |
+| `Squat` | `multisig_create_v2` at the successor address; disabled because v4 never signs as a multisig PDA |
+| `Migrate` | any `multisig_migrate_*` instruction: successor must exist, `migration::check_same_governance` (in `MigrationAccounts::begin`), then the move |
+| `V4Config`, `SuccConfig` | any config change of either multisig (config transaction or config authority) |
+| `MigrationStake!Migrate` | `MultisigMigrateStakes::migrate_stake`: staker, then the custodian first (no lockup in force, vault also withdrawer), then the withdrawer (skip `Locked`), then the custodian (lockup in force) |
+| `MigrationStake!Act`, `Expire` | Stake `Authorize` and `SetLockup` by any holder outside the migration; the end of a lockup |
+| `CanAuthStaker`, `CanAuthWithdrawer`, `CanSetLockup` | The signer rules of the Stake program |
 
 ## Scope
 
@@ -195,10 +249,11 @@ The models leave out these code paths. The checks do not verify them.
 | Message validation and account metas (`new_validated`, signer and writable flags, lookup tables) | Byte-level checks. OtterSec Kani proofs, OS-SQD-ADV-00, and Certora SQ-001 / SQ-004 cover them. |
 | Ephemeral signers (TOB-SQUADS-8) | An entry that fails blocks the later entries; the model shows a blocked entry as a step that cannot occur. |
 | Account sizes and `realloc_if_needed` (Certora P-06, OS-SQD-ADV-01, SQ-006) | The model has no sizes or lamport amounts. |
-| Program config and the creation fee | They do not change consensus. |
+| Program config | It does not change consensus. `Migration.tla` models only its creation fee, which `multisig_create_from` pays from a v4 vault. |
 | Events (`log_event`) | They do not change state. |
 | More than one vault index, more than one multisig | The vault seeds hold the multisig key (OtterSec signature uniqueness). |
 | Inner instructions to other programs | `pay` stands for any value that leaves the vault. |
+| Migration asset details (amounts, skips, token programs, vault hints, PDA derivation, the six asset classes) | `Migration.tla` checks the design: lineage, mirror, governance and the fee cap. `MigrationStake.tla` checks the stake roles. The Kani proofs (`src/migration/proofs.rs`) check `map_vault`, `mirror` and `check_same_governance`. `tests/migration.rs` and `sdk/multisig-4r/test/integration/v4-migration.test.ts` (with the mainnet v4 program) check the rest. |
 
 ## Abstractions and limits
 
@@ -224,6 +279,20 @@ The models leave out these code paths. The checks do not verify them.
 - `Multisig.tla` has one spending limit with unit payments. A reset is one step. `SpendingLimit.tla`
   checks the real reset arithmetic for one limit created at time 0.
 - Symmetry over the keys reduces the safety configs. The liveness configs do not use symmetry.
+- `Migration.tla` replaces members, permissions, threshold, time lock and config authority with one
+  governance value, and an asset with its location. It does not model pending successor
+  transactions that members approved under an earlier governance (V4.5_REVISED.md 11.3, "Limit").
+  The Kani proof `the_check_passes_exactly_for_equal_governance` connects this abstraction to the
+  code: `check_same_governance` passes exactly when the field tuples are equal, so "same
+  governance value" in the model is the same condition as in the program.
+- One `Migrate` step stands for one item of any of the six asset classes. The classes use the same
+  successor and governance checks (`MigrationAccounts::begin`), so they do not change these
+  properties.
+- The creation fee takes the values 0, 1 and 2. The members approve the fee that they see; then the
+  fee can change before the execution.
+- `MigrationStake.tla` has one stake and three holders: the v4 vault, the successor vault, and one
+  other party. Lockup times and epochs are one flag, "in force", which a `SetLockup` can set and
+  which ends with `Expire`.
 
 ## Findings
 
@@ -322,5 +391,9 @@ Update `Multisig.tla` when you change one of these behaviors:
 - Rent reclaim: `CloseOk` and the close actions.
 
 Update `SpendingLimit.tla` when you change the reset rule of `spending_limit_use`.
+
+Update `Migration.tla` when you change the successor creation, the governance check, or the fee
+check of `multisig_create_from`. Update `MigrationStake.tla` when you change the order of the CPIs in
+`instructions/migrate/stakes.rs`, or when the Stake program changes its signer rules.
 
 Then run `check.sh`. When a finding is fixed, change its expected result to `pass` in `check.sh`.

@@ -82,6 +82,29 @@ jobs:
             fi
           done
 
+  kani:
+    name: Kani proofs (migration rules)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      KANI_VERSION: "0.68.0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust/
+
+      - name: Install Kani
+        run: |
+          cargo install --locked kani-verifier --version "$KANI_VERSION"
+          cargo kani setup
+        shell: bash
+
+      # Settings (stubbing, loop bounds) are in `[workspace.metadata.kani]` of the root Cargo.toml.
+      - name: Prove the migration rules
+        run: cargo kani -p squads-multisig-4r-program --no-default-features
+
   ts-sdk:
     name: "@sqds/multisig-4r (typecheck, unit tests)"
     runs-on: ubuntu-latest
@@ -157,10 +180,18 @@ jobs:
           FAUCET_PORT: 19900
           RPC_URL: http://127.0.0.1:18899
           RPC_WS_URL: ws://127.0.0.1:18900
+        # The migration test needs the mainnet v4 and Token-2022 programs, the v4 ProgramConfig, and
+        # an upgradeable program owned by a fixed v4 vault (tests/fixtures/v4-mainnet/README.md).
         run: |
+          (cd tests/fixtures/v4-mainnet && sha256sum -c SHA256SUMS)
           solana-test-validator --reset --quiet --ledger /tmp/sdk-ledger \
             --rpc-port "$RPC_PORT" --faucet-port "$FAUCET_PORT" \
-            --bpf-program GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD target/deploy/squads_multisig_4r_program.so &
+            --bpf-program GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD target/deploy/squads_multisig_4r_program.so \
+            --bpf-program SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf tests/fixtures/v4-mainnet/squads_v4.so \
+            --bpf-program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb tests/fixtures/v4-mainnet/spl_token_2022.so \
+            --account BSTq9w3kZwNwpBXJEvTZz2G9ZTNyKBvoSeXMvwb4cNZr tests/fixtures/v4-mainnet/program_config.json \
+            --upgradeable-program 5Yk7if5XWfc34w2n8Zr2h6giukrKUFMBy98ACXvJZBL1 tests/fixtures/v4-mainnet/squads_v4.so \
+              4GXYAfWWYJKtYwNtzdNMEMVYsqJBzZ363RZXT7Wjec9Q &
           validator=$!
           for _ in $(seq 1 60); do
             solana -u "$RPC_URL" cluster-version >/dev/null 2>&1 && break

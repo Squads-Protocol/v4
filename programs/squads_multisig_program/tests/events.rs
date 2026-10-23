@@ -13,7 +13,7 @@ use squads_multisig_4r_program::account::ProgramAccount;
 use squads_multisig_4r_program::discriminator::{account, instruction::LOG_EVENT};
 use squads_multisig_4r_program::error::CoreError;
 use squads_multisig_4r_program::events::*;
-use squads_multisig_4r_program::instructions::LogEventArgs;
+use squads_multisig_4r_program::instructions::{LogEventArgs, TokenAuthorityKind};
 use squads_multisig_4r_program::state::{
     Batch, ConfigAction, ConfigTransaction, Member, Multisig, Permission, Permissions,
     ProgramConfig, Proposal, ProposalStatus, SpendingLimit, VaultBatchTransaction,
@@ -128,6 +128,30 @@ fn one_of_each() -> Vec<MultisigEvent<'static>> {
             memo: None,
             snapshot: Some(Cow::Owned(proposal)),
         }),
+        MultisigEvent::Migration(MigrationEvent {
+            scope: MigrationScope::Tokens,
+            multisig: multisig_key,
+            source_multisig: key(3),
+            vault_index: 0,
+            source_vault: key(4),
+            vault: key(5),
+            outcomes: Cow::Owned(vec![
+                MigrationOutcome {
+                    kind: MigrationAssetKind::Token,
+                    account: key(6),
+                    result: MigrationResult::Moved {
+                        amount: 1_000,
+                        closed: true,
+                    },
+                },
+                MigrationOutcome {
+                    kind: MigrationAssetKind::TokenAuthority(TokenAuthorityKind::Pause),
+                    account: key(7),
+                    result: MigrationResult::Skipped(MigrationSkipReason::NotAuthority),
+                },
+            ]),
+            memo: Some("migrate".into()),
+        }),
     ]
 }
 
@@ -176,7 +200,7 @@ fn variant_tags_are_pinned_to_their_position() {
         .collect();
 
     // Assert: tags are the wire format; new variants go at the end.
-    assert_eq!(tags, (0..=8).collect::<Vec<u8>>());
+    assert_eq!(tags, (0..=9).collect::<Vec<u8>>());
 }
 
 #[test]
@@ -239,6 +263,102 @@ fn log_event_data_matches_the_shared_cross_sdk_vector() {
     // Assert
     assert_eq!(hex, SHARED_VECTOR);
 }
+
+/// One outcome of each asset kind, each skip reason, and both `Moved` forms. The same bytes are
+/// checked by `sdk/multisig-4r/test/unit/events.test.ts`.
+fn migration_vector_event() -> MultisigEvent<'static> {
+    let outcome = |kind, byte, result| MigrationOutcome {
+        kind,
+        account: key(byte),
+        result,
+    };
+    let skipped = MigrationResult::Skipped;
+    let moved = |amount, closed| MigrationResult::Moved { amount, closed };
+    MultisigEvent::Migration(MigrationEvent {
+        scope: MigrationScope::Stakes,
+        multisig: key(1),
+        source_multisig: key(2),
+        vault_index: 3,
+        source_vault: key(4),
+        vault: key(5),
+        outcomes: Cow::Owned(vec![
+            outcome(
+                MigrationAssetKind::Sol,
+                6,
+                skipped(MigrationSkipReason::Empty),
+            ),
+            outcome(MigrationAssetKind::Token, 7, moved(1_000, true)),
+            outcome(
+                MigrationAssetKind::Token,
+                8,
+                skipped(MigrationSkipReason::Frozen),
+            ),
+            outcome(
+                MigrationAssetKind::TokenAuthority(TokenAuthorityKind::MetadataUpdate),
+                9,
+                skipped(MigrationSkipReason::Unsupported),
+            ),
+            outcome(
+                MigrationAssetKind::StakeStaker,
+                10,
+                skipped(MigrationSkipReason::NotAuthority),
+            ),
+            outcome(
+                MigrationAssetKind::StakeWithdrawer,
+                10,
+                skipped(MigrationSkipReason::Locked),
+            ),
+            outcome(MigrationAssetKind::StakeCustodian, 10, moved(0, false)),
+            outcome(MigrationAssetKind::VoteWithdrawer, 11, moved(0, false)),
+            outcome(
+                MigrationAssetKind::UpgradeAuthority,
+                12,
+                skipped(MigrationSkipReason::Missing),
+            ),
+        ]),
+        memo: Some("hi".into()),
+    })
+}
+
+#[test]
+fn migration_event_matches_the_shared_cross_sdk_vector() {
+    // Arrange
+    let event = migration_vector_event();
+
+    // Act
+    let hex: String = log_event_data(&event)
+        .expect("encode")
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    let decoded = decode_log_event(&hex_bytes(MIGRATION_VECTOR)).expect("decode");
+
+    // Assert
+    assert_eq!(hex, MIGRATION_VECTOR);
+    assert_eq!(decoded, Some(event));
+}
+
+fn hex_bytes(hex: &str) -> Vec<u8> {
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).expect("hex"))
+        .collect()
+}
+
+const MIGRATION_VECTOR: &str = concat!(
+    "05095a8ddf8639d9e20100000903010101010101010101010101010101010101010101010101010101010101",
+    "0101020202020202020202020202020202020202020202020202020202020202020203040404040404040404",
+    "0404040404040404040404040404040404040404040404050505050505050505050505050505050505050505",
+    "0505050505050505050505090000000006060606060606060606060606060606060606060606060606060606",
+    "06060606010001070707070707070707070707070707070707070707070707070707070707070700e8030000",
+    "0000000001010808080808080808080808080808080808080808080808080808080808080808010302120909",
+    "0909090909090909090909090909090909090909090909090909090909090105030a0a0a0a0a0a0a0a0a0a0a",
+    "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0102040a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+    "0a0a0a0a0a0a0a0a0a0a0a0a0104070a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+    "0a0a0a00000000000000000000050b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    "0b0b00000000000000000000060c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+    "0c010101020000006869",
+);
 
 const SHARED_VECTOR: &str = concat!(
     "05095a8ddf8639d9d10000000802010101010101010101010101010101010101010101010101010101010101",
@@ -434,6 +554,7 @@ fn authority_is_the_program_config_or_the_multisig() {
     assert_eq!(authorities[0], program_config);
     assert!(authorities[1..8].iter().all(|a| *a == multisig));
     assert_eq!(authorities[8], proposal.multisig);
+    assert_eq!(authorities[9], multisig);
 }
 
 #[test]

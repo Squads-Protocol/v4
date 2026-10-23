@@ -15,5 +15,6 @@ export * from "./multisigMessageAddressTableLookup";
 export * from "./period";
 export * from "./permissions";
 export * from "./proposalStatus";
+export * from "./tokenAuthorityKind";
 export * from "./transactionMessage";
 export * from "./vaultTransactionMessage";

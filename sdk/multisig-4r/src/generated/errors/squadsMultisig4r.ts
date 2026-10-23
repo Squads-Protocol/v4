@@ -106,6 +106,16 @@ export const SQUADS_MULTISIG4R_ERROR__FINAL_BUFFER_SIZE_MISMATCH = 0x179b; // 60
 export const SQUADS_MULTISIG4R_ERROR__MULTISIG_CREATE_DEPRECATED = 0x179c; // 6044
 /** ProtectedInstruction: Instruction is protected: log_event runs only as a self-CPI by the program */
 export const SQUADS_MULTISIG4R_ERROR__PROTECTED_INSTRUCTION = 0x179d; // 6045
+/** MigrationGovernanceMismatch: The successor multisig does not have the governance of the v4 multisig */
+export const SQUADS_MULTISIG4R_ERROR__MIGRATION_GOVERNANCE_MISMATCH = 0x179e; // 6046
+/** MigrationInvalidVaultHint: The vault index hint does not name a vault of the v4 multisig */
+export const SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_VAULT_HINT = 0x179f; // 6047
+/** MigrationInvalidAssetAccounts: The asset accounts do not match the migration assets */
+export const SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_ASSET_ACCOUNTS = 0x17a0; // 6048
+/** MigrationInvalidAmount: The SOL to keep in the v4 vault is less than the rent minimum */
+export const SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_AMOUNT = 0x17a1; // 6049
+/** MigrationCreationFeeTooHigh: The 4r multisig creation fee is larger than max_creation_fee */
+export const SQUADS_MULTISIG4R_ERROR__MIGRATION_CREATION_FEE_TOO_HIGH = 0x17a2; // 6050
 
 export type SquadsMultisig4rError =
   | typeof SQUADS_MULTISIG4R_ERROR__ALREADY_APPROVED
@@ -130,6 +140,11 @@ export type SquadsMultisig4rError =
   | typeof SQUADS_MULTISIG4R_ERROR__INVALID_THRESHOLD
   | typeof SQUADS_MULTISIG4R_ERROR__INVALID_TRANSACTION_INDEX
   | typeof SQUADS_MULTISIG4R_ERROR__INVALID_TRANSACTION_MESSAGE
+  | typeof SQUADS_MULTISIG4R_ERROR__MIGRATION_CREATION_FEE_TOO_HIGH
+  | typeof SQUADS_MULTISIG4R_ERROR__MIGRATION_GOVERNANCE_MISMATCH
+  | typeof SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_AMOUNT
+  | typeof SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_ASSET_ACCOUNTS
+  | typeof SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_VAULT_HINT
   | typeof SQUADS_MULTISIG4R_ERROR__MISSING_ACCOUNT
   | typeof SQUADS_MULTISIG4R_ERROR__MULTISIG_CREATE_DEPRECATED
   | typeof SQUADS_MULTISIG4R_ERROR__NO_ACTIONS
@@ -181,6 +196,11 @@ if (process.env["NODE_ENV"] !== "production") {
     [SQUADS_MULTISIG4R_ERROR__INVALID_THRESHOLD]: `Invalid threshold, must be between 1 and number of members with Vote permission`,
     [SQUADS_MULTISIG4R_ERROR__INVALID_TRANSACTION_INDEX]: `Invalid transaction index`,
     [SQUADS_MULTISIG4R_ERROR__INVALID_TRANSACTION_MESSAGE]: `TransactionMessage is malformed.`,
+    [SQUADS_MULTISIG4R_ERROR__MIGRATION_CREATION_FEE_TOO_HIGH]: `The 4r multisig creation fee is larger than max_creation_fee`,
+    [SQUADS_MULTISIG4R_ERROR__MIGRATION_GOVERNANCE_MISMATCH]: `The successor multisig does not have the governance of the v4 multisig`,
+    [SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_AMOUNT]: `The SOL to keep in the v4 vault is less than the rent minimum`,
+    [SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_ASSET_ACCOUNTS]: `The asset accounts do not match the migration assets`,
+    [SQUADS_MULTISIG4R_ERROR__MIGRATION_INVALID_VAULT_HINT]: `The vault index hint does not name a vault of the v4 multisig`,
     [SQUADS_MULTISIG4R_ERROR__MISSING_ACCOUNT]: `Missing account`,
     [SQUADS_MULTISIG4R_ERROR__MULTISIG_CREATE_DEPRECATED]: `multisig_create has been deprecated. Use multisig_create_v2 instead.`,
     [SQUADS_MULTISIG4R_ERROR__NO_ACTIONS]: `Config transaction must have at least one action`,

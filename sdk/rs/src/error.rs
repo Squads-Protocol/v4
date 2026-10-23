@@ -5,6 +5,8 @@ use thiserror::Error;
 pub enum ClientError {
     #[error(transparent)]
     Core(#[from] CoreError),
+    #[error("{0}")]
+    Plan(String),
     #[cfg(feature = "fetch")]
     #[error(transparent)]
     Rpc(#[from] solana_rpc_client_api::client_error::Error),

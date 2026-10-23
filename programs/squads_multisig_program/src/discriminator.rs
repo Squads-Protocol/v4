@@ -29,7 +29,14 @@ pub mod instruction {
     pub const MULTISIG_CHANGE_THRESHOLD: [u8; 8] = [141, 42, 15, 126, 169, 92, 62, 181];
     /// Deprecated: the program rejects it with `MultisigCreateDeprecated`.
     pub const MULTISIG_CREATE: [u8; 8] = [122, 77, 80, 159, 84, 88, 90, 197];
+    pub const MULTISIG_CREATE_FROM: [u8; 8] = [12, 150, 232, 176, 3, 189, 132, 132];
     pub const MULTISIG_CREATE_V2: [u8; 8] = [50, 221, 199, 93, 40, 245, 139, 233];
+    pub const MULTISIG_MIGRATE_PROGRAMS: [u8; 8] = [159, 93, 209, 8, 21, 235, 195, 212];
+    pub const MULTISIG_MIGRATE_SOL: [u8; 8] = [42, 116, 96, 147, 175, 65, 237, 197];
+    pub const MULTISIG_MIGRATE_STAKES: [u8; 8] = [149, 25, 249, 211, 157, 111, 17, 244];
+    pub const MULTISIG_MIGRATE_TOKENS: [u8; 8] = [55, 25, 214, 187, 88, 213, 208, 198];
+    pub const MULTISIG_MIGRATE_TOKEN_AUTHORITIES: [u8; 8] = [89, 28, 200, 210, 144, 124, 99, 47];
+    pub const MULTISIG_MIGRATE_VOTE_ACCOUNTS: [u8; 8] = [123, 111, 0, 6, 188, 150, 83, 67];
     pub const MULTISIG_REMOVE_MEMBER: [u8; 8] = [217, 117, 177, 210, 182, 145, 218, 72];
     pub const MULTISIG_REMOVE_SPENDING_LIMIT: [u8; 8] = [228, 198, 136, 111, 123, 4, 178, 113];
     pub const MULTISIG_SET_CONFIG_AUTHORITY: [u8; 8] = [143, 93, 199, 143, 92, 169, 193, 232];

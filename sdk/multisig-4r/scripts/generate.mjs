@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   addPdasVisitor,
   arrayTypeNode,
+  bottomUpTransformerVisitor,
   bytesTypeNode,
   constantPdaSeedNodeFromString,
   createFromRoot,
@@ -81,6 +82,26 @@ const pdas = [
   pdaNode({ name: "transactionBuffer", seeds: [seed("multisig"), variablePdaSeedNode("multisig", publicKeyTypeNode()), seed("transaction_buffer"), variablePdaSeedNode("creator", publicKeyTypeNode()), variablePdaSeedNode("bufferIndex", u8())] }),
 ];
 
+// The shared accounts of the `multisig_migrate_*` instructions read `vault_index`, the first field
+// of each instruction's `args`. Name the seed by its path in `args` so that Codama can resolve it.
+const withArgSeedPaths = (accounts) =>
+  accounts.map((account) =>
+    account.accounts
+      ? { ...account, accounts: withArgSeedPaths(account.accounts) }
+      : account.pda
+        ? {
+            ...account,
+            pda: {
+              ...account.pda,
+              seeds: account.pda.seeds.map((seed) =>
+                seed.kind === "arg" && seed.path === "vault_index" ? { ...seed, path: "args.vault_index" } : seed,
+              ),
+            },
+          }
+        : account,
+  );
+idl.instructions = idl.instructions.map((ix) => ({ ...ix, accounts: withArgSeedPaths(ix.accounts) }));
+
 const anchorRoot = rootNodeFromAnchor(idl);
 const argsTypes = anchorRoot.program.definedTypes.map((t) => t.name).filter((name) => name.endsWith("Args"));
 const root = rootNode(
@@ -91,6 +112,30 @@ const root = rootNode(
 const codama = createFromRoot(root);
 codama.update(updateProgramsVisitor({ [anchorRoot.program.name]: { name: PROGRAM } }));
 codama.update(addPdasVisitor({ [PROGRAM]: pdas }));
+// The IDL has two multisig PDAs with the same seeds: `create_key` (multisig_create_v2) and
+// `source_multisig` (the v4 successor). Keep `findMultisigPda({ createKey })` and name the
+// other one `findSuccessorPda({ sourceMultisig })`.
+const renamePda = (from, to) =>
+  codama.update(
+    bottomUpTransformerVisitor(
+      ["pdaNode", "pdaLinkNode"].map((kind) => ({
+        select: `[${kind}]${from}`,
+        transform: (node) => ({ ...node, name: to }),
+      })),
+    ),
+  );
+renamePda("multisig", "successor");
+renamePda("multisigCreateV2Multisig", "multisig");
+const seedNames = (name) =>
+  codama
+    .getRoot()
+    .program.pdas.find((pda) => pda.name === name)
+    ?.seeds.filter((seed) => seed.kind === "variablePdaSeedNode")
+    .map((seed) => seed.name)
+    .join();
+if (seedNames("multisig") !== "createKey" || seedNames("successor") !== "sourceMultisig") {
+  throw new Error("unexpected multisig PDAs from the IDL; update the renames in generate.mjs");
+}
 // Inline the `*Args` structs and lift their fields to top-level instruction arguments.
 // The encoded bytes do not change: borsh writes struct fields inline.
 codama.update(unwrapDefinedTypesVisitor(argsTypes));

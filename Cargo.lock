@@ -878,6 +878,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
+name = "core_detect"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f8f80099a98041a3d1622845c271458a2d73e688351bf3cb999266764b81d48"
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1478,7 +1484,7 @@ dependencies = [
  "ff",
  "rand 0.8.8",
  "rand_core 0.6.4",
- "rand_xorshift",
+ "rand_xorshift 0.3.0",
  "subtle",
 ]
 
@@ -2207,6 +2213,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "proptest"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8530004ccb15eae51c7e40009fbe317f341f804db54dc033eec1c50be28cfa0"
+dependencies = [
+ "bitflags",
+ "chacha20",
+ "core_detect",
+ "num-traits",
+ "rand 0.10.3",
+ "rand_xorshift 0.5.0",
+ "regex-syntax",
+ "unarray",
+]
+
+[[package]]
 name = "protobuf"
 version = "3.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2410,6 +2432,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
 dependencies = [
  "rand_core 0.6.4",
+]
+
+[[package]]
+name = "rand_xorshift"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60aa6af80be32871323012e02e6e65f8a7cc7890931ae421d217ad8fe0df2ccf"
+dependencies = [
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -4655,10 +4686,20 @@ dependencies = [
 name = "squads-multisig-4r"
 version = "0.1.0"
 dependencies = [
+ "bincode",
+ "proptest",
+ "serde_json",
  "solana-account",
  "solana-address 2.9.0",
+ "solana-instruction 3.5.1",
+ "solana-loader-v3-interface",
+ "solana-program-option",
  "solana-rpc-client",
  "solana-rpc-client-api",
+ "solana-stake-interface",
+ "solana-vote-interface",
+ "spl-token-2022-interface",
+ "spl-token-metadata-interface",
  "squads-multisig-4r-program",
  "thiserror 2.0.21",
 ]
@@ -4698,14 +4739,22 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "bincode",
  "borsh",
+ "proptest",
  "serde_json",
  "solana-address 2.9.0",
  "solana-address-lookup-table-interface",
  "solana-borsh",
  "solana-instruction 3.5.1",
+ "solana-loader-v3-interface",
  "solana-program",
+ "solana-program-option",
  "solana-security-txt",
+ "solana-stake-interface",
+ "solana-vote-interface",
+ "spl-token-2022-interface",
+ "spl-token-metadata-interface",
  "thiserror 2.0.21",
 ]
 
@@ -5070,6 +5119,12 @@ name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+
+[[package]]
+name = "unarray"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eaea85b334db583fe3274d12b4cd1880032beab409c0d774be044d4480ab9a94"
 
 [[package]]
 name = "unicode-ident"

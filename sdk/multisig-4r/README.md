@@ -24,6 +24,16 @@ npm install @sqds/multisig-4r @solana/kit
   remaining accounts that `vaultTransactionExecute` and `batchExecuteTransaction` need.
 - **`fetch*Checked` / `decodeChecked`**: fetch and decode accounts after checking the owner and the
   discriminator. The generated `fetch*` functions check neither, so prefer the checked variants.
+- **Migration from v4** (`multisigCreateFrom` and one `multisigMigrate*` instruction for each asset
+  class): `findSuccessorPda`, `getMigrateSolInstruction`, `getMigrateTokensInstruction`,
+  `getMigrateTokenAuthoritiesInstruction`, `getMigrateStakesInstruction`,
+  `getMigrateVoteAccountsInstruction` and `getMigrateProgramsInstruction` (they add the item
+  accounts), and the planner `planV4Migration` with `withMigrationLookupTables`,
+  `getV4MigrationProposal`, `getV4VaultTransactionExecuteInstruction` and
+  `getV4BatchExecuteInstructions`. See section 11 of `V4.5_REVISED.md`.
+- **Address lookup tables** (no extra package): `getCreateLookupTablesTransactions`,
+  `getExtendLookupTableInstruction`, `getDeactivateLookupTableInstruction`,
+  `getCloseLookupTableInstruction` and `getLookupTableAddresses`.
 
 Every builder and finder accepts `{ programAddress }` for localnet or staging deployments.
 

@@ -5,6 +5,7 @@ import {
   getAddressDecoder,
   getArrayDecoder,
   getBase58Encoder,
+  getBooleanDecoder,
   getDiscriminatedUnionDecoder,
   getEnumDecoder,
   getOptionDecoder,
@@ -12,6 +13,7 @@ import {
   getU32Decoder,
   getU64Decoder,
   getU8Decoder,
+  getUnitDecoder,
   getUtf8Decoder,
   type Address,
   type Decoder,
@@ -29,6 +31,7 @@ import {
   getProgramConfigDecoder,
   getProposalDecoder,
   getSpendingLimitDecoder,
+  getTokenAuthorityKindDecoder,
   getVaultBatchTransactionDecoder,
   getVaultTransactionDecoder,
   LOG_EVENT_DISCRIMINATOR,
@@ -40,6 +43,7 @@ import {
   type ProgramConfig,
   type Proposal,
   type SpendingLimit,
+  type TokenAuthorityKind,
   type VaultBatchTransaction,
   type VaultTransaction,
 } from "./generated";
@@ -90,6 +94,33 @@ export enum ProposalEventKind {
   Cancel,
   Execute,
   Close,
+}
+/** The `multisig_migrate_*` instruction that emitted a `Migration` event. */
+export enum MigrationScope {
+  Sol,
+  Tokens,
+  TokenAuthorities,
+  Stakes,
+  VoteAccounts,
+  Programs,
+}
+export type MigrationAssetKind =
+  | { readonly __kind: "Sol" }
+  | { readonly __kind: "Token" }
+  | { readonly __kind: "TokenAuthority"; readonly authority: TokenAuthorityKind }
+  | { readonly __kind: "StakeStaker" }
+  | { readonly __kind: "StakeWithdrawer" }
+  | { readonly __kind: "VoteWithdrawer" }
+  | { readonly __kind: "UpgradeAuthority" }
+  | { readonly __kind: "StakeCustodian" };
+/** Why a `multisig_migrate_*` instruction moved nothing for an asset. A skip is not an error. */
+export enum MigrationSkipReason {
+  Empty,
+  Missing,
+  NotAuthority,
+  Frozen,
+  Locked,
+  Unsupported,
 }
 
 export type ConfigSource =
@@ -178,6 +209,27 @@ export type ProposalEvent = {
   readonly snapshot: Option<Snapshot<Proposal>>;
 };
 
+/** `amount` is 0 for authorities. `closed`: the source token account was closed. */
+export type MigrationResult =
+  | { readonly __kind: "Moved"; readonly amount: bigint; readonly closed: boolean }
+  | { readonly __kind: "Skipped"; readonly reason: MigrationSkipReason };
+export type MigrationOutcome = {
+  readonly kind: MigrationAssetKind;
+  /** The source token account, program data, stake account or mint; the v4 vault for SOL. */
+  readonly account: Address;
+  readonly result: MigrationResult;
+};
+export type MigrationEvent = {
+  readonly scope: MigrationScope;
+  readonly multisig: Address;
+  readonly sourceMultisig: Address;
+  readonly vaultIndex: number;
+  readonly sourceVault: Address;
+  readonly vault: Address;
+  readonly outcomes: readonly MigrationOutcome[];
+  readonly memo: Option<string>;
+};
+
 /** The borsh `MultisigEvent` enum of the program; `__kind` is the variant. */
 export type MultisigEvent =
   | ({ readonly __kind: "ProgramConfig" } & ProgramConfigEvent)
@@ -188,7 +240,8 @@ export type MultisigEvent =
   | ({ readonly __kind: "SpendingLimitUse" } & SpendingLimitUseEvent)
   | ({ readonly __kind: "Transaction" } & TransactionEvent)
   | ({ readonly __kind: "BatchTransaction" } & BatchTransactionEvent)
-  | ({ readonly __kind: "Proposal" } & ProposalEvent);
+  | ({ readonly __kind: "Proposal" } & ProposalEvent)
+  | ({ readonly __kind: "Migration" } & MigrationEvent);
 
 /** Decodes an account body that has no discriminator with the generated account decoder. */
 function snapshot<T extends { discriminator: ReadonlyUint8Array }>(decoder: Decoder<T>): Decoder<Snapshot<T>> {
@@ -214,6 +267,38 @@ function getConfigSourceDecoder(): Decoder<ConfigSource> {
       getStructDecoder([
         ["transaction", address()],
         ["transactionIndex", getU64Decoder()],
+      ]),
+    ],
+  ]);
+}
+
+function getMigrationOutcomeDecoder(): Decoder<MigrationOutcome> {
+  return getStructDecoder([
+    [
+      "kind",
+      getDiscriminatedUnionDecoder([
+        ["Sol", getUnitDecoder()],
+        ["Token", getUnitDecoder()],
+        ["TokenAuthority", getStructDecoder([["authority", getTokenAuthorityKindDecoder()]])],
+        ["StakeStaker", getUnitDecoder()],
+        ["StakeWithdrawer", getUnitDecoder()],
+        ["VoteWithdrawer", getUnitDecoder()],
+        ["UpgradeAuthority", getUnitDecoder()],
+        ["StakeCustodian", getUnitDecoder()],
+      ]),
+    ],
+    ["account", address()],
+    [
+      "result",
+      getDiscriminatedUnionDecoder([
+        [
+          "Moved",
+          getStructDecoder([
+            ["amount", getU64Decoder()],
+            ["closed", getBooleanDecoder()],
+          ]),
+        ],
+        ["Skipped", getStructDecoder([["reason", getEnumDecoder(MigrationSkipReason)]])],
       ]),
     ],
   ]);
@@ -331,6 +416,19 @@ export function getMultisigEventDecoder(): Decoder<MultisigEvent> {
         ["member", option(address())],
         ["memo", option(string())],
         ["snapshot", option(snapshot(getProposalDecoder()))],
+      ]),
+    ],
+    [
+      "Migration",
+      getStructDecoder([
+        ["scope", getEnumDecoder(MigrationScope)],
+        ["multisig", address()],
+        ["sourceMultisig", address()],
+        ["vaultIndex", getU8Decoder()],
+        ["sourceVault", address()],
+        ["vault", address()],
+        ["outcomes", getArrayDecoder(getMigrationOutcomeDecoder())],
+        ["memo", option(string())],
       ]),
     ],
   ]);

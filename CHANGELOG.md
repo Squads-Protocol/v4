@@ -9,14 +9,16 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
 ### Compatibility
 
 - **Account and instruction wire format: unchanged.** Account layouts, instruction
-  arguments and Anchor discriminators are byte-for-byte identical to Squads v4. 4r adds one
-  instruction (`log_event`) and one error (`ProtectedInstruction`, 6045); see Events.
+  arguments and Anchor discriminators are byte-for-byte identical to Squads v4. 4r adds eight
+  instructions (`log_event`, `multisig_create_from` and six `multisig_migrate_*`) and six errors
+  (6045 to 6050); see Events and Migration from v4. `tests/compatibility.rs` pins the 36 v4
+  instruction entries of the IDL and checks that every discriminator is unique.
   `programs/squads_multisig_program/tests/golden_wire_format.rs` checks this against
   real mainnet data. A v4 decoder reads 4r data when it filters on the 4r program ID.
 - **All PDAs are different.** Every PDA (multisig, vault, proposal, transaction,
   spending limit, program config) uses the program ID as a derivation input. A v4
   multisig and its vaults do not exist on 4r. Assets in v4 vaults move only through
-  the v4 program.
+  v4 vault transactions (see Migration from v4).
 - **Do not mix SDKs.** Use the 4r packages for 4r and the v4 packages for v4.
 
 ### Events (new)
@@ -52,6 +54,74 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
   4r at the maximum CPI depth must not add the event account.
 - `log_event` runs only as a CPI from the program itself. A vault transaction that calls it fails
   with `ProtectedInstruction` (6045).
+
+### Migration from v4 (new)
+
+- `multisig_create_from` creates the 4r **successor** of a v4 multisig: the multisig PDA with
+  `create_key` = the v4 multisig address. A v4 vault signs it through a v4 vault transaction, so
+  the v4 members approve it. v4 never signs as a multisig PDA, so nobody can create the successor
+  first with `multisig_create_v2`. The successor copies the v4 members, permissions, threshold,
+  time lock, config authority and rent collector. The v4 vault pays the rent and the creation fee.
+  The fee is read at execution, so the members approve a cap (`max_creation_fee`); a larger fee
+  fails with `MigrationCreationFeeTooHigh` (6050).
+- Six instructions move the assets of a v4 vault to the successor vault with the same index, one
+  asset class each, so one call reaches only the programs of its class:
+  `multisig_migrate_sol`, `multisig_migrate_tokens` (whole balance, Token or Token-2022, optional
+  close of the source), `multisig_migrate_token_authorities` (token account owner, mint and freeze,
+  the Token-2022 extension authorities and the metadata update authority; `TokenAuthorityKind`),
+  `multisig_migrate_stakes` (staker, withdrawer and lockup custodian), `multisig_migrate_vote_accounts` (withdrawer)
+  and `multisig_migrate_programs` (loader-v3 upgrade authority). The program calculates the
+  destination. The successor must have the same governance as the v4 multisig at execution
+  (members, permissions, threshold, time lock, config authority), else `MigrationGovernanceMismatch`.
+  Loader-v4 programs and durable nonce accounts are not supported (section 11.6 of
+  `V4.5_REVISED.md`).
+- An item with nothing to move (zero balance, closed account, missing extension, frozen account,
+  authority already moved, stake lockup) is skipped, not an error, so one item cannot block a v4
+  batch. The new `Migration` event (tag 9) records the class (`scope`) and each outcome.
+- New errors: `MigrationGovernanceMismatch` (6046), `MigrationInvalidVaultHint` (6047),
+  `MigrationInvalidAssetAccounts` (6048), `MigrationInvalidAmount` (6049),
+  `MigrationCreationFeeTooHigh` (6050).
+- Helpers: `migration::{get_successor_pda, mirror, check_same_governance, TokenItem}` and
+  `builders::{MultisigCreateFrom, MigrationAccounts, MultisigMigrateSol, MultisigMigrateTokens,
+  MultisigMigrateTokenAuthorities, MultisigMigrateStakes, MultisigMigrateVoteAccounts,
+  MultisigMigratePrograms}` (Rust core); `findSuccessorPda` and `getMigrateSolInstruction`,
+  `getMigrateTokensInstruction`, `getMigrateTokenAuthoritiesInstruction`,
+  `getMigrateStakesInstruction`, `getMigrateVoteAccountsInstruction`, `getMigrateProgramsInstruction`
+  (`@sqds/multisig-4r`).
+- **Planner.** `planV4Migration` (`@sqds/multisig-4r`) and `planner::plan_v4_migration`
+  (`squads-multisig-4r`, feature `fetch`) find the assets and authorities of a v4 vault (including
+  vote accounts, Token-2022 extension authorities, and the close authority of token accounts of
+  any owner), group them by class (SOL last), split each
+  group into batch items within the message size, account and worst-case instruction-trace limits,
+  and build the v4 proposals and execute instructions. Both planners give the same batch items;
+  their tests share the sizes. A delegate role of the vault cannot move; the plan gives a note.
+- **Lookup tables.** Hand-built address lookup table instructions (`lookupTables.ts`,
+  `lookup_tables.rs`; the CLI test checks them against `solana-address-lookup-table-interface`).
+  `withMigrationLookupTables` / `with_migration_lookup_tables` re-plan with the tables: fewer, larger
+  batch items. The tables are not frozen, so their rent comes back after deactivate and close.
+- **CLI.** New commands `migrate-plan` (read only), `migrate-propose` (creates the v4 vault
+  transaction and batch; `--lookup-tables` creates the tables first), `migrate-execute` (runs an
+  approved v4 vault transaction or the remaining batch entries in order, with the tables of the
+  batch messages) and `migrate-lookup-tables` (`--deactivate` or `--close`). `--yes` skips the
+  confirmation.
+- Measured through a v4 batch (whole execute transaction, with events): about 79,000 compute
+  units for one token with a new ATA, 43,700 for one vote account, 54,200 for one program, 39,000
+  for SOL. The program binary grows from 811,792 to 940,928 bytes.
+- Tests: `tests/migration.rs` and `tests/compatibility.rs` (core), `sdk/rs/tests/planner.rs`, and
+  `sdk/multisig-4r/test/integration/v4-migration.test.ts`, which runs the mainnet v4 program from
+  `tests/fixtures/v4-mainnet` (one test for each class, Token-2022 authorities, the guards, the
+  attempts to create the successor with `multisig_create_v2`, and the planner with lookup
+  tables, a close authority and a delegate). `tla/Migration.tla` models the lineage, governance and creation fee rules;
+  `tla/MigrationStake.tla` models the stake roles and the order of their CPIs.
+- **Property tests** (`proptest`, dev dependency only) of the account readers in the program and
+  both planners: no panic on any bytes, and the same values as the official stake, vote,
+  loader-v3 and Token-2022 crates encode. The TS readers check a shared fixture
+  (`sdk/rs/tests/fixtures/account_readers.json`; `UPDATE_FIXTURES=1` rewrites it).
+- **Kani proofs** (`src/migration/proofs.rs`, Kani 0.68.0, new CI job): `map_vault`, `mirror`,
+  `check_same_governance` and `v4_member_count` hold for all inputs within stated bounds; for
+  example, the governance check passes if and only if the governance is equal. The proofs compile
+  only under `cargo kani`; the program binary and the IDL do not change. The options are in
+  `[workspace.metadata.kani]` of the root `Cargo.toml`.
 
 ### Behavior changes
 

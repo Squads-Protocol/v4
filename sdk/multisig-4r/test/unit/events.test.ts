@@ -7,8 +7,11 @@ import {
   getMultisigDecoder,
   getProposalActivateInstruction,
   LEGACY_V4_PROGRAM_ADDRESS,
+  MigrationScope,
+  MigrationSkipReason,
   ProposalEventKind,
   SQUADS_MULTISIG4R_PROGRAM_ADDRESS,
+  TokenAuthorityKind,
   withEvents,
 } from "../../src";
 import { readFixtures } from "./fixtures";
@@ -24,6 +27,21 @@ const SHARED_VECTOR =
   "01010101010101010101010101010101010101010101010101010107000000000000000300f1536500000000" +
   "fe01000000030303030303030303030303030303030303030303030303030303030303030300000000000000" +
   "00";
+
+// Same event and bytes as programs/squads_multisig_program/tests/events.rs (migration_event_matches_the_shared_cross_sdk_vector).
+const MIGRATION_VECTOR =
+  "05095a8ddf8639d9e20100000903010101010101010101010101010101010101010101010101010101010101" +
+  "0101020202020202020202020202020202020202020202020202020202020202020203040404040404040404" +
+  "0404040404040404040404040404040404040404040404050505050505050505050505050505050505050505" +
+  "0505050505050505050505090000000006060606060606060606060606060606060606060606060606060606" +
+  "06060606010001070707070707070707070707070707070707070707070707070707070707070700e8030000" +
+  "0000000001010808080808080808080808080808080808080808080808080808080808080808010302120909" +
+  "0909090909090909090909090909090909090909090909090909090909090105030a0a0a0a0a0a0a0a0a0a0a" +
+  "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0102040a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a" +
+  "0a0a0a0a0a0a0a0a0a0a0a0a0104070a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a" +
+  "0a0a0a00000000000000000000050b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b" +
+  "0b0b00000000000000000000060c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c" +
+  "0c010101020000006869";
 
 describe("decodeLogEvent", () => {
   it("decodes the shared cross-SDK vector", () => {
@@ -48,6 +66,40 @@ describe("decodeLogEvent", () => {
         rejected: [],
         cancelled: [],
       }),
+    });
+  });
+
+  it("decodes the shared migration vector: every asset kind and skip reason", () => {
+    // Act
+    const event = decodeLogEvent(fromHex(MIGRATION_VECTOR));
+
+    // Assert
+    const skipped = (reason: MigrationSkipReason) => ({ __kind: "Skipped", reason });
+    const moved = (amount: bigint, closed: boolean) => ({ __kind: "Moved", amount, closed });
+    expect(event).toEqual({
+      __kind: "Migration",
+      scope: MigrationScope.Stakes,
+      multisig: key(1),
+      sourceMultisig: key(2),
+      vaultIndex: 3,
+      sourceVault: key(4),
+      vault: key(5),
+      outcomes: [
+        { kind: { __kind: "Sol" }, account: key(6), result: skipped(MigrationSkipReason.Empty) },
+        { kind: { __kind: "Token" }, account: key(7), result: moved(1_000n, true) },
+        { kind: { __kind: "Token" }, account: key(8), result: skipped(MigrationSkipReason.Frozen) },
+        {
+          kind: { __kind: "TokenAuthority", authority: TokenAuthorityKind.MetadataUpdate },
+          account: key(9),
+          result: skipped(MigrationSkipReason.Unsupported),
+        },
+        { kind: { __kind: "StakeStaker" }, account: key(10), result: skipped(MigrationSkipReason.NotAuthority) },
+        { kind: { __kind: "StakeWithdrawer" }, account: key(10), result: skipped(MigrationSkipReason.Locked) },
+        { kind: { __kind: "StakeCustodian" }, account: key(10), result: moved(0n, false) },
+        { kind: { __kind: "VoteWithdrawer" }, account: key(11), result: moved(0n, false) },
+        { kind: { __kind: "UpgradeAuthority" }, account: key(12), result: skipped(MigrationSkipReason.Missing) },
+      ],
+      memo: some("hi"),
     });
   });
 

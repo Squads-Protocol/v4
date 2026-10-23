@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 4e437fc236af2022d1d3794618753cd5ee7de1b6822e7255f7e5e0d624e031c9 # shrinks to spec = TokenAccountSpec { account: Account { mint: 4uQeVj5tqViQh7yWWGStvkEG1Zmhx6uasJtWCJziofM, owner: US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx, amount: 0, delegate: Some(US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx), state: Initialized, is_native: None, delegated_amount: 1, close_authority: None }, extended: false }
+cc edcf3acb2570fb138608981394398b6e9715ed988ad2310aefacefd5f7e5391b # shrinks to spec = MintSpec { mint_authority: None, freeze_authority: None, extensions: [(DefaultAccountState, []), (ConfidentialTransfer, [None]), (NonTransferable, []), (TransferFee, [None, Some(US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx)]), (PermissionedBurn, [None]), (ConfidentialTransferFee, [None]), (PermanentDelegate, [None]), (ConfidentialMintBurn, []), (Metadata, [Some(4uQeVj5tqViQh7yWWGStvmL3ec2JvffKE4QoAq9tiqv)])] }

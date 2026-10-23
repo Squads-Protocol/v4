@@ -1655,6 +1655,216 @@
       "args": []
     },
     {
+      "name": "multisig_create_from",
+      "docs": [
+        "Create the successor of a v4 multisig, with the same config. A v4 vault signs, through a",
+        "v4 vault transaction."
+      ],
+      "discriminator": [
+        12,
+        150,
+        232,
+        176,
+        3,
+        189,
+        132,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "program_config",
+          "docs": [
+            "Global program config account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "docs": [
+            "The treasury where the creation fee is transferred to."
+          ],
+          "writable": true
+        },
+        {
+          "name": "source_multisig",
+          "docs": [
+            "The v4 multisig. Its config is copied to the successor."
+          ]
+        },
+        {
+          "name": "source_vault",
+          "docs": [
+            "A vault of the v4 multisig. Only v4 signs for it, in a vault transaction that the v4",
+            "members approved. It pays the rent and the creation fee."
+          ],
+          "writable": true,
+          "signer": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "source_multisig"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.vault_index"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                6,
+                129,
+                196,
+                206,
+                71,
+                226,
+                35,
+                104,
+                184,
+                177,
+                85,
+                94,
+                200,
+                135,
+                175,
+                9,
+                46,
+                252,
+                126,
+                251,
+                182,
+                108,
+                163,
+                245,
+                47,
+                191,
+                104,
+                212,
+                172,
+                156,
+                183,
+                168
+              ]
+            }
+          }
+        },
+        {
+          "name": "multisig",
+          "docs": [
+            "The successor: the multisig PDA with `create_key = source_multisig`."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "source_multisig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MultisigCreateFromArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "multisig_create_v2",
       "docs": [
         "Create a multisig."
@@ -1784,6 +1994,1259 @@
           "type": {
             "defined": {
               "name": "MultisigCreateArgsV2"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_programs",
+      "docs": [
+        "Migration from v4: move loader-v3 program upgrade authorities to the successor vault."
+      ],
+      "discriminator": [
+        159,
+        93,
+        209,
+        8,
+        21,
+        235,
+        195,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v4 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v4 vault. Only v4 signs for it, in a vault transaction that the v4 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    129,
+                    196,
+                    206,
+                    71,
+                    226,
+                    35,
+                    104,
+                    184,
+                    177,
+                    85,
+                    94,
+                    200,
+                    135,
+                    175,
+                    9,
+                    46,
+                    252,
+                    126,
+                    251,
+                    182,
+                    108,
+                    163,
+                    245,
+                    47,
+                    191,
+                    104,
+                    212,
+                    172,
+                    156,
+                    183,
+                    168
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault with the same index: the destination of every asset."
+              ],
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "bpf_loader_upgradeable",
+          "address": "BPFLoaderUpgradeab1e11111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateAuthoritiesArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_sol",
+      "docs": [
+        "Migration from v4: move the SOL of a v4 vault to the successor vault with the same index.",
+        "Every `multisig_migrate_*` instruction runs in a v4 vault transaction and needs the same",
+        "governance on both multisigs."
+      ],
+      "discriminator": [
+        42,
+        116,
+        96,
+        147,
+        175,
+        65,
+        237,
+        197
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v4 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v4 vault. Only v4 signs for it, in a vault transaction that the v4 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    129,
+                    196,
+                    206,
+                    71,
+                    226,
+                    35,
+                    104,
+                    184,
+                    177,
+                    85,
+                    94,
+                    200,
+                    135,
+                    175,
+                    9,
+                    46,
+                    252,
+                    126,
+                    251,
+                    182,
+                    108,
+                    163,
+                    245,
+                    47,
+                    191,
+                    104,
+                    212,
+                    172,
+                    156,
+                    183,
+                    168
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault with the same index: the destination of every asset."
+              ],
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateSolArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_stakes",
+      "docs": [
+        "Migration from v4: move stake staker and withdrawer roles to the successor vault."
+      ],
+      "discriminator": [
+        149,
+        25,
+        249,
+        211,
+        157,
+        111,
+        17,
+        244
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v4 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v4 vault. Only v4 signs for it, in a vault transaction that the v4 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    129,
+                    196,
+                    206,
+                    71,
+                    226,
+                    35,
+                    104,
+                    184,
+                    177,
+                    85,
+                    94,
+                    200,
+                    135,
+                    175,
+                    9,
+                    46,
+                    252,
+                    126,
+                    251,
+                    182,
+                    108,
+                    163,
+                    245,
+                    47,
+                    191,
+                    104,
+                    212,
+                    172,
+                    156,
+                    183,
+                    168
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault with the same index: the destination of every asset."
+              ],
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "stake_program",
+          "address": "Stake11111111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateAuthoritiesArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_token_authorities",
+      "docs": [
+        "Migration from v4: move token account owner, mint and Token-2022 extension and metadata",
+        "authorities to the successor vault."
+      ],
+      "discriminator": [
+        89,
+        28,
+        200,
+        210,
+        144,
+        124,
+        99,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v4 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v4 vault. Only v4 signs for it, in a vault transaction that the v4 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    129,
+                    196,
+                    206,
+                    71,
+                    226,
+                    35,
+                    104,
+                    184,
+                    177,
+                    85,
+                    94,
+                    200,
+                    135,
+                    175,
+                    9,
+                    46,
+                    252,
+                    126,
+                    251,
+                    182,
+                    108,
+                    163,
+                    245,
+                    47,
+                    191,
+                    104,
+                    212,
+                    172,
+                    156,
+                    183,
+                    168
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault with the same index: the destination of every asset."
+              ],
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "token_program",
+          "docs": [
+            "Token or Token-2022: one token program for each call."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateTokenAuthoritiesArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_tokens",
+      "docs": [
+        "Migration from v4: move whole token balances to the successor vault's token accounts."
+      ],
+      "discriminator": [
+        55,
+        25,
+        214,
+        187,
+        88,
+        213,
+        208,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v4 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v4 vault. Only v4 signs for it, in a vault transaction that the v4 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    129,
+                    196,
+                    206,
+                    71,
+                    226,
+                    35,
+                    104,
+                    184,
+                    177,
+                    85,
+                    94,
+                    200,
+                    135,
+                    175,
+                    9,
+                    46,
+                    252,
+                    126,
+                    251,
+                    182,
+                    108,
+                    163,
+                    245,
+                    47,
+                    191,
+                    104,
+                    212,
+                    172,
+                    156,
+                    183,
+                    168
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault with the same index: the destination of every asset."
+              ],
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "token_program",
+          "docs": [
+            "Token or Token-2022: one token program for each call."
+          ]
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateTokensArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_vote_accounts",
+      "docs": [
+        "Migration from v4: move vote account withdrawer roles to the successor vault."
+      ],
+      "discriminator": [
+        123,
+        111,
+        0,
+        6,
+        188,
+        150,
+        83,
+        67
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v4 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v4 vault. Only v4 signs for it, in a vault transaction that the v4 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    129,
+                    196,
+                    206,
+                    71,
+                    226,
+                    35,
+                    104,
+                    184,
+                    177,
+                    85,
+                    94,
+                    200,
+                    135,
+                    175,
+                    9,
+                    46,
+                    252,
+                    126,
+                    251,
+                    182,
+                    108,
+                    163,
+                    245,
+                    47,
+                    191,
+                    104,
+                    212,
+                    172,
+                    156,
+                    183,
+                    168
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault with the same index: the destination of every asset."
+              ],
+              "writable": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "multisig"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      118,
+                      97,
+                      117,
+                      108,
+                      116
+                    ]
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "vault_index"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "vote_program",
+          "address": "Vote111111111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateAuthoritiesArgs"
             }
           }
         }
@@ -5041,6 +6504,31 @@
       "code": 6045,
       "name": "ProtectedInstruction",
       "msg": "Instruction is protected: log_event runs only as a self-CPI by the program"
+    },
+    {
+      "code": 6046,
+      "name": "MigrationGovernanceMismatch",
+      "msg": "The successor multisig does not have the governance of the v4 multisig"
+    },
+    {
+      "code": 6047,
+      "name": "MigrationInvalidVaultHint",
+      "msg": "The vault index hint does not name a vault of the v4 multisig"
+    },
+    {
+      "code": 6048,
+      "name": "MigrationInvalidAssetAccounts",
+      "msg": "The asset accounts do not match the migration assets"
+    },
+    {
+      "code": 6049,
+      "name": "MigrationInvalidAmount",
+      "msg": "The SOL to keep in the v4 vault is less than the rent minimum"
+    },
+    {
+      "code": 6050,
+      "name": "MigrationCreationFeeTooHigh",
+      "msg": "The 4r multisig creation fee is larger than max_creation_fee"
     }
   ],
   "types": [
@@ -5409,6 +6897,169 @@
       }
     },
     {
+      "name": "MigrateAuthoritiesArgs",
+      "docs": [
+        "Arguments of `multisig_migrate_stakes`, `multisig_migrate_vote_accounts` and",
+        "`multisig_migrate_programs`. The items are the remaining accounts, one account each."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_index",
+            "docs": [
+              "The v4 vault index. Every migrate instruction starts its arguments with this field."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_authority_vault_index",
+            "docs": [
+              "Set if the v4 `config_authority` is the v4 vault with this index (see `multisig_create_from`)."
+            ],
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MigrateSolArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_index",
+            "docs": [
+              "The v4 vault index. Every migrate instruction starts its arguments with this field."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_authority_vault_index",
+            "docs": [
+              "Set if the v4 `config_authority` is the v4 vault with this index (see `multisig_create_from`)."
+            ],
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "keep",
+            "docs": [
+              "Lamports to leave in the v4 vault: 0, or at least the rent-exempt minimum."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MigrateTokenAuthoritiesArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_index",
+            "docs": [
+              "The v4 vault index. Every migrate instruction starts its arguments with this field."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_authority_vault_index",
+            "docs": [
+              "Set if the v4 `config_authority` is the v4 vault with this index (see `multisig_create_from`)."
+            ],
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "items",
+            "docs": [
+              "One authority for each remaining account (the token account or the mint), in order."
+            ],
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "TokenAuthorityKind"
+                }
+              }
+            }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MigrateTokensArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_index",
+            "docs": [
+              "The v4 vault index. Every migrate instruction starts its arguments with this field."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_authority_vault_index",
+            "docs": [
+              "Set if the v4 `config_authority` is the v4 vault with this index (see `multisig_create_from`)."
+            ],
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "close_source",
+            "docs": [
+              "Close each source token account after the transfer. Its rent goes to the successor vault."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "Multisig",
       "type": {
         "kind": "struct",
@@ -5704,6 +7355,56 @@
             "type": {
               "option": "pubkey"
             }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigCreateFromArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault_index",
+            "docs": [
+              "The index of the v4 vault that signs. Any vault of the v4 multisig proves its consensus."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "config_authority_vault_index",
+            "docs": [
+              "Set if the v4 `config_authority` is the v4 vault with this index: the successor then gets",
+              "its own vault with the same index."
+            ],
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "rent_collector_vault_index",
+            "docs": [
+              "The same as `config_authority_vault_index`, for the v4 `rent_collector`."
+            ],
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "max_creation_fee",
+            "docs": [
+              "The largest 4r creation fee that the v4 members approve. The fee is read at execution."
+            ],
+            "type": "u64"
           },
           {
             "name": "memo",
@@ -6310,6 +8011,75 @@
             "type": {
               "option": "string"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenAuthorityKind",
+      "docs": [
+        "An authority that a v4 vault can hold over a token account or a mint. The first 18 values are",
+        "the Token-2022 `AuthorityType` values, in the same order; Token supports the first four."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "MintTokens"
+          },
+          {
+            "name": "FreezeAccount"
+          },
+          {
+            "name": "AccountOwner"
+          },
+          {
+            "name": "CloseAccount"
+          },
+          {
+            "name": "TransferFeeConfig"
+          },
+          {
+            "name": "WithheldWithdraw"
+          },
+          {
+            "name": "CloseMint"
+          },
+          {
+            "name": "InterestRate"
+          },
+          {
+            "name": "PermanentDelegate"
+          },
+          {
+            "name": "ConfidentialTransferMint"
+          },
+          {
+            "name": "TransferHookProgramId"
+          },
+          {
+            "name": "ConfidentialTransferFeeConfig"
+          },
+          {
+            "name": "MetadataPointer"
+          },
+          {
+            "name": "GroupPointer"
+          },
+          {
+            "name": "GroupMemberPointer"
+          },
+          {
+            "name": "ScaledUiAmount"
+          },
+          {
+            "name": "Pause"
+          },
+          {
+            "name": "PermissionedBurn"
+          },
+          {
+            "name": "MetadataUpdate"
           }
         ]
       }

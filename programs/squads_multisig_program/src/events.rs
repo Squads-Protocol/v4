@@ -8,6 +8,7 @@ use solana_address::Address;
 
 use crate::discriminator::{account, instruction::LOG_EVENT};
 use crate::error::{CoreError, CoreResult};
+use crate::instructions::TokenAuthorityKind;
 use crate::prelude::*;
 use crate::state::{
     Batch, ConfigAction, ConfigTransaction, Multisig, ProgramConfig, Proposal, SpendingLimit,
@@ -33,6 +34,7 @@ pub enum MultisigEvent<'a> {
     Transaction(TransactionEvent<'a>),
     BatchTransaction(BatchTransactionEvent<'a>),
     Proposal(ProposalEvent<'a>),
+    Migration(MigrationEvent<'a>),
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -189,6 +191,78 @@ pub struct ProposalEvent<'a> {
     pub snapshot: Option<Cow<'a, Proposal>>,
 }
 
+#[derive(BorshSerialize, BorshDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MigrationAssetKind {
+    Sol,
+    Token,
+    TokenAuthority(TokenAuthorityKind),
+    StakeStaker,
+    StakeWithdrawer,
+    VoteWithdrawer,
+    UpgradeAuthority,
+    StakeCustodian,
+}
+
+/// The `multisig_migrate_*` instruction that emitted a `Migration` event.
+#[derive(BorshSerialize, BorshDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MigrationScope {
+    Sol,
+    Tokens,
+    TokenAuthorities,
+    Stakes,
+    VoteAccounts,
+    Programs,
+}
+
+/// Why a `multisig_migrate_*` instruction moved nothing for an asset. A skip is not an error.
+#[derive(BorshSerialize, BorshDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MigrationSkipReason {
+    /// Zero balance (or zero after `keep`).
+    Empty,
+    /// The account does not exist, or has another owner program or layout.
+    Missing,
+    /// The v4 vault does not hold the authority (for example, it moved already).
+    NotAuthority,
+    /// The source or destination token account is frozen.
+    Frozen,
+    /// A stake lockup is in force, so the withdrawer cannot change.
+    Locked,
+    /// The asset cannot move through a CPI (transfer hook, non-transferable or paused mint).
+    Unsupported,
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MigrationResult {
+    /// `amount` is 0 for authorities. `closed`: the source token account was closed.
+    Moved {
+        amount: u64,
+        closed: bool,
+    },
+    Skipped(MigrationSkipReason),
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MigrationOutcome {
+    pub kind: MigrationAssetKind,
+    /// The source token account, mint, stake, vote or program data account; the v4 vault for SOL.
+    pub account: Address,
+    pub result: MigrationResult,
+}
+
+/// One `multisig_migrate_*` call from the v4 `source_vault` to the successor `vault`, one outcome
+/// per asset (two for stake: staker and withdrawer).
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MigrationEvent<'a> {
+    pub scope: MigrationScope,
+    pub multisig: Address,
+    pub source_multisig: Address,
+    pub vault_index: u8,
+    pub source_vault: Address,
+    pub vault: Address,
+    pub outcomes: Cow<'a, [MigrationOutcome]>,
+    pub memo: Option<String>,
+}
+
 impl MultisigEvent<'_> {
     /// The account that signs this event's `log_event`: the program config for
     /// `ProgramConfig` events, the multisig for all others.
@@ -203,6 +277,7 @@ impl MultisigEvent<'_> {
             Self::Transaction(event) => event.multisig,
             Self::BatchTransaction(event) => event.multisig,
             Self::Proposal(event) => event.multisig,
+            Self::Migration(event) => event.multisig,
         }
     }
 
@@ -282,6 +357,7 @@ impl MultisigEvent<'_> {
                 memo: event.memo.clone(),
                 snapshot: None,
             }),
+            Self::Migration(event) => Self::Migration(event.clone()),
         }
     }
 }

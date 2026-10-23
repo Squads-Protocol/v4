@@ -74,8 +74,15 @@ import {
   getMultisigAddMemberInstruction,
   getMultisigAddSpendingLimitInstruction,
   getMultisigChangeThresholdInstruction,
+  getMultisigCreateFromInstructionAsync,
   getMultisigCreateInstruction,
   getMultisigCreateV2InstructionAsync,
+  getMultisigMigrateProgramsInstructionAsync,
+  getMultisigMigrateSolInstructionAsync,
+  getMultisigMigrateStakesInstructionAsync,
+  getMultisigMigrateTokenAuthoritiesInstructionAsync,
+  getMultisigMigrateTokensInstructionAsync,
+  getMultisigMigrateVoteAccountsInstructionAsync,
   getMultisigRemoveMemberInstruction,
   getMultisigRemoveSpendingLimitInstruction,
   getMultisigSetConfigAuthorityInstruction,
@@ -111,8 +118,15 @@ import {
   parseMultisigAddMemberInstruction,
   parseMultisigAddSpendingLimitInstruction,
   parseMultisigChangeThresholdInstruction,
+  parseMultisigCreateFromInstruction,
   parseMultisigCreateInstruction,
   parseMultisigCreateV2Instruction,
+  parseMultisigMigrateProgramsInstruction,
+  parseMultisigMigrateSolInstruction,
+  parseMultisigMigrateStakesInstruction,
+  parseMultisigMigrateTokenAuthoritiesInstruction,
+  parseMultisigMigrateTokensInstruction,
+  parseMultisigMigrateVoteAccountsInstruction,
   parseMultisigRemoveMemberInstruction,
   parseMultisigRemoveSpendingLimitInstruction,
   parseMultisigSetConfigAuthorityInstruction,
@@ -148,8 +162,15 @@ import {
   type MultisigAddMemberInput,
   type MultisigAddSpendingLimitInput,
   type MultisigChangeThresholdInput,
+  type MultisigCreateFromAsyncInput,
   type MultisigCreateInput,
   type MultisigCreateV2AsyncInput,
+  type MultisigMigrateProgramsAsyncInput,
+  type MultisigMigrateSolAsyncInput,
+  type MultisigMigrateStakesAsyncInput,
+  type MultisigMigrateTokenAuthoritiesAsyncInput,
+  type MultisigMigrateTokensAsyncInput,
+  type MultisigMigrateVoteAccountsAsyncInput,
   type MultisigRemoveMemberInput,
   type MultisigRemoveSpendingLimitInput,
   type MultisigSetConfigAuthorityInput,
@@ -166,8 +187,15 @@ import {
   type ParsedMultisigAddMemberInstruction,
   type ParsedMultisigAddSpendingLimitInstruction,
   type ParsedMultisigChangeThresholdInstruction,
+  type ParsedMultisigCreateFromInstruction,
   type ParsedMultisigCreateInstruction,
   type ParsedMultisigCreateV2Instruction,
+  type ParsedMultisigMigrateProgramsInstruction,
+  type ParsedMultisigMigrateSolInstruction,
+  type ParsedMultisigMigrateStakesInstruction,
+  type ParsedMultisigMigrateTokenAuthoritiesInstruction,
+  type ParsedMultisigMigrateTokensInstruction,
+  type ParsedMultisigMigrateVoteAccountsInstruction,
   type ParsedMultisigRemoveMemberInstruction,
   type ParsedMultisigRemoveSpendingLimitInstruction,
   type ParsedMultisigSetConfigAuthorityInstruction,
@@ -219,6 +247,7 @@ import {
   findProgramConfigPda,
   findProposalPda,
   findSpendingLimitPda,
+  findSuccessorPda,
   findTransactionBufferPda,
   findTransactionPda,
   findVaultPda,
@@ -361,7 +390,14 @@ export enum SquadsMultisig4rInstruction {
   MultisigAddSpendingLimit,
   MultisigChangeThreshold,
   MultisigCreate,
+  MultisigCreateFrom,
   MultisigCreateV2,
+  MultisigMigratePrograms,
+  MultisigMigrateSol,
+  MultisigMigrateStakes,
+  MultisigMigrateTokenAuthorities,
+  MultisigMigrateTokens,
+  MultisigMigrateVoteAccounts,
   MultisigRemoveMember,
   MultisigRemoveSpendingLimit,
   MultisigSetConfigAuthority,
@@ -528,12 +564,89 @@ export function identifySquadsMultisig4rInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([12, 150, 232, 176, 3, 189, 132, 132]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.MultisigCreateFrom;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([50, 221, 199, 93, 40, 245, 139, 233]),
       ),
       0,
     )
   ) {
     return SquadsMultisig4rInstruction.MultisigCreateV2;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([159, 93, 209, 8, 21, 235, 195, 212]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.MultisigMigratePrograms;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([42, 116, 96, 147, 175, 65, 237, 197]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.MultisigMigrateSol;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([149, 25, 249, 211, 157, 111, 17, 244]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.MultisigMigrateStakes;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([89, 28, 200, 210, 144, 124, 99, 47]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.MultisigMigrateTokenAuthorities;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([55, 25, 214, 187, 88, 213, 208, 198]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.MultisigMigrateTokens;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([123, 111, 0, 6, 188, 150, 83, 67]),
+      ),
+      0,
+    )
+  ) {
+    return SquadsMultisig4rInstruction.MultisigMigrateVoteAccounts;
   }
   if (
     containsBytes(
@@ -845,8 +958,29 @@ export type ParsedSquadsMultisig4rInstruction<
       instructionType: SquadsMultisig4rInstruction.MultisigCreate;
     } & ParsedMultisigCreateInstruction<TProgram>)
   | ({
+      instructionType: SquadsMultisig4rInstruction.MultisigCreateFrom;
+    } & ParsedMultisigCreateFromInstruction<TProgram>)
+  | ({
       instructionType: SquadsMultisig4rInstruction.MultisigCreateV2;
     } & ParsedMultisigCreateV2Instruction<TProgram>)
+  | ({
+      instructionType: SquadsMultisig4rInstruction.MultisigMigratePrograms;
+    } & ParsedMultisigMigrateProgramsInstruction<TProgram>)
+  | ({
+      instructionType: SquadsMultisig4rInstruction.MultisigMigrateSol;
+    } & ParsedMultisigMigrateSolInstruction<TProgram>)
+  | ({
+      instructionType: SquadsMultisig4rInstruction.MultisigMigrateStakes;
+    } & ParsedMultisigMigrateStakesInstruction<TProgram>)
+  | ({
+      instructionType: SquadsMultisig4rInstruction.MultisigMigrateTokenAuthorities;
+    } & ParsedMultisigMigrateTokenAuthoritiesInstruction<TProgram>)
+  | ({
+      instructionType: SquadsMultisig4rInstruction.MultisigMigrateTokens;
+    } & ParsedMultisigMigrateTokensInstruction<TProgram>)
+  | ({
+      instructionType: SquadsMultisig4rInstruction.MultisigMigrateVoteAccounts;
+    } & ParsedMultisigMigrateVoteAccountsInstruction<TProgram>)
   | ({
       instructionType: SquadsMultisig4rInstruction.MultisigRemoveMember;
     } & ParsedMultisigRemoveMemberInstruction<TProgram>)
@@ -1010,11 +1144,62 @@ export function parseSquadsMultisig4rInstruction<TProgram extends string>(
         ...parseMultisigCreateInstruction(instruction),
       };
     }
+    case SquadsMultisig4rInstruction.MultisigCreateFrom: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: SquadsMultisig4rInstruction.MultisigCreateFrom,
+        ...parseMultisigCreateFromInstruction(instruction),
+      };
+    }
     case SquadsMultisig4rInstruction.MultisigCreateV2: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: SquadsMultisig4rInstruction.MultisigCreateV2,
         ...parseMultisigCreateV2Instruction(instruction),
+      };
+    }
+    case SquadsMultisig4rInstruction.MultisigMigratePrograms: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: SquadsMultisig4rInstruction.MultisigMigratePrograms,
+        ...parseMultisigMigrateProgramsInstruction(instruction),
+      };
+    }
+    case SquadsMultisig4rInstruction.MultisigMigrateSol: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: SquadsMultisig4rInstruction.MultisigMigrateSol,
+        ...parseMultisigMigrateSolInstruction(instruction),
+      };
+    }
+    case SquadsMultisig4rInstruction.MultisigMigrateStakes: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: SquadsMultisig4rInstruction.MultisigMigrateStakes,
+        ...parseMultisigMigrateStakesInstruction(instruction),
+      };
+    }
+    case SquadsMultisig4rInstruction.MultisigMigrateTokenAuthorities: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType:
+          SquadsMultisig4rInstruction.MultisigMigrateTokenAuthorities,
+        ...parseMultisigMigrateTokenAuthoritiesInstruction(instruction),
+      };
+    }
+    case SquadsMultisig4rInstruction.MultisigMigrateTokens: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: SquadsMultisig4rInstruction.MultisigMigrateTokens,
+        ...parseMultisigMigrateTokensInstruction(instruction),
+      };
+    }
+    case SquadsMultisig4rInstruction.MultisigMigrateVoteAccounts: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType:
+          SquadsMultisig4rInstruction.MultisigMigrateVoteAccounts,
+        ...parseMultisigMigrateVoteAccountsInstruction(instruction),
       };
     }
     case SquadsMultisig4rInstruction.MultisigRemoveMember: {
@@ -1278,9 +1463,37 @@ export type SquadsMultisig4rPluginInstructions = {
     input: MultisigCreateInput,
   ) => ReturnType<typeof getMultisigCreateInstruction> &
     SelfPlanAndSendFunctions;
+  multisigCreateFrom: (
+    input: MultisigCreateFromAsyncInput,
+  ) => ReturnType<typeof getMultisigCreateFromInstructionAsync> &
+    SelfPlanAndSendFunctions;
   multisigCreateV2: (
     input: MultisigCreateV2AsyncInput,
   ) => ReturnType<typeof getMultisigCreateV2InstructionAsync> &
+    SelfPlanAndSendFunctions;
+  multisigMigratePrograms: (
+    input: MultisigMigrateProgramsAsyncInput,
+  ) => ReturnType<typeof getMultisigMigrateProgramsInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  multisigMigrateSol: (
+    input: MultisigMigrateSolAsyncInput,
+  ) => ReturnType<typeof getMultisigMigrateSolInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  multisigMigrateStakes: (
+    input: MultisigMigrateStakesAsyncInput,
+  ) => ReturnType<typeof getMultisigMigrateStakesInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  multisigMigrateTokenAuthorities: (
+    input: MultisigMigrateTokenAuthoritiesAsyncInput,
+  ) => ReturnType<typeof getMultisigMigrateTokenAuthoritiesInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  multisigMigrateTokens: (
+    input: MultisigMigrateTokensAsyncInput,
+  ) => ReturnType<typeof getMultisigMigrateTokensInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  multisigMigrateVoteAccounts: (
+    input: MultisigMigrateVoteAccountsAsyncInput,
+  ) => ReturnType<typeof getMultisigMigrateVoteAccountsInstructionAsync> &
     SelfPlanAndSendFunctions;
   multisigRemoveMember: (
     input: MultisigRemoveMemberInput,
@@ -1384,6 +1597,7 @@ export type SquadsMultisig4rPluginInstructions = {
 
 export type SquadsMultisig4rPluginPdas = {
   programConfig: typeof findProgramConfigPda;
+  successor: typeof findSuccessorPda;
   multisig: typeof findMultisigPda;
   vault: typeof findVaultPda;
   transaction: typeof findTransactionPda;
@@ -1487,10 +1701,45 @@ export function squadsMultisig4rProgram() {
               client,
               getMultisigCreateInstruction(input),
             ),
+          multisigCreateFrom: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMultisigCreateFromInstructionAsync(input),
+            ),
           multisigCreateV2: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getMultisigCreateV2InstructionAsync(input),
+            ),
+          multisigMigratePrograms: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMultisigMigrateProgramsInstructionAsync(input),
+            ),
+          multisigMigrateSol: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMultisigMigrateSolInstructionAsync(input),
+            ),
+          multisigMigrateStakes: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMultisigMigrateStakesInstructionAsync(input),
+            ),
+          multisigMigrateTokenAuthorities: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMultisigMigrateTokenAuthoritiesInstructionAsync(input),
+            ),
+          multisigMigrateTokens: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMultisigMigrateTokensInstructionAsync(input),
+            ),
+          multisigMigrateVoteAccounts: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMultisigMigrateVoteAccountsInstructionAsync(input),
             ),
           multisigRemoveMember: (input) =>
             addSelfPlanAndSendFunctions(
@@ -1615,6 +1864,7 @@ export function squadsMultisig4rProgram() {
         },
         pdas: {
           programConfig: findProgramConfigPda,
+          successor: findSuccessorPda,
           multisig: findMultisigPda,
           vault: findVaultPda,
           transaction: findTransactionPda,

@@ -23,7 +23,7 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run test/unit",
-    "test:integration": "vitest run test/integration --testTimeout 120000 --hookTimeout 120000"
+    "test:integration": "vitest run test/integration --no-file-parallelism --testTimeout 120000 --hookTimeout 120000"
   },
   "peerDependencies": {
     "@solana/kit": "^8.4.0"

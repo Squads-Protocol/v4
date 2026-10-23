@@ -95,7 +95,8 @@ async function ensureProgramConfig(payer: KeyPairSigner) {
   const initializer = await createKeyPairSignerFromBytes(Uint8Array.from(bytes));
   await airdrop({ recipientAddress: initializer.address, lamports: lamports(1_000_000_000n), commitment: "confirmed" });
   const ix = await getProgramConfigInitInstructionAsync(
-    { initializer, authority: payer.address, multisigCreationFee: 0, treasury: payer.address },
+    // The initializer is also the authority, so every test file can sign config changes.
+    { initializer, authority: initializer.address, multisigCreationFee: 0, treasury: payer.address },
     config,
   );
   await send(payer, [ix]);

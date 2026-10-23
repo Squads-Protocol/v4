@@ -406,3 +406,87 @@ display-config-transaction --transaction-address <TRANSACTION_ADDRESS> [--rpc-ur
 ```bash
 squads-multisig-4r-cli display-config-transaction --transaction-address AQb6VyZGzC2kL7vFU7WqoTJYTNZdHKhKuHmzuxkqGGjV
 ```
+
+## Migrate Plan
+
+### Description
+
+Shows what a v4 vault holds and how it moves to its 4r successor: the successor address and state, the inventory, the batch items and the warnings. Each batch item moves one asset class (tokens, token authorities, stakes, vote accounts, programs or SOL). It sends nothing.
+
+### Syntax
+
+```bash
+migrate-plan --multisig-pubkey <V4_MULTISIG> [--vault-index <INDEX>] [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--keep-token-accounts] [--preserve-token-account-addresses] [--extra-mint <MINT>]... [--skip-program-scans]
+```
+
+### Parameters
+
+- `--multisig-pubkey <V4_MULTISIG>`: The v4 multisig to move.
+- `--vault-index <INDEX>`: (Optional) The v4 vault to move. Default 0. The assets go to the successor vault with the same index.
+- `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet.
+- `--program-id <PROGRAM_ID>`: (Optional) The 4r program ID. Defaults to the Squads Multisig 4r program ID.
+- `--keep-token-accounts`: (Optional) Keep the v4 token accounts open. By default they close, and the rent goes to the successor vault.
+- `--preserve-token-account-addresses`: (Optional) Move token accounts that are not associated token accounts by owner change, so they keep their address.
+- `--extra-mint <MINT>`: (Optional, repeatable) A mint where the vault holds only Token-2022 extension or metadata authorities. The scan cannot find such a mint.
+- `--skip-program-scans`: (Optional) Do not scan for token roles (close authority, delegate), stakes, vote accounts, upgradeable programs and mints. Use it with an RPC that refuses `getProgramAccounts`.
+
+## Migrate Propose
+
+### Description
+
+Creates the v4 proposals of a migration as a v4 member: a vault transaction that creates the successor (if it does not exist), and one batch that moves the assets. It prints the v4 transaction indexes to approve and execute.
+
+### Syntax
+
+```bash
+migrate-propose --multisig-pubkey <V4_MULTISIG> --keypair <KEYPAIR_PATH> [--approve] [--lookup-tables] [--fee-payer-keypair <PATH>] [--yes] [same options as migrate-plan]
+```
+
+### Parameters
+
+- `--keypair <KEYPAIR_PATH>`: A v4 member with Initiate permission.
+- `--approve`: (Optional) Also approve the proposals. The member needs Vote permission.
+- `--lookup-tables`: (Optional) Put the item accounts in new address lookup tables first: fewer, larger batch entries. The member is the table authority. The command prints the table addresses; get their rent back with `migrate-lookup-tables` after the batch runs.
+- `--fee-payer-keypair <PATH>`: (Optional) Pays the fees and the rent of the proposal accounts (and of the lookup tables).
+- `--yes`: (Optional) Do not ask for confirmation.
+
+## Migrate Execute
+
+### Description
+
+Executes an approved migration proposal on v4: the vault transaction that creates the successor, or the remaining entries of the batch, one transaction each, in order. It reads the lookup tables that the batch messages use. It stops at the first entry that fails.
+
+### Syntax
+
+```bash
+migrate-execute --multisig-pubkey <V4_MULTISIG> --keypair <KEYPAIR_PATH> --transaction-index <INDEX> [--rpc-url <RPC_URL>] [--yes]
+```
+
+### Example Usage
+
+```bash
+squads-multisig-4r-cli migrate-plan --multisig-pubkey <V4_MULTISIG>
+squads-multisig-4r-cli migrate-propose --multisig-pubkey <V4_MULTISIG> --keypair /path/to/keypair.json --approve
+squads-multisig-4r-cli migrate-execute --multisig-pubkey <V4_MULTISIG> --keypair /path/to/keypair.json --transaction-index 1
+squads-multisig-4r-cli migrate-execute --multisig-pubkey <V4_MULTISIG> --keypair /path/to/keypair.json --transaction-index 2
+```
+
+## Migrate Lookup Tables
+
+### Description
+
+Deactivates the lookup tables of a migration, or closes them about 513 slots after deactivation to get their rent back.
+
+### Syntax
+
+```bash
+migrate-lookup-tables --tables <TABLE,...> --keypair <KEYPAIR_PATH> (--deactivate | --close) [--recipient <ADDRESS>] [--fee-payer-keypair <PATH>] [--rpc-url <RPC_URL>]
+```
+
+### Parameters
+
+- `--tables <TABLE,...>`: The lookup tables (comma-separated), as `migrate-propose` printed them.
+- `--keypair <KEYPAIR_PATH>`: The table authority (the member that proposed).
+- `--deactivate`: Deactivate the tables. New transactions cannot use them.
+- `--close`: Close deactivated tables. The rent goes to the recipient.
+- `--recipient <ADDRESS>`: (Optional) The recipient of the rent. Default: the authority.

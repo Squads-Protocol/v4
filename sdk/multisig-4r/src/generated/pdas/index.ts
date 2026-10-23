@@ -12,6 +12,7 @@ export * from "./multisig";
 export * from "./programConfig";
 export * from "./proposal";
 export * from "./spendingLimit";
+export * from "./successor";
 export * from "./transaction";
 export * from "./transactionBuffer";
 export * from "./vault";

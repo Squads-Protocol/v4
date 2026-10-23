@@ -10,6 +10,7 @@ use crate::command::display_vault::DisplayVault;
 use crate::command::initiate_batch_transfer::InitiateBatchTransfer;
 use crate::command::initiate_program_upgrade::InitiateProgramUpgrade;
 use crate::command::initiate_transfer::InitiateTransfer;
+use crate::command::migrate::{MigrateExecute, MigrateLookupTables, MigratePlan, MigratePropose};
 use crate::command::multisig_create::MultisigCreate;
 use crate::command::program_config_init::ProgramConfigInit;
 use crate::command::proposal_vote::ProposalVote;
@@ -27,6 +28,7 @@ pub mod display_vault;
 pub mod initiate_batch_transfer;
 pub mod initiate_program_upgrade;
 pub mod initiate_transfer;
+pub mod migrate;
 pub mod multisig_create;
 pub mod program_config_init;
 pub mod proposal_vote;
@@ -53,4 +55,8 @@ pub enum Command {
     DisplayProposals(DisplayProposals),
     DisplayTransaction(DisplayTransaction),
     DisplayConfigTransaction(DisplayConfigTransaction),
+    MigratePlan(MigratePlan),
+    MigratePropose(MigratePropose),
+    MigrateExecute(MigrateExecute),
+    MigrateLookupTables(MigrateLookupTables),
 }
