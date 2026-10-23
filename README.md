@@ -140,7 +140,10 @@ bun install && bun run test            # TypeScript integration tests on solana-
 cd sdk/multisig-4r && npm ci && npm test  # @sqds/multisig-4r unit tests
 ```
 
-The account reader property tests (`proptest`) run with `cargo test`. The TS unit tests read
+The account reader property tests (`proptest`) run with `cargo test` (256 cases for each property).
+The `Property tests` workflow (`.github/workflows/proptest.yaml`) runs them with 100k cases on pull
+requests and 1M cases every night. To repeat a CI run, set `PROPTEST_CASES` and `PROPTEST_RNG_SEED`
+to the values in its job summary. The TS unit tests read
 cases from `sdk/rs/tests/fixtures/account_readers.json`. After you change a generator, rewrite it
 with `UPDATE_FIXTURES=1 cargo test -p squads-multisig-4r --test account_readers`.
 
@@ -156,6 +159,13 @@ under `cargo kani`, so they do not change the program. Run from the repository r
 cargo install --locked kani-verifier --version 0.68.0 && cargo kani setup
 cargo kani -p squads-multisig-4r-program --no-default-features
 ```
+
+Kani compiles with its own nightly toolchain, and it prints `use of an unstable feature` warnings
+(its `register_tool` attribute, and dependencies that turn on nightly features when they find a
+nightly compiler). These builds are only for the proofs. The program has no unstable features:
+host builds use the stable toolchain in `rust-toolchain.toml`, and `.cargo/config.toml` sets
+`-Zallow-features=` for the on-chain target. The platform-tools `rustc` is a `-dev` build, so it
+accepts `#![feature]`; with the empty allow list, any `#![feature]` stops the SBF build.
 
 Regenerate the IDL and the Codama TypeScript client after a program interface change. Update the
 core builders (`src/builders/`) by hand; the core tests fail if they no longer match the IDL:

@@ -37,8 +37,8 @@ fn any_option_address() -> Option<Address> {
     kani::any::<bool>().then(any_address)
 }
 
-fn any_members() -> Vec<Member> {
-    let len: usize = kani::any_where(|len| *len <= MAX_MEMBERS);
+/// `len` members with symbolic values. A constant `len` gives an allocation of constant size.
+fn members_of(len: usize) -> Vec<Member> {
     (0..len)
         .map(|_| Member {
             key: any_address(),
@@ -48,6 +48,10 @@ fn any_members() -> Vec<Member> {
 }
 
 fn any_multisig() -> Multisig {
+    multisig_with(kani::any_where(|len| *len <= MAX_MEMBERS))
+}
+
+fn multisig_with(member_count: usize) -> Multisig {
     Multisig {
         create_key: any_address(),
         config_authority: any_address(),
@@ -57,8 +61,37 @@ fn any_multisig() -> Multisig {
         stale_transaction_index: kani::any(),
         rent_collector: any_option_address(),
         bump: kani::any(),
-        members: any_members(),
+        members: members_of(member_count),
     }
+}
+
+// `Vec::clone` of a symbolic length needs more than 30 GB in CBMC, so harnesses that clone the
+// members (`mirror`) run once for each member count, each with a constant length.
+macro_rules! for_each_member_count {
+    ($check:ident) => {
+        mod $check {
+            #[kani::proof]
+            #[kani::unwind(3)]
+            #[kani::stub(crate::pda::get_vault_pda, super::stub_vault_pda)]
+            fn no_members() {
+                super::$check(0);
+            }
+
+            #[kani::proof]
+            #[kani::unwind(3)]
+            #[kani::stub(crate::pda::get_vault_pda, super::stub_vault_pda)]
+            fn one_member() {
+                super::$check(1);
+            }
+
+            #[kani::proof]
+            #[kani::unwind(3)]
+            #[kani::stub(crate::pda::get_vault_pda, super::stub_vault_pda)]
+            fn two_members() {
+                super::$check(super::MAX_MEMBERS);
+            }
+        }
+    };
 }
 
 fn any_hints() -> VaultHints {
@@ -128,12 +161,11 @@ fn map_vault_maps_only_the_named_v4_vault() {
     kani::cover!(named, "the hint names the v4 vault");
 }
 
-#[kani::proof]
-#[kani::unwind(3)]
-#[kani::stub(crate::pda::get_vault_pda, stub_vault_pda)]
-fn mirror_copies_the_governance() {
+for_each_member_count!(mirror_copies_the_governance);
+
+fn mirror_copies_the_governance(member_count: usize) {
     // Arrange
-    let source = any_multisig();
+    let source = multisig_with(member_count);
     let (source_key, successor_key) = (any_address(), any_address());
     let hints = any_hints();
 
@@ -166,12 +198,11 @@ fn mirror_copies_the_governance() {
     );
 }
 
-#[kani::proof]
-#[kani::unwind(3)]
-#[kani::stub(crate::pda::get_vault_pda, stub_vault_pda)]
-fn a_mirrored_successor_passes_the_governance_check() {
+for_each_member_count!(a_mirrored_successor_passes_the_governance_check);
+
+fn a_mirrored_successor_passes_the_governance_check(member_count: usize) {
     // Arrange
-    let source = any_multisig();
+    let source = multisig_with(member_count);
     let (source_key, successor_key) = (any_address(), any_address());
     let hints = any_hints();
     let Some(successor) = successor_from(&source, hints, (&source_key, &successor_key)) else {
@@ -194,7 +225,6 @@ fn a_mirrored_successor_passes_the_governance_check() {
         hints.config_authority.is_some(),
         "a hinted successor exists"
     );
-    kani::cover!(source.members.len() == MAX_MEMBERS, "a full member list");
 }
 
 #[kani::proof]

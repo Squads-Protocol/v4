@@ -524,7 +524,7 @@ update authority of a Token-2022 token group do not move. They stay under `Gov(M
 | `tests/migration.rs`, `tests/core_matches_anchor.rs`, `tests/compatibility.rs` | `mirror`, `map_vault`, `check_same_governance`; builders match Anchor; the v4 instruction set does not change | `cargo test -p squads-multisig-4r-program` |
 | `sdk/multisig-4r/test/integration/v4-migration.test.ts` | Each class, each guard (2006, 3012, 3008, 6046, 6048, 6049, 6050), the S1 attempts (3010, v4 6014), skips, Token-2022 authorities, the close authority and delegate scans, on a validator with the mainnet v4 binary | the SDK integration command in CI |
 | `src/instructions/migrate/proptests.rs`, `sdk/rs/tests/account_readers.rs`, `sdk/multisig-4r/test/unit/accountReaders.test.ts` | The account readers (`stake_meta`, `vote_withdrawer`, `program_data_authority`, `mint_authority`, and the planner readers) never panic, and they read what the official crates encode: stake, vote, loader-v3, and Token-2022 mints with random extensions in random order. The TS readers read a shared fixture from the Rust generators (section 10.3) | `cargo test -p squads-multisig-4r-program proptests`, `cargo test -p squads-multisig-4r --test account_readers`, the SDK unit tests |
-| `src/migration/proofs.rs` (Kani 0.68.0) | Seven proofs on the real Rust code, for all inputs within the bounds below (section 10.2) | `cargo kani -p squads-multisig-4r-program --no-default-features` (from the repository root) |
+| `src/migration/proofs.rs` (Kani 0.68.0) | Seven properties (11 harnesses) on the real Rust code, for all inputs within the bounds below (section 10.2) | `cargo kani -p squads-multisig-4r-program --no-default-features` (from the repository root) |
 
 The TLA+ models are at design level. `Migration.tla` models governance as one value and assets as
 places; the Kani proof `the_check_passes_exactly_for_equal_governance` shows that the code compares
@@ -553,7 +553,10 @@ authority that passes). All are satisfied, so no proof passes because its cases 
 **Bounds and models.** A proof holds within these limits:
 
 - **Members:** up to 2 for each multisig (3 after a change). The comparisons are the same for
-  longer lists, element by element.
+  longer lists, element by element. `mirror` clones the members, and a clone of a symbolic length
+  needs more than 30 GB of memory in CBMC. Thus `mirror_copies_the_governance` and
+  `a_mirrored_successor_passes_the_governance_check` run once for each count (`no_members`,
+  `one_member`, `two_members`), each with a constant length. Together they cover the same counts.
 - **Addresses:** two symbolic bytes, other bytes zero. The code only compares addresses, and the
   PDA stub reads only bytes 0 and 1. Thus two bytes give every equality pattern that the code can
   see.

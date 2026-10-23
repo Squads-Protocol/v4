@@ -116,7 +116,9 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
 - **Property tests** (`proptest`, dev dependency only) of the account readers in the program and
   both planners: no panic on any bytes, and the same values as the official stake, vote,
   loader-v3 and Token-2022 crates encode. The TS readers check a shared fixture
-  (`sdk/rs/tests/fixtures/account_readers.json`; `UPDATE_FIXTURES=1` rewrites it).
+  (`sdk/rs/tests/fixtures/account_readers.json`; `UPDATE_FIXTURES=1` rewrites it). A new CI
+  workflow (`proptest.yaml`) runs them with 100k cases on pull requests and 1M cases every night,
+  and uploads the regression seeds when a property fails.
 - **Kani proofs** (`src/migration/proofs.rs`, Kani 0.68.0, new CI job): `map_vault`, `mirror`,
   `check_same_governance` and `v4_member_count` hold for all inputs within stated bounds; for
   example, the governance check passes if and only if the governance is equal. The proofs compile
@@ -185,6 +187,11 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
 - The program is built for **SBPF v3** only. Compared with SBPF v0, the binary is 6% smaller
   and uses 0.1–0.6% fewer compute units per instruction.
 - Verifiable builds: `solana-verify build --base-image solanafoundation/solana-verifiable-build:4.3.0 --arch v3`.
+- **No unstable Rust features in the program binary.** The platform-tools `rustc` is a `-dev`
+  build, so it accepts `#![feature]`. Before this change, `thiserror` found this and compiled with
+  `error_generic_member_access`. `.cargo/config.toml` now sets `-Zallow-features=` for
+  `target_os = "solana"` builds: the probe fails, and any `#![feature]` in the dependency graph
+  stops the SBF build. The default build is byte-identical to the build before this change.
 - The repository uses Bun 1.3 as its package manager (`bun install`, `bun run test`). Yarn and Turbo
   are removed. `sdk/multisig-4r` is a standalone npm package.
 
