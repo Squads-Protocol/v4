@@ -192,7 +192,7 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
   `error_generic_member_access`. `.cargo/config.toml` now sets `-Zallow-features=` for
   `target_os = "solana"` builds: the probe fails, and any `#![feature]` in the dependency graph
   stops the SBF build. The default build is byte-identical to the build before this change.
-- The repository uses Bun 1.3 as its package manager (`bun install`, `bun run test`). Yarn and Turbo
+- The repository uses Bun 1.4.4 as its package manager (`bun install`, `bun run test`). Yarn and Turbo
   are removed. `sdk/multisig-4r` is a standalone npm package.
 
 ### Fixes

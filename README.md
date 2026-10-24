@@ -123,7 +123,7 @@ Requirements:
 - Rust: `rust-toolchain.toml` selects the version (1.98.1) and components automatically.
 - Agave (Solana) 4.3.2: `sh -c "$(curl -sSfL https://release.anza.xyz/v4.3.2/install)"`
 - Anchor CLI 1.2.1: `cargo install anchor-cli --version 1.2.1 --locked`
-- Node.js 22 and Bun 1.3 (the repository package manager; the integration tests run on Node.js).
+- Node.js 22 and Bun 1.4.4 (the repository package manager; the integration tests run on Node.js).
 
 Build the program for SBPF v3 (the only supported target):
 
