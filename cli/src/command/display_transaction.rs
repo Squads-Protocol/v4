@@ -2,12 +2,15 @@ use std::str::FromStr;
 
 use clap::Args;
 use colored::Colorize;
+use eyre::eyre;
 use solana_address_lookup_table_interface::state::AddressLookupTable;
 use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::bs58;
 use solana_sdk::pubkey::Pubkey;
 use squads_multisig_4r::rpc::decode_checked;
-use squads_multisig_4r::state::VaultTransaction;
+use squads_multisig_4r::state::{
+    MultisigMessageAddressTableLookup, VaultTransaction, VaultTransactionMessage,
+};
 
 use crate::utils::{is_signer_index, is_static_writable_index};
 
@@ -23,10 +26,78 @@ pub struct DisplayTransaction {
     transaction_address: String,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 struct AccountEntry {
     pubkey: Pubkey,
     is_writable: bool,
     is_signer: bool,
+}
+
+/// The addresses one lookup table loads, in its `writable_indexes` and `readonly_indexes` order.
+#[derive(Debug, Clone, PartialEq)]
+struct ResolvedLookup {
+    account_key: Pubkey,
+    writable: Vec<Pubkey>,
+    readonly: Vec<Pubkey>,
+}
+
+fn resolve_lookup(
+    lookup: &MultisigMessageAddressTableLookup,
+    addresses: &[Pubkey],
+) -> eyre::Result<ResolvedLookup> {
+    let resolve = |indexes: &[u8]| {
+        indexes
+            .iter()
+            .map(|&idx| {
+                addresses.get(usize::from(idx)).copied().ok_or_else(|| {
+                    eyre!(
+                        "Index {idx} is out of range for lookup table {}",
+                        lookup.account_key
+                    )
+                })
+            })
+            .collect::<eyre::Result<Vec<_>>>()
+    };
+    Ok(ResolvedLookup {
+        account_key: lookup.account_key,
+        writable: resolve(&lookup.writable_indexes)?,
+        readonly: resolve(&lookup.readonly_indexes)?,
+    })
+}
+
+/// The account list that instruction indexes point into: static keys, then the writable
+/// addresses of all lookups, then the readonly addresses of all lookups. The program resolves
+/// indexes in this order at execution.
+fn message_accounts(
+    message: &VaultTransactionMessage,
+    lookups: &[ResolvedLookup],
+) -> Vec<AccountEntry> {
+    let static_accounts = message
+        .account_keys
+        .iter()
+        .enumerate()
+        .map(|(i, key)| AccountEntry {
+            pubkey: *key,
+            is_writable: is_static_writable_index(message, i),
+            is_signer: is_signer_index(message, i),
+        });
+    let loaded = |is_writable: bool| {
+        lookups
+            .iter()
+            .flat_map(move |lookup| match is_writable {
+                true => &lookup.writable,
+                false => &lookup.readonly,
+            })
+            .map(move |pubkey| AccountEntry {
+                pubkey: *pubkey,
+                is_writable,
+                is_signer: false,
+            })
+    };
+    static_accounts
+        .chain(loaded(true))
+        .chain(loaded(false))
+        .collect()
 }
 
 impl DisplayTransaction {
@@ -63,51 +134,14 @@ impl DisplayTransaction {
 
         let message = &vault_tx.message;
 
-        // Build the full resolved account list: static keys first, then ALT-derived keys.
-        let mut all_accounts: Vec<AccountEntry> = message
-            .account_keys
-            .iter()
-            .enumerate()
-            .map(|(i, key)| AccountEntry {
-                pubkey: *key,
-                is_writable: is_static_writable_index(message, i),
-                is_signer: is_signer_index(message, i),
-            })
-            .collect();
-
-        // Fetch each ALT, resolve its addresses, and append them to all_accounts.
-        // Track the resolved entries for the summary printed at the end.
-        let mut alt_summaries: Vec<(Pubkey, Vec<Pubkey>, Vec<Pubkey>)> = Vec::new();
-
+        let mut lookups = Vec::with_capacity(message.address_table_lookups.len());
         for lookup in &message.address_table_lookups {
             let alt_data = rpc_client.get_account(&lookup.account_key).await?.data;
             let alt = AddressLookupTable::deserialize(&alt_data)?;
-
-            let mut writable_pubkeys = Vec::new();
-            let mut readonly_pubkeys = Vec::new();
-
-            for &idx in &lookup.writable_indexes {
-                let pubkey = alt.addresses[idx as usize];
-                writable_pubkeys.push(pubkey);
-                all_accounts.push(AccountEntry {
-                    pubkey,
-                    is_writable: true,
-                    is_signer: false,
-                });
-            }
-
-            for &idx in &lookup.readonly_indexes {
-                let pubkey = alt.addresses[idx as usize];
-                readonly_pubkeys.push(pubkey);
-                all_accounts.push(AccountEntry {
-                    pubkey,
-                    is_writable: false,
-                    is_signer: false,
-                });
-            }
-
-            alt_summaries.push((lookup.account_key, writable_pubkeys, readonly_pubkeys));
+            lookups.push(resolve_lookup(lookup, &alt.addresses)?);
         }
+
+        let all_accounts = message_accounts(message, &lookups);
 
         // Print each instruction.
         println!(
@@ -144,19 +178,19 @@ impl DisplayTransaction {
         }
 
         // Print ALT summary if any were used.
-        if !alt_summaries.is_empty() {
+        if !lookups.is_empty() {
             println!("{}", "Address Lookup Tables".bold());
-            for (key, writable, readonly) in &alt_summaries {
-                println!("  {}", key);
-                if !writable.is_empty() {
+            for lookup in &lookups {
+                println!("  {}", lookup.account_key);
+                if !lookup.writable.is_empty() {
                     println!("    Writable:");
-                    for pk in writable {
+                    for pk in &lookup.writable {
                         println!("      {}", pk);
                     }
                 }
-                if !readonly.is_empty() {
+                if !lookup.readonly.is_empty() {
                     println!("    Readonly:");
-                    for pk in readonly {
+                    for pk in &lookup.readonly {
                         println!("      {}", pk);
                     }
                 }
@@ -165,5 +199,70 @@ impl DisplayTransaction {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lookup(writable: Vec<Pubkey>, readonly: Vec<Pubkey>) -> ResolvedLookup {
+        ResolvedLookup {
+            account_key: Pubkey::new_unique(),
+            writable,
+            readonly,
+        }
+    }
+
+    #[test]
+    fn orders_loaded_accounts_writable_first_across_all_lookups() {
+        let vault = Pubkey::new_unique();
+        let message = VaultTransactionMessage {
+            num_signers: 1,
+            num_writable_signers: 1,
+            num_writable_non_signers: 0,
+            account_keys: vec![vault],
+            instructions: vec![],
+            address_table_lookups: vec![],
+        };
+        let (readonly_1, writable_2, readonly_2) = (
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        );
+        let lookups = [
+            lookup(vec![], vec![readonly_1]),
+            lookup(vec![writable_2], vec![readonly_2]),
+        ];
+
+        let accounts = message_accounts(&message, &lookups);
+
+        let entry = |pubkey, is_writable, is_signer| AccountEntry {
+            pubkey,
+            is_writable,
+            is_signer,
+        };
+        assert_eq!(
+            accounts,
+            [
+                entry(vault, true, true),
+                entry(writable_2, true, false),
+                entry(readonly_1, false, false),
+                entry(readonly_2, false, false),
+            ]
+        );
+    }
+
+    #[test]
+    fn rejects_lookup_index_out_of_range() {
+        let table = MultisigMessageAddressTableLookup {
+            account_key: Pubkey::new_unique(),
+            writable_indexes: vec![1],
+            readonly_indexes: vec![],
+        };
+
+        let result = resolve_lookup(&table, &[Pubkey::new_unique()]);
+
+        assert!(result.is_err());
     }
 }
