@@ -14,36 +14,39 @@ runs:
   using: "composite"
   steps:
     - name: Cache Anchor build
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-anchor-build
-      if: env.CACHE != 'true' || steps.cache-anchor-build.outputs.cache-hit != 'true'
       with:
         path: |
           ./target/
-        key: build-${{ runner.os }}-${{env.ANCHOR_VERSION}}-${{ hashFiles(format('./programs/{0}/**', inputs.program)) }}-${{ inputs.program }}-${{ inputs.staging }}
+        key: build-${{ runner.os }}-${{ env.ANCHOR_VERSION }}-${{ hashFiles(format('./programs/{0}/**', inputs.program)) }}-${{ inputs.program }}-${{ inputs.program_id }}
 
     - name: Replace program ID if needed
       if: inputs.replace_program_id == 'true'
       env:
         PROGRAM_ID: ${{ inputs.program_id }}
+        PROGRAM_NAME: ${{ inputs.program }}
       run: |
-        sed -i "s/declare_id!(\".*\")/declare_id!(\"${PROGRAM_ID}\")/g" ./programs/${{ inputs.program }}/src/lib.rs
+        set -euo pipefail
+        sed -i "s/declare_id!(\".*\")/declare_id!(\"${PROGRAM_ID}\")/g" "./programs/${PROGRAM_NAME}/src/lib.rs"
       shell: bash
 
     - name: Build with Anchor
-      run: ~/.cargo/bin/anchor build -p ${{ inputs.program }}
+      env:
+        PROGRAM_NAME: ${{ inputs.program }}
+      run: ~/.cargo/bin/anchor build -p "$PROGRAM_NAME"
       shell: bash
 
     - name: Store .so files
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{inputs.program}}-so
+        name: ${{ inputs.program }}-so
         path: |
-          ./target/deploy/${{inputs.program}}.so
+          ./target/deploy/${{ inputs.program }}.so
 
     - name: Store IDL files
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{inputs.program}}-idl
+        name: ${{ inputs.program }}-idl
         path: |
-          ./target/idl/${{inputs.program}}.json
+          ./target/idl/${{ inputs.program }}.json
