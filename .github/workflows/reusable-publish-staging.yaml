@@ -31,10 +31,8 @@ on:
           required: true
 
 env:
-  CACHE: inputs.cache
+  CACHE: ${{ inputs.cache }}
   SOLANA_CLI_VERSION: ${{ inputs.solana_cli_version }}
-  NODE_VERSION: ${{ inputs.node_version }}
-  CARGO_PROFILE: ${{ inputs.cargo_profile }}
   ANCHOR_VERSION: ${{ inputs.anchor_version }}
 
 jobs:
@@ -44,7 +42,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: ./.github/actions/setup-rust/
@@ -69,5 +67,3 @@ jobs:
           program_id: ${{ inputs.program_id }}
           rpc_url: ${{ secrets.RPC_URL }}
           upgrade_authority_keypair: ${{ secrets.UPGRADE_AUTHORITY_KEYPAIR }}
-
-
