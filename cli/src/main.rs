@@ -32,5 +32,6 @@ async fn main() -> eyre::Result<()> {
         Command::DisplayProposals(command) => command.execute().await,
         Command::DisplayTransaction(command) => command.execute().await,
         Command::DisplayConfigTransaction(command) => command.execute().await,
+        Command::Vote(command) => command.execute().await,
     }
 }

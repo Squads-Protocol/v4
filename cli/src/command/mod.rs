@@ -14,6 +14,7 @@ use crate::command::vault_transaction_create::VaultTransactionCreate;
 use crate::command::display_config_transaction::DisplayConfigTransaction;
 use crate::command::display_transaction::DisplayTransaction;
 use crate::command::vault_transaction_execute::VaultTransactionExecute;
+use crate::command::vote::VoteCommand;
 
 use clap::Subcommand;
 
@@ -22,6 +23,7 @@ pub mod config_transaction_execute;
 pub mod display_proposals;
 pub mod display_vault;
 pub mod initiate_batch_transfer;
+pub mod instruction_decode;
 pub mod initiate_program_upgrade;
 pub mod initiate_transfer;
 pub mod transfer_common;
@@ -34,6 +36,8 @@ pub mod display_transaction;
 pub mod vault_transaction_accounts_close;
 pub mod vault_transaction_create;
 pub mod vault_transaction_execute;
+pub mod vault_proposal;
+pub mod vote;
 
 #[derive(Subcommand)]
 pub enum Command {
@@ -53,4 +57,7 @@ pub enum Command {
     DisplayProposals(DisplayProposals),
     DisplayTransaction(DisplayTransaction),
     DisplayConfigTransaction(DisplayConfigTransaction),
+    /// Propose vote account operations signed by a vault that is the authorized withdrawer
+    #[command(subcommand)]
+    Vote(VoteCommand),
 }
