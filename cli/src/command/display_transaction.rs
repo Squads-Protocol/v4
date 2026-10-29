@@ -9,6 +9,8 @@ use squads_multisig::squads_multisig_program::state::VaultTransaction;
 use squads_multisig::state::VaultTransactionMessage;
 use std::str::FromStr;
 
+use crate::command::instruction_decode::{decode_instruction, MultisigVaults};
+
 /// Fetch a vault transaction account and display its decoded instructions, accounts, and address lookup tables.
 #[derive(Args)]
 pub struct DisplayTransaction {
@@ -36,8 +38,8 @@ impl DisplayTransaction {
 
         let rpc_client = RpcClient::new(rpc_url);
 
-        let account_data = match rpc_client.get_account(&transaction_address).await {
-            Ok(account) => account.data,
+        let (account_data, program_id) = match rpc_client.get_account(&transaction_address).await {
+            Ok(account) => (account.data, account.owner),
             Err(_) => {
                 println!("Account closed or not found.");
                 return Ok(());
@@ -46,6 +48,7 @@ impl DisplayTransaction {
 
         let vault_tx =
             VaultTransaction::try_deserialize(&mut account_data.as_slice())?;
+        let vaults = MultisigVaults::new(&vault_tx.multisig, &program_id);
 
         println!();
         println!("{}", "Transaction Details".bold());
@@ -127,12 +130,29 @@ impl DisplayTransaction {
                         (false, true) => " [signer]".cyan().to_string(),
                         (false, false) => String::new(),
                     };
-                    println!("    {}: {}{}", j + 1, acc.pubkey, flags);
+                    println!("    {}: {}{}", j + 1, vaults.label(&acc.pubkey), flags);
                 }
             }
 
             if !ix.data.is_empty() {
                 println!("  Data: {}", bs58::encode(&ix.data).into_string());
+            }
+
+            let ix_accounts: Vec<Pubkey> = ix
+                .account_indexes
+                .iter()
+                .map(|&idx| all_accounts[idx as usize].pubkey)
+                .collect();
+            if let Some(decoded) =
+                decode_instruction(&program_pubkey, &ix.data, &ix_accounts, &vaults)
+            {
+                println!("  Decoded: {}", decoded.name.green().bold());
+                for (label, value) in &decoded.fields {
+                    println!("    {}: {}", label, value);
+                }
+                for warning in &decoded.warnings {
+                    println!("  {}", format!("⚠️  {}", warning).red().bold());
+                }
             }
 
             println!();

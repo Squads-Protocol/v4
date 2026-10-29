@@ -5135,6 +5135,7 @@ dependencies = [
  "solana-program",
  "solana-remote-wallet",
  "solana-sdk",
+ "solana-vote-interface",
  "spl-associated-token-account",
  "spl-token",
  "squads-multisig",
