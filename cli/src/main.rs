@@ -3,6 +3,7 @@ use clap::Parser;
 use command::Command;
 
 mod command;
+mod signer;
 pub mod utils;
 
 #[derive(Parser)]
@@ -32,5 +33,9 @@ async fn main() -> eyre::Result<()> {
         Command::DisplayProposals(command) => command.execute().await,
         Command::DisplayTransaction(command) => command.execute().await,
         Command::DisplayConfigTransaction(command) => command.execute().await,
+        Command::MigratePlan(command) => command.execute().await,
+        Command::MigratePropose(command) => command.execute().await,
+        Command::MigrateExecute(command) => command.execute().await,
+        Command::MigrateLookupTables(command) => command.execute().await,
     }
 }

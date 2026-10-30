@@ -1,14 +1,27 @@
+#[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, LogAuthority, MultisigEvent, TransactionContent, TransactionEvent, TransactionEventKind,
+};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ConfigTransactionCreateArgs {
     pub actions: Vec<ConfigAction>,
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: ConfigTransactionCreateArgs)]
 pub struct ConfigTransactionCreate<'info> {
@@ -43,6 +56,7 @@ pub struct ConfigTransactionCreate<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl ConfigTransactionCreate<'_> {
     fn validate(&self, args: &ConfigTransactionCreateArgs) -> Result<()> {
         // multisig
@@ -108,9 +122,22 @@ impl ConfigTransactionCreate<'_> {
 
         multisig.invariant()?;
 
-        // Logs for indexing.
-        msg!("transaction index: {}", transaction_index);
-
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        let transaction = &ctx.accounts.transaction;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::Transaction(TransactionEvent {
+                    kind: TransactionEventKind::Create,
+                    multisig: multisig.key(),
+                    transaction: transaction.key(),
+                    transaction_index,
+                    member: Some(ctx.accounts.creator.key()),
+                    memo: args.memo,
+                    content: Some(TransactionContent::Config(Cow::Borrowed(transaction))),
+                })]
+            },
+        )
     }
 }

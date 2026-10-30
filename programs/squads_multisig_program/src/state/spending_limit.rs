@@ -1,8 +1,17 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 
-#[account]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SpendingLimit {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -68,6 +77,7 @@ impl SpendingLimit {
         destinations_length * 32 // destinations
     }
 
+    #[cfg(feature = "program")]
     pub fn invariant(&self) -> Result<()> {
         // Amount must be a non-zero value.
         require_neq!(self.amount, 0, MultisigError::SpendingLimitInvalidAmount);
@@ -83,7 +93,9 @@ impl SpendingLimit {
 }
 
 /// The reset period of the spending limit.
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Period {
     /// The spending limit can only be used once.
     OneTime,

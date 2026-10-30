@@ -5,39 +5,33 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::hash::hash;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::system_instruction;
 use solana_sdk::transaction::VersionedTransaction;
-use spl_associated_token_account::get_associated_token_address_with_program_id;
-use spl_token::instruction::transfer;
-use squads_multisig::anchor_lang::{AnchorSerialize, InstructionData};
-use squads_multisig::client::get_multisig;
-use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
-use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
-use squads_multisig::squads_multisig_program::accounts::VaultTransactionCreate as VaultTransactionCreateAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
-use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
-use squads_multisig::squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
-use squads_multisig::squads_multisig_program::ProposalCreateArgs;
-use squads_multisig::squads_multisig_program::ProposalVoteArgs;
-use squads_multisig::squads_multisig_program::TransactionMessage;
-use squads_multisig::squads_multisig_program::VaultTransactionCreateArgs;
-use squads_multisig::state::Permission;
-use squads_multisig::vault_transaction::VaultTransactionMessageExt;
+use solana_system_interface::instruction as system_instruction;
+use solana_system_interface::program as system_program;
+use spl_associated_token_account_interface::address::get_associated_token_address_with_program_id;
+use spl_token_interface::instruction::transfer;
+use squads_multisig_4r::builders::{ProposalApprove, ProposalCreate, VaultTransactionCreate};
+use squads_multisig_4r::instructions::{
+    ProposalCreateArgs, ProposalVoteArgs, VaultTransactionCreateArgs,
+};
+use squads_multisig_4r::message::transaction_message_bytes;
+use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
+use squads_multisig_4r::rpc::fetch_multisig;
 
 use crate::command::transfer_common::{
     fetch_mint_decimals_and_token_program, format_token_amount, parse_pubkey,
     resolve_recipient_token_account,
 };
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{
+    has_permission, send_and_confirm_transaction, signer_from_path, with_events, Permission,
+};
 
 /// Batch native SOL (`SystemProgram::transfer`) and SPL token transfers from the vault in one
 /// Squads vault transaction. Pass each leg with `--transfer` (repeatable):
@@ -158,15 +152,15 @@ impl InitiateBatchTransfer {
             approve,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair =
-            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
@@ -179,19 +173,17 @@ impl InitiateBatchTransfer {
             .into_iter()
             .enumerate()
             .map(|(i, line)| {
-                parse_transfer_line(line.trim()).map_err(|e| {
-                    eyre::eyre!("--transfer #{}: {}", i + 1, e)
-                })
+                parse_transfer_line(line.trim())
+                    .map_err(|e| eyre::eyre!("--transfer #{}: {}", i + 1, e))
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let multisig_data = get_multisig(rpc_client, &multisig).await?;
+        let multisig_data = fetch_multisig(rpc_client, &multisig, Some(&program_id)).await?;
 
         if approve {
-            let has_vote_permission = multisig_data
-                .members
-                .iter()
-                .any(|m| m.key == transaction_creator && m.permissions.has(Permission::Vote));
+            let has_vote_permission = multisig_data.members.iter().any(|m| {
+                m.key == transaction_creator && has_permission(&m.permissions, Permission::Vote)
+            });
             if !has_vote_permission {
                 return Err(eyre::eyre!(
                     "Cannot use --approve: {} does not have Vote permission in this multisig",
@@ -208,7 +200,10 @@ impl InitiateBatchTransfer {
 
         for (i, item) in transfers.iter().enumerate() {
             match item {
-                BatchTransferItem::Sol { recipient, lamports } => {
+                BatchTransferItem::Sol {
+                    recipient,
+                    lamports,
+                } => {
                     let dest = parse_pubkey("recipient", recipient)?;
                     inner_instructions.push(system_instruction::transfer(
                         &vault_pubkey,
@@ -273,12 +268,9 @@ impl InitiateBatchTransfer {
             }
         }
 
-        let transfer_message = TransactionMessage::try_compile(
-            &vault_pubkey,
-            &inner_instructions,
-            &[],
-        )
-        .map_err(|e| eyre::eyre!("Failed to compile vault inner message: {}", e))?;
+        let transfer_message =
+            transaction_message_bytes(&vault_pubkey, &inner_instructions, &[])
+                .map_err(|e| eyre::eyre!("Failed to compile vault inner message: {}", e))?;
 
         let transaction_index = multisig_data.transaction_index + 1;
 
@@ -291,60 +283,47 @@ impl InitiateBatchTransfer {
             ComputeBudgetInstruction::set_compute_unit_price(
                 priority_fee_lamports.unwrap_or(200_000),
             ),
-            Instruction {
-                accounts: VaultTransactionCreateAccounts {
-                    creator: transaction_creator,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    transaction: transaction_pda.0,
-                    multisig,
-                    system_program: solana_sdk::system_program::id(),
-                }
-                .to_account_metas(Some(false)),
-                data: VaultTransactionCreateData {
-                    args: VaultTransactionCreateArgs {
-                        ephemeral_signers: 0,
-                        vault_index,
-                        memo: memo.clone(),
-                        transaction_message: transfer_message.try_to_vec().unwrap(),
-                    },
-                }
-                .data(),
-                program_id,
-            },
-            Instruction {
-                accounts: ProposalCreateAccounts {
-                    creator: transaction_creator,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    proposal: proposal_pda.0,
-                    multisig,
-                    system_program: solana_sdk::system_program::id(),
-                }
-                .to_account_metas(Some(false)),
-                data: ProposalCreateData {
-                    args: ProposalCreateArgs {
-                        draft: false,
-                        transaction_index,
-                    },
-                }
-                .data(),
-                program_id,
-            },
+            VaultTransactionCreate {
+                creator: transaction_creator,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                transaction: transaction_pda.0,
+                multisig,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                VaultTransactionCreateArgs {
+                    ephemeral_signers: 0,
+                    vault_index,
+                    memo: memo.clone(),
+                    transaction_message: transfer_message,
+                },
+                Some(&program_id),
+            )?,
+            ProposalCreate {
+                creator: transaction_creator,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                proposal: proposal_pda.0,
+                multisig,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                ProposalCreateArgs {
+                    draft: false,
+                    transaction_index,
+                },
+                Some(&program_id),
+            )?,
         ];
 
         if approve {
-            instructions.push(Instruction {
-                accounts: ProposalVoteAccounts {
+            instructions.push(
+                ProposalApprove {
                     member: transaction_creator,
                     multisig,
                     proposal: proposal_pda.0,
                 }
-                .to_account_metas(Some(false)),
-                data: ProposalApprove {
-                    args: ProposalVoteArgs { memo },
-                }
-                .data(),
-                program_id,
-            });
+                .instruction(ProposalVoteArgs { memo }, Some(&program_id))?,
+            );
         }
 
         let blockhash = rpc_client
@@ -352,7 +331,13 @@ impl InitiateBatchTransfer {
             .await
             .expect("Failed to get blockhash");
 
-        let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
+        let message = Message::try_compile(
+            &payer,
+            &with_events(instructions, &program_id),
+            &[],
+            blockhash,
+        )
+        .unwrap();
         let message_hash = hash(&message.serialize());
 
         println!();
@@ -400,7 +385,7 @@ impl InitiateBatchTransfer {
         let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
             .expect("Failed to create transaction");
 
-        let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
+        let signature = send_and_confirm_transaction(&transaction, rpc_client).await?;
 
         if approve {
             println!(

@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
+use crate::events::{self, proposal_event, LogAuthority, ProposalEventKind};
 use crate::state::*;
 
 #[derive(Accounts)]
@@ -68,6 +69,17 @@ impl ProposalActivate<'_> {
             timestamp: Clock::get()?.unix_timestamp,
         };
 
-        Ok(())
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![proposal_event(
+                    ProposalEventKind::Activate,
+                    &ctx.accounts.proposal,
+                    Some(ctx.accounts.member.key()),
+                    None,
+                )]
+            },
+        )
     }
 }

@@ -1,0 +1,4651 @@
+[
+ {
+  "name": "batch_accounts_close",
+  "docs": [
+   "Closes Batch and the corresponding Proposal accounts for proposals in terminal states:",
+   "`Executed`, `Rejected`, or `Cancelled` or stale proposals that aren't `Approved`.",
+   "",
+   "This instruction is only allowed to be executed when all `VaultBatchTransaction` accounts",
+   "in the `batch` are already closed: `batch.size == 0`."
+  ],
+  "discriminator": [
+   218,
+   196,
+   7,
+   175,
+   130,
+   102,
+   11,
+   255
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    },
+    "relations": [
+     "batch"
+    ]
+   },
+   {
+    "name": "proposal",
+    "docs": [
+     "the logic within `batch_accounts_close` does the rest of the checks."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.index",
+       "account": "Batch"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "batch",
+    "docs": [
+     "`Batch` corresponding to the `proposal`."
+    ],
+    "writable": true
+   },
+   {
+    "name": "rent_collector",
+    "docs": [
+     "The rent collector."
+    ],
+    "writable": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "batch_add_transaction",
+  "docs": [
+   "Add a transaction to the batch."
+  ],
+  "discriminator": [
+   89,
+   100,
+   224,
+   18,
+   69,
+   70,
+   54,
+   76
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "docs": [
+     "Multisig account this batch belongs to."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "proposal",
+    "docs": [
+     "The proposal account associated with the batch."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.index",
+       "account": "Batch"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "batch",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.index",
+       "account": "Batch"
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "docs": [
+     "`VaultBatchTransaction` account to initialize and add to the `batch`."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.index",
+       "account": "Batch"
+      },
+      {
+       "kind": "const",
+       "value": [
+        98,
+        97,
+        116,
+        99,
+        104,
+        95,
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.size.checked_add(1)",
+       "account": "Batch"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "docs": [
+     "Member of the multisig."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The payer for the batch transaction account rent."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "BatchAddTransactionArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "batch_create",
+  "docs": [
+   "Create a new batch."
+  ],
+  "discriminator": [
+   194,
+   142,
+   141,
+   17,
+   55,
+   185,
+   20,
+   248
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "batch",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.transaction_index.checked_add(1)",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The member of the multisig that is creating the batch."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The payer for the batch account rent."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "BatchCreateArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "batch_execute_transaction",
+  "docs": [
+   "Execute a transaction from the batch."
+  ],
+  "discriminator": [
+   172,
+   44,
+   179,
+   152,
+   21,
+   127,
+   234,
+   180
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "docs": [
+     "Multisig account this batch belongs to."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "docs": [
+     "Member of the multisig."
+    ],
+    "signer": true
+   },
+   {
+    "name": "proposal",
+    "docs": [
+     "The proposal account associated with the batch.",
+     "If `transaction` is the last in the batch, the `proposal` status will be set to `Executed`."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.index",
+       "account": "Batch"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "batch",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.index",
+       "account": "Batch"
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "docs": [
+     "Batch transaction to execute."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.index",
+       "account": "Batch"
+      },
+      {
+       "kind": "const",
+       "value": [
+        98,
+        97,
+        116,
+        99,
+        104,
+        95,
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "batch.executed_transaction_index.checked_add(1)",
+       "account": "Batch"
+      }
+     ]
+    }
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "config_transaction_accounts_close",
+  "docs": [
+   "Closes a `ConfigTransaction` and the corresponding `Proposal`.",
+   "`transaction` can be closed if either:",
+   "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+   "- the `proposal` is stale."
+  ],
+  "discriminator": [
+   80,
+   203,
+   84,
+   53,
+   151,
+   112,
+   187,
+   186
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    },
+    "relations": [
+     "transaction"
+    ]
+   },
+   {
+    "name": "proposal",
+    "docs": [
+     "the logic within `config_transaction_accounts_close` does the rest of the checks."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "transaction.index",
+       "account": "ConfigTransaction"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "docs": [
+     "ConfigTransaction corresponding to the `proposal`."
+    ],
+    "writable": true
+   },
+   {
+    "name": "rent_collector",
+    "docs": [
+     "The rent collector."
+    ],
+    "writable": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "config_transaction_create",
+  "docs": [
+   "Create a new config transaction."
+  ],
+  "discriminator": [
+   155,
+   236,
+   87,
+   228,
+   137,
+   75,
+   81,
+   39
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.transaction_index.checked_add(1)",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The member of the multisig that is creating the transaction."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The payer for the transaction account rent."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ConfigTransactionCreateArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "config_transaction_execute",
+  "docs": [
+   "Execute a config transaction.",
+   "The transaction must be `Approved`."
+  ],
+  "discriminator": [
+   114,
+   146,
+   244,
+   189,
+   252,
+   140,
+   36,
+   40
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "docs": [
+     "The multisig account that owns the transaction."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "docs": [
+     "One of the multisig members with `Execute` permission."
+    ],
+    "signer": true
+   },
+   {
+    "name": "proposal",
+    "docs": [
+     "The proposal account associated with the transaction."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "transaction.index",
+       "account": "ConfigTransaction"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "docs": [
+     "The transaction to execute."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "transaction.index",
+       "account": "ConfigTransaction"
+      }
+     ]
+    }
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The account that will be charged/credited in case the config transaction causes space reallocation,",
+     "for example when adding a new member, adding or removing a spending limit.",
+     "This is usually the same as `member`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true,
+    "optional": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "We might need it in case reallocation is needed."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "multisig_add_member",
+  "docs": [
+   "Add a new member to the controlled multisig."
+  ],
+  "discriminator": [
+   1,
+   219,
+   215,
+   108,
+   184,
+   229,
+   214,
+   8
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+     "for example when adding a new member or a spending limit.",
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true,
+    "optional": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "We might need it in case reallocation is needed."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigAddMemberArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_add_spending_limit",
+  "docs": [
+   "Create a new spending limit for the controlled multisig."
+  ],
+  "discriminator": [
+   11,
+   242,
+   159,
+   42,
+   86,
+   197,
+   89,
+   115
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "spending_limit",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        115,
+        112,
+        101,
+        110,
+        100,
+        105,
+        110,
+        103,
+        95,
+        108,
+        105,
+        109,
+        105,
+        116
+       ]
+      },
+      {
+       "kind": "arg",
+       "path": "args.create_key"
+      }
+     ]
+    }
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigAddSpendingLimitArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_change_threshold",
+  "docs": [
+   "Set the `threshold` config parameter for the controlled multisig."
+  ],
+  "discriminator": [
+   141,
+   42,
+   15,
+   126,
+   169,
+   92,
+   62,
+   181
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+     "for example when adding a new member or a spending limit.",
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true,
+    "optional": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "We might need it in case reallocation is needed."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigChangeThresholdArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_create",
+  "docs": [
+   "Create a multisig."
+  ],
+  "discriminator": [
+   122,
+   77,
+   80,
+   159,
+   84,
+   88,
+   90,
+   197
+  ],
+  "accounts": [
+   {
+    "name": "null"
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "multisig_create_v2",
+  "docs": [
+   "Create a multisig."
+  ],
+  "discriminator": [
+   50,
+   221,
+   199,
+   93,
+   40,
+   245,
+   139,
+   233
+  ],
+  "accounts": [
+   {
+    "name": "program_config",
+    "docs": [
+     "Global program config account."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        103,
+        114,
+        97,
+        109,
+        95,
+        99,
+        111,
+        110,
+        102,
+        105,
+        103
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "treasury",
+    "docs": [
+     "The treasury where the creation fee is transferred to."
+    ],
+    "writable": true
+   },
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "create_key"
+      }
+     ]
+    }
+   },
+   {
+    "name": "create_key",
+    "docs": [
+     "An ephemeral signer that is used as a seed for the Multisig PDA.",
+     "Must be a signer to prevent front-running attack by someone else but the original creator."
+    ],
+    "signer": true
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The creator of the multisig."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigCreateArgsV2"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_remove_member",
+  "docs": [
+   "Remove a member/key from the controlled multisig."
+  ],
+  "discriminator": [
+   217,
+   117,
+   177,
+   210,
+   182,
+   145,
+   218,
+   72
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+     "for example when adding a new member or a spending limit.",
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true,
+    "optional": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "We might need it in case reallocation is needed."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigRemoveMemberArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_remove_spending_limit",
+  "docs": [
+   "Remove the spending limit from the controlled multisig."
+  ],
+  "discriminator": [
+   228,
+   198,
+   136,
+   111,
+   123,
+   4,
+   178,
+   113
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "spending_limit",
+    "writable": true
+   },
+   {
+    "name": "rent_collector",
+    "docs": [
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigRemoveSpendingLimitArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_set_config_authority",
+  "docs": [
+   "Set the multisig `config_authority`."
+  ],
+  "discriminator": [
+   143,
+   93,
+   199,
+   143,
+   92,
+   169,
+   193,
+   232
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+     "for example when adding a new member or a spending limit.",
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true,
+    "optional": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "We might need it in case reallocation is needed."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigSetConfigAuthorityArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_set_rent_collector",
+  "docs": [
+   "Set the multisig `rent_collector`."
+  ],
+  "discriminator": [
+   48,
+   204,
+   65,
+   57,
+   210,
+   70,
+   156,
+   74
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+     "for example when adding a new member or a spending limit.",
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true,
+    "optional": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "We might need it in case reallocation is needed."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigSetRentCollectorArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "multisig_set_time_lock",
+  "docs": [
+   "Set the `time_lock` config parameter for the controlled multisig."
+  ],
+  "discriminator": [
+   148,
+   154,
+   121,
+   77,
+   212,
+   254,
+   155,
+   72
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "config_authority",
+    "docs": [
+     "Multisig `config_authority` that must authorize the configuration change."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The account that will be charged or credited in case the multisig account needs to reallocate space,",
+     "for example when adding a new member or a spending limit.",
+     "This is usually the same as `config_authority`, but can be a different account if needed."
+    ],
+    "writable": true,
+    "signer": true,
+    "optional": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "We might need it in case reallocation is needed."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "MultisigSetTimeLockArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "program_config_init",
+  "docs": [
+   "Initialize the program config."
+  ],
+  "discriminator": [
+   184,
+   188,
+   198,
+   195,
+   205,
+   124,
+   117,
+   216
+  ],
+  "accounts": [
+   {
+    "name": "program_config",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        103,
+        114,
+        97,
+        109,
+        95,
+        99,
+        111,
+        110,
+        102,
+        105,
+        103
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "initializer",
+    "docs": [
+     "The hard-coded account that is used to initialize the program config once."
+    ],
+    "writable": true,
+    "signer": true,
+    "address": "HM5y4mz3Bt9JY9mr1hkyhnvqxSH4H2u2451j7Hc2dtvK"
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProgramConfigInitArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "program_config_set_authority",
+  "docs": [
+   "Set the `authority` parameter of the program config."
+  ],
+  "discriminator": [
+   238,
+   242,
+   36,
+   181,
+   32,
+   143,
+   216,
+   75
+  ],
+  "accounts": [
+   {
+    "name": "program_config",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        103,
+        114,
+        97,
+        109,
+        95,
+        99,
+        111,
+        110,
+        102,
+        105,
+        103
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "authority",
+    "signer": true
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProgramConfigSetAuthorityArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "program_config_set_multisig_creation_fee",
+  "docs": [
+   "Set the `multisig_creation_fee` parameter of the program config."
+  ],
+  "discriminator": [
+   101,
+   160,
+   249,
+   63,
+   154,
+   215,
+   153,
+   13
+  ],
+  "accounts": [
+   {
+    "name": "program_config",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        103,
+        114,
+        97,
+        109,
+        95,
+        99,
+        111,
+        110,
+        102,
+        105,
+        103
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "authority",
+    "signer": true
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProgramConfigSetMultisigCreationFeeArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "program_config_set_treasury",
+  "docs": [
+   "Set the `treasury` parameter of the program config."
+  ],
+  "discriminator": [
+   111,
+   46,
+   243,
+   117,
+   144,
+   188,
+   162,
+   107
+  ],
+  "accounts": [
+   {
+    "name": "program_config",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        103,
+        114,
+        97,
+        109,
+        95,
+        99,
+        111,
+        110,
+        102,
+        105,
+        103
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "authority",
+    "signer": true
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProgramConfigSetTreasuryArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "proposal_activate",
+  "docs": [
+   "Update status of a multisig proposal from `Draft` to `Active`."
+  ],
+  "discriminator": [
+   11,
+   34,
+   92,
+   248,
+   154,
+   27,
+   51,
+   106
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "proposal",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "proposal.transaction_index",
+       "account": "Proposal"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "proposal_approve",
+  "docs": [
+   "Approve a multisig proposal on behalf of the `member`.",
+   "The proposal must be `Active`."
+  ],
+  "discriminator": [
+   144,
+   37,
+   164,
+   136,
+   188,
+   216,
+   42,
+   248
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "proposal",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "proposal.transaction_index",
+       "account": "Proposal"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProposalVoteArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "proposal_cancel",
+  "docs": [
+   "Cancel a multisig proposal on behalf of the `member`.",
+   "The proposal must be `Approved`."
+  ],
+  "discriminator": [
+   27,
+   42,
+   127,
+   237,
+   38,
+   163,
+   84,
+   203
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "proposal",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "proposal.transaction_index",
+       "account": "Proposal"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProposalVoteArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "proposal_cancel_v2",
+  "docs": [
+   "Cancel a multisig proposal on behalf of the `member`.",
+   "The proposal must be `Approved`.",
+   "This was introduced to incorporate proper state update, as old multisig members",
+   "may have lingering votes, and the proposal size may need to be reallocated to",
+   "accommodate the new amount of cancel votes.",
+   "The previous implemenation still works if the proposal size is in line with the",
+   "threshold size."
+  ],
+  "discriminator": [
+   205,
+   41,
+   194,
+   61,
+   220,
+   139,
+   16,
+   247
+  ],
+  "accounts": [
+   {
+    "name": "proposal_vote",
+    "accounts": [
+     {
+      "name": "multisig",
+      "pda": {
+       "seeds": [
+        {
+         "kind": "const",
+         "value": [
+          109,
+          117,
+          108,
+          116,
+          105,
+          115,
+          105,
+          103
+         ]
+        },
+        {
+         "kind": "const",
+         "value": [
+          109,
+          117,
+          108,
+          116,
+          105,
+          115,
+          105,
+          103
+         ]
+        },
+        {
+         "kind": "account",
+         "path": "multisig.create_key",
+         "account": "Multisig"
+        }
+       ]
+      }
+     },
+     {
+      "name": "member",
+      "writable": true,
+      "signer": true
+     },
+     {
+      "name": "proposal",
+      "writable": true,
+      "pda": {
+       "seeds": [
+        {
+         "kind": "const",
+         "value": [
+          109,
+          117,
+          108,
+          116,
+          105,
+          115,
+          105,
+          103
+         ]
+        },
+        {
+         "kind": "account",
+         "path": "multisig"
+        },
+        {
+         "kind": "const",
+         "value": [
+          116,
+          114,
+          97,
+          110,
+          115,
+          97,
+          99,
+          116,
+          105,
+          111,
+          110
+         ]
+        },
+        {
+         "kind": "account",
+         "path": "proposal.transaction_index",
+         "account": "Proposal"
+        },
+        {
+         "kind": "const",
+         "value": [
+          112,
+          114,
+          111,
+          112,
+          111,
+          115,
+          97,
+          108
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProposalVoteArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "proposal_create",
+  "docs": [
+   "Create a new multisig proposal."
+  ],
+  "discriminator": [
+   220,
+   60,
+   73,
+   224,
+   30,
+   108,
+   79,
+   159
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "proposal",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "arg",
+       "path": "args.transaction_index"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The member of the multisig that is creating the proposal."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The payer for the proposal account rent."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProposalCreateArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "proposal_reject",
+  "docs": [
+   "Reject a multisig proposal on behalf of the `member`.",
+   "The proposal must be `Active`."
+  ],
+  "discriminator": [
+   243,
+   62,
+   134,
+   156,
+   230,
+   106,
+   246,
+   135
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "proposal",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "proposal.transaction_index",
+       "account": "Proposal"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "ProposalVoteArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "spending_limit_use",
+  "docs": [
+   "Use a spending limit to transfer tokens from a multisig vault to a destination account."
+  ],
+  "discriminator": [
+   16,
+   57,
+   130,
+   127,
+   193,
+   20,
+   155,
+   134
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "docs": [
+     "The multisig account the `spending_limit` is for."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "signer": true
+   },
+   {
+    "name": "spending_limit",
+    "docs": [
+     "The SpendingLimit account to use."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        115,
+        112,
+        101,
+        110,
+        100,
+        105,
+        110,
+        103,
+        95,
+        108,
+        105,
+        109,
+        105,
+        116
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "spending_limit.create_key",
+       "account": "SpendingLimit"
+      }
+     ]
+    }
+   },
+   {
+    "name": "vault",
+    "docs": [
+     "Multisig vault account to transfer tokens from."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        118,
+        97,
+        117,
+        108,
+        116
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "spending_limit.vault_index",
+       "account": "SpendingLimit"
+      }
+     ]
+    }
+   },
+   {
+    "name": "destination",
+    "docs": [
+     "Destination account to transfer tokens to."
+    ],
+    "writable": true
+   },
+   {
+    "name": "system_program",
+    "docs": [
+     "In case `spending_limit.mint` is SOL."
+    ],
+    "optional": true,
+    "address": "11111111111111111111111111111111"
+   },
+   {
+    "name": "mint",
+    "docs": [
+     "The mint of the tokens to transfer in case `spending_limit.mint` is an SPL token."
+    ],
+    "optional": true
+   },
+   {
+    "name": "vault_token_account",
+    "docs": [
+     "Multisig vault token account to transfer tokens from in case `spending_limit.mint` is an SPL token."
+    ],
+    "writable": true,
+    "optional": true
+   },
+   {
+    "name": "destination_token_account",
+    "docs": [
+     "Destination token account in case `spending_limit.mint` is an SPL token."
+    ],
+    "writable": true,
+    "optional": true
+   },
+   {
+    "name": "token_program",
+    "docs": [
+     "In case `spending_limit.mint` is an SPL token."
+    ],
+    "optional": true
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "SpendingLimitUseArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "transaction_buffer_close",
+  "docs": [
+   "Close a transaction buffer account."
+  ],
+  "discriminator": [
+   17,
+   182,
+   208,
+   228,
+   136,
+   24,
+   178,
+   102
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction_buffer",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110,
+        95,
+        98,
+        117,
+        102,
+        102,
+        101,
+        114
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "creator"
+      },
+      {
+       "kind": "account",
+       "path": "transaction_buffer.buffer_index",
+       "account": "TransactionBuffer"
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The member of the multisig that created the TransactionBuffer."
+    ],
+    "signer": true
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "transaction_buffer_create",
+  "docs": [
+   "Create a transaction buffer account."
+  ],
+  "discriminator": [
+   245,
+   201,
+   113,
+   108,
+   37,
+   63,
+   29,
+   89
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction_buffer",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110,
+        95,
+        98,
+        117,
+        102,
+        102,
+        101,
+        114
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "creator"
+      },
+      {
+       "kind": "arg",
+       "path": "args.buffer_index"
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The member of the multisig that is creating the transaction."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The payer for the transaction account rent."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "TransactionBufferCreateArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "transaction_buffer_extend",
+  "docs": [
+   "Extend a transaction buffer account."
+  ],
+  "discriminator": [
+   230,
+   157,
+   67,
+   56,
+   5,
+   238,
+   245,
+   146
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction_buffer",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110,
+        95,
+        98,
+        117,
+        102,
+        102,
+        101,
+        114
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "creator"
+      },
+      {
+       "kind": "account",
+       "path": "transaction_buffer.buffer_index",
+       "account": "TransactionBuffer"
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The member of the multisig that created the TransactionBuffer."
+    ],
+    "signer": true
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "TransactionBufferExtendArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "vault_batch_transaction_account_close",
+  "docs": [
+   "Closes a `VaultBatchTransaction` belonging to the `batch` and `proposal`.",
+   "`transaction` can be closed if either:",
+   "- it's marked as executed within the `batch`;",
+   "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+   "- the `proposal` is stale and not `Approved`."
+  ],
+  "discriminator": [
+   134,
+   18,
+   19,
+   106,
+   129,
+   68,
+   97,
+   247
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    },
+    "relations": [
+     "proposal",
+     "batch"
+    ]
+   },
+   {
+    "name": "proposal"
+   },
+   {
+    "name": "batch",
+    "docs": [
+     "`Batch` corresponding to the `proposal`."
+    ],
+    "writable": true
+   },
+   {
+    "name": "transaction",
+    "docs": [
+     "`VaultBatchTransaction` account to close.",
+     "The transaction must be the current last one in the batch."
+    ],
+    "writable": true
+   },
+   {
+    "name": "rent_collector",
+    "docs": [
+     "The rent collector."
+    ],
+    "writable": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "vault_transaction_accounts_close",
+  "docs": [
+   "Closes a `VaultTransaction` and the corresponding `Proposal`.",
+   "`transaction` can be closed if either:",
+   "- the `proposal` is in a terminal state: `Executed`, `Rejected`, or `Cancelled`.",
+   "- the `proposal` is stale and not `Approved`."
+  ],
+  "discriminator": [
+   196,
+   71,
+   187,
+   176,
+   2,
+   35,
+   170,
+   165
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    },
+    "relations": [
+     "transaction"
+    ]
+   },
+   {
+    "name": "proposal",
+    "docs": [
+     "the logic within `vault_transaction_accounts_close` does the rest of the checks."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "transaction.index",
+       "account": "VaultTransaction"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "docs": [
+     "VaultTransaction corresponding to the `proposal`."
+    ],
+    "writable": true
+   },
+   {
+    "name": "rent_collector",
+    "docs": [
+     "The rent collector."
+    ],
+    "writable": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": []
+ },
+ {
+  "name": "vault_transaction_create",
+  "docs": [
+   "Create a new vault transaction."
+  ],
+  "discriminator": [
+   48,
+   250,
+   78,
+   168,
+   208,
+   226,
+   218,
+   211
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.transaction_index.checked_add(1)",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "docs": [
+     "The member of the multisig that is creating the transaction."
+    ],
+    "signer": true
+   },
+   {
+    "name": "rent_payer",
+    "docs": [
+     "The payer for the transaction account rent."
+    ],
+    "writable": true,
+    "signer": true
+   },
+   {
+    "name": "system_program",
+    "address": "11111111111111111111111111111111"
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "VaultTransactionCreateArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "vault_transaction_create_from_buffer",
+  "docs": [
+   "Create a new vault transaction from a completed transaction buffer.",
+   "Finalized buffer hash must match `final_buffer_hash`"
+  ],
+  "discriminator": [
+   222,
+   54,
+   149,
+   68,
+   87,
+   246,
+   48,
+   231
+  ],
+  "accounts": [
+   {
+    "name": "vault_transaction_create",
+    "accounts": [
+     {
+      "name": "multisig",
+      "writable": true,
+      "pda": {
+       "seeds": [
+        {
+         "kind": "const",
+         "value": [
+          109,
+          117,
+          108,
+          116,
+          105,
+          115,
+          105,
+          103
+         ]
+        },
+        {
+         "kind": "const",
+         "value": [
+          109,
+          117,
+          108,
+          116,
+          105,
+          115,
+          105,
+          103
+         ]
+        },
+        {
+         "kind": "account",
+         "path": "multisig.create_key",
+         "account": "Multisig"
+        }
+       ]
+      }
+     },
+     {
+      "name": "transaction",
+      "writable": true,
+      "pda": {
+       "seeds": [
+        {
+         "kind": "const",
+         "value": [
+          109,
+          117,
+          108,
+          116,
+          105,
+          115,
+          105,
+          103
+         ]
+        },
+        {
+         "kind": "account",
+         "path": "multisig"
+        },
+        {
+         "kind": "const",
+         "value": [
+          116,
+          114,
+          97,
+          110,
+          115,
+          97,
+          99,
+          116,
+          105,
+          111,
+          110
+         ]
+        },
+        {
+         "kind": "account",
+         "path": "multisig.transaction_index.checked_add(1)",
+         "account": "Multisig"
+        }
+       ]
+      }
+     },
+     {
+      "name": "creator",
+      "docs": [
+       "The member of the multisig that is creating the transaction."
+      ],
+      "signer": true
+     },
+     {
+      "name": "rent_payer",
+      "docs": [
+       "The payer for the transaction account rent."
+      ],
+      "writable": true,
+      "signer": true
+     },
+     {
+      "name": "system_program",
+      "address": "11111111111111111111111111111111"
+     }
+    ]
+   },
+   {
+    "name": "transaction_buffer",
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "vault_transaction_create.multisig",
+       "account": "VaultTransactionCreate"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110,
+        95,
+        98,
+        117,
+        102,
+        102,
+        101,
+        114
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "creator"
+      },
+      {
+       "kind": "account",
+       "path": "transaction_buffer.buffer_index",
+       "account": "TransactionBuffer"
+      }
+     ]
+    }
+   },
+   {
+    "name": "creator",
+    "writable": true,
+    "signer": true
+   }
+  ],
+  "args": [
+   {
+    "name": "args",
+    "type": {
+     "defined": {
+      "name": "VaultTransactionCreateArgs"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "vault_transaction_execute",
+  "docs": [
+   "Execute a vault transaction.",
+   "The transaction must be `Approved`."
+  ],
+  "discriminator": [
+   194,
+   8,
+   161,
+   87,
+   153,
+   164,
+   25,
+   171
+  ],
+  "accounts": [
+   {
+    "name": "multisig",
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig.create_key",
+       "account": "Multisig"
+      }
+     ]
+    }
+   },
+   {
+    "name": "proposal",
+    "docs": [
+     "The proposal account associated with the transaction."
+    ],
+    "writable": true,
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "transaction.index",
+       "account": "VaultTransaction"
+      },
+      {
+       "kind": "const",
+       "value": [
+        112,
+        114,
+        111,
+        112,
+        111,
+        115,
+        97,
+        108
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "name": "transaction",
+    "docs": [
+     "The transaction to execute."
+    ],
+    "pda": {
+     "seeds": [
+      {
+       "kind": "const",
+       "value": [
+        109,
+        117,
+        108,
+        116,
+        105,
+        115,
+        105,
+        103
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "multisig"
+      },
+      {
+       "kind": "const",
+       "value": [
+        116,
+        114,
+        97,
+        110,
+        115,
+        97,
+        99,
+        116,
+        105,
+        111,
+        110
+       ]
+      },
+      {
+       "kind": "account",
+       "path": "transaction.index",
+       "account": "VaultTransaction"
+      }
+     ]
+    }
+   },
+   {
+    "name": "member",
+    "signer": true
+   }
+  ],
+  "args": []
+ }
+]

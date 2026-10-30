@@ -1,13 +1,22 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{self, proposal_event, LogAuthority, ProposalEventKind};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProposalVoteArgs {
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct ProposalVote<'info> {
     #[account(
@@ -33,6 +42,7 @@ pub struct ProposalVote<'info> {
     pub proposal: Account<'info, Proposal>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct ProposalCancelV2<'info> {
     // The context needed for the ProposalVote instruction
@@ -41,6 +51,7 @@ pub struct ProposalCancelV2<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl ProposalVote<'_> {
     fn validate(&self, vote: Vote) -> Result<()> {
         let Self {
@@ -88,20 +99,31 @@ impl ProposalVote<'_> {
     /// Approve a multisig proposal on behalf of the `member`.
     /// The proposal must be `Active`.
     #[access_control(ctx.accounts.validate(Vote::Approve))]
-    pub fn proposal_approve(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_approve(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
 
         proposal.approve(member.key(), usize::from(multisig.threshold))?;
 
-        Ok(())
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![proposal_event(
+                    ProposalEventKind::Approve,
+                    &ctx.accounts.proposal,
+                    Some(ctx.accounts.member.key()),
+                    args.memo,
+                )]
+            },
+        )
     }
 
     /// Reject a multisig proposal on behalf of the `member`.
     /// The proposal must be `Active`.
     #[access_control(ctx.accounts.validate(Vote::Reject))]
-    pub fn proposal_reject(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_reject(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
@@ -110,13 +132,24 @@ impl ProposalVote<'_> {
 
         proposal.reject(member.key(), cutoff)?;
 
-        Ok(())
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![proposal_event(
+                    ProposalEventKind::Reject,
+                    &ctx.accounts.proposal,
+                    Some(ctx.accounts.member.key()),
+                    args.memo,
+                )]
+            },
+        )
     }
 
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
     #[access_control(ctx.accounts.validate(Vote::Cancel))]
-    pub fn proposal_cancel(ctx: Context<Self>, _args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_cancel(ctx: Context<Self>, args: ProposalVoteArgs) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let proposal = &mut ctx.accounts.proposal;
         let member = &mut ctx.accounts.member;
@@ -127,15 +160,26 @@ impl ProposalVote<'_> {
 
         proposal.cancel(member.key(), usize::from(multisig.threshold))?;
 
-        Ok(())
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![proposal_event(
+                    ProposalEventKind::Cancel,
+                    &ctx.accounts.proposal,
+                    Some(ctx.accounts.member.key()),
+                    args.memo,
+                )]
+            },
+        )
     }
 }
 
+#[cfg(feature = "program")]
 impl<'info> ProposalCancelV2<'info> {
-
     /// Cancel a multisig proposal on behalf of the `member`.
     /// The proposal must be `Approved`.
-    pub fn proposal_cancel_v2(ctx: Context<'_, '_, 'info, 'info, Self>, _args: ProposalVoteArgs) -> Result<()> {
+    pub fn proposal_cancel_v2(ctx: Context<'info, Self>, args: ProposalVoteArgs) -> Result<()> {
         // Readonly accounts
         let multisig = &ctx.accounts.proposal_vote.multisig.clone();
 
@@ -145,10 +189,15 @@ impl<'info> ProposalCancelV2<'info> {
         let system_program_account_info = &ctx.accounts.system_program.to_account_info();
 
         // Create context for cancel instruction
-        let cancel_context = Context::new(ctx.program_id, &mut ctx.accounts.proposal_vote, ctx.remaining_accounts, ctx.bumps.proposal_vote);
+        let cancel_context = Context::new(
+            ctx.program_id,
+            &mut ctx.accounts.proposal_vote,
+            ctx.remaining_accounts,
+            ctx.bumps.proposal_vote,
+        );
 
         // Call cancel instruction
-        ProposalVote::proposal_cancel(cancel_context, _args)?;
+        ProposalVote::proposal_cancel(cancel_context, args)?;
 
         // Reallocate the proposal size if needed
         Proposal::realloc_if_needed(
@@ -161,6 +210,7 @@ impl<'info> ProposalCancelV2<'info> {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Vote {
     Approve,
     Reject,

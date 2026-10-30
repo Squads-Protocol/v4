@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc bce2697c5540358bd309f16acedb38e6ec2a44e1bd203e81f3021da7883be22a # shrinks to state = V4(VoteStateV4 { node_pubkey: 4uQeVj5tqViQh7yWWGStvkEG1Zmhx6uasJtWCJziofM, authorized_withdrawer: US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx, inflation_rewards_collector: 11111111111111111111111111111111, block_revenue_collector: 11111111111111111111111111111111, inflation_rewards_commission_bps: 0, block_revenue_commission_bps: 0, pending_delegator_rewards: 0, bls_pubkey_compressed: None, votes: [], root_slot: None, authorized_voters: AuthorizedVoters { authorized_voters: {} }, epoch_credits: [], last_timestamp: BlockTimestamp { slot: 0, timestamp: 0 } })
+cc 8e1fd714615597067a96df476211cc6a1784c9e9cee06fd36dca75df2ccb776d # shrinks to state = Initialized(Meta { rent_exempt_reserve: 0, authorized: Authorized { staker: 4uQeVj5tqViQh7yWWGStvkEG1Zmhx6uthncqLyN44kk, withdrawer: US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx }, lockup: Lockup { unix_timestamp: -8569719836686484165, epoch: 3542879326508379882, custodian: 7mZHnFwLBB2Vucvd7T9U2UsmrbSPe1ay6GgNgyuC4Qg } })
+cc 0d6e540acc93d0db92456b3b6083aaff364077450cd8767e6a9fbf218b8b8508 # shrinks to spec = MintSpec { mint_authority: None, freeze_authority: None, extensions: [(TransferFee, [None, Some(US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx)]), (CloseMint, [Some(4uQeVj5tqViQh7yWWGStvkEG1ZmhxBuP4dfZxuV3iDJ)]), (PermanentDelegate, [Some(US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx)]), (NonTransferable, []), (TransferHook, [None]), (PermissionedBurn, [Some(7wvB16CDfVeApctUf1i2ZpHV2USbH9paTB1DJ6baV4f)]), (ConfidentialMintBurn, [])] }

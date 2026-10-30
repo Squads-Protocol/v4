@@ -2,8 +2,11 @@ name: "Anchor Build"
 description: "Build a program using Anchor"
 inputs:
   program:
-    description: "The program to build"
+    description: "The program to build (the Cargo [lib] name)"
     required: true
+  program_dir:
+    description: "Directory under ./programs when it differs from `program`"
+    required: false
   program_id:
     description: "The program address"
     required: true
@@ -14,35 +17,43 @@ runs:
   using: "composite"
   steps:
     - name: Cache Anchor build
-      uses: actions/cache@v3
+      uses: actions/cache@v6
       id: cache-anchor-build
       if: env.CACHE != 'true' || steps.cache-anchor-build.outputs.cache-hit != 'true'
       with:
         path: |
           ./target/
-        key: build-${{ runner.os }}-${{env.ANCHOR_VERSION}}-${{ hashFiles(format('./programs/{0}/**', inputs.program)) }}-${{ inputs.program }}-${{ inputs.staging }}
+        key: build-${{ runner.os }}-${{env.ANCHOR_VERSION}}-${{ hashFiles(format('./programs/{0}/**', inputs.program_dir || inputs.program)) }}-${{ inputs.program }}-${{ inputs.staging }}
 
     - name: Replace program ID if needed
       if: inputs.replace_program_id == 'true'
       env:
         PROGRAM_ID: ${{ inputs.program_id }}
       run: |
-        sed -i "s/declare_id!(\".*\")/declare_id!(\"${PROGRAM_ID}\")/g" ./programs/${{ inputs.program }}/src/lib.rs
+        sed -i "s/declare_id!(\".*\")/declare_id!(\"${PROGRAM_ID}\")/g" ./programs/${{ inputs.program_dir || inputs.program }}/src/lib.rs
       shell: bash
 
-    - name: Build with Anchor
-      run: ~/.cargo/bin/anchor build -p ${{ inputs.program }}
+    - name: Build with Anchor (SBPF v3)
+      run: ~/.cargo/bin/anchor build -p ${{ inputs.program }} --arch v3
       shell: bash
+
+    - name: Record executable hash
+      shell: bash
+      run: |
+        cargo install solana-verify --version 0.5.2 --locked
+        HASH=$(solana-verify get-executable-hash ./target/deploy/${{ inputs.program }}.so)
+        echo "Executable hash of ${{ inputs.program }}.so: \`$HASH\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "Compare with a solana-verify build before deploying to mainnet-beta." >> "$GITHUB_STEP_SUMMARY"
 
     - name: Store .so files
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v7
       with:
         name: ${{inputs.program}}-so
         path: |
           ./target/deploy/${{inputs.program}}.so
 
     - name: Store IDL files
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v7
       with:
         name: ${{inputs.program}}-idl
         path: |

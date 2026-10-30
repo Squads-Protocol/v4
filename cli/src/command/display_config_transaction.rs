@@ -1,12 +1,13 @@
+use std::str::FromStr;
+
 use clap::Args;
 use colored::Colorize;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;
-use squads_multisig::anchor_lang::AccountDeserialize;
-use squads_multisig::client::get_spending_limit;
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::state::ConfigTransaction;
-use squads_multisig::state::{ConfigAction, Period, Permission, Permissions};
-use std::str::FromStr;
+use squads_multisig_4r::rpc::{decode_checked, fetch_spending_limit};
+use squads_multisig_4r::state::{ConfigAction, ConfigTransaction, Period, Permissions};
+
+use crate::utils::{has_permission, Permission};
 
 /// Fetch a config transaction account and display its decoded actions (add/remove member, change threshold, etc.).
 #[derive(Args)]
@@ -20,15 +21,15 @@ pub struct DisplayConfigTransaction {
     transaction_address: String,
 }
 
-fn format_permissions(permissions: Permissions) -> String {
+fn format_permissions(permissions: &Permissions) -> String {
     let mut parts = Vec::new();
-    if permissions.has(Permission::Initiate) {
+    if has_permission(permissions, Permission::Initiate) {
         parts.push("Proposer");
     }
-    if permissions.has(Permission::Vote) {
+    if has_permission(permissions, Permission::Vote) {
         parts.push("Voter");
     }
-    if permissions.has(Permission::Execute) {
+    if has_permission(permissions, Permission::Execute) {
         parts.push("Executor");
     }
     if parts.is_empty() {
@@ -56,16 +57,19 @@ impl DisplayConfigTransaction {
 
         let rpc_client = RpcClient::new(rpc_url);
 
-        let account_data = match rpc_client.get_account(&transaction_address).await {
-            Ok(account) => account.data,
+        let account = match rpc_client.get_account(&transaction_address).await {
+            Ok(account) => account,
             Err(_) => {
                 println!("Account closed or not found.");
                 return Ok(());
             }
         };
 
-        let config_tx =
-            ConfigTransaction::try_deserialize(&mut account_data.as_slice())?;
+        let config_tx = decode_checked::<ConfigTransaction>(
+            &transaction_address,
+            &account,
+            Some(&squads_multisig_4r::ID),
+        )?;
 
         println!();
         println!("{}", "Config Transaction Details".bold());
@@ -84,11 +88,14 @@ impl DisplayConfigTransaction {
         for (i, action) in config_tx.actions.iter().enumerate() {
             match action {
                 ConfigAction::AddMember { new_member } => {
-                    println!("{}", format!("Action {}: Add Member", i + 1).yellow().bold());
+                    println!(
+                        "{}",
+                        format!("Action {}: Add Member", i + 1).yellow().bold()
+                    );
                     println!("  Key:         {}", new_member.key);
                     println!(
                         "  Permissions: {}",
-                        format_permissions(new_member.permissions)
+                        format_permissions(&new_member.permissions)
                     );
                 }
                 ConfigAction::RemoveMember { old_member } => {
@@ -101,7 +108,9 @@ impl DisplayConfigTransaction {
                 ConfigAction::ChangeThreshold { new_threshold } => {
                     println!(
                         "{}",
-                        format!("Action {}: Change Threshold", i + 1).yellow().bold()
+                        format!("Action {}: Change Threshold", i + 1)
+                            .yellow()
+                            .bold()
                     );
                     println!("  New Threshold: {}", new_threshold);
                 }
@@ -123,7 +132,9 @@ impl DisplayConfigTransaction {
                 } => {
                     println!(
                         "{}",
-                        format!("Action {}: Add Spending Limit", i + 1).yellow().bold()
+                        format!("Action {}: Add Spending Limit", i + 1)
+                            .yellow()
+                            .bold()
                     );
                     println!("  Create Key:  {}", create_key);
                     println!("  Vault Index: {}", vault_index);
@@ -150,14 +161,22 @@ impl DisplayConfigTransaction {
                 ConfigAction::RemoveSpendingLimit { spending_limit } => {
                     println!(
                         "{}",
-                        format!("Action {}: Remove Spending Limit", i + 1).yellow().bold()
+                        format!("Action {}: Remove Spending Limit", i + 1)
+                            .yellow()
+                            .bold()
                     );
                     println!("  Spending Limit: {}", spending_limit);
                     // Resolve the referenced SpendingLimit account so reviewers can see
                     // exactly which delegated spend authority is being revoked, rather than
                     // an opaque PDA. If the lookup fails, warn explicitly instead of treating
                     // the bare PDA as adequate review material.
-                    match get_spending_limit(&rpc_client, spending_limit).await {
+                    match fetch_spending_limit(
+                        &rpc_client,
+                        spending_limit,
+                        Some(&squads_multisig_4r::ID),
+                    )
+                    .await
+                    {
                         Ok(limit) => {
                             println!("  Vault Index:  {}", limit.vault_index);
                             println!("  Mint:         {}", limit.mint);
@@ -194,20 +213,18 @@ impl DisplayConfigTransaction {
                 ConfigAction::SetRentCollector { new_rent_collector } => {
                     println!(
                         "{}",
-                        format!("Action {}: Set Rent Collector", i + 1).yellow().bold()
+                        format!("Action {}: Set Rent Collector", i + 1)
+                            .yellow()
+                            .bold()
                     );
                     match new_rent_collector {
                         Some(key) => println!("  New Rent Collector: {}", key),
                         None => println!("  New Rent Collector: (disabled)"),
                     }
                 }
-                _ => {
-                    println!(
-                        "{}",
-                        format!("Action {}: (unknown action type)", i + 1)
-                            .yellow()
-                            .bold()
-                    );
+                other => {
+                    println!("{}", format!("Action {}: Unknown", i + 1).yellow().bold());
+                    println!("  {:?}", other);
                 }
             }
             println!();

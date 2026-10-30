@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use solana_sdk::commitment_config::CommitmentConfig;
+use solana_commitment_config::CommitmentConfig;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::program_pack::Pack;
 use solana_sdk::pubkey::Pubkey;
-use spl_associated_token_account::get_associated_token_address_with_program_id;
-use spl_token::state::{Account as TokenAccount, Mint};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
+use spl_associated_token_account_interface::address::get_associated_token_address_with_program_id;
+use spl_token_interface::state::{Account as TokenAccount, Mint};
 
 /// Resolved recipient information for a token transfer.
 pub(crate) struct ResolvedRecipient {

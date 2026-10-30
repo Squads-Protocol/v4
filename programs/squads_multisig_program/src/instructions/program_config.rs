@@ -1,23 +1,39 @@
+#[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, LogAuthority, MultisigEvent, ProgramConfigEvent, ProgramConfigEventKind,
+};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProgramConfigSetAuthorityArgs {
     pub new_authority: Pubkey,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProgramConfigSetMultisigCreationFeeArgs {
     pub new_multisig_creation_fee: u64,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProgramConfigSetTreasuryArgs {
     pub new_treasury: Pubkey,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct ProgramConfig<'info> {
     #[account(
@@ -30,6 +46,7 @@ pub struct ProgramConfig<'info> {
     pub authority: Signer<'info>,
 }
 
+#[cfg(feature = "program")]
 impl ProgramConfig<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
@@ -47,6 +64,22 @@ impl ProgramConfig<'_> {
         Ok(())
     }
 
+    fn emit_event(ctx: &Context<Self>, kind: ProgramConfigEventKind) -> Result<()> {
+        let program_config = &ctx.accounts.program_config;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::program_config(program_config, ctx.bumps.program_config),
+            || {
+                vec![MultisigEvent::ProgramConfig(ProgramConfigEvent {
+                    kind,
+                    program_config: program_config.key(),
+                    authority: ctx.accounts.authority.key(),
+                    snapshot: Cow::Borrowed(program_config),
+                })]
+            },
+        )
+    }
+
     #[access_control(ctx.accounts.validate())]
     pub fn program_config_set_authority(
         ctx: Context<Self>,
@@ -58,7 +91,7 @@ impl ProgramConfig<'_> {
 
         program_config.invariant()?;
 
-        Ok(())
+        Self::emit_event(&ctx, ProgramConfigEventKind::SetAuthority)
     }
 
     #[access_control(ctx.accounts.validate())]
@@ -72,7 +105,7 @@ impl ProgramConfig<'_> {
 
         program_config.invariant()?;
 
-        Ok(())
+        Self::emit_event(&ctx, ProgramConfigEventKind::SetMultisigCreationFee)
     }
 
     #[access_control(ctx.accounts.validate())]
@@ -86,6 +119,6 @@ impl ProgramConfig<'_> {
 
         program_config.invariant()?;
 
-        Ok(())
+        Self::emit_event(&ctx, ProgramConfigEventKind::SetTreasury)
     }
 }

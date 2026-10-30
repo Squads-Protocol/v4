@@ -2,6 +2,11 @@
 
 This is the package for the Squads v4 Typescript SDK.
 
+> **Frozen.** This SDK targets the Squads v4 program `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`,
+> which has no upgrade authority. It receives security and runtime fixes only, published from the
+> `legacy/sqds4` branch. In this branch it is `private` and serves as a v4-compatibility test harness.
+> For Squads Multisig 4r, use `@sqds/multisig-4r`.
+
 <a href="https://docs.squads.so/main/v/development">Docs</a>
 •
 <a href="https://www.npmjs.com/package/@sqds/multisig">NPM</a>

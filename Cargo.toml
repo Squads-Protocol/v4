@@ -10,3 +10,9 @@ codegen-units = 1
 opt-level = 3
 incremental = false
 codegen-units = 1
+
+# `cargo kani` reads this when it runs from the repository root; other builds ignore it. The
+# proofs replace the PDA derivation (stubbing), and a 32-byte address comparison needs 33 loops.
+[workspace.metadata.kani]
+unstable = { stubbing = true, unstable-options = true }
+flags = { cbmc-args = ["--unwindset", "memcmp.0:33"] }

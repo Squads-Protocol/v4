@@ -1,14 +1,23 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
+#[cfg(feature = "program")]
 use solana_program::hash::hash;
 
+#[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 
 // Maximum PDA allocation size in an inner ix is 10240 bytes.
 // 10240 - account contents = 10128 bytes
-pub const MAX_BUFFER_SIZE: usize = 10128 ;
+pub const MAX_BUFFER_SIZE: usize = 10128;
 
-#[account]
-#[derive(Default, Debug)]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct TransactionBuffer {
     /// The multisig this belongs to.
     pub multisig: Pubkey,
@@ -27,6 +36,7 @@ pub struct TransactionBuffer {
 }
 
 impl TransactionBuffer {
+    #[cfg(feature = "program")]
     pub fn size(final_message_buffer_size: u16) -> Result<usize> {
         // Make sure final size is not greater than MAX_BUFFER_SIZE bytes.
         if (final_message_buffer_size as usize) > MAX_BUFFER_SIZE {
@@ -45,6 +55,7 @@ impl TransactionBuffer {
         )
     }
 
+    #[cfg(feature = "program")]
     pub fn validate_hash(&self) -> Result<()> {
         let message_buffer_hash = hash(&self.buffer);
         require!(
@@ -53,6 +64,7 @@ impl TransactionBuffer {
         );
         Ok(())
     }
+    #[cfg(feature = "program")]
     pub fn validate_size(&self) -> Result<()> {
         require_eq!(
             self.buffer.len(),
@@ -62,6 +74,7 @@ impl TransactionBuffer {
         Ok(())
     }
 
+    #[cfg(feature = "program")]
     pub fn invariant(&self) -> Result<()> {
         require!(
             self.final_buffer_size as usize <= MAX_BUFFER_SIZE,

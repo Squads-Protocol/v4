@@ -1,36 +1,30 @@
 use std::str::FromStr;
-use std::time::Duration;
 
 use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::hash::hash;
-use solana_sdk::instruction::Instruction;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
-
-use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::client::get_multisig;
-use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ConfigTransactionCreate as ConfigTransactionCreateAccounts;
-use squads_multisig::squads_multisig_program::accounts::ProposalCreate as ProposalCreateAccounts;
-
-use squads_multisig::squads_multisig_program::accounts::ProposalVote as ProposalVoteAccounts;
-use squads_multisig::squads_multisig_program::anchor_lang::ToAccountMetas;
-use squads_multisig::squads_multisig_program::instruction::ConfigTransactionCreate as ConfigTransactionCreateData;
-use squads_multisig::squads_multisig_program::instruction::ProposalApprove;
-use squads_multisig::squads_multisig_program::instruction::ProposalCreate as ProposalCreateData;
-use squads_multisig::squads_multisig_program::{
+use solana_system_interface::program as system_program;
+use squads_multisig_4r::builders::{
+    ConfigTransactionCreate as ConfigTransactionCreateAccounts, ProposalApprove, ProposalCreate,
+};
+use squads_multisig_4r::instructions::{
     ConfigTransactionCreateArgs, ProposalCreateArgs, ProposalVoteArgs,
 };
-use squads_multisig::state::{ConfigAction, Period, Permission, Permissions};
+use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
+use squads_multisig_4r::rpc::fetch_multisig;
+use squads_multisig_4r::state::{ConfigAction, Member, Period, Permissions};
 
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{
+    has_permission, send_and_confirm_transaction, signer_from_path, with_events, Permission,
+};
 
 /// Create a new config transaction (add/remove member, change threshold, etc.) and activate its proposal.
 #[derive(Args)]
@@ -86,15 +80,15 @@ impl ConfigTransactionCreate {
             approve,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair =
-            fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
@@ -103,14 +97,13 @@ impl ConfigTransactionCreate {
 
         let multisig = Pubkey::from_str(&multisig_pubkey).expect("Invalid multisig address");
 
-        let multisig_data = get_multisig(rpc_client, &multisig).await?;
+        let multisig_data = fetch_multisig(rpc_client, &multisig, Some(&program_id)).await?;
 
         // Check if the proposer has Vote permission when --approve is used
         if approve {
-            let has_vote_permission = multisig_data
-                .members
-                .iter()
-                .any(|m| m.key == transaction_creator && m.permissions.has(Permission::Vote));
+            let has_vote_permission = multisig_data.members.iter().any(|m| {
+                m.key == transaction_creator && has_permission(&m.permissions, Permission::Vote)
+            });
             if !has_vote_permission {
                 return Err(eyre::eyre!(
                     "Cannot use --approve: {} does not have Vote permission in this multisig",
@@ -140,58 +133,45 @@ impl ConfigTransactionCreate {
 
         let mut instructions = vec![
             ComputeBudgetInstruction::set_compute_unit_price(priority_fee_lamports.unwrap_or(5000)),
-            Instruction {
-                accounts: ConfigTransactionCreateAccounts {
-                    creator: transaction_creator,
-                    multisig,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    transaction: transaction_pda.0,
-                    system_program: solana_sdk::system_program::id(),
-                }
-                .to_account_metas(Some(false)),
-                data: ConfigTransactionCreateData {
-                    args: ConfigTransactionCreateArgs {
-                        actions: vec![config_action.unwrap()],
-                        memo: memo.clone(),
-                    },
-                }
-                .data(),
-                program_id,
-            },
-            Instruction {
-                accounts: ProposalCreateAccounts {
-                    creator: transaction_creator,
-                    multisig,
-                    rent_payer: fee_payer.unwrap_or(transaction_creator),
-                    proposal: proposal_pda.0,
-                    system_program: solana_sdk::system_program::id(),
-                }
-                .to_account_metas(Some(false)),
-                data: ProposalCreateData {
-                    args: ProposalCreateArgs {
-                        draft: false,
-                        transaction_index,
-                    },
-                }
-                .data(),
-                program_id,
-            },
+            ConfigTransactionCreateAccounts {
+                creator: transaction_creator,
+                multisig,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                transaction: transaction_pda.0,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                ConfigTransactionCreateArgs {
+                    actions: vec![config_action.unwrap()],
+                    memo: memo.clone(),
+                },
+                Some(&program_id),
+            )?,
+            ProposalCreate {
+                creator: transaction_creator,
+                multisig,
+                rent_payer: fee_payer.unwrap_or(transaction_creator),
+                proposal: proposal_pda.0,
+                system_program: system_program::ID,
+            }
+            .instruction(
+                ProposalCreateArgs {
+                    draft: false,
+                    transaction_index,
+                },
+                Some(&program_id),
+            )?,
         ];
 
         if approve {
-            instructions.push(Instruction {
-                accounts: ProposalVoteAccounts {
+            instructions.push(
+                ProposalApprove {
                     member: transaction_creator,
                     multisig,
                     proposal: proposal_pda.0,
                 }
-                .to_account_metas(Some(false)),
-                data: ProposalApprove {
-                    args: ProposalVoteArgs { memo },
-                }
-                .data(),
-                program_id,
-            });
+                .instruction(ProposalVoteArgs { memo }, Some(&program_id))?,
+            );
         }
 
         let blockhash = rpc_client
@@ -199,7 +179,13 @@ impl ConfigTransactionCreate {
             .await
             .expect("Failed to get blockhash");
 
-        let message = Message::try_compile(&payer, &instructions, &[], blockhash).unwrap();
+        let message = Message::try_compile(
+            &payer,
+            &with_events(instructions, &program_id),
+            &[],
+            blockhash,
+        )
+        .unwrap();
         let message_hash = hash(&message.serialize());
 
         println!();
@@ -234,7 +220,7 @@ impl ConfigTransactionCreate {
         }
         println!();
 
-        let progress = ProgressBar::new_spinner().with_message("Sending transaction...");
+        let _progress = ProgressBar::new_spinner().with_message("Sending transaction...");
 
         let mut signers = vec![&*transaction_creator_keypair];
         if let Some(ref fee_payer_kp) = fee_payer_keypair {
@@ -244,7 +230,7 @@ impl ConfigTransactionCreate {
         let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
             .expect("Failed to create transaction");
 
-        let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
+        let signature = send_and_confirm_transaction(&transaction, rpc_client).await?;
 
         if approve {
             println!(
@@ -263,9 +249,9 @@ impl ConfigTransactionCreate {
 
 fn parse_action(action_str: &str) -> Result<ConfigAction, String> {
     let parts: Vec<&str> = action_str.split_whitespace().collect();
-    match parts.get(0).map(|s| *s) {
+    match parts.first().copied() {
         Some("AddMember") => {
-            let new_member = squads_multisig::state::Member {
+            let new_member = Member {
                 key: Pubkey::from_str(parts.get(1).unwrap()).unwrap(),
                 permissions: Permissions {
                     mask: parts.get(2).unwrap().parse().unwrap(),

@@ -1,18 +1,32 @@
-use crate::errors::MultisigError;
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::pubkey;
+#[cfg(feature = "program")]
+use std::borrow::Cow;
 
+#[cfg(feature = "program")]
+use crate::errors::MultisigError;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, LogAuthority, MultisigEvent, ProgramConfigEvent, ProgramConfigEventKind,
+};
+#[cfg(feature = "program")]
+use anchor_lang::prelude::*;
+
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
 /// This is a key controlled by the Squads team and is intended to use for the single
 /// transaction that initializes the global program config. It is not used for anything else.
+#[cfg(feature = "program")]
 #[cfg(not(feature = "testing"))]
 const INITIALIZER: Pubkey = pubkey!("HM5y4mz3Bt9JY9mr1hkyhnvqxSH4H2u2451j7Hc2dtvK");
 
+#[cfg(feature = "program")]
 #[cfg(feature = "testing")]
 const INITIALIZER: Pubkey = pubkey!("BrQAbGdWQ9YUHmWWgKFdFe4miTURH71jkYFPXfaosqDv");
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct ProgramConfigInitArgs {
     /// The authority that can configure the program config: change the treasury, etc.
     pub authority: Pubkey,
@@ -22,6 +36,7 @@ pub struct ProgramConfigInitArgs {
     pub treasury: Pubkey,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct ProgramConfigInit<'info> {
     #[account(
@@ -43,6 +58,7 @@ pub struct ProgramConfigInit<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl ProgramConfigInit<'_> {
     /// A one-time instruction that initializes the global program config.
     pub fn program_config_init(ctx: Context<Self>, args: ProgramConfigInitArgs) -> Result<()> {
@@ -54,6 +70,23 @@ impl ProgramConfigInit<'_> {
 
         program_config.invariant()?;
 
-        Ok(())
+        let enabled = events::enabled(ctx.remaining_accounts);
+        if enabled {
+            // `log_event` checks the discriminator, so the new account must be written first.
+            ctx.accounts.program_config.exit(&crate::ID)?;
+        }
+        let program_config = &ctx.accounts.program_config;
+        events::emit(
+            enabled,
+            || LogAuthority::program_config(program_config, ctx.bumps.program_config),
+            || {
+                vec![MultisigEvent::ProgramConfig(ProgramConfigEvent {
+                    kind: ProgramConfigEventKind::Init,
+                    program_config: program_config.key(),
+                    authority: ctx.accounts.initializer.key(),
+                    snapshot: Cow::Borrowed(program_config),
+                })]
+            },
+        )
     }
 }

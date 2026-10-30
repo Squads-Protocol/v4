@@ -1,14 +1,26 @@
+#[cfg(feature = "program")]
 use std::cmp::max;
 
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
+#[cfg(feature = "program")]
 use anchor_lang::system_program;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
 use crate::id;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 
 pub const MAX_TIME_LOCK: u32 = 3 * 30 * 24 * 60 * 60; // 3 months
 
-#[account]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Multisig {
     /// Key that is used to seed the multisig PDA.
     pub create_key: Pubkey,
@@ -53,7 +65,7 @@ impl Multisig {
         32 + // rent_collector (always 32 bytes, even if None, just to keep the realloc logic simpler)
         1  + // bump
         4  + // members vector length
-        members_length * Member::INIT_SPACE // members
+        members_length * Member::LEN // members
     }
 
     pub fn num_voters(members: &[Member]) -> usize {
@@ -79,6 +91,7 @@ impl Multisig {
 
     /// Check if the multisig account space needs to be reallocated to accommodate `members_length`.
     /// Returns `true` if the account was reallocated.
+    #[cfg(feature = "program")]
     pub fn realloc_if_needed<'a>(
         multisig: AccountInfo<'a>,
         members_length: usize,
@@ -97,11 +110,11 @@ impl Multisig {
         }
 
         let new_size = max(
-            current_account_size + (10 * Member::INIT_SPACE), // We need to allocate more space. To avoid doing this operation too often, we increment it by 10 members.
+            current_account_size + (10 * Member::LEN), // We need to allocate more space. To avoid doing this operation too often, we increment it by 10 members.
             account_size_to_fit_members,
         );
         // Reallocate more space.
-        AccountInfo::realloc(&multisig, new_size, false)?;
+        multisig.resize(new_size)?;
 
         // If more lamports are needed, transfer them to the account.
         let rent_exempt_lamports = Rent::get().unwrap().minimum_balance(new_size).max(1);
@@ -120,7 +133,7 @@ impl Multisig {
 
             system_program::transfer(
                 CpiContext::new(
-                    system_program,
+                    system_program.key(),
                     system_program::Transfer {
                         from: rent_payer,
                         to: multisig,
@@ -135,6 +148,7 @@ impl Multisig {
 
     // Makes sure the multisig state is valid.
     // This must be called at the end of every instruction that modifies a Multisig account.
+    #[cfg(feature = "program")]
     pub fn invariant(&self) -> Result<()> {
         let Self {
             threshold,
@@ -237,6 +251,7 @@ impl Multisig {
     ///
     /// # Errors
     /// - `MultisigError::NotAMember` if `member_pubkey` is not a member.
+    #[cfg(feature = "program")]
     pub fn remove_member(&mut self, member_pubkey: Pubkey) -> Result<()> {
         let old_member_index = match self.is_member(member_pubkey) {
             Some(old_member_index) => old_member_index,
@@ -249,13 +264,23 @@ impl Multisig {
     }
 }
 
-#[derive(AnchorDeserialize, AnchorSerialize, InitSpace, Eq, PartialEq, Clone)]
+#[cfg_attr(
+    feature = "program",
+    derive(AnchorSerialize, AnchorDeserialize, InitSpace)
+)]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Member {
     pub key: Pubkey,
     pub permissions: Permissions,
 }
 
-#[derive(Clone, Copy)]
+impl Member {
+    /// Serialized size: key (32) + permissions (1).
+    pub const LEN: usize = 32 + 1;
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Permission {
     Initiate = 1 << 0,
     Vote = 1 << 1,
@@ -263,9 +288,12 @@ pub enum Permission {
 }
 
 /// Bitmask for permissions.
-#[derive(
-    AnchorSerialize, AnchorDeserialize, InitSpace, Eq, PartialEq, Clone, Copy, Default, Debug,
+#[cfg_attr(
+    feature = "program",
+    derive(AnchorSerialize, AnchorDeserialize, InitSpace)
 )]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
+#[derive(Eq, PartialEq, Clone, Copy, Default, Debug)]
 pub struct Permissions {
     pub mask: u8,
 }

@@ -13,6 +13,8 @@ import "./suites/instructions/configTransactionExecute";
 import "./suites/instructions/multisigCreate";
 import "./suites/instructions/multisigCreateV2";
 import "./suites/instructions/multisigSetRentCollector";
+import "./suites/instructions/proposalCancelVotePermission";
+import "./suites/instructions/proposalCreateAfterClose";
 import "./suites/instructions/transactionBufferClose";
 import "./suites/instructions/transactionBufferCreate";
 import "./suites/instructions/transactionBufferExtend";
@@ -20,6 +22,7 @@ import "./suites/instructions/vaultBatchTransactionAccountClose";
 import "./suites/instructions/vaultTransactionAccountsClose";
 import "./suites/instructions/vaultTransactionCreateFromBuffer";
 import "./suites/multisig-sdk";
+import "./suites/events";
 
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";

@@ -1,14 +1,28 @@
+#[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, ConfigSource, LogAuthority, MultisigEvent, SpendingLimitEvent, SpendingLimitEventKind,
+};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigRemoveSpendingLimitArgs {
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct MultisigRemoveSpendingLimit<'info> {
     #[account(
@@ -26,9 +40,10 @@ pub struct MultisigRemoveSpendingLimit<'info> {
     /// This is usually the same as `config_authority`, but can be a different account if needed.
     /// CHECK: can be any account.
     #[account(mut)]
-    pub rent_collector: AccountInfo<'info>,
+    pub rent_collector: UncheckedAccount<'info>,
 }
 
+#[cfg(feature = "program")]
 impl MultisigRemoveSpendingLimit<'_> {
     fn validate(&self) -> Result<()> {
         // config_authority
@@ -54,8 +69,25 @@ impl MultisigRemoveSpendingLimit<'_> {
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_remove_spending_limit(
         ctx: Context<Self>,
-        _args: MultisigRemoveSpendingLimitArgs,
+        args: MultisigRemoveSpendingLimitArgs,
     ) -> Result<()> {
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        let spending_limit = &ctx.accounts.spending_limit;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::SpendingLimit(SpendingLimitEvent {
+                    kind: SpendingLimitEventKind::Remove,
+                    multisig: multisig.key(),
+                    spending_limit: spending_limit.key(),
+                    source: ConfigSource::ConfigAuthority {
+                        authority: ctx.accounts.config_authority.key(),
+                    },
+                    memo: args.memo,
+                    snapshot: Some(Cow::Borrowed(spending_limit)),
+                })]
+            },
+        )
     }
 }

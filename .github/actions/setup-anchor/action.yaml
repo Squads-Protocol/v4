@@ -1,36 +1,28 @@
 name: "Setup Anchor"
-description: "Setup Anchor"
+description: "Install the Anchor CLI from crates.io"
 runs:
   using: "composite"
   steps:
-    - name: Restore Cargo Cache with Installed Anchor CLI
-      id: restore-cache-anchor-cargo
-      uses: actions/cache/restore@v3
+    - name: Restore cached Anchor CLI
+      id: restore-cache-anchor
+      uses: actions/cache/restore@v6
       with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-        key: ${{ runner.os }}-anchor-cargo-${{ env.ANCHOR_VERSION }}
+        path: ~/.cargo/bin/anchor
+        key: ${{ runner.os }}-anchor-cli-${{ env.ANCHOR_VERSION }}-${{ hashFiles('rust-toolchain.toml') }}
 
-    - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
-      name: Install System Dependencies for Anchor CLI
+    - if: steps.restore-cache-anchor.outputs.cache-hit != 'true'
+      name: Install system dependencies for Anchor CLI
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y pkg-config build-essential libssl-dev libudev-dev
 
-    - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
+    - if: steps.restore-cache-anchor.outputs.cache-hit != 'true'
       name: Install Anchor CLI
       shell: bash
-      run: cargo +1.78.0 install --git https://github.com/coral-xyz/anchor --tag v${{ env.ANCHOR_VERSION }} anchor-cli --locked
+      run: cargo install anchor-cli --version ${{ env.ANCHOR_VERSION }} --locked
 
-    - if: steps.restore-cache-anchor-cargo.outputs.cache-hit != 'true'
-      name: Save Cargo Cache with Installed Anchor CLI
-      uses: actions/cache/save@v3
+    - if: steps.restore-cache-anchor.outputs.cache-hit != 'true'
+      name: Save Anchor CLI to cache
+      uses: actions/cache/save@v6
       with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-        key: ${{ steps.restore-cache-anchor-cargo.outputs.cache-primary-key }}
+        path: ~/.cargo/bin/anchor
+        key: ${{ steps.restore-cache-anchor.outputs.cache-primary-key }}

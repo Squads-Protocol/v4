@@ -1,7 +1,72 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
-#[error_code]
-pub enum MultisigError {
+// The 52 program errors, in code order (6000 + index). With `program` they render as an Anchor
+// `#[error_code]` enum, which also feeds the IDL; without it, as a plain enum with the same codes
+// and messages. `#[error_code]` does not accept `cfg_attr` on variants, so the list is shared here.
+macro_rules! multisig_errors {
+    ($($(#[doc = $doc:literal])* #[msg($msg:literal)] $name:ident,)*) => {
+        #[cfg(feature = "program")]
+        #[anchor_lang::prelude::error_code]
+        #[derive(PartialEq, Eq)]
+        pub enum MultisigError {
+            $($(#[doc = $doc])* #[msg($msg)] $name,)*
+        }
+
+        #[cfg(not(feature = "program"))]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #[repr(u32)]
+        pub enum MultisigError {
+            $($(#[doc = $doc])* $name,)*
+        }
+
+        impl MultisigError {
+            /// Every error, in code order.
+            pub const ALL: &'static [MultisigError] = &[$(MultisigError::$name,)*];
+
+            pub fn from_code(code: u32) -> Option<Self> {
+                Self::ALL.iter().copied().find(|error| error.code() == code)
+            }
+        }
+
+        #[cfg(not(feature = "program"))]
+        impl MultisigError {
+            pub fn name(&self) -> String {
+                match self {
+                    $(Self::$name => stringify!($name).to_string(),)*
+                }
+            }
+
+            pub const fn message(&self) -> &'static str {
+                match self {
+                    $(Self::$name => $msg,)*
+                }
+            }
+        }
+
+        #[cfg(not(feature = "program"))]
+        impl core::fmt::Display for MultisigError {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                f.write_str(self.message())
+            }
+        }
+
+        #[cfg(not(feature = "program"))]
+        impl std::error::Error for MultisigError {}
+    };
+}
+
+/// Anchor's offset for custom program errors.
+pub const ERROR_CODE_OFFSET: u32 = 6000;
+
+impl MultisigError {
+    /// The custom program error code (`6000 + variant index`).
+    pub const fn code(self) -> u32 {
+        ERROR_CODE_OFFSET + self as u32
+    }
+}
+
+multisig_errors! {
     #[msg("Found multiple members with the same pubkey")]
     DuplicateMember,
     #[msg("Members array is empty")]
@@ -92,4 +157,18 @@ pub enum MultisigError {
     FinalBufferSizeMismatch,
     #[msg("multisig_create has been deprecated. Use multisig_create_v2 instead.")]
     MultisigCreateDeprecated,
+    #[msg("Instruction is protected: log_event runs only as a self-CPI by the program")]
+    ProtectedInstruction,
+    #[msg("The successor multisig does not have the governance of the source multisig")]
+    MigrationGovernanceMismatch,
+    #[msg("The vault index hint does not name a vault of the v4 multisig")]
+    MigrationInvalidVaultHint,
+    #[msg("The asset accounts do not match the migration assets")]
+    MigrationInvalidAssetAccounts,
+    #[msg("The SOL to keep in the source vault is less than the rent minimum")]
+    MigrationInvalidAmount,
+    #[msg("The 4r multisig creation fee is larger than max_creation_fee")]
+    MigrationCreationFeeTooHigh,
+    #[msg("The v3 authority index is not between 1 and 256")]
+    MigrationInvalidAuthorityIndex,
 }

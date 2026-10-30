@@ -1,14 +1,15 @@
 {
 	"private": true,
+	"packageManager": "bun@1.4.4",
 	"workspaces": [
-		"sdk/*"
+		"sdk/multisig"
 	],
 	"scripts": {
-		"build": "turbo run build",
-		"test:detached": "turbo run build && anchor test --detach -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
-		"test": "turbo run build && anchor test -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
-		"pretest": "mkdir -p target/deploy && cp ./test-program-keypair.json ./target/deploy/squads_multisig_program-keypair.json",
-		"ts": "turbo run ts && yarn tsc --noEmit"
+		"build": "bun run --filter '*' build",
+		"test:detached": "bun run build && ANCHOR_BUILD_SBF_ARCH=v3 anchor test --validator legacy --detach -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
+		"test": "bun run build && ANCHOR_BUILD_SBF_ARCH=v3 anchor test --validator legacy -- --features=testing && echo \"\n⚠️ Don't forget to recompile the .so file before deployment\n\"",
+		"pretest": "mkdir -p target/deploy && cp ./test-program-keypair.json ./target/deploy/squads_multisig_4r_program-keypair.json",
+		"ts": "bun run --filter '*' ts && tsc --noEmit"
 	},
 	"devDependencies": {
 		"@solana/spl-token": "*",
@@ -19,12 +20,12 @@
 		"mocha": "10.2.0",
 		"prettier": "2.6.2",
 		"ts-node": "10.9.1",
-		"turbo": "1.6.3",
 		"typescript": "*"
 	},
 	"resolutions": {
 		"@solana/web3.js": "1.70.3",
 		"@solana/spl-token": "0.3.6",
+		"@types/bn.js": "5.1.1",
 		"typescript": "4.9.4"
 	}
 }

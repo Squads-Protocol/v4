@@ -1,8 +1,8 @@
-use solana_sdk::pubkey::Pubkey;
-use squads_multisig::pda::get_vault_pda;
 use std::str::FromStr;
 
 use clap::Args;
+use solana_sdk::pubkey::Pubkey;
+use squads_multisig_4r::pda::get_vault_pda;
 
 /// Derive and display the vault PDA address for a given multisig and vault index.
 #[derive(Args)]
@@ -28,8 +28,7 @@ impl DisplayVault {
             vault_index,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 

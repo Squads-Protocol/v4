@@ -495,7 +495,10 @@ describe("Instructions / vault_transaction_create_from_buffer", () => {
 
     const logs = (await getLogs(connection, signature4)).join("");
 
-    assert.match(logs, /Access violation in heap section at address/);
+    assert.match(
+      logs,
+      /Access violation in heap section at address|Access violation writing \d+ bytes at address 0x[0-9a-f]+ \(in heap region\)/
+    );
 
   });
 

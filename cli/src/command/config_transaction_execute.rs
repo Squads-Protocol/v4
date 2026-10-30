@@ -5,20 +5,17 @@ use clap::Args;
 use colored::Colorize;
 use dialoguer::Confirm;
 use indicatif::ProgressBar;
-use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::instruction::Instruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::message::v0::Message;
 use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
-use squads_multisig::anchor_lang::InstructionData;
-use squads_multisig::client::utils::IntoAccountMetas;
-use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::accounts::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
-use squads_multisig::squads_multisig_program::instruction::ConfigTransactionExecute as ConfigTransactionExecuteData;
+use solana_system_interface::program as system_program;
+use squads_multisig_4r::builders::ConfigTransactionExecute as ConfigTransactionExecuteAccounts;
+use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
 
-use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
+use crate::utils::{send_and_confirm_transaction, signer_from_path, with_events};
 
 /// Execute an approved config transaction on-chain.
 #[derive(Args)]
@@ -63,14 +60,15 @@ impl ConfigTransactionExecute {
             priority_fee_lamports,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
-        let transaction_creator_keypair = create_signer_from_path(keypair).unwrap();
+        let transaction_creator_keypair = signer_from_path(&keypair)?;
         let transaction_creator = transaction_creator_keypair.pubkey();
-        let fee_payer_keypair = fee_payer_keypair.map(|path| create_signer_from_path(path).unwrap());
+        let fee_payer_keypair = fee_payer_keypair
+            .map(|path| signer_from_path(&path))
+            .transpose()?;
         let fee_payer = fee_payer_keypair.as_ref().map(|kp| kp.pubkey());
 
         let rpc_url = rpc_url.unwrap_or_else(|| "https://api.mainnet-beta.solana.com".to_string());
@@ -119,24 +117,23 @@ impl ConfigTransactionExecute {
         let payer = fee_payer.unwrap_or(transaction_creator);
         let message = Message::try_compile(
             &payer,
-            &[
-                ComputeBudgetInstruction::set_compute_unit_price(
-                    priority_fee_lamports.unwrap_or(5000),
-                ),
-                Instruction {
-                    accounts: ConfigTransactionExecuteAccounts {
+            &with_events(
+                [
+                    ComputeBudgetInstruction::set_compute_unit_price(
+                        priority_fee_lamports.unwrap_or(5000),
+                    ),
+                    ConfigTransactionExecuteAccounts {
                         member: transaction_creator,
                         transaction: transaction_pda.0,
                         rent_payer: Some(fee_payer.unwrap_or(transaction_creator)),
                         multisig,
                         proposal: proposal_pda.0,
-                        system_program: Some(solana_sdk::system_program::id()),
+                        system_program: Some(system_program::ID),
                     }
-                    .into_account_metas(program_id),
-                    data: ConfigTransactionExecuteData {}.data(),
-                    program_id,
-                },
-            ],
+                    .instruction(Some(&program_id)),
+                ],
+                &program_id,
+            ),
             &[],
             blockhash,
         )
@@ -150,7 +147,7 @@ impl ConfigTransactionExecute {
         let transaction = VersionedTransaction::try_new(VersionedMessage::V0(message), &signers)
             .expect("Failed to create transaction");
 
-        let signature = send_and_confirm_transaction(&transaction, &rpc_client).await?;
+        let signature = send_and_confirm_transaction(&transaction, rpc_client).await?;
 
         println!(
             "✅ Executed Config Transaction. Signature: {}",
