@@ -40,6 +40,9 @@ start with `#` are comments.
   arguments that neither v4 nor 4r accepts. The discriminator checks still cover it.
 - Bytes after an account's encoded value (realloc headroom, or stale bytes after a shrink)
   are not compared; they are not part of the format.
+- `v3_accounts.txt` holds v3 (Squads MPL) `Ms` accounts from mainnet-beta, for the v3 migration
+  decoder (`tests/migration.rs`). They are not 4r types, so the wire-format suites above do not
+  read this file. One account has realloc headroom after its keys.
 
 ## Regenerate
 

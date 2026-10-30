@@ -3,10 +3,12 @@
 
 use anchor_spl::token_2022::spl_token_2022::{extension::StateWithExtensions, state::Mint};
 use proptest::prelude::*;
+use spl_token_2022_interface::state::AccountState;
 
 use super::programs::program_data_authority;
 use super::stakes::stake_meta;
 use super::token_authorities::mint_authority;
+use super::token_state::read_token_account;
 use super::vote_accounts::vote_withdrawer;
 use super::TokenAuthorityKind;
 use solana_loader_v3_interface::state::UpgradeableLoaderState;
@@ -94,6 +96,46 @@ proptest! {
             _ => None,
         };
         prop_assert_eq!(read, expected);
+    }
+
+    #[test]
+    fn read_token_account_accepts_any_bytes(data in bytes(256)) {
+        let _ = read_token_account(&data);
+    }
+
+    #[test]
+    fn read_token_account_reads_the_token_layout(spec in token_account()) {
+        // Arrange
+        let data = token_account_bytes(&spec);
+
+        // Act
+        let read = read_token_account(&data).expect("generated token account");
+
+        // Assert
+        let account = spec.account;
+        prop_assert_eq!(
+            (read.mint, read.owner, read.amount, read.frozen, read.close_authority),
+            (
+                account.mint,
+                account.owner,
+                account.amount,
+                account.state == AccountState::Frozen,
+                Option::from(account.close_authority),
+            )
+        );
+        prop_assert!(read.confidential_closable);
+    }
+
+    #[test]
+    fn read_token_account_closes_only_empty_confidential_balances(spec in confidential_account()) {
+        // Arrange
+        let data = confidential_account_bytes(&spec);
+
+        // Act
+        let read = read_token_account(&data).expect("generated token account");
+
+        // Assert
+        prop_assert_eq!(read.confidential_closable, spec.closable());
     }
 
     #[test]

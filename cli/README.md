@@ -411,64 +411,85 @@ squads-multisig-4r-cli display-config-transaction --transaction-address AQb6VyZG
 
 ### Description
 
-Shows what a v4 vault holds and how it moves to its 4r successor: the successor address and state, the inventory, the batch items and the warnings. Each batch item moves one asset class (tokens, token authorities, stakes, vote accounts, programs or SOL). It sends nothing.
+Shows what a v4 vault or a v3 authority holds and how it moves to its 4r successor: the successor address and state, the member signing report, the inventory, the items and the warnings. Each item moves one asset class (tokens, token authorities, stakes, vote accounts, programs or SOL). It sends nothing.
+
+The owner program of `--multisig-pubkey` sets the lineage: `SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf` is v4, `SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu` is v3. For a v4 multisig, each item is one batch entry. For a v3 multisig, each item is one instruction of a v3 transaction.
+
+The member signing report lists the members that are off the curve (only a program signs for them) and marks the known vaults. The risk is `HIGH` when the wallet members that vote cannot reach the threshold alone. It is a warning and does not stop the plan.
+
+A v3 member can be a delegate of the v3 roles program. A delegate can never sign in 4r, so the plan stops with an error that lists each delegate and its wallet. Replace each delegate with its wallet first, in a v3 transaction of authority 0: `add_member(wallet)`, `remove_member(delegate)`, then check the threshold.
 
 ### Syntax
 
 ```bash
-migrate-plan --multisig-pubkey <V4_MULTISIG> [--vault-index <INDEX>] [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--keep-token-accounts] [--preserve-token-account-addresses] [--extra-mint <MINT>]... [--skip-program-scans]
+migrate-plan --multisig-pubkey <MULTISIG> [--vault-index <INDEX> | --authority-index <INDEX>] [--rpc-url <RPC_URL>] [--program-id <PROGRAM_ID>] [--keep-token-accounts] [--preserve-token-account-addresses] [--extra-mint <MINT>]... [--skip-program-scans]
 ```
 
 ### Parameters
 
-- `--multisig-pubkey <V4_MULTISIG>`: The v4 multisig to move.
-- `--vault-index <INDEX>`: (Optional) The v4 vault to move. Default 0. The assets go to the successor vault with the same index.
+- `--multisig-pubkey <MULTISIG>`: The v4 or v3 multisig to move.
+- `--vault-index <INDEX>`: (Optional, v4 only) The v4 vault to move. Default 0. The assets go to the successor vault with the same index.
+- `--authority-index <INDEX>`: (Optional, v3 only) The v3 authority to move, from 1 to 256. Default 1. The assets go to the successor vault `INDEX - 1`.
 - `--rpc-url <RPC_URL>`: (Optional) The URL of the Solana RPC endpoint. Defaults to mainnet.
 - `--program-id <PROGRAM_ID>`: (Optional) The 4r program ID. Defaults to the Squads Multisig 4r program ID.
-- `--keep-token-accounts`: (Optional) Keep the v4 token accounts open. By default they close, and the rent goes to the successor vault.
+- `--keep-token-accounts`: (Optional) Keep the source token accounts open. By default they close, and the rent goes to the successor vault.
 - `--preserve-token-account-addresses`: (Optional) Move token accounts that are not associated token accounts by owner change, so they keep their address.
 - `--extra-mint <MINT>`: (Optional, repeatable) A mint where the vault holds only Token-2022 extension or metadata authorities. The scan cannot find such a mint.
 - `--skip-program-scans`: (Optional) Do not scan for token roles (close authority, delegate), stakes, vote accounts, upgradeable programs and mints. Use it with an RPC that refuses `getProgramAccounts`.
+
+The command refuses `--vault-index` for a v3 multisig and `--authority-index` for a v4 multisig.
 
 ## Migrate Propose
 
 ### Description
 
-Creates the v4 proposals of a migration as a v4 member: a vault transaction that creates the successor (if it does not exist), and one batch that moves the assets. It prints the v4 transaction indexes to approve and execute.
+Creates the proposals of a migration as a member, and prints the transaction indexes to approve and execute.
+
+- v4: a vault transaction that creates the successor (if it does not exist), and one batch that moves the assets.
+- v3: one v3 transaction of the authority. Its first instruction creates the successor (if it does not exist), and each next instruction moves one item. The command sends `create_transaction`, one `add_instruction` for each instruction, then `activate_transaction` (and `approve_transaction` with `--approve`). One approval round covers the whole migration.
 
 ### Syntax
 
 ```bash
-migrate-propose --multisig-pubkey <V4_MULTISIG> --keypair <KEYPAIR_PATH> [--approve] [--lookup-tables] [--fee-payer-keypair <PATH>] [--yes] [same options as migrate-plan]
+migrate-propose --multisig-pubkey <MULTISIG> --keypair <KEYPAIR_PATH> [--approve] [--lookup-tables] [--fee-payer-keypair <PATH>] [--yes] [same options as migrate-plan]
 ```
 
 ### Parameters
 
-- `--keypair <KEYPAIR_PATH>`: A v4 member with Initiate permission.
-- `--approve`: (Optional) Also approve the proposals. The member needs Vote permission.
-- `--lookup-tables`: (Optional) Put the item accounts in new address lookup tables first: fewer, larger batch entries. The member is the table authority. The command prints the table addresses; get their rent back with `migrate-lookup-tables` after the batch runs.
-- `--fee-payer-keypair <PATH>`: (Optional) Pays the fees and the rent of the proposal accounts (and of the lookup tables).
+- `--keypair <KEYPAIR_PATH>`: A member. On v4, it needs Initiate permission. On v3, it pays the rent of the v3 transaction and instruction accounts.
+- `--approve`: (Optional) Also approve the proposals. On v4, the member needs Vote permission.
+- `--lookup-tables`: (Optional, v4 only) Put the item accounts in new address lookup tables first: fewer, larger batch entries. The member is the table authority. The command prints the table addresses; get their rent back with `migrate-lookup-tables` after the batch runs.
+- `--fee-payer-keypair <PATH>`: (Optional) Pays the fees. On v4, it also pays the rent of the proposal accounts (and of the lookup tables).
 - `--yes`: (Optional) Do not ask for confirmation.
 
 ## Migrate Execute
 
 ### Description
 
-Executes an approved migration proposal on v4: the vault transaction that creates the successor, or the remaining entries of the batch, one transaction each, in order. It reads the lookup tables that the batch messages use. It stops at the first entry that fails.
+Executes an approved migration proposal, one transaction for each step, in order. It stops at the first step that fails.
+
+- v4: the vault transaction that creates the successor, or the remaining entries of the batch. It reads the lookup tables that the batch messages use.
+- v3: the remaining instructions of the v3 transaction (`execute_instruction`). It starts after the last instruction that ran, so you can run it again after a failure.
 
 ### Syntax
 
 ```bash
-migrate-execute --multisig-pubkey <V4_MULTISIG> --keypair <KEYPAIR_PATH> --transaction-index <INDEX> [--rpc-url <RPC_URL>] [--yes]
+migrate-execute --multisig-pubkey <MULTISIG> --keypair <KEYPAIR_PATH> --transaction-index <INDEX> [--rpc-url <RPC_URL>] [--yes]
 ```
 
 ### Example Usage
 
 ```bash
+# v4
 squads-multisig-4r-cli migrate-plan --multisig-pubkey <V4_MULTISIG>
 squads-multisig-4r-cli migrate-propose --multisig-pubkey <V4_MULTISIG> --keypair /path/to/keypair.json --approve
 squads-multisig-4r-cli migrate-execute --multisig-pubkey <V4_MULTISIG> --keypair /path/to/keypair.json --transaction-index 1
 squads-multisig-4r-cli migrate-execute --multisig-pubkey <V4_MULTISIG> --keypair /path/to/keypair.json --transaction-index 2
+
+# v3, authority 1 (the v3 default vault)
+squads-multisig-4r-cli migrate-plan --multisig-pubkey <V3_MULTISIG>
+squads-multisig-4r-cli migrate-propose --multisig-pubkey <V3_MULTISIG> --keypair /path/to/keypair.json --approve
+squads-multisig-4r-cli migrate-execute --multisig-pubkey <V3_MULTISIG> --keypair /path/to/keypair.json --transaction-index <V3_INDEX>
 ```
 
 ## Migrate Lookup Tables

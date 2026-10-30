@@ -14,6 +14,7 @@ use squads_multisig_4r_program::discriminator::{account, instruction::LOG_EVENT}
 use squads_multisig_4r_program::error::CoreError;
 use squads_multisig_4r_program::events::*;
 use squads_multisig_4r_program::instructions::{LogEventArgs, TokenAuthorityKind};
+use squads_multisig_4r_program::migration::MAX_MIGRATE_ITEMS;
 use squads_multisig_4r_program::state::{
     Batch, ConfigAction, ConfigTransaction, Member, Multisig, Permission, Permissions,
     ProgramConfig, Proposal, ProposalStatus, SpendingLimit, VaultBatchTransaction,
@@ -132,6 +133,7 @@ fn one_of_each() -> Vec<MultisigEvent<'static>> {
             scope: MigrationScope::Tokens,
             multisig: multisig_key,
             source_multisig: key(3),
+            source: MigrationSourceVault::V3 { authority_index: 1 },
             vault_index: 0,
             source_vault: key(4),
             vault: key(5),
@@ -278,6 +280,7 @@ fn migration_vector_event() -> MultisigEvent<'static> {
         scope: MigrationScope::Stakes,
         multisig: key(1),
         source_multisig: key(2),
+        source: MigrationSourceVault::V4 { vault_index: 3 },
         vault_index: 3,
         source_vault: key(4),
         vault: key(5),
@@ -338,6 +341,81 @@ fn migration_event_matches_the_shared_cross_sdk_vector() {
     assert_eq!(decoded, Some(event));
 }
 
+#[test]
+fn v3_migration_event_matches_the_shared_cross_sdk_vector() {
+    // Arrange: v3 authority 2 moves to successor vault 1.
+    let event = MultisigEvent::Migration(MigrationEvent {
+        scope: MigrationScope::Sol,
+        multisig: key(1),
+        source_multisig: key(2),
+        source: MigrationSourceVault::V3 { authority_index: 2 },
+        vault_index: 1,
+        source_vault: key(4),
+        vault: key(5),
+        outcomes: Cow::Owned(vec![MigrationOutcome {
+            kind: MigrationAssetKind::Sol,
+            account: key(4),
+            result: MigrationResult::Moved {
+                amount: 5_000_000,
+                closed: false,
+            },
+        }]),
+        memo: None,
+    });
+
+    // Act
+    let data = log_event_data(&event).expect("encode");
+    let decoded = decode_log_event(&hex_bytes(MIGRATION_V3_VECTOR)).expect("decode");
+
+    // Assert
+    assert_eq!(data, hex_bytes(MIGRATION_V3_VECTOR));
+    assert_eq!(decoded, Some(event));
+}
+
+/// The largest bytes of one call without a memo: `MAX_MIGRATE_ITEMS` stake accounts give three
+/// outcomes each, the largest count, and each outcome has its largest result (`Moved`).
+#[test]
+fn the_largest_migration_event_fits_the_cpi_limit_with_room_for_a_memo() {
+    // Arrange
+    let outcome = MigrationOutcome {
+        kind: MigrationAssetKind::StakeStaker,
+        account: key(9),
+        result: MigrationResult::Moved {
+            amount: u64::MAX,
+            closed: true,
+        },
+    };
+    let largest = |source| {
+        MultisigEvent::Migration(MigrationEvent {
+            scope: MigrationScope::Stakes,
+            multisig: key(1),
+            source_multisig: key(2),
+            source,
+            vault_index: 255,
+            source_vault: key(4),
+            vault: key(5),
+            outcomes: Cow::Owned(vec![outcome; 3 * MAX_MIGRATE_ITEMS]),
+            memo: None,
+        })
+    };
+    let sources = [
+        MigrationSourceVault::V4 { vault_index: 255 },
+        MigrationSourceVault::V3 {
+            authority_index: 256,
+        },
+    ];
+
+    // Act
+    let lengths: Vec<_> = sources
+        .map(|source| log_event_data(&largest(source)).expect("encode").len())
+        .to_vec();
+
+    // Assert: at least 1 KiB stays for the memo.
+    assert!(lengths
+        .iter()
+        .all(|length| length + 1024 <= MAX_LOG_EVENT_DATA_LEN));
+}
+
 fn hex_bytes(hex: &str) -> Vec<u8> {
     (0..hex.len())
         .step_by(2)
@@ -346,18 +424,26 @@ fn hex_bytes(hex: &str) -> Vec<u8> {
 }
 
 const MIGRATION_VECTOR: &str = concat!(
-    "05095a8ddf8639d9e20100000903010101010101010101010101010101010101010101010101010101010101",
-    "0101020202020202020202020202020202020202020202020202020202020202020203040404040404040404",
-    "0404040404040404040404040404040404040404040404050505050505050505050505050505050505050505",
-    "0505050505050505050505090000000006060606060606060606060606060606060606060606060606060606",
-    "06060606010001070707070707070707070707070707070707070707070707070707070707070700e8030000",
-    "0000000001010808080808080808080808080808080808080808080808080808080808080808010302120909",
-    "0909090909090909090909090909090909090909090909090909090909090105030a0a0a0a0a0a0a0a0a0a0a",
-    "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0102040a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
-    "0a0a0a0a0a0a0a0a0a0a0a0a0104070a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
-    "0a0a0a00000000000000000000050b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-    "0b0b00000000000000000000060c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
-    "0c010101020000006869",
+    "05095a8ddf8639d9e40100000903010101010101010101010101010101010101010101010101010101010101",
+    "0101020202020202020202020202020202020202020202020202020202020202020200030304040404040404",
+    "0404040404040404040404040404040404040404040404040405050505050505050505050505050505050505",
+    "0505050505050505050505050509000000000606060606060606060606060606060606060606060606060606",
+    "060606060606010001070707070707070707070707070707070707070707070707070707070707070700e803",
+    "0000000000000101080808080808080808080808080808080808080808080808080808080808080801030212",
+    "09090909090909090909090909090909090909090909090909090909090909090105030a0a0a0a0a0a0a0a0a",
+    "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0102040a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+    "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0104070a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+    "0a0a0a0a0a00000000000000000000050b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    "0b0b0b0b00000000000000000000060c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+    "0c0c0c010101020000006869",
+);
+
+const MIGRATION_V3_VECTOR: &str = concat!(
+    "05095a8ddf8639d9b80000000900010101010101010101010101010101010101010101010101010101010101",
+    "0101020202020202020202020202020202020202020202020202020202020202020201020000000104040404",
+    "0404040404040404040404040404040404040404040404040404040405050505050505050505050505050505",
+    "0505050505050505050505050505050501000000000404040404040404040404040404040404040404040404",
+    "04040404040404040400404b4c00000000000000",
 );
 
 const SHARED_VECTOR: &str = concat!(

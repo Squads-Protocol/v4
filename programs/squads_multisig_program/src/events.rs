@@ -249,13 +249,24 @@ pub struct MigrationOutcome {
     pub result: MigrationResult,
 }
 
-/// One `multisig_migrate_*` call from the v4 `source_vault` to the successor `vault`, one outcome
-/// per asset (two for stake: staker and withdrawer).
+/// The lineage of a migration and the index of the source vault that signed.
+#[derive(BorshSerialize, BorshDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MigrationSourceVault {
+    /// A v4 vault; the successor vault has the same index.
+    V4 { vault_index: u8 },
+    /// A v3 authority; the successor vault index is `authority_index - 1`.
+    V3 { authority_index: u32 },
+}
+
+/// One `multisig_migrate_*` call from the `source_vault` (v4 vault or v3 authority) to the successor
+/// `vault`, one outcome per asset (three for stake: staker, withdrawer and custodian).
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, PartialEq, Eq)]
 pub struct MigrationEvent<'a> {
     pub scope: MigrationScope,
     pub multisig: Address,
     pub source_multisig: Address,
+    pub source: MigrationSourceVault,
+    /// The index of the successor `vault`.
     pub vault_index: u8,
     pub source_vault: Address,
     pub vault: Address,

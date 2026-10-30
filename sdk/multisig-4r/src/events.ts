@@ -219,10 +219,18 @@ export type MigrationOutcome = {
   readonly account: Address;
   readonly result: MigrationResult;
 };
+/** The lineage of a migration and the index of the source vault that signed. */
+export type MigrationSourceVault =
+  /** A v4 vault; the successor vault has the same index. */
+  | { readonly __kind: "V4"; readonly vaultIndex: number }
+  /** A v3 authority; the successor vault index is `authorityIndex - 1`. */
+  | { readonly __kind: "V3"; readonly authorityIndex: number };
 export type MigrationEvent = {
   readonly scope: MigrationScope;
   readonly multisig: Address;
   readonly sourceMultisig: Address;
+  readonly source: MigrationSourceVault;
+  /** The index of the successor `vault`. */
   readonly vaultIndex: number;
   readonly sourceVault: Address;
   readonly vault: Address;
@@ -424,6 +432,13 @@ export function getMultisigEventDecoder(): Decoder<MultisigEvent> {
         ["scope", getEnumDecoder(MigrationScope)],
         ["multisig", address()],
         ["sourceMultisig", address()],
+        [
+          "source",
+          getDiscriminatedUnionDecoder([
+            ["V4", getStructDecoder([["vaultIndex", getU8Decoder()]])],
+            ["V3", getStructDecoder([["authorityIndex", getU32Decoder()]])],
+          ]),
+        ],
         ["vaultIndex", getU8Decoder()],
         ["sourceVault", address()],
         ["vault", address()],

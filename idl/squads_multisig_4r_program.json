@@ -1865,6 +1865,217 @@
       ]
     },
     {
+      "name": "multisig_create_from_v3",
+      "docs": [
+        "Create the successor of a v3 multisig: its members with every permission, its threshold.",
+        "A v3 authority signs, through a v3 transaction."
+      ],
+      "discriminator": [
+        203,
+        22,
+        106,
+        157,
+        9,
+        7,
+        246,
+        54
+      ],
+      "accounts": [
+        {
+          "name": "program_config",
+          "docs": [
+            "Global program config account."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "docs": [
+            "The treasury where the creation fee is transferred to."
+          ],
+          "writable": true
+        },
+        {
+          "name": "source_multisig",
+          "docs": [
+            "The v3 multisig. Its config is copied to the successor."
+          ]
+        },
+        {
+          "name": "source_vault",
+          "docs": [
+            "An authority of the v3 multisig. Only v3 signs for it, in a v3 transaction that the v3",
+            "members approved. It pays the rent and the creation fee."
+          ],
+          "writable": true,
+          "signer": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  113,
+                  117,
+                  97,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "source_multisig"
+              },
+              {
+                "kind": "arg",
+                "path": "args.authority_index"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                6,
+                126,
+                145,
+                221,
+                206,
+                113,
+                192,
+                199,
+                95,
+                63,
+                255,
+                186,
+                30,
+                214,
+                44,
+                175,
+                64,
+                4,
+                111,
+                29,
+                216,
+                195,
+                82,
+                136,
+                59,
+                16,
+                168,
+                125,
+                183,
+                58,
+                217,
+                48
+              ]
+            }
+          }
+        },
+        {
+          "name": "multisig",
+          "docs": [
+            "The successor: the multisig PDA with `create_key = source_multisig`."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "source_multisig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MultisigCreateFromV3Args"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "multisig_create_v2",
       "docs": [
         "Create a multisig."
@@ -3038,6 +3249,1054 @@
           "type": {
             "defined": {
               "name": "MigrateTokensArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_v3_programs",
+      "docs": [
+        "Migration from v3: move loader-v3 program upgrade authorities to the successor vault."
+      ],
+      "discriminator": [
+        251,
+        71,
+        37,
+        72,
+        15,
+        36,
+        171,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v3 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v3 authority. Only v3 signs for it, in a v3 transaction that the v3 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      113,
+                      117,
+                      97,
+                      100
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "authority_index"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      97,
+                      117,
+                      116,
+                      104,
+                      111,
+                      114,
+                      105,
+                      116,
+                      121
+                    ]
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    126,
+                    145,
+                    221,
+                    206,
+                    113,
+                    192,
+                    199,
+                    95,
+                    63,
+                    255,
+                    186,
+                    30,
+                    214,
+                    44,
+                    175,
+                    64,
+                    4,
+                    111,
+                    29,
+                    216,
+                    195,
+                    82,
+                    136,
+                    59,
+                    16,
+                    168,
+                    125,
+                    183,
+                    58,
+                    217,
+                    48
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault `authority_index - 1`: the destination of every asset."
+              ],
+              "writable": true
+            }
+          ]
+        },
+        {
+          "name": "bpf_loader_upgradeable",
+          "address": "BPFLoaderUpgradeab1e11111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateV3AuthoritiesArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_v3_sol",
+      "docs": [
+        "Migration from v3: move the SOL of v3 authority N to the successor vault N - 1. Every",
+        "`multisig_migrate_v3_*` instruction runs in a v3 transaction and needs the same governance."
+      ],
+      "discriminator": [
+        145,
+        118,
+        113,
+        56,
+        29,
+        250,
+        124,
+        35
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v3 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v3 authority. Only v3 signs for it, in a v3 transaction that the v3 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      113,
+                      117,
+                      97,
+                      100
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "authority_index"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      97,
+                      117,
+                      116,
+                      104,
+                      111,
+                      114,
+                      105,
+                      116,
+                      121
+                    ]
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    126,
+                    145,
+                    221,
+                    206,
+                    113,
+                    192,
+                    199,
+                    95,
+                    63,
+                    255,
+                    186,
+                    30,
+                    214,
+                    44,
+                    175,
+                    64,
+                    4,
+                    111,
+                    29,
+                    216,
+                    195,
+                    82,
+                    136,
+                    59,
+                    16,
+                    168,
+                    125,
+                    183,
+                    58,
+                    217,
+                    48
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault `authority_index - 1`: the destination of every asset."
+              ],
+              "writable": true
+            }
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateV3SolArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_v3_stakes",
+      "docs": [
+        "Migration from v3: move stake staker, withdrawer and custodian roles to the successor vault."
+      ],
+      "discriminator": [
+        162,
+        28,
+        202,
+        51,
+        204,
+        135,
+        232,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v3 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v3 authority. Only v3 signs for it, in a v3 transaction that the v3 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      113,
+                      117,
+                      97,
+                      100
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "authority_index"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      97,
+                      117,
+                      116,
+                      104,
+                      111,
+                      114,
+                      105,
+                      116,
+                      121
+                    ]
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    126,
+                    145,
+                    221,
+                    206,
+                    113,
+                    192,
+                    199,
+                    95,
+                    63,
+                    255,
+                    186,
+                    30,
+                    214,
+                    44,
+                    175,
+                    64,
+                    4,
+                    111,
+                    29,
+                    216,
+                    195,
+                    82,
+                    136,
+                    59,
+                    16,
+                    168,
+                    125,
+                    183,
+                    58,
+                    217,
+                    48
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault `authority_index - 1`: the destination of every asset."
+              ],
+              "writable": true
+            }
+          ]
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "stake_program",
+          "address": "Stake11111111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateV3AuthoritiesArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_v3_token_authorities",
+      "docs": [
+        "Migration from v3: move token account owner, mint and Token-2022 extension and metadata",
+        "authorities to the successor vault."
+      ],
+      "discriminator": [
+        221,
+        80,
+        131,
+        110,
+        92,
+        12,
+        108,
+        147
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v3 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v3 authority. Only v3 signs for it, in a v3 transaction that the v3 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      113,
+                      117,
+                      97,
+                      100
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "authority_index"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      97,
+                      117,
+                      116,
+                      104,
+                      111,
+                      114,
+                      105,
+                      116,
+                      121
+                    ]
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    126,
+                    145,
+                    221,
+                    206,
+                    113,
+                    192,
+                    199,
+                    95,
+                    63,
+                    255,
+                    186,
+                    30,
+                    214,
+                    44,
+                    175,
+                    64,
+                    4,
+                    111,
+                    29,
+                    216,
+                    195,
+                    82,
+                    136,
+                    59,
+                    16,
+                    168,
+                    125,
+                    183,
+                    58,
+                    217,
+                    48
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault `authority_index - 1`: the destination of every asset."
+              ],
+              "writable": true
+            }
+          ]
+        },
+        {
+          "name": "token_program",
+          "docs": [
+            "Token or Token-2022: one token program for each call."
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateV3TokenAuthoritiesArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_v3_tokens",
+      "docs": [
+        "Migration from v3: move whole token balances to the successor vault's token accounts."
+      ],
+      "discriminator": [
+        182,
+        94,
+        202,
+        152,
+        217,
+        1,
+        164,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v3 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v3 authority. Only v3 signs for it, in a v3 transaction that the v3 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      113,
+                      117,
+                      97,
+                      100
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "authority_index"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      97,
+                      117,
+                      116,
+                      104,
+                      111,
+                      114,
+                      105,
+                      116,
+                      121
+                    ]
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    126,
+                    145,
+                    221,
+                    206,
+                    113,
+                    192,
+                    199,
+                    95,
+                    63,
+                    255,
+                    186,
+                    30,
+                    214,
+                    44,
+                    175,
+                    64,
+                    4,
+                    111,
+                    29,
+                    216,
+                    195,
+                    82,
+                    136,
+                    59,
+                    16,
+                    168,
+                    125,
+                    183,
+                    58,
+                    217,
+                    48
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault `authority_index - 1`: the destination of every asset."
+              ],
+              "writable": true
+            }
+          ]
+        },
+        {
+          "name": "token_program",
+          "docs": [
+            "Token or Token-2022: one token program for each call."
+          ]
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateV3TokensArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "multisig_migrate_v3_vote_accounts",
+      "docs": [
+        "Migration from v3: move vote account withdrawer roles to the successor vault."
+      ],
+      "discriminator": [
+        209,
+        80,
+        45,
+        68,
+        29,
+        232,
+        82,
+        52
+      ],
+      "accounts": [
+        {
+          "name": "migration",
+          "accounts": [
+            {
+              "name": "source_multisig",
+              "docs": [
+                "The v3 multisig."
+              ]
+            },
+            {
+              "name": "source_vault",
+              "docs": [
+                "The v3 authority. Only v3 signs for it, in a v3 transaction that the v3 members approved."
+              ],
+              "writable": true,
+              "signer": true,
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      115,
+                      113,
+                      117,
+                      97,
+                      100
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  },
+                  {
+                    "kind": "arg",
+                    "path": "authority_index"
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      97,
+                      117,
+                      116,
+                      104,
+                      111,
+                      114,
+                      105,
+                      116,
+                      121
+                    ]
+                  }
+                ],
+                "program": {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    126,
+                    145,
+                    221,
+                    206,
+                    113,
+                    192,
+                    199,
+                    95,
+                    63,
+                    255,
+                    186,
+                    30,
+                    214,
+                    44,
+                    175,
+                    64,
+                    4,
+                    111,
+                    29,
+                    216,
+                    195,
+                    82,
+                    136,
+                    59,
+                    16,
+                    168,
+                    125,
+                    183,
+                    58,
+                    217,
+                    48
+                  ]
+                }
+              }
+            },
+            {
+              "name": "multisig",
+              "docs": [
+                "The successor of `source_multisig`."
+              ],
+              "pda": {
+                "seeds": [
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "const",
+                    "value": [
+                      109,
+                      117,
+                      108,
+                      116,
+                      105,
+                      115,
+                      105,
+                      103
+                    ]
+                  },
+                  {
+                    "kind": "account",
+                    "path": "source_multisig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "vault",
+              "docs": [
+                "The successor vault `authority_index - 1`: the destination of every asset."
+              ],
+              "writable": true
+            }
+          ]
+        },
+        {
+          "name": "clock",
+          "address": "SysvarC1ock11111111111111111111111111111111"
+        },
+        {
+          "name": "vote_program",
+          "address": "Vote111111111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MigrateV3AuthoritiesArgs"
             }
           }
         }
@@ -6508,7 +7767,7 @@
     {
       "code": 6046,
       "name": "MigrationGovernanceMismatch",
-      "msg": "The successor multisig does not have the governance of the v4 multisig"
+      "msg": "The successor multisig does not have the governance of the source multisig"
     },
     {
       "code": 6047,
@@ -6523,12 +7782,17 @@
     {
       "code": 6049,
       "name": "MigrationInvalidAmount",
-      "msg": "The SOL to keep in the v4 vault is less than the rent minimum"
+      "msg": "The SOL to keep in the source vault is less than the rent minimum"
     },
     {
       "code": 6050,
       "name": "MigrationCreationFeeTooHigh",
       "msg": "The 4r multisig creation fee is larger than max_creation_fee"
+    },
+    {
+      "code": 6051,
+      "name": "MigrationInvalidAuthorityIndex",
+      "msg": "The v3 authority index is not between 1 and 256"
     }
   ],
   "types": [
@@ -7060,6 +8324,133 @@
       }
     },
     {
+      "name": "MigrateV3AuthoritiesArgs",
+      "docs": [
+        "Arguments of `multisig_migrate_v3_stakes`, `multisig_migrate_v3_vote_accounts` and",
+        "`multisig_migrate_v3_programs`. The items are the remaining accounts, one account each."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority_index",
+            "docs": [
+              "The v3 authority index (1 to 256). Every v3 migrate instruction starts with this field."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MigrateV3SolArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority_index",
+            "docs": [
+              "The v3 authority index (1 to 256). Every v3 migrate instruction starts with this field."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "keep",
+            "docs": [
+              "Lamports to leave in the v3 authority: 0, or at least the rent-exempt minimum."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MigrateV3TokenAuthoritiesArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority_index",
+            "docs": [
+              "The v3 authority index (1 to 256). Every v3 migrate instruction starts with this field."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "items",
+            "docs": [
+              "One authority for each remaining account (the token account or the mint), in order."
+            ],
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "TokenAuthorityKind"
+                }
+              }
+            }
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MigrateV3TokensArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority_index",
+            "docs": [
+              "The v3 authority index (1 to 256). Every v3 migrate instruction starts with this field."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "close_source",
+            "docs": [
+              "Close each source token account after the transfer. Its rent goes to the successor vault."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "Multisig",
       "type": {
         "kind": "struct",
@@ -7403,6 +8794,37 @@
             "name": "max_creation_fee",
             "docs": [
               "The largest 4r creation fee that the v4 members approve. The fee is read at execution."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "memo",
+            "docs": [
+              "Memo is used for indexing only."
+            ],
+            "type": {
+              "option": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigCreateFromV3Args",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority_index",
+            "docs": [
+              "The index (1 to 256) of the v3 authority that signs. Any authority proves v3 consensus."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "max_creation_fee",
+            "docs": [
+              "The largest 4r creation fee that the v3 members approve. The fee is read at execution."
             ],
             "type": "u64"
           },

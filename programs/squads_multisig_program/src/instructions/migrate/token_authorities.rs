@@ -107,122 +107,127 @@ impl<'info> MultisigMigrateTokenAuthorities<'info> {
         args: MigrateTokenAuthoritiesArgs,
     ) -> Result<()> {
         let accounts = &ctx.accounts;
-        let items = accounts.migration.begin(
+        let migration = accounts.migration.begin(
             ctx.remaining_accounts,
             1,
+            args.vault_index,
             args.config_authority_vault_index,
         )?;
-        require_eq!(
-            items.accounts.len(),
-            args.items.len(),
-            MultisigError::MigrationInvalidAssetAccounts
-        );
-        let outcomes = items
-            .accounts
-            .iter()
-            .zip(&args.items)
-            .map(|(account, kind)| accounts.migrate_authority(account, *kind))
-            .collect::<Result<Vec<_>>>()?;
-        accounts.migration.emit(
-            items.events,
-            MigrationScope::TokenAuthorities,
-            args.vault_index,
-            &outcomes,
-            args.memo,
-        )
+        let outcomes = migrate_token_authorities(
+            &migration,
+            &accounts.token_program.to_account_info(),
+            &args.items,
+        )?;
+        migration.emit(MigrationScope::TokenAuthorities, &outcomes, args.memo)
     }
+}
 
-    fn migrate_authority(
-        &self,
-        account: &AccountInfo<'info>,
-        kind: TokenAuthorityKind,
-    ) -> Result<MigrationOutcome> {
-        let outcome = |result| MigrationOutcome {
-            kind: MigrationAssetKind::TokenAuthority(kind),
-            account: account.key(),
-            result,
-        };
-        let source_vault = self.migration.source_vault.key();
-        match self.current(account, kind) {
-            Current::Skip(reason) => return Ok(outcome(skipped(reason))),
-            Current::Authority(authority) if authority != Some(source_vault) => {
-                return Ok(outcome(skipped(MigrationSkipReason::NotAuthority)))
-            }
-            Current::Authority(_) => {}
+/// Moves the authority `kinds[i]` of each item account `i` of `migration` (the token account or the
+/// mint) from the source vault to the successor vault.
+#[cfg(feature = "program")]
+pub(crate) fn migrate_token_authorities<'info>(
+    migration: &MigrationCall<'_, 'info>,
+    token_program: &AccountInfo<'info>,
+    kinds: &[TokenAuthorityKind],
+) -> Result<Vec<MigrationOutcome>> {
+    require_eq!(
+        migration.items.len(),
+        kinds.len(),
+        MultisigError::MigrationInvalidAssetAccounts
+    );
+    migration
+        .items
+        .iter()
+        .zip(kinds)
+        .map(|(account, kind)| migrate_authority(migration, token_program, account, *kind))
+        .collect()
+}
+
+#[cfg(feature = "program")]
+fn migrate_authority<'info>(
+    migration: &MigrationCall<'_, 'info>,
+    token_program: &AccountInfo<'info>,
+    account: &AccountInfo<'info>,
+    kind: TokenAuthorityKind,
+) -> Result<MigrationOutcome> {
+    let outcome = |result| MigrationOutcome {
+        kind: MigrationAssetKind::TokenAuthority(kind),
+        account: account.key(),
+        result,
+    };
+    let source_vault = migration.source_vault.key();
+    match current(account, kind, token_program.key) {
+        Current::Skip(reason) => return Ok(outcome(skipped(reason))),
+        Current::Authority(authority) if authority != Some(source_vault) => {
+            return Ok(outcome(skipped(MigrationSkipReason::NotAuthority)))
         }
-        let new_authority = self.migration.vault.key();
-        match authority_type(kind) {
-            Some(authority_type) => token::set_authority(
-                CpiContext::new(
-                    self.token_program.key(),
-                    SetAuthority {
-                        current_authority: self.migration.source_vault.to_account_info(),
-                        account_or_mint: account.clone(),
-                    },
-                ),
-                authority_type,
-                Some(new_authority),
-            )?,
-            None => {
-                let new_authority = Some(new_authority)
-                    .try_into()
-                    .map_err(|_| error!(MultisigError::InvalidAccount))?;
-                let instruction = update_authority(
-                    &self.token_program.key(),
-                    account.key,
-                    &source_vault,
-                    new_authority,
-                );
-                invoke(
-                    &instruction,
-                    &[
-                        account.clone(),
-                        self.migration.source_vault.to_account_info(),
-                    ],
-                )?;
-            }
-        }
-        Ok(outcome(moved(0, false)))
+        Current::Authority(_) => {}
     }
-
-    /// The current holder of `kind` on `account`, or why there is nothing to move.
-    fn current(&self, account: &AccountInfo<'info>, kind: TokenAuthorityKind) -> Current {
-        let token_program = self.token_program.key();
-        if *account.owner != token_program {
-            return Current::Skip(MigrationSkipReason::Missing);
+    let new_authority = migration.vault.key();
+    match authority_type(kind) {
+        Some(authority_type) => token::set_authority(
+            CpiContext::new(
+                token_program.key(),
+                SetAuthority {
+                    current_authority: migration.source_vault.clone(),
+                    account_or_mint: account.clone(),
+                },
+            ),
+            authority_type,
+            Some(new_authority),
+        )?,
+        None => {
+            let new_authority = Some(new_authority)
+                .try_into()
+                .map_err(|_| error!(MultisigError::InvalidAccount))?;
+            let instruction =
+                update_authority(token_program.key, account.key, &source_vault, new_authority);
+            invoke(
+                &instruction,
+                &[account.clone(), migration.source_vault.clone()],
+            )?;
         }
-        let Ok(data) = account.try_borrow_data() else {
-            return Current::Skip(MigrationSkipReason::Missing);
-        };
-        match kind {
-            TokenAuthorityKind::AccountOwner | TokenAuthorityKind::CloseAccount => {
-                let Ok(state) = StateWithExtensions::<TokenAccount>::unpack(&data) else {
-                    return Current::Skip(MigrationSkipReason::Missing);
-                };
-                if kind == TokenAuthorityKind::CloseAccount {
-                    return Current::Authority(state.base.close_authority.into());
-                }
-                // An associated token account belongs to its owner by its address; Token-2022
-                // associated token accounts also have `ImmutableOwner`.
-                let associated = migration::get_associated_token_address(
-                    &state.base.owner,
-                    &state.base.mint,
-                    &token_program,
-                ) == *account.key;
-                match associated || state.get_extension::<ImmutableOwner>().is_ok() {
-                    true => Current::Skip(MigrationSkipReason::Unsupported),
-                    false => Current::Authority(Some(state.base.owner)),
-                }
+    }
+    Ok(outcome(moved(0, false)))
+}
+
+/// The current holder of `kind` on `account`, or why there is nothing to move.
+#[cfg(feature = "program")]
+fn current(account: &AccountInfo, kind: TokenAuthorityKind, token_program: &Pubkey) -> Current {
+    if account.owner != token_program {
+        return Current::Skip(MigrationSkipReason::Missing);
+    }
+    let Ok(data) = account.try_borrow_data() else {
+        return Current::Skip(MigrationSkipReason::Missing);
+    };
+    match kind {
+        TokenAuthorityKind::AccountOwner | TokenAuthorityKind::CloseAccount => {
+            let Ok(state) = StateWithExtensions::<TokenAccount>::unpack(&data) else {
+                return Current::Skip(MigrationSkipReason::Missing);
+            };
+            if kind == TokenAuthorityKind::CloseAccount {
+                return Current::Authority(state.base.close_authority.into());
             }
-            _ => {
-                let Ok(state) = StateWithExtensions::<Mint>::unpack(&data) else {
-                    return Current::Skip(MigrationSkipReason::Missing);
-                };
-                mint_authority(&state, kind).map_or(
-                    Current::Skip(MigrationSkipReason::Missing),
-                    Current::Authority,
-                )
+            // An associated token account belongs to its owner by its address; Token-2022
+            // associated token accounts also have `ImmutableOwner`.
+            let associated = migration::get_associated_token_address(
+                &state.base.owner,
+                &state.base.mint,
+                token_program,
+            ) == *account.key;
+            match associated || state.get_extension::<ImmutableOwner>().is_ok() {
+                true => Current::Skip(MigrationSkipReason::Unsupported),
+                false => Current::Authority(Some(state.base.owner)),
             }
+        }
+        _ => {
+            let Ok(state) = StateWithExtensions::<Mint>::unpack(&data) else {
+                return Current::Skip(MigrationSkipReason::Missing);
+            };
+            mint_authority(&state, kind).map_or(
+                Current::Skip(MigrationSkipReason::Missing),
+                Current::Authority,
+            )
         }
     }
 }

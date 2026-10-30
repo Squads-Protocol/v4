@@ -2,8 +2,9 @@
 
 Status: **draft for review**. Scope: `multisig_create_from` and the six `multisig_migrate_*`
 instructions of Squads Multisig 4r (`programs/squads_multisig_program`), and the way they use the
-frozen Squads v4 program and the Solana runtime. The user guide is section 11 of
-`V4.5_REVISED.md`.
+frozen Squads v4 program and the Solana runtime. Section 11 extends the argument to the v3 lineage
+(`multisig_create_from_v3` and the six `multisig_migrate_v3_*` instructions). The user guide is
+section 11 of `V4.5_REVISED.md`.
 
 ## Contents
 
@@ -17,6 +18,7 @@ frozen Squads v4 program and the Solana runtime. The user guide is section 11 of
 8. [Liveness: what can block, and why a block loses nothing](#8-liveness-what-can-block-and-why-a-block-loses-nothing)
 9. [Residual powers, findings and limits](#9-residual-powers-findings-and-limits)
 10. [Mechanized evidence and open work](#10-mechanized-evidence-and-open-work)
+11. [The v3 lineage](#11-the-v3-lineage)
 
 ---
 
@@ -30,7 +32,11 @@ The main result is **control preservation**:
 
 Five properties support this result: lineage (S1), authorization (S2), destination integrity
 (S3), governance equality at execution (S4) and class isolation (S6). Section 6 gives each
-property with its proof.
+property with its proof. Section 11 proves the same result for the move from v3.
+
+The proofs assume that the adversary knows everything on chain and every plan (section 5). Thus a
+public announcement of a migration gives the adversary nothing that the proofs do not already
+assume (section 5.1).
 
 **What "proof" means here.** Each proof is a deduction from three inputs:
 
@@ -129,7 +135,9 @@ The adversary can:
   instruction arguments, including wrong vault hints, wrong items and wrong accounts;
 - change the config of a multisig when it holds the authority for that change (a config
   authority, or a threshold of members);
-- see pending proposals and act between approval and execution.
+- see pending proposals and act between approval and execution;
+- know every public fact: the source and successor addresses, the vaults, the plan, the pending
+  proposals, and the time of the migration. The design has no secret.
 
 The adversary wins if one of these occurs:
 
@@ -139,6 +147,26 @@ The adversary wins if one of these occurs:
   `W_i`, or an authority to go to a holder other than `W_i`.
 - **G4.** It causes an asset to move while `Gov(S(M)) ≠ Gov(M)`.
 - **G5.** A migrate instruction for one asset class changes an asset of another class.
+
+### 5.1 A public announcement
+
+When a team announces a migration, the adversary learns the source multisig, its successor
+address and the time of the move. The model above already gives the adversary all of these facts,
+so the properties of section 6 hold without change:
+
+| What the adversary can try after the announcement | Why it fails |
+|---|---|
+| Create the successor first, with its own members | S1: only `multisig_create_from`, signed by a vault of `M`, creates `S(M)`. |
+| Call a migrate instruction itself | S2: it needs a signature of `vault_i(M)`, which only `V` gives after the approvals of `Gov(M)`. |
+| Redirect an asset with chosen accounts or arguments | S3: the program calculates every destination. |
+| Change the successor governance, then wait for the move | S4: every move checks equality at execution. |
+| Pre-fund the successor or its ATAs, or freeze a token account | Section 8.3: no loss; the freeze authority is a power that it already had. |
+
+What remains is outside the program: members who approve a harmful proposal (for example a fake
+"migration" proposal, or a proposal from a fake website). That risk is the same before and after
+the announcement. `V4.5_REVISED.md` section 11.8 gives a review checklist. With A5 (the
+adversary does not control a threshold of members), the migration is as secure as the source
+multisig.
 
 ## 6. Safety properties and proofs
 
@@ -510,6 +538,12 @@ accounts, tokens with a transfer hook, non-transferable tokens, paused mints, fr
 delegate role on token accounts of other owners (only the owner can change a delegate), and the
 update authority of a Token-2022 token group do not move. They stay under `Gov(M)`.
 
+Token-2022 confidential balances (the pending and available ciphertexts of a
+`ConfidentialTransferAccount`, and the confidential withheld fee) do not move either.
+`multisig_migrate_tokens` moves the public balance. With `close_source`, it closes the source only
+if Token-2022 `CloseAccount` accepts it (`closable()` of both extensions); else it keeps the account
+open, so a confidential balance never makes the call fail.
+
 ## 10. Mechanized evidence and open work
 
 ### 10.1 What is checked by machine
@@ -535,7 +569,8 @@ the code through the obligations in section 7.
 ### 10.2 Kani proofs of the governance rules
 
 The proofs check `map_vault`, `mirror`, `check_same_governance` and `v4_member_count` in
-`src/migration.rs`, the code that obligation O5 and step 4 of S1 use.
+`src/migration.rs`, the code that obligation O5 and step 4 of S1 use, and `migrate_item_count`,
+which both lineages use to split the item accounts. Section 11.7 lists the v3 proofs.
 
 | Proof | Property |
 |---|---|
@@ -546,6 +581,7 @@ The proofs check `map_vault`, `mirror`, `check_same_governance` and `v4_member_c
 | `the_check_passes_exactly_for_equal_governance` | For any two multisigs, the check passes if and only if the members, threshold, time lock and mapped config authority are equal; else 6046, or 6047 for a bad hint. Thus every change of any of these fields fails the check (S4) |
 | `the_rent_collector_does_not_affect_the_check` | The rent collector does not change the result (section 9.6) |
 | `v4_member_count_reads_only_the_layout` | For all byte strings up to 134 bytes: no panic, and a count comes only from the v4 layout, at the offset that the rent collector sets |
+| `migrate_item_count_accepts_only_whole_items_up_to_the_limit` | For any account count and 0 to 3 accounts per item (both lineages): a partial item fails with 6048, more than `MAX_MIGRATE_ITEMS` items fail, else the count is exact |
 
 Each proof also has `kani::cover!` checks for its important cases (for example a hinted config
 authority that passes). All are satisfied, so no proof passes because its cases are unreachable.
@@ -594,5 +630,186 @@ code only: the SBF binaries and the IDL do not change.
 
 ### 10.4 Open work
 
-1. **External audit** of `src/instructions/migrate/`, `multisig_create_from.rs` and
-   `src/migration.rs`, with this document as the specification.
+1. **External audit** of `src/instructions/migrate/`, `multisig_create_from.rs`,
+   `multisig_create_from_v3.rs`, `src/migration.rs` and `src/migration/v3.rs`, with this document
+   as the specification.
+
+## 11. The v3 lineage
+
+The 4r program also moves the assets of a Squads v3 multisig (Squads MPL) to a successor. The
+design is the same as for v4. This section gives only the differences. Sections 3, 5, 8 and 10
+apply without change.
+
+### 11.1 System model
+
+| Symbol | Definition | Meaning |
+|---|---|---|
+| `L` | `SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu` | Squads v3 (frozen) |
+| `Q` | `SMPLvKJwsyNGD6xf7Ph6VRpDGPa3DXV4uPHcTAnXe6r` | The v3 roles program. `R` never reads it (section 11.6) |
+| `M3` | `PDA_L("squad", create_key, "multisig", bump)` | A v3 multisig |
+| `auth_j(M3)` | `PDA_L("squad", M3, j (u32 LE), "authority", bump)` | v3 authority (vault) `j` |
+| `S(M3)` | `PDA_R("multisig", "multisig", M3, bump)` | The successor: the 4r multisig with `create_key = M3` |
+| `f(j)` | `j − 1`, for `j` in 1..=256 | The successor vault index of authority `j` |
+
+v3 has no permissions, time lock, config authority or rent collector. Every v3 member creates,
+votes and executes, and only v3 transactions of authority 0 change the config. Thus:
+
+```
+Gov(M3)     = (keys, threshold)
+Mirror(M3)  = (keys, each with Initiate | Vote | Execute; threshold; time_lock 0; no config authority)
+```
+
+`multisig_create_from_v3` writes `Mirror(M3)`, and the rent collector is `None`.
+
+### 11.2 Trust assumption A2′
+
+The code at `L` is the v3 source, and `L` has no upgrade authority. Check:
+`solana program show SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu` shows `Authority: none`
+(checked on 2026-10-30; ProgramData `Q1xCTDDfdfB4jk2Wicw1HdutFVdRik5LMKYMcZdT2rU`, last deployed in
+slot 178977035). `tests/fixtures/v3-mainnet/SHA256SUMS` pins the mainnet binary that the
+integration tests run.
+
+### 11.3 Assumption A5′ and the threat model
+
+A5′: the adversary does not control a threshold of `Gov(M3)`. The threat model of section 5 and
+section 5.1 apply with `M3` for `M` and `auth_j(M3)` for `vault_i(M)`. In v3, every member can
+create a transaction, so a v3 member below the threshold can propose anything; the proofs allow it.
+The adversary can also use the v3 roles program; `Q` signs only into `L` (section 11.6).
+
+### S1′. Lineage
+
+> `S(M3)` exists only if `multisig_create_from_v3` executed with a signature of `auth_j(M3)` for
+> some `j` in 1..=256.
+
+**Proof.** The steps of S1 apply, with these changes.
+
+1. `R` initializes a multisig PDA in three places only (O1′): `multisig_create_v2`,
+   `multisig_create_from` and `multisig_create_from_v3`.
+2. **`multisig_create_v2`** needs `M3` to sign. `L` signs as `M3` only here (O7′):
+   - **L1′:** Anchor `init` of `create`. The callee is the System program.
+   - **L2′:** `execute_transaction` of a transaction with authority 0. `add_instruction` accepts
+     only `L` as the program of such a transaction, and `execute_transaction` checks it again. It
+     also refuses to call `execute_transaction` or `execute_instruction` of `L`. `L` itself calls
+     only the System program (Anchor `init`, with the creator as payer). `execute_instruction`
+     refuses authority 0.
+
+   Thus `M3` never signs an instruction to `R`. The seeds of `M3` are 46 bytes. An authority has
+   51 bytes, a transaction 53 and an instruction 50. By R9, no other v3 PDA is `M3`.
+3. **`multisig_create_from`** requires a source owned by `V`. `M3` is owned by `L`, so it fails.
+4. **`multisig_create_from_v3`** requires (O2′): `source_multisig` owned by `L` with the `Ms`
+   discriminator; `1 ≤ authority_index ≤ 256`; `source_vault = auth_j(source_multisig)` under `L`
+   (`seeds::program = L`), as a signer; the new account at `PDA_R("multisig", "multisig",
+   source_multisig)`.
+5. **Two lineages, one namespace.** An account has one owner, so a source is a v4 multisig or a
+   v3 multisig, never both. `M ≠ M3`, so the two lineages never share a successor. ∎
+
+**Tests.** "lets nobody create the successor with multisig_create_v2 or a v3 authority-0
+transaction (S1)": the direct call fails with 3010, and v3 refuses the authority-0 transaction
+with `InvalidAuthorityIndex` (6004). "refuses a source multisig of the other lineage": both
+creation instructions fail with 6014. (Anchor runs `init`, and with it the size of the successor,
+before the `owner` constraint. The size reads the source layout and refuses the other lineage.)
+
+### S2′. Authorization
+
+> Each execution of a v3 creation or migrate instruction for `M3` is part of a v3 transaction of
+> `M3` that reached `ExecuteReady`, and a member executes it.
+
+**Proof.** `auth_j(M3)` signs only in `execute_transaction` and `execute_instruction` (O7′). Both
+require `ExecuteReady`: the approvals reached the threshold of `Gov(M3)`. The member list and the
+content are fixed before the votes (`add_instruction` needs `Draft`).
+
+**Difference from v4.** v3 does not check `ms_change_index` at execution. A transaction that
+reached `ExecuteReady` stays executable after the v3 members change. This gives the adversary
+nothing: `multisig_create_from_v3` mirrors `Gov(M3)` at execution, and each migrate checks
+equality at execution (S4′). A stale approval can act only with the current governance. The
+TLA+ model has the same rule (`approved` stays after `V4Config`). Test: "mirrors the v3
+governance at execution, after an approval and a v3 member change". ∎
+
+### S3′. Destination integrity
+
+> Every asset that a v3 migrate instruction moves goes to `W_f(j)` or `ATA(W_f(j))`, where `j` is
+> the index of the signing authority.
+
+**Proof.** The seeds of `source_vault` include `authority_index` (O2′), so it is the index of the
+signer. `vault` must be `PDA_R("multisig", S(M3), "vault", f(authority_index))`. The range
+constraint (error 6051) is on the first account, and Anchor checks constraints in account order.
+Thus the `vault` seed sees only values in 1..=256. `f` is one-to-one, so two authorities never
+share a vault (Kani: `v3_vault_index_maps_exactly_1_to_256_one_to_one`). The `vault` seed comes
+from `v3_vault_seed`, and in that range it equals `v3_vault_index`, which the event uses (Kani:
+`v3_vault_seed_is_the_vault_index_in_range`). The movers are the same code as for v4 (O3, O4). ∎
+
+### S4′. Governance equality at execution
+
+> Each v3 migrate instruction moves an asset only when `Gov(S(M3)) = Mirror(M3)` at that time.
+
+**Proof.** `MigrationAccountsV3::begin` decodes `M3` (owner `L`, discriminator, bounds) and calls
+`check_same_governance_v3` before any CPI (O5′). It compares the members with their permissions,
+the threshold, the time lock and the config authority. Steps 2 and 3 of S4 apply. Kani proves the
+check for all inputs within the bounds (section 11.7). Test: "stops every class when the v3
+members drift from the successor" (6046). ∎
+
+### S5′. Control preservation
+
+The table of S5 applies, with these changes:
+
+- **Before the move:** a v3 transaction that `Gov(M3)` approved; v3 has no spending limits; the
+  third-party powers on the asset itself.
+- **After the move:** a 4r transaction that `Gov(S(M3))` approves. By S4′, its members and
+  threshold are those of `M3`, each member has the powers that it had in v3, there is no time
+  lock (v3 has none), and only the successor's own config transactions change the config (as v3
+  transactions of authority 0 do). The third-party powers do not change.
+
+No party gets a power that it did not have. ∎
+
+### 11.4 Code obligations
+
+| ID | Obligation | Code | Evidence |
+|---|---|---|---|
+| **O1′** | O1, plus `multisig_create_from_v3`. | `src/instructions/multisig_create_from_v3.rs` | Review; test "creates the successor" in the main flow. |
+| **O2′** | `source_multisig` owned by `L`; `1 ≤ authority_index ≤ 256` (first constraint); `source_vault = auth_j` under `L`, signer; `multisig = S(M3)` with `create_key = source_multisig`; `vault = W_f(j)`. | `MigrationAccountsV3` in `src/instructions/migrate/common.rs`; `multisig_create_from_v3.rs` | Tests: 6051 for authorities 0 and 257; 2006 for a call that v3 did not sign; 3012 before the successor exists. `core_matches_anchor.rs`: the v3 builders match Anchor. |
+| **O5′** | `check_same_governance_v3` runs before any CPI, on `M3` decoded with the owner, discriminator and bound checks. | `MigrationAccountsV3::begin`, `src/migration/v3.rs` | `tests/migration_v3.rs`; Kani (section 11.7); integration test (6046). |
+| **O7′** | `L` signs as `M3` only at L1′ and L2′, and as `auth_j(M3)` only in `execute_transaction` and `execute_instruction`. | v3 source: `programs/squads-mpl/src/lib.rs` (`create`, `execute_transaction`, `execute_instruction`, `add_instruction`) | Review of the v3 source (every `invoke_signed` site). A2′ links the source to the binary. The S1′ test shows that v3 refuses an authority-0 instruction to `R`. |
+| **O9′** | The v3 reader ignores bytes after the keys (v3 grows the account by 10 keys at a time) and refuses short data. | `decode_v3_multisig` | Mainnet fixtures (one with 256 bytes of headroom), property tests, Kani. |
+
+O3, O4, O6, O8 and O9 apply without change: the v3 instructions call the same movers.
+
+### 11.5 Liveness
+
+Section 8 applies. A v3 transaction can hold up to 255 instructions, and `execute_instruction`
+runs them in order. The planner puts the successor creation first and SOL last. A failed
+instruction blocks the next ones, but the "skip" outcomes keep most items from failing. The
+members can cancel a blocked transaction (v3 `cancel_transaction`) and plan again.
+
+### 11.6 Residuals of the v3 lineage
+
+1. **Roles delegates.** A v3 member can be a delegate of `Q`. Only `Q` signs for it, and only into
+   `L`, so it can never sign in 4r. The successor copies the keys as they are. The planners find
+   delegates off-chain (`RolesManager`, then each `User`, then the delegate PDA) and stop with an
+   actionable error: the members must replace each delegate with its wallet in v3 first. The
+   program does not enforce this, because it never reads `Q` (an upgradeable program). A person
+   who builds the v3 transactions by hand can still create a successor with delegate members.
+2. **Off-curve members** (both lineages): the planners warn about members that only a program can
+   sign for, and about a threshold that the wallet members cannot reach alone. They never stop.
+3. **Assets at `M3` and at `auth_0(M3)`** cannot move. `L` never signs as them outside `L`.
+4. **Authorities above 256** have no successor vault and cannot move.
+5. **Time lock and rent collector.** The successor has no time lock (as v3) and no rent collector.
+   The members can set a rent collector at any time with a 4r config transaction: it is not part
+   of the check. The check requires time lock 0, so set a time lock only after the last move.
+6. **SBPF v0.** `L` is an SBPF v0 binary. If the runtime ever stops running SBPF v0, `L` stops,
+   and the migration of its assets stops with it.
+7. **Memo** (both lineages): a call with `MAX_MIGRATE_ITEMS` stake accounts leaves about 1.8 KB
+   for the memo under the CPI data limit. The planners do not set a memo.
+
+### 11.7 Mechanized evidence
+
+- **Kani** (`src/migration/proofs.rs`, 13 v3 harnesses): the authority map (all `u32` pairs), the
+  `vault` seed (equal to the map for every `u32` in range), the mirror and the check for 0, 1 and
+  2 keys, the reader and the member count for any bytes. The item count of both lineages has its
+  own proof (section 10.2). All 25 harnesses run in the CI job `kani`.
+- **Property tests:** the reader round-trips any `Ms` with headroom and accepts any bytes.
+- **Unit tests:** `tests/migration_v3.rs` (mainnet `Ms` accounts, PDAs, a mainnet authority
+  signer, drift cases, builders against the IDL).
+- **Integration tests** (`sdk/multisig-4r/test/integration/v3-migration.test.ts`, mainnet `L` and
+  `Q` binaries): the planner moves every class in one v3 transaction, and the guards above.
+- **TLA+:** `Migration.tla` covers both lineages (section header of the spec).
+

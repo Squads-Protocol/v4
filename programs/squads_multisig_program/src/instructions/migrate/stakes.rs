@@ -36,27 +36,43 @@ impl<'info> MultisigMigrateStakes<'info> {
         args: MigrateAuthoritiesArgs,
     ) -> Result<()> {
         let accounts = &ctx.accounts;
-        let items = accounts.migration.begin(
+        let migration = accounts.migration.begin(
             ctx.remaining_accounts,
             1,
+            args.vault_index,
             args.config_authority_vault_index,
         )?;
-        let outcomes = items
-            .accounts
-            .iter()
-            .map(|stake| accounts.migrate_stake(stake))
-            .collect::<Result<Vec<_>>>()?
-            .concat();
-        accounts.migration.emit(
-            items.events,
-            MigrationScope::Stakes,
-            args.vault_index,
-            &outcomes,
-            args.memo,
-        )
+        let outcomes = migrate_stakes(&migration, &accounts.clock.to_account_info())?;
+        migration.emit(MigrationScope::Stakes, &outcomes, args.memo)
     }
+}
 
-    fn migrate_stake(&self, stake: &AccountInfo<'info>) -> Result<Vec<MigrationOutcome>> {
+/// Moves the stake roles of each item account (a stake account) of `migration`: three outcomes
+/// each (staker, withdrawer, custodian).
+#[cfg(feature = "program")]
+pub(crate) fn migrate_stakes<'info>(
+    migration: &MigrationCall<'_, 'info>,
+    clock: &AccountInfo<'info>,
+) -> Result<Vec<MigrationOutcome>> {
+    let stake = StakeMover { migration, clock };
+    Ok(migration
+        .items
+        .iter()
+        .map(|account| stake.migrate(account))
+        .collect::<Result<Vec<_>>>()?
+        .concat())
+}
+
+/// The source vault, the successor vault and the clock sysvar of one stake migration.
+#[cfg(feature = "program")]
+struct StakeMover<'a, 'b, 'info> {
+    migration: &'a MigrationCall<'b, 'info>,
+    clock: &'a AccountInfo<'info>,
+}
+
+#[cfg(feature = "program")]
+impl<'info> StakeMover<'_, '_, 'info> {
+    fn migrate(&self, stake: &AccountInfo<'info>) -> Result<Vec<MigrationOutcome>> {
         let outcomes = |[staker, withdrawer, custodian]: [MigrationResult; 3]| {
             [
                 (MigrationAssetKind::StakeStaker, staker),
@@ -123,9 +139,9 @@ impl<'info> MultisigMigrateStakes<'info> {
     }
 
     /// Stake `SetLockup` (bincode: variant 6, `LockupArgs { None, None, Some(vault) }`), signed by
-    /// the v4 vault as the custodian (lockup in force) or as the withdrawer (no lockup in force).
+    /// the source vault as the custodian (lockup in force) or as the withdrawer (no lockup in force).
     fn set_custodian(&self, stake: &AccountInfo<'info>) -> Result<()> {
-        let source_vault = self.migration.source_vault.to_account_info();
+        let source_vault = self.migration.source_vault.clone();
         let data = [
             6u32.to_le_bytes().as_slice(),
             &[0, 0, 1],
@@ -146,15 +162,16 @@ impl<'info> MultisigMigrateStakes<'info> {
         .map_err(Into::into)
     }
 
-    /// Stake `Authorize` (bincode: variant 1, new authority, role), signed by the v4 vault. The
-    /// unchecked variant: the new authority cannot sign during v4 execution, and the program derives it.
+    /// Stake `Authorize` (bincode: variant 1, new authority, role), signed by the source vault. The
+    /// unchecked variant: the new authority cannot sign during the source execution, and the program
+    /// derives it.
     fn authorize(
         &self,
         stake: &AccountInfo<'info>,
         role: StakeRole,
         custodian: bool,
     ) -> Result<()> {
-        let source_vault = self.migration.source_vault.to_account_info();
+        let source_vault = self.migration.source_vault.clone();
         let data = [
             1u32.to_le_bytes().as_slice(),
             self.migration.vault.key.as_ref(),
@@ -176,7 +193,7 @@ impl<'info> MultisigMigrateStakes<'info> {
                 accounts,
                 data,
             },
-            &[stake.clone(), self.clock.to_account_info(), source_vault],
+            &[stake.clone(), self.clock.clone(), source_vault],
         )
         .map_err(Into::into)
     }

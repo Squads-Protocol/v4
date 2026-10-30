@@ -34,68 +34,72 @@ impl<'info> MultisigMigratePrograms<'info> {
         args: MigrateAuthoritiesArgs,
     ) -> Result<()> {
         let accounts = &ctx.accounts;
-        let items = accounts.migration.begin(
+        let migration = accounts.migration.begin(
             ctx.remaining_accounts,
             1,
+            args.vault_index,
             args.config_authority_vault_index,
         )?;
-        let outcomes = items
-            .accounts
-            .iter()
-            .map(|program_data| accounts.migrate_upgrade_authority(program_data))
-            .collect::<Result<Vec<_>>>()?;
-        accounts.migration.emit(
-            items.events,
-            MigrationScope::Programs,
-            args.vault_index,
-            &outcomes,
-            args.memo,
-        )
-    }
-
-    fn migrate_upgrade_authority(
-        &self,
-        program_data: &AccountInfo<'info>,
-    ) -> Result<MigrationOutcome> {
-        let outcome = |result| MigrationOutcome {
-            kind: MigrationAssetKind::UpgradeAuthority,
-            account: program_data.key(),
-            result,
-        };
-        let authority = match *program_data.owner == BPF_LOADER_UPGRADEABLE_ID {
-            true => program_data_authority(&program_data.try_borrow_data()?),
-            false => None,
-        };
-        let source_vault = self.migration.source_vault.to_account_info();
-        match authority {
-            None => return Ok(outcome(skipped(MigrationSkipReason::Missing))),
-            Some(authority) if authority != Some(source_vault.key()) => {
-                return Ok(outcome(skipped(MigrationSkipReason::NotAuthority)))
-            }
-            Some(_) => {}
-        }
-        // `SetAuthority` (bincode variant 4), not the checked variant: the new authority cannot sign
-        // during v4 execution, and the program derives it.
-        let vault = self.migration.vault.to_account_info();
-        invoke(
-            &Instruction {
-                program_id: BPF_LOADER_UPGRADEABLE_ID,
-                accounts: vec![
-                    AccountMeta::new(program_data.key(), false),
-                    AccountMeta::new_readonly(source_vault.key(), true),
-                    AccountMeta::new_readonly(vault.key(), false),
-                ],
-                data: vec![4, 0, 0, 0],
-            },
-            &[
-                program_data.clone(),
-                source_vault,
-                vault,
-                self.bpf_loader_upgradeable.to_account_info(),
-            ],
+        let outcomes = migrate_programs(
+            &migration,
+            &accounts.bpf_loader_upgradeable.to_account_info(),
         )?;
-        Ok(outcome(moved(0, false)))
+        migration.emit(MigrationScope::Programs, &outcomes, args.memo)
     }
+}
+
+/// Moves the upgrade authority of each item account (a loader-v3 `ProgramData`) of `migration`.
+#[cfg(feature = "program")]
+pub(crate) fn migrate_programs<'info>(
+    migration: &MigrationCall<'_, 'info>,
+    loader: &AccountInfo<'info>,
+) -> Result<Vec<MigrationOutcome>> {
+    migration
+        .items
+        .iter()
+        .map(|program_data| migrate_upgrade_authority(migration, loader, program_data))
+        .collect()
+}
+
+#[cfg(feature = "program")]
+fn migrate_upgrade_authority<'info>(
+    migration: &MigrationCall<'_, 'info>,
+    loader: &AccountInfo<'info>,
+    program_data: &AccountInfo<'info>,
+) -> Result<MigrationOutcome> {
+    let outcome = |result| MigrationOutcome {
+        kind: MigrationAssetKind::UpgradeAuthority,
+        account: program_data.key(),
+        result,
+    };
+    let authority = match *program_data.owner == BPF_LOADER_UPGRADEABLE_ID {
+        true => program_data_authority(&program_data.try_borrow_data()?),
+        false => None,
+    };
+    let source_vault = migration.source_vault.clone();
+    match authority {
+        None => return Ok(outcome(skipped(MigrationSkipReason::Missing))),
+        Some(authority) if authority != Some(source_vault.key()) => {
+            return Ok(outcome(skipped(MigrationSkipReason::NotAuthority)))
+        }
+        Some(_) => {}
+    }
+    // `SetAuthority` (bincode variant 4), not the checked variant: the new authority cannot sign
+    // during the source execution, and the program derives it.
+    let vault = migration.vault.clone();
+    invoke(
+        &Instruction {
+            program_id: BPF_LOADER_UPGRADEABLE_ID,
+            accounts: vec![
+                AccountMeta::new(program_data.key(), false),
+                AccountMeta::new_readonly(source_vault.key(), true),
+                AccountMeta::new_readonly(vault.key(), false),
+            ],
+            data: vec![4, 0, 0, 0],
+        },
+        &[program_data.clone(), source_vault, vault, loader.clone()],
+    )?;
+    Ok(outcome(moved(0, false)))
 }
 
 /// The upgrade authority of a loader-v3 `ProgramData` account: bincode tag `3` (u32), slot (u64),

@@ -125,6 +125,50 @@ Squads Multisig 4r ("version 4, revised") is a **new program** at
   only under `cargo kani`; the program binary and the IDL do not change. The options are in
   `[workspace.metadata.kani]` of the root `Cargo.toml`.
 
+### Migration from v3 (new)
+
+- `multisig_create_from_v3` creates the 4r successor of a Squads v3 (Squads MPL,
+  `SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu`) multisig: the multisig PDA with `create_key` = the
+  v3 multisig address. A v3 authority (`authority_index` 1 to 256) signs it through a v3
+  transaction. v3 signs as its multisig PDA only in CPIs to itself, so nobody can create the
+  successor first. The successor gets the v3 members, each with every permission, the v3
+  threshold, no time lock, no config authority and no rent collector. The fee rules of
+  `multisig_create_from` apply.
+- Six instructions move the assets of v3 authority `N` to the successor vault `N - 1`:
+  `multisig_migrate_v3_sol`, `multisig_migrate_v3_tokens`, `multisig_migrate_v3_token_authorities`,
+  `multisig_migrate_v3_stakes`, `multisig_migrate_v3_vote_accounts` and
+  `multisig_migrate_v3_programs`. They call the same movers as the v4 instructions and need the
+  mirrored governance at execution (`MigrationGovernanceMismatch`).
+- New error: `MigrationInvalidAuthorityIndex` (6051). The messages of 6046 and 6049 now say
+  "source" instead of "v4".
+- **Event change.** `MigrationEvent` has a new field `source: MigrationSourceVault`
+  (`V4 { vault_index }` or `V3 { authority_index }`) after `source_multisig`, and `vault_index` is
+  now always the successor vault index. The shared Rust/TS vectors changed.
+- Helpers: `migration::v3` (PDAs, `v3_vault_index`, `decode_v3_multisig`, `mirror_v3`,
+  `check_same_governance_v3`) and `builders::{MigrationAccountsV3, MultisigCreateFromV3}` (Rust
+  core). The per-class migrate builders are generic over `MigrationLineage`, with the v4 accounts
+  as the default, so the v4 API does not change. `@sqds/multisig-4r`: a v3 client (`v3.ts`),
+  `MigrationSource` with `lineage: "v3"`, `planV3Migration`, `getV3MigrationProposal`,
+  `getV3ExecuteInstructions`.
+- **Planner.** `planV3Migration` stops with `V3DelegateMembersError` when a v3 member is a v3 roles
+  delegate (it can never sign in 4r): change the v3 members first. Both planners report members
+  that only a program can sign for (`memberReport`), and warn when the wallet members cannot reach
+  the threshold alone. A v3 migration is one v3 transaction (creation first, SOL last); the members
+  approve it once and execute it one instruction at a time.
+- Measured (whole v3 `execute_instruction` transaction, with events): about 36,000 compute units
+  for the creation and for SOL, 64,000 for one token with a new ATA, 61,000 for one stake. The
+  program binary grows from 948,808 to 1,010,456 bytes.
+- Tests: `tests/migration_v3.rs`, 13 Kani harnesses for v3 and one for the item count of both
+  lineages (`migrate_item_count`, now a core function), and
+  `sdk/multisig-4r/test/integration/v3-migration.test.ts` with the mainnet v3 and roles programs
+  from `tests/fixtures/v3-mainnet`.
+
+### Fixes in the v4 migration
+
+- `multisig_migrate_tokens` with `close_source` closes a Token-2022 account only if
+  `CloseAccount` accepts it. Before, a confidential transfer balance made the whole call fail.
+  Confidential balances do not move (section 11.6 of `V4.5_REVISED.md`).
+
 ### Behavior changes
 
 - **Fewer program logs.** There is no `Instruction: <Name>` log line (Anchor `no-log-ix-name`),

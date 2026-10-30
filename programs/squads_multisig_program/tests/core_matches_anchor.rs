@@ -642,6 +642,147 @@ fn migration_builders_match_anchor() {
 }
 
 #[test]
+fn v3_migration_builders_match_anchor() {
+    // Arrange
+    use program::accounts;
+    use program::instruction as ix;
+    let source = unique();
+    let create_from = builders::MultisigCreateFromV3::new(source, 1, unique(), None);
+    let migration = builders::MigrationAccountsV3::new(source, 256, None).expect("1..=256");
+    let anchor_migration = || accounts::MigrationAccountsV3 {
+        source_multisig: migration.source_multisig,
+        source_vault: migration.source_vault,
+        multisig: migration.multisig,
+        vault: migration.vault,
+    };
+    let create_from_args = || MultisigCreateFromV3Args {
+        authority_index: 1,
+        max_creation_fee: 7,
+        memo: Some("move".into()),
+    };
+    let sol_args = || MigrateV3SolArgs {
+        authority_index: 256,
+        keep: 0,
+        memo: None,
+    };
+    let tokens_args = || MigrateV3TokensArgs {
+        authority_index: 256,
+        close_source: true,
+        memo: None,
+    };
+    let authorities_args = || MigrateV3TokenAuthoritiesArgs {
+        authority_index: 256,
+        items: vec![TokenAuthorityKind::MetadataUpdate],
+        memo: None,
+    };
+    let other_args = || MigrateV3AuthoritiesArgs {
+        authority_index: 256,
+        memo: Some("m".into()),
+    };
+    let tokens = builders::MultisigMigrateTokens::new(migration, anchor_spl::token_2022::ID);
+    let authorities =
+        builders::MultisigMigrateTokenAuthorities::new(migration, anchor_spl::token::ID);
+    let stakes = builders::MultisigMigrateStakes::new(migration);
+    let votes = builders::MultisigMigrateVoteAccounts::new(migration);
+    let programs = builders::MultisigMigratePrograms::new(migration);
+    let anchor = |metas: Vec<solana_instruction::AccountMeta>, data: Vec<u8>| Instruction {
+        program_id: program::ID,
+        accounts: metas,
+        data,
+    };
+
+    // Act
+    let core = [
+        create_from.instruction(create_from_args(), None),
+        builders::MultisigMigrateSol::new(migration).instruction(sol_args(), None),
+        tokens.instruction(tokens_args(), &[], None),
+        authorities.instruction(authorities_args(), &[], None),
+        stakes.instruction(other_args(), &[], None),
+        votes.instruction(other_args(), &[], None),
+        programs.instruction(other_args(), &[], None),
+    ]
+    .map(|instruction| instruction.expect("builder"));
+    let expected = [
+        anchor(
+            accounts::MultisigCreateFromV3 {
+                program_config: create_from.program_config,
+                treasury: create_from.treasury,
+                source_multisig: create_from.source_multisig,
+                source_vault: create_from.source_vault,
+                multisig: create_from.multisig,
+                system_program: create_from.system_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigCreateFromV3 {
+                args: create_from_args(),
+            }
+            .data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateV3Sol {
+                migration: anchor_migration(),
+                system_program: builders::SYSTEM_PROGRAM_ID,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateV3Sol { args: sol_args() }.data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateV3Tokens {
+                migration: anchor_migration(),
+                token_program: tokens.token_program,
+                associated_token_program: tokens.associated_token_program,
+                system_program: tokens.system_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateV3Tokens {
+                args: tokens_args(),
+            }
+            .data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateV3TokenAuthorities {
+                migration: anchor_migration(),
+                token_program: authorities.token_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateV3TokenAuthorities {
+                args: authorities_args(),
+            }
+            .data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateV3Stakes {
+                migration: anchor_migration(),
+                clock: stakes.clock,
+                stake_program: stakes.stake_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateV3Stakes { args: other_args() }.data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateV3VoteAccounts {
+                migration: anchor_migration(),
+                clock: votes.clock,
+                vote_program: votes.vote_program,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateV3VoteAccounts { args: other_args() }.data(),
+        ),
+        anchor(
+            accounts::MultisigMigrateV3Programs {
+                migration: anchor_migration(),
+                bpf_loader_upgradeable: programs.bpf_loader_upgradeable,
+            }
+            .to_account_metas(None),
+            ix::MultisigMigrateV3Programs { args: other_args() }.data(),
+        ),
+    ];
+
+    // Assert
+    assert_eq!(core, expected);
+}
+
+#[test]
 fn token_authority_kinds_follow_the_token_2022_authority_types() {
     // Arrange
     use anchor_spl::token_2022::spl_token_2022::instruction::AuthorityType;

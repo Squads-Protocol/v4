@@ -10,6 +10,7 @@ pub use sol::*;
 pub use stakes::*;
 pub use token_authorities::*;
 pub use tokens::*;
+pub use v3::*;
 #[cfg(feature = "program")]
 pub use vote_accounts::*;
 
@@ -23,6 +24,7 @@ mod token_authorities;
 #[cfg(feature = "program")]
 mod token_state;
 mod tokens;
+mod v3;
 #[cfg(feature = "program")]
 mod vote_accounts;
 

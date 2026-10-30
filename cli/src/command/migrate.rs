@@ -1,6 +1,6 @@
-//! Move a v4 multisig vault to its 4r successor: `migrate-plan` (read only), `migrate-propose`
-//! (create the v4 proposals), `migrate-execute` (run an approved v4 vault transaction or batch)
-//! and `migrate-lookup-tables` (get the rent of the lookup tables back).
+//! Move a v4 vault or a v3 authority to its 4r successor: `migrate-plan` (read only),
+//! `migrate-propose` (create the v4 proposals or the v3 transaction), `migrate-execute` (run an
+//! approved one) and `migrate-lookup-tables` (get the rent of the lookup tables back).
 
 use std::str::FromStr;
 
@@ -18,6 +18,7 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signer::Signer;
 use solana_sdk::transaction::VersionedTransaction;
 use squads_multisig_4r::discriminator::account::{BATCH, VAULT_TRANSACTION};
+use squads_multisig_4r::error::ClientError;
 use squads_multisig_4r::lookup_tables::{
     close_lookup_table, create_lookup_tables, deactivate_lookup_table,
 };
@@ -26,8 +27,13 @@ use squads_multisig_4r::pda::get_transaction_pda;
 use squads_multisig_4r::planner::{
     migration_lookup_table_addresses, plan_v4_migration, v4_batch_execute_instructions,
     v4_batch_lookup_tables, v4_migration_proposal, v4_vault_transaction_execute_instruction,
-    with_migration_lookup_tables, InventoryScans, MigrationGroup, MigrationLimits,
-    MigrationOptions, PlanInput, V4MigrationPlan,
+    with_migration_lookup_tables, InventoryScans, MemberRisk, MemberSigningReport, MigrationGroup,
+    MigrationItem, MigrationLimits, MigrationOptions, PlanInput, V4MigrationPlan, V4VaultInventory,
+};
+use squads_multisig_4r::v3::{MsTransactionStatus, LEGACY_V3_PROGRAM_ID};
+use squads_multisig_4r::v3_migration::{
+    fetch_v3_transaction, plan_v3_migration, v3_execute_instructions, v3_migration_proposal,
+    V3MigrationPlan, V3PlanInput,
 };
 use squads_multisig_4r::LEGACY_V4_PROGRAM_ID;
 
@@ -47,16 +53,151 @@ fn parse_pubkey(value: &str, name: &str) -> eyre::Result<Pubkey> {
     Pubkey::from_str(value).map_err(|_| eyre!("invalid {name}: {value}"))
 }
 
+/// The lineage of a source multisig: the program that owns it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Lineage {
+    V4,
+    V3,
+}
+
+fn lineage_of(owner: &Pubkey) -> Option<Lineage> {
+    match *owner {
+        LEGACY_V4_PROGRAM_ID => Some(Lineage::V4),
+        LEGACY_V3_PROGRAM_ID => Some(Lineage::V3),
+        _ => None,
+    }
+}
+
+/// Reads the owner of `multisig` to find its lineage.
+async fn fetch_lineage(rpc: &RpcClient, multisig: &Pubkey) -> eyre::Result<Lineage> {
+    let owner = rpc.get_account(multisig).await?.owner;
+    lineage_of(&owner).ok_or_else(|| {
+        eyre!(
+            "{multisig} is owned by {owner}: neither a v4 ({LEGACY_V4_PROGRAM_ID}) nor a v3 ({LEGACY_V3_PROGRAM_ID}) multisig"
+        )
+    })
+}
+
+/// What moves: a v4 vault, or a v3 authority.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SourceIndex {
+    V4Vault(u8),
+    V3Authority(u32),
+}
+
+/// The source of `lineage` from the flags. Refuses the flag of the other lineage.
+fn source_index(
+    lineage: Lineage,
+    vault_index: Option<u8>,
+    authority_index: Option<u32>,
+) -> eyre::Result<SourceIndex> {
+    match (lineage, vault_index, authority_index) {
+        (Lineage::V4, _, Some(_)) => Err(eyre!(
+            "--authority-index is for v3 multisigs; this is a v4 multisig, use --vault-index"
+        )),
+        (Lineage::V3, Some(_), _) => Err(eyre!(
+            "--vault-index is for v4 multisigs; this is a v3 multisig, use --authority-index (default 1)"
+        )),
+        (Lineage::V4, vault_index, None) => Ok(SourceIndex::V4Vault(vault_index.unwrap_or(0))),
+        (Lineage::V3, None, authority_index) => {
+            Ok(SourceIndex::V3Authority(authority_index.unwrap_or(1)))
+        }
+    }
+}
+
+/// A v3 plan error, with the delegate members as an actionable message.
+fn v3_plan_error(error: ClientError) -> eyre::Report {
+    match error {
+        ClientError::V3DelegateMembers(delegates) => {
+            eyre!("the migration is blocked.\n{delegates}")
+        }
+        error => error.into(),
+    }
+}
+
+/// A plan of either lineage.
+enum Plan {
+    V4(V4MigrationPlan),
+    V3(V3MigrationPlan),
+}
+
+/// What `print_plan` shows of a plan of either lineage.
+struct PlanView<'a> {
+    lineage: &'static str,
+    source_multisig: Pubkey,
+    source_label: String,
+    source_vault: Pubkey,
+    successor: Pubkey,
+    vault_label: String,
+    vault: Pubkey,
+    creates_successor: bool,
+    creation_fee: Option<u64>,
+    governance_matches: Option<bool>,
+    inventory: &'a V4VaultInventory,
+    item_label: &'static str,
+    items: &'a [MigrationItem],
+    lookup_tables: usize,
+    member_report: &'a MemberSigningReport,
+    warnings: &'a [String],
+}
+
+impl Plan {
+    fn view(&self) -> PlanView<'_> {
+        match self {
+            Plan::V4(plan) => PlanView {
+                lineage: "v4",
+                source_multisig: plan.source.source_multisig,
+                source_label: format!("v4 vault {}", plan.source.vault_index),
+                source_vault: plan.source_vault,
+                successor: plan.successor,
+                vault_label: format!("4r vault {}", plan.source.vault_index),
+                vault: plan.vault,
+                creates_successor: plan.create_successor.is_some(),
+                creation_fee: plan.creation_fee,
+                governance_matches: plan.governance_matches,
+                inventory: &plan.inventory,
+                item_label: "Batch items",
+                items: &plan.items,
+                lookup_tables: plan.address_lookup_tables.len(),
+                member_report: &plan.member_report,
+                warnings: &plan.warnings,
+            },
+            Plan::V3(plan) => PlanView {
+                lineage: "v3",
+                source_multisig: plan.source.source_multisig,
+                source_label: format!("v3 authority {}", plan.source.authority_index),
+                source_vault: plan.source_vault,
+                successor: plan.successor,
+                vault_label: format!("4r vault {}", plan.vault_index),
+                vault: plan.vault,
+                creates_successor: plan.create_successor.is_some(),
+                creation_fee: plan.creation_fee,
+                governance_matches: plan.governance_matches,
+                inventory: &plan.inventory,
+                item_label: "v3 instructions",
+                items: &plan.items,
+                lookup_tables: plan.address_lookup_tables.len(),
+                member_report: &plan.member_report,
+                warnings: &plan.warnings,
+            },
+        }
+    }
+}
+
 /// Arguments that every migrate command takes.
 #[derive(Args)]
 pub struct MigrateTarget {
-    /// The v4 multisig to move.
+    /// The v4 or v3 multisig to move (the owner program sets the lineage).
     #[arg(long)]
     multisig_pubkey: String,
 
-    /// The v4 vault to move. Its assets go to the successor vault with the same index.
-    #[arg(long, default_value_t = 0)]
-    vault_index: u8,
+    /// v4 only (default 0): the v4 vault to move. Its assets go to the successor vault with the same index.
+    #[arg(long)]
+    vault_index: Option<u8>,
+
+    /// v3 only (1 to 256, default 1): the v3 authority to move. Its assets go to the successor vault `index - 1`.
+    #[arg(long)]
+    authority_index: Option<u32>,
 
     /// RPC URL
     #[arg(long)]
@@ -66,7 +207,7 @@ pub struct MigrateTarget {
     #[arg(long)]
     program_id: Option<String>,
 
-    /// Keep the v4 token accounts open. By default they close, and their rent goes to the successor vault.
+    /// Keep the source token accounts open. By default they close, and their rent goes to the successor vault.
     #[arg(long)]
     keep_token_accounts: bool,
 
@@ -88,7 +229,7 @@ impl MigrateTarget {
         rpc_client(self.rpc_url.clone())
     }
 
-    async fn plan(&self, rpc: &RpcClient) -> eyre::Result<V4MigrationPlan> {
+    async fn plan(&self, rpc: &RpcClient) -> eyre::Result<Plan> {
         let source_multisig = parse_pubkey(&self.multisig_pubkey, "multisig address")?;
         let program_id = self
             .program_id
@@ -110,25 +251,48 @@ impl MigrateTarget {
             },
             false => InventoryScans::default(),
         };
-        Ok(plan_v4_migration(
-            rpc,
-            PlanInput {
-                source_multisig,
-                vault_index: self.vault_index,
-                program_id: program_id.as_ref(),
-                events: true,
-                options: MigrationOptions {
-                    keep_token_accounts: self.keep_token_accounts,
-                    preserve_token_account_addresses: self.preserve_token_account_addresses,
-                    skip_sol: false,
+        let options = MigrationOptions {
+            keep_token_accounts: self.keep_token_accounts,
+            preserve_token_account_addresses: self.preserve_token_account_addresses,
+            skip_sol: false,
+        };
+        let lineage = fetch_lineage(rpc, &source_multisig).await?;
+        match source_index(lineage, self.vault_index, self.authority_index)? {
+            SourceIndex::V4Vault(vault_index) => Ok(Plan::V4(
+                plan_v4_migration(
+                    rpc,
+                    PlanInput {
+                        source_multisig,
+                        vault_index,
+                        program_id: program_id.as_ref(),
+                        events: true,
+                        options,
+                        address_lookup_tables: &[],
+                        limits: None,
+                        scans,
+                        extra_mints: &extra_mints,
+                    },
+                )
+                .await?,
+            )),
+            SourceIndex::V3Authority(authority_index) => plan_v3_migration(
+                rpc,
+                V3PlanInput {
+                    source_multisig,
+                    authority_index,
+                    program_id: program_id.as_ref(),
+                    events: true,
+                    options,
+                    address_lookup_tables: &[],
+                    limits: None,
+                    scans,
+                    extra_mints: &extra_mints,
                 },
-                address_lookup_tables: &[],
-                limits: None,
-                scans,
-                extra_mints: &extra_mints,
-            },
-        )
-        .await?)
+            )
+            .await
+            .map(Plan::V3)
+            .map_err(v3_plan_error),
+        }
     }
 }
 
@@ -143,13 +307,13 @@ fn group_label(group: &MigrationGroup) -> &'static str {
     }
 }
 
-fn print_items(plan: &V4MigrationPlan) {
-    let tables = match plan.address_lookup_tables.len() {
+fn print_items(label: &str, items: &[MigrationItem], lookup_tables: usize) {
+    let tables = match lookup_tables {
         0 => String::new(),
         count => format!(" (with {count} lookup tables)"),
     };
-    println!("Batch items{tables}: {}", plan.items.len());
-    plan.items.iter().enumerate().for_each(|(i, item)| {
+    println!("{label}{tables}: {}", items.len());
+    items.iter().enumerate().for_each(|(i, item)| {
         println!(
             "  [{}] {} x {}, {} message bytes, {} accounts, {} instructions (worst case)",
             i + 1,
@@ -162,25 +326,59 @@ fn print_items(plan: &V4MigrationPlan) {
     });
 }
 
-fn print_plan(plan: &V4MigrationPlan) {
-    let inventory = &plan.inventory;
-    let index = plan.source.vault_index;
+/// One `label: value` line, with the values in one column.
+fn print_field(label: &str, value: impl std::fmt::Display) {
+    println!("{:<19}{value}", format!("{label}:"));
+}
+
+fn print_member_report(report: &MemberSigningReport) {
+    let risk = match report.risk {
+        MemberRisk::None => "none (every member is a wallet)".green(),
+        MemberRisk::Low => "low".yellow(),
+        MemberRisk::High => "HIGH".red(),
+    };
+    print_field(
+        "Member signing",
+        format!(
+            "{} wallet voters, threshold {}, risk {risk}",
+            report.on_curve_voters, report.threshold
+        ),
+    );
+    report.off_curve.iter().for_each(|member| {
+        let vault = if member.known_vault {
+            " (a known vault)"
+        } else {
+            ""
+        };
+        println!("    off-curve member {}{vault}", member.key);
+    });
+}
+
+fn print_plan(plan: &PlanView) {
+    let inventory = plan.inventory;
+    let lineage = plan.lineage;
     println!();
-    println!("v4 multisig:       {}", plan.source.source_multisig);
-    println!("v4 vault {index}:        {}", plan.source_vault);
-    println!("4r successor:      {}", plan.successor);
-    println!("4r vault {index}:        {}", plan.vault);
-    println!(
-        "Successor:         {}",
-        match (plan.create_successor.is_some(), plan.governance_matches) {
+    print_field(&format!("{lineage} multisig"), plan.source_multisig);
+    print_field(&plan.source_label, plan.source_vault);
+    print_field("4r successor", plan.successor);
+    print_field(&plan.vault_label, plan.vault);
+    print_field(
+        "Successor",
+        match (plan.creates_successor, plan.governance_matches) {
             (true, _) => "not created yet (the first proposal creates it)".yellow(),
-            (false, Some(true)) => "exists, same governance as v4".green(),
+            (false, Some(true)) => format!("exists, same governance as {lineage}")
+                .as_str()
+                .green(),
             _ => "exists, DIFFERENT governance: migrate fails until they agree".red(),
-        }
+        },
     );
     if let Some(fee) = plan.creation_fee {
-        println!("Creation fee:      {fee} lamports (the most that the proposal allows)");
+        print_field(
+            "Creation fee",
+            format!("{fee} lamports (the most that the proposal allows)"),
+        );
     }
+    print_member_report(plan.member_report);
     println!();
     println!("Inventory");
     println!("  SOL:             {} lamports", inventory.lamports);
@@ -216,7 +414,7 @@ fn print_plan(plan: &V4MigrationPlan) {
         println!("    {}  authorities {:?}", mint.mint, mint.authorities);
     });
     println!();
-    print_items(plan);
+    print_items(plan.item_label, plan.items, plan.lookup_tables);
     plan.warnings
         .iter()
         .for_each(|warning| println!("{} {}", "warning:".yellow(), warning));
@@ -294,9 +492,9 @@ impl Signers {
     }
 }
 
-/// Show what a v4 vault holds and how it moves to its 4r successor. Sends nothing.
+/// Show what a v4 vault or a v3 authority holds and how it moves to its 4r successor. Sends nothing.
 #[derive(Args)]
-#[command(about = "Plan the move of a v4 vault to its 4r successor (read only)")]
+#[command(about = "Plan the move of a v4 vault or a v3 authority to its 4r successor (read only)")]
 pub struct MigratePlan {
     #[command(flatten)]
     target: MigrateTarget,
@@ -305,24 +503,25 @@ pub struct MigratePlan {
 impl MigratePlan {
     pub async fn execute(self) -> eyre::Result<()> {
         let rpc = self.target.rpc();
-        print_plan(&self.target.plan(&rpc).await?);
+        print_plan(&self.target.plan(&rpc).await?.view());
         Ok(())
     }
 }
 
-/// Create the v4 proposals of a migration: a vault transaction that creates the successor (if
-/// needed) and one batch that moves the assets. Members then approve and run `migrate-execute`.
+/// Create the proposals of a migration. v4: a vault transaction that creates the successor (if
+/// needed) and one batch that moves the assets. v3: one v3 transaction with both. Members then
+/// approve and run `migrate-execute`.
 #[derive(Args)]
-#[command(about = "Propose the move of a v4 vault to its 4r successor")]
+#[command(about = "Propose the move of a v4 vault or a v3 authority to its 4r successor")]
 pub struct MigratePropose {
     #[command(flatten)]
     target: MigrateTarget,
 
-    /// Path to the keypair of a v4 member with Initiate permission
+    /// Path to the keypair of a member (v4: with Initiate permission; v3: it pays the rent of the v3 accounts)
     #[arg(long)]
     keypair: String,
 
-    /// Path to the Fee Payer Keypair (also pays the rent of the proposal accounts)
+    /// Path to the Fee Payer Keypair (v4: also pays the rent of the proposal accounts)
     #[arg(long)]
     fee_payer_keypair: Option<String>,
 
@@ -330,8 +529,8 @@ pub struct MigratePropose {
     #[arg(long)]
     approve: bool,
 
-    /// Put the item accounts in new address lookup tables (the member is their authority, the
-    /// payer pays the rent): fewer, larger batch entries. Close them with migrate-lookup-tables.
+    /// v4 only: put the item accounts in new address lookup tables (the member is their authority,
+    /// the payer pays the rent): fewer, larger batch entries. Close them with migrate-lookup-tables.
     #[arg(long)]
     lookup_tables: bool,
 
@@ -347,10 +546,21 @@ impl MigratePropose {
     pub async fn execute(self) -> eyre::Result<()> {
         let rpc = self.target.rpc();
         let signers = Signers::load(&self.keypair, self.fee_payer_keypair.as_deref())?;
-        let (member, payer) = (signers.member.pubkey(), signers.payer());
-
         let plan = self.target.plan(&rpc).await?;
-        print_plan(&plan);
+        print_plan(&plan.view());
+        match plan {
+            Plan::V4(plan) => self.propose_v4(&rpc, plan, &signers).await,
+            Plan::V3(plan) => self.propose_v3(&rpc, plan, &signers).await,
+        }
+    }
+
+    async fn propose_v4(
+        &self,
+        rpc: &RpcClient,
+        plan: V4MigrationPlan,
+        signers: &Signers,
+    ) -> eyre::Result<()> {
+        let (member, payer) = (signers.member.pubkey(), signers.payer());
         if plan.governance_matches == Some(false) {
             return Err(eyre!(
                 "the successor governance differs from v4; make them equal first"
@@ -368,13 +578,13 @@ impl MigratePropose {
                     setup.tables,
                     MigrationLimits::LOOKUP_TABLES,
                 )?;
-                print_items(&plan);
+                print_items("Batch items", &plan.items, plan.address_lookup_tables.len());
                 println!();
                 (plan, setup.transactions)
             }
             false => (plan, Vec::new()),
         };
-        let proposal = v4_migration_proposal(&rpc, &plan, &member, &payer, self.approve).await?;
+        let proposal = v4_migration_proposal(rpc, &plan, &member, &payer, self.approve).await?;
         if proposal.transactions.is_empty() {
             println!("Nothing to propose.");
             return Ok(());
@@ -407,9 +617,9 @@ impl MigratePropose {
         }
 
         let fee = self.priority_fee_lamports;
-        send_all(&rpc, &tables, &signers.all(), &payer, fee, None, &[]).await?;
+        send_all(rpc, &tables, &signers.all(), &payer, fee, None, &[]).await?;
         send_all(
-            &rpc,
+            rpc,
             &proposal.transactions,
             &signers.all(),
             &payer,
@@ -439,18 +649,79 @@ impl MigratePropose {
         }
         Ok(())
     }
+
+    /// One v3 transaction of the authority: create it, attach every instruction, activate it
+    /// (and approve it). The member creates it and pays the rent of the v3 accounts.
+    async fn propose_v3(
+        &self,
+        rpc: &RpcClient,
+        plan: V3MigrationPlan,
+        signers: &Signers,
+    ) -> eyre::Result<()> {
+        if plan.governance_matches == Some(false) {
+            return Err(eyre!(
+                "the successor governance differs from v3; make them equal first"
+            ));
+        }
+        if self.lookup_tables {
+            return Err(eyre!(
+                "--lookup-tables is for v4 migrations; a v3 migration does not use lookup tables"
+            ));
+        }
+        if plan.create_successor.is_none() && plan.items.is_empty() {
+            println!("Nothing to propose.");
+            return Ok(());
+        }
+        let member = signers.member.pubkey();
+        let proposal = v3_migration_proposal(rpc, &plan, &member, self.approve).await?;
+        let index = proposal.transaction_index;
+        print_field("v3 program", LEGACY_V3_PROGRAM_ID);
+        print_field(
+            "v3 transaction",
+            format!(
+                "{index} of authority {} with {} instructions{}",
+                plan.source.authority_index,
+                proposal.instructions.len(),
+                match plan.create_successor.is_some() {
+                    true => " (the first creates the successor)",
+                    false => "",
+                }
+            ),
+        );
+        println!("Transactions to send: {}", proposal.transactions.len());
+        println!();
+        if !self.yes && !confirm("Do you want to proceed?")? {
+            println!("OK, aborting.");
+            return Ok(());
+        }
+
+        send_all(
+            rpc,
+            &proposal.transactions,
+            &signers.all(),
+            &signers.payer(),
+            self.priority_fee_lamports,
+            None,
+            &[],
+        )
+        .await?;
+        println!("✅ Proposed. After the v3 approvals, run migrate-execute with:");
+        println!("  --transaction-index {index}");
+        Ok(())
+    }
 }
 
 /// Run an approved v4 vault transaction (successor creation) or the remaining entries of an
-/// approved v4 batch, in order. Stops at the first entry that fails.
+/// approved v4 batch, or the remaining instructions of an approved v3 transaction, in order.
+/// Stops at the first one that fails.
 #[derive(Args)]
-#[command(about = "Execute an approved v4 migration proposal")]
+#[command(about = "Execute an approved v4 or v3 migration proposal")]
 pub struct MigrateExecute {
-    /// The v4 multisig
+    /// The v4 or v3 multisig
     #[arg(long)]
     multisig_pubkey: String,
 
-    /// The v4 transaction index of the vault transaction or batch
+    /// The v4 transaction index of the vault transaction or batch, or the v3 transaction index
     #[arg(long)]
     transaction_index: u64,
 
@@ -458,7 +729,7 @@ pub struct MigrateExecute {
     #[arg(long)]
     rpc_url: Option<String>,
 
-    /// Path to the keypair of a v4 member with Execute permission
+    /// Path to the keypair of a member (v4: with Execute permission)
     #[arg(long)]
     keypair: String,
 
@@ -482,44 +753,13 @@ impl MigrateExecute {
         let rpc = rpc_client(self.rpc_url.clone());
         let multisig = parse_pubkey(&self.multisig_pubkey, "multisig address")?;
         let signers = Signers::load(&self.keypair, self.fee_payer_keypair.as_deref())?;
-        let member = signers.member.pubkey();
-
-        let transaction = get_transaction_pda(
-            &multisig,
-            self.transaction_index,
-            Some(&LEGACY_V4_PROGRAM_ID),
-        )
-        .0;
-        let account = rpc.get_account(&transaction).await?;
-        if account.owner != LEGACY_V4_PROGRAM_ID {
-            return Err(eyre!("{transaction} is not a v4 account"));
-        }
-        let index = self.transaction_index;
-        let (executes, tables) = match account.data.get(..8) {
-            Some(d) if d == VAULT_TRANSACTION => (
-                vec![
-                    v4_vault_transaction_execute_instruction(&rpc, &multisig, index, &member, &[])
-                        .await?,
-                ],
+        let (executes, tables) = match fetch_lineage(&rpc, &multisig).await? {
+            Lineage::V4 => self.v4_executes(&rpc, &multisig, &signers).await?,
+            Lineage::V3 => (
+                self.v3_executes(&rpc, &multisig, &signers).await?,
                 Vec::new(),
             ),
-            Some(d) if d == BATCH => {
-                // The entries read their item accounts from the lookup tables in their messages.
-                let tables = v4_batch_lookup_tables(&rpc, &multisig, index).await?;
-                let executes =
-                    v4_batch_execute_instructions(&rpc, &multisig, index, &member, &tables).await?;
-                (executes, tables)
-            }
-            _ => {
-                return Err(eyre!(
-                    "{transaction} is neither a vault transaction nor a batch"
-                ))
-            }
         };
-        println!();
-        println!("v4 multisig:          {multisig}");
-        println!("Transaction index:    {index}");
-        println!("Lookup tables:        {}", tables.len());
         println!(
             "Executions to send:   {} (one transaction each, in order)",
             executes.len()
@@ -550,6 +790,81 @@ impl MigrateExecute {
         .await?;
         println!("✅ Executed.");
         Ok(())
+    }
+
+    /// The executions of a v4 vault transaction or batch, and the lookup tables they read.
+    async fn v4_executes(
+        &self,
+        rpc: &RpcClient,
+        multisig: &Pubkey,
+        signers: &Signers,
+    ) -> eyre::Result<(Vec<Instruction>, Vec<VaultLookupTable>)> {
+        let (multisig, member) = (*multisig, signers.member.pubkey());
+        let transaction = get_transaction_pda(
+            &multisig,
+            self.transaction_index,
+            Some(&LEGACY_V4_PROGRAM_ID),
+        )
+        .0;
+        let account = rpc.get_account(&transaction).await?;
+        if account.owner != LEGACY_V4_PROGRAM_ID {
+            return Err(eyre!("{transaction} is not a v4 account"));
+        }
+        let index = self.transaction_index;
+        let (executes, tables) = match account.data.get(..8) {
+            Some(d) if d == VAULT_TRANSACTION => (
+                vec![
+                    v4_vault_transaction_execute_instruction(rpc, &multisig, index, &member, &[])
+                        .await?,
+                ],
+                Vec::new(),
+            ),
+            Some(d) if d == BATCH => {
+                // The entries read their item accounts from the lookup tables in their messages.
+                let tables = v4_batch_lookup_tables(rpc, &multisig, index).await?;
+                let executes =
+                    v4_batch_execute_instructions(rpc, &multisig, index, &member, &tables).await?;
+                (executes, tables)
+            }
+            _ => {
+                return Err(eyre!(
+                    "{transaction} is neither a vault transaction nor a batch"
+                ))
+            }
+        };
+        println!();
+        println!("v4 multisig:          {multisig}");
+        println!("Transaction index:    {index}");
+        println!("Lookup tables:        {}", tables.len());
+        Ok((executes, tables))
+    }
+
+    /// The `execute_instruction` calls of a v3 transaction, from the first one that has not run.
+    async fn v3_executes(
+        &self,
+        rpc: &RpcClient,
+        multisig: &Pubkey,
+        signers: &Signers,
+    ) -> eyre::Result<Vec<Instruction>> {
+        let index = u32::try_from(self.transaction_index)
+            .map_err(|_| eyre!("a v3 transaction index is at most {}", u32::MAX))?;
+        let transaction = fetch_v3_transaction(rpc, multisig, index).await?;
+        println!();
+        println!("v3 multisig:          {multisig}");
+        println!("Transaction index:    {index}");
+        println!(
+            "Instructions run:     {} of {}",
+            transaction.executed_index, transaction.instruction_index
+        );
+        match transaction.status {
+            MsTransactionStatus::ExecuteReady => {
+                Ok(v3_execute_instructions(rpc, multisig, index, &signers.member.pubkey()).await?)
+            }
+            MsTransactionStatus::Executed => Ok(Vec::new()),
+            status => Err(eyre!(
+                "v3 transaction {index} is {status:?}: it runs only after the v3 approvals"
+            )),
+        }
     }
 }
 
@@ -636,6 +951,10 @@ mod tests {
     use squads_multisig_4r::lookup_tables::{
         close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
     };
+    use squads_multisig_4r::v3::LEGACY_V3_PROGRAM_ID;
+    use squads_multisig_4r::LEGACY_V4_PROGRAM_ID;
+
+    use super::{lineage_of, source_index, Lineage, SourceIndex};
 
     fn key(byte: u8) -> Pubkey {
         Pubkey::new_from_array([byte; 32])
@@ -665,5 +984,48 @@ mod tests {
             close_lookup_table(&table, &authority, &recipient),
             interface::close_lookup_table(table, authority, recipient)
         );
+    }
+
+    #[test]
+    fn the_owner_program_sets_the_lineage() {
+        // Act
+        let lineages = [LEGACY_V4_PROGRAM_ID, LEGACY_V3_PROGRAM_ID, key(1)].map(|o| lineage_of(&o));
+
+        // Assert
+        assert_eq!(lineages, [Some(Lineage::V4), Some(Lineage::V3), None]);
+    }
+
+    #[test]
+    fn each_lineage_takes_only_its_own_index_flag() {
+        // Act
+        let defaults = (
+            source_index(Lineage::V4, None, None).ok(),
+            source_index(Lineage::V3, None, None).ok(),
+        );
+        let given = (
+            source_index(Lineage::V4, Some(3), None).ok(),
+            source_index(Lineage::V3, None, Some(7)).ok(),
+        );
+        let refused = (
+            source_index(Lineage::V4, None, Some(1)).is_err(),
+            source_index(Lineage::V3, Some(0), None).is_err(),
+        );
+
+        // Assert
+        assert_eq!(
+            defaults,
+            (
+                Some(SourceIndex::V4Vault(0)),
+                Some(SourceIndex::V3Authority(1))
+            )
+        );
+        assert_eq!(
+            given,
+            (
+                Some(SourceIndex::V4Vault(3)),
+                Some(SourceIndex::V3Authority(7))
+            )
+        );
+        assert_eq!(refused, (true, true));
     }
 }

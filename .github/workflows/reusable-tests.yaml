@@ -180,18 +180,24 @@ jobs:
           FAUCET_PORT: 19900
           RPC_URL: http://127.0.0.1:18899
           RPC_WS_URL: ws://127.0.0.1:18900
-        # The migration test needs the mainnet v4 and Token-2022 programs, the v4 ProgramConfig, and
-        # an upgradeable program owned by a fixed v4 vault (tests/fixtures/v4-mainnet/README.md).
+        # The migration tests need the mainnet v4, v3 (Squads MPL), v3 roles and Token-2022 programs,
+        # the v4 ProgramConfig, and upgradeable programs owned by a fixed v4 vault and a fixed v3
+        # authority (tests/fixtures/v4-mainnet/README.md, tests/fixtures/v3-mainnet/README.md).
         run: |
           (cd tests/fixtures/v4-mainnet && sha256sum -c SHA256SUMS)
+          (cd tests/fixtures/v3-mainnet && sha256sum -c SHA256SUMS)
           solana-test-validator --reset --quiet --ledger /tmp/sdk-ledger \
             --rpc-port "$RPC_PORT" --faucet-port "$FAUCET_PORT" \
             --bpf-program GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD target/deploy/squads_multisig_4r_program.so \
             --bpf-program SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf tests/fixtures/v4-mainnet/squads_v4.so \
             --bpf-program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb tests/fixtures/v4-mainnet/spl_token_2022.so \
+            --bpf-program SMPLecH534NA9acpos4G6x7uf3LWbCAwZQE9e8ZekMu tests/fixtures/v3-mainnet/squads_mpl.so \
+            --bpf-program SMPLvKJwsyNGD6xf7Ph6VRpDGPa3DXV4uPHcTAnXe6r tests/fixtures/v3-mainnet/roles.so \
             --account BSTq9w3kZwNwpBXJEvTZz2G9ZTNyKBvoSeXMvwb4cNZr tests/fixtures/v4-mainnet/program_config.json \
             --upgradeable-program 5Yk7if5XWfc34w2n8Zr2h6giukrKUFMBy98ACXvJZBL1 tests/fixtures/v4-mainnet/squads_v4.so \
-              4GXYAfWWYJKtYwNtzdNMEMVYsqJBzZ363RZXT7Wjec9Q &
+              4GXYAfWWYJKtYwNtzdNMEMVYsqJBzZ363RZXT7Wjec9Q \
+            --upgradeable-program 5bV6jUfhDHCQVA1WfKBUnXUsboJgoKgkzkKcxr3joew5 tests/fixtures/v4-mainnet/squads_v4.so \
+              2JbpQGYRrGfgHjU8akLGq2RdK8U2hruXBVhWLLRa6exf &
           validator=$!
           for _ in $(seq 1 60); do
             solana -u "$RPC_URL" cluster-version >/dev/null 2>&1 && break

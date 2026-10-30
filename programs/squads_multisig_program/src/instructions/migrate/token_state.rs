@@ -2,9 +2,11 @@
 
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::spl_token_2022::extension::{
-    cpi_guard::CpiGuard, default_account_state::DefaultAccountState,
-    non_transferable::NonTransferable, pausable::PausableConfig, transfer_fee::TransferFeeAmount,
-    transfer_hook::TransferHook, BaseStateWithExtensions, StateWithExtensions,
+    confidential_transfer::ConfidentialTransferAccount,
+    confidential_transfer_fee::ConfidentialTransferFeeAmount, cpi_guard::CpiGuard,
+    default_account_state::DefaultAccountState, non_transferable::NonTransferable,
+    pausable::PausableConfig, transfer_fee::TransferFeeAmount, transfer_hook::TransferHook,
+    BaseStateWithExtensions, StateWithExtensions,
 };
 use anchor_spl::token_2022::spl_token_2022::state::{Account as TokenAccount, AccountState, Mint};
 
@@ -16,6 +18,9 @@ pub(crate) struct TokenAccountState {
     pub close_authority: Option<Pubkey>,
     pub withheld: u64,
     pub cpi_guard: bool,
+    /// Token-2022 `CloseAccount` accepts the account: no confidential balance and no confidential
+    /// withheld fee. The migration does not move confidential balances.
+    pub confidential_closable: bool,
 }
 
 /// `None` if `info` is not an initialized token account of `token_program`.
@@ -26,8 +31,12 @@ pub(crate) fn token_account_state(
     if info.owner != token_program {
         return None;
     }
-    let data = info.try_borrow_data().ok()?;
-    let state = StateWithExtensions::<TokenAccount>::unpack(&data).ok()?;
+    read_token_account(&info.try_borrow_data().ok()?)
+}
+
+/// `None` if `data` is not an initialized token account.
+pub(crate) fn read_token_account(data: &[u8]) -> Option<TokenAccountState> {
+    let state = StateWithExtensions::<TokenAccount>::unpack(data).ok()?;
     Some(TokenAccountState {
         mint: state.base.mint,
         owner: state.base.owner,
@@ -40,6 +49,12 @@ pub(crate) fn token_account_state(
         cpi_guard: state
             .get_extension::<CpiGuard>()
             .is_ok_and(|guard| bool::from(guard.lock_cpi)),
+        confidential_closable: state
+            .get_extension::<ConfidentialTransferAccount>()
+            .map_or(true, |account| account.closable().is_ok())
+            && state
+                .get_extension::<ConfidentialTransferFeeAmount>()
+                .map_or(true, |fee| fee.closable().is_ok()),
     })
 }
 

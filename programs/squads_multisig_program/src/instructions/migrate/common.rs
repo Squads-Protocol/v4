@@ -9,10 +9,12 @@ use crate::errors::MultisigError;
 #[cfg(feature = "program")]
 use crate::events::{
     self, LogAuthority, MigrationEvent, MigrationOutcome, MigrationResult, MigrationScope,
-    MigrationSkipReason, MultisigEvent,
+    MigrationSkipReason, MigrationSourceVault, MultisigEvent,
 };
 #[cfg(feature = "program")]
-use crate::migration::{self, MAX_MIGRATE_ITEMS};
+use crate::migration;
+#[cfg(feature = "program")]
+use crate::migration::v3::{self, LEGACY_V3_PROGRAM_ID, MAX_AUTHORITY_INDEX};
 #[cfg(not(feature = "program"))]
 use crate::prelude::*;
 #[cfg(feature = "program")]
@@ -82,23 +84,77 @@ pub struct MigrationAccounts<'info> {
     pub vault: UncheckedAccount<'info>,
 }
 
-/// The item accounts of one migrate call, and whether events are on.
+/// One migrate call after its lineage and governance checks: the source vault that signs, the
+/// successor vault that receives every asset, and the item accounts. Both lineages build it, and
+/// the asset movers read only it.
 #[cfg(feature = "program")]
-pub struct MigrationItems<'a, 'info> {
-    pub accounts: &'a [AccountInfo<'info>],
+pub struct MigrationCall<'a, 'info> {
+    pub source_multisig: Pubkey,
+    pub source_vault: AccountInfo<'info>,
+    pub multisig: &'a Account<'info, Multisig>,
+    pub vault: AccountInfo<'info>,
+    pub source: MigrationSourceVault,
+    /// The index of the successor `vault`.
+    pub vault_index: u8,
+    pub items: &'a [AccountInfo<'info>],
     pub events: bool,
 }
 
 #[cfg(feature = "program")]
-impl<'info> MigrationAccounts<'info> {
-    /// Checks the governance, then splits off the optional trailing event account. Each item has
-    /// `per_item` accounts (0: the call has no items).
-    pub fn begin<'a>(
+impl MigrationCall<'_, '_> {
+    /// Emits the `Migration` event of this call, if events are on.
+    pub fn emit(
         &self,
+        scope: MigrationScope,
+        outcomes: &[MigrationOutcome],
+        memo: Option<String>,
+    ) -> Result<()> {
+        let multisig = self.multisig;
+        events::emit(
+            self.events,
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::Migration(MigrationEvent {
+                    scope,
+                    multisig: multisig.key(),
+                    source_multisig: self.source_multisig,
+                    source: self.source,
+                    vault_index: self.vault_index,
+                    source_vault: self.source_vault.key(),
+                    vault: self.vault.key(),
+                    outcomes: Cow::Borrowed(outcomes),
+                    memo,
+                })]
+            },
+        )
+    }
+}
+
+/// Splits off the optional trailing event account, then checks that the rest holds whole items of
+/// `per_item` accounts (0: the call has no items), at most `MAX_MIGRATE_ITEMS`.
+#[cfg(feature = "program")]
+fn split_items<'a, 'info>(
+    remaining: &'a [AccountInfo<'info>],
+    per_item: usize,
+) -> Result<(&'a [AccountInfo<'info>], bool)> {
+    let (accounts, events) = match remaining.split_last() {
+        Some((last, rest)) if *last.key == crate::ID => (rest, true),
+        _ => (remaining, false),
+    };
+    migration::migrate_item_count(accounts.len(), per_item)?;
+    Ok((accounts, events))
+}
+
+#[cfg(feature = "program")]
+impl<'info> MigrationAccounts<'info> {
+    /// Checks the governance, then splits the remaining accounts into items (`split_items`).
+    pub fn begin<'a>(
+        &'a self,
         remaining: &'a [AccountInfo<'info>],
         per_item: usize,
+        vault_index: u8,
         config_authority_vault_index: Option<u8>,
-    ) -> Result<MigrationItems<'a, 'info>> {
+    ) -> Result<MigrationCall<'a, 'info>> {
         let source = migration::load_v4_multisig(&self.source_multisig)?;
         migration::check_same_governance(
             &source,
@@ -108,48 +164,95 @@ impl<'info> MigrationAccounts<'info> {
             config_authority_vault_index,
             None,
         )?;
-        let (accounts, events) = match remaining.split_last() {
-            Some((last, rest)) if *last.key == crate::ID => (rest, true),
-            _ => (remaining, false),
-        };
-        let (whole, items) = match per_item {
-            0 => (accounts.is_empty(), 0),
-            n => (accounts.len() % n == 0, accounts.len() / n),
-        };
-        require!(whole, MultisigError::MigrationInvalidAssetAccounts);
-        require!(
-            items <= MAX_MIGRATE_ITEMS,
-            MultisigError::InvalidInstructionArgs
-        );
-        Ok(MigrationItems { accounts, events })
+        let (items, events) = split_items(remaining, per_item)?;
+        Ok(MigrationCall {
+            source_multisig: self.source_multisig.key(),
+            source_vault: self.source_vault.to_account_info(),
+            multisig: &self.multisig,
+            vault: self.vault.to_account_info(),
+            source: MigrationSourceVault::V4 { vault_index },
+            vault_index,
+            items,
+            events,
+        })
     }
+}
 
-    /// Emits the `Migration` event of this call, if events are on.
-    pub fn emit(
-        &self,
-        events_enabled: bool,
-        scope: MigrationScope,
-        vault_index: u8,
-        outcomes: &[MigrationOutcome],
-        memo: Option<String>,
-    ) -> Result<()> {
-        let multisig = &self.multisig;
-        events::emit(
-            events_enabled,
-            || LogAuthority::multisig(multisig),
-            || {
-                vec![MultisigEvent::Migration(MigrationEvent {
-                    scope,
-                    multisig: multisig.key(),
-                    source_multisig: self.source_multisig.key(),
-                    vault_index,
-                    source_vault: self.source_vault.key(),
-                    vault: self.vault.key(),
-                    outcomes: Cow::Borrowed(outcomes),
-                    memo,
-                })]
-            },
-        )
+/// The accounts of every v3 migrate instruction. Each instruction's arguments start with
+/// `authority_index` (1 to 256), which the seeds read; the successor vault is `authority_index - 1`.
+#[cfg(feature = "program")]
+#[derive(Accounts)]
+#[instruction(authority_index: u32)]
+pub struct MigrationAccountsV3<'info> {
+    // The range check runs here, before the `vault` seeds use `authority_index - 1`.
+    #[account(
+        owner = LEGACY_V3_PROGRAM_ID @ MultisigError::IllegalAccountOwner,
+        constraint = (1..=MAX_AUTHORITY_INDEX).contains(&authority_index)
+            @ MultisigError::MigrationInvalidAuthorityIndex,
+    )]
+    /// The v3 multisig.
+    /// CHECK: the owner here; the discriminator and layout when it is decoded.
+    pub source_multisig: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            v3::SEED_SQUAD,
+            source_multisig.key().as_ref(),
+            &authority_index.to_le_bytes(),
+            v3::SEED_AUTHORITY,
+        ],
+        bump,
+        seeds::program = LEGACY_V3_PROGRAM_ID,
+    )]
+    /// The v3 authority. Only v3 signs for it, in a v3 transaction that the v3 members approved.
+    pub source_vault: Signer<'info>,
+
+    #[account(
+        seeds = [SEED_PREFIX, SEED_MULTISIG, source_multisig.key().as_ref()],
+        bump = multisig.bump,
+        constraint = multisig.create_key == source_multisig.key() @ MultisigError::InvalidAccount,
+    )]
+    /// The successor of `source_multisig`.
+    pub multisig: Box<Account<'info, Multisig>>,
+
+    #[account(
+        mut,
+        seeds = [
+            SEED_PREFIX,
+            multisig.key().as_ref(),
+            SEED_VAULT,
+            &v3::v3_vault_seed(authority_index),
+        ],
+        bump
+    )]
+    /// The successor vault `authority_index - 1`: the destination of every asset.
+    /// CHECK: the seeds.
+    pub vault: UncheckedAccount<'info>,
+}
+
+#[cfg(feature = "program")]
+impl<'info> MigrationAccountsV3<'info> {
+    /// Checks the governance, then splits the remaining accounts into items (`split_items`).
+    pub fn begin<'a>(
+        &'a self,
+        remaining: &'a [AccountInfo<'info>],
+        per_item: usize,
+        authority_index: u32,
+    ) -> Result<MigrationCall<'a, 'info>> {
+        let source = v3::load_v3_multisig(&self.source_multisig)?;
+        v3::check_same_governance_v3(&source, &self.multisig)?;
+        let (items, events) = split_items(remaining, per_item)?;
+        Ok(MigrationCall {
+            source_multisig: self.source_multisig.key(),
+            source_vault: self.source_vault.to_account_info(),
+            multisig: &self.multisig,
+            vault: self.vault.to_account_info(),
+            source: MigrationSourceVault::V3 { authority_index },
+            vault_index: v3::v3_vault_index(authority_index)?,
+            items,
+            events,
+        })
     }
 }
 

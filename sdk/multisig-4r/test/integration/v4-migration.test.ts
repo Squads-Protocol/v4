@@ -113,7 +113,7 @@ import {
   type MigrationAssetKind,
   type MigrationEvent,
   type MigrationItem,
-  type MigrationSource,
+  type V4MigrationSource,
   type MultisigEvent,
 } from "../../src";
 
@@ -370,7 +370,7 @@ async function createFromInstruction(source: Address, maxCreationFee?: bigint): 
   );
 }
 
-const migrationSource = (sourceMultisig: Address): MigrationSource => ({ sourceMultisig, programAddress: TEST_PROGRAM });
+const migrationSource = (sourceMultisig: Address): V4MigrationSource => ({ sourceMultisig, programAddress: TEST_PROGRAM });
 
 /** A new mint (`payer` holds both authorities) and `owner`'s associated token account. */
 async function mintTokens(payer: KeyPairSigner, owner: Address, amount: bigint, tokenProgram: Address) {

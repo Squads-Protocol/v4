@@ -27,7 +27,8 @@ pub const VOTE_PROGRAM_ID: Address =
 pub const CLOCK_SYSVAR_ID: Address =
     Address::from_str_const("SysvarC1ock11111111111111111111111111111111");
 
-/// The most items in one `multisig_migrate_*` call. It keeps the event under the CPI data limit.
+/// The most items in one `multisig_migrate_*` call. The event stays under the CPI data limit, with
+/// room for a memo of 1 KiB.
 pub const MAX_MIGRATE_ITEMS: usize = 64;
 
 /// The 4r successor of a v4 multisig: the multisig PDA with `create_key = v4_multisig`.
@@ -214,6 +215,20 @@ mod onchain {
     }
 }
 
+/// The item count of a migrate call: `accounts` item accounts, `per_item` each (0: no items).
+/// Fails for a partial item (6048), then for more than `MAX_MIGRATE_ITEMS` items.
+pub fn migrate_item_count(accounts: usize, per_item: usize) -> Result<usize, MultisigError> {
+    let items = match per_item {
+        0 => (accounts == 0).then_some(0),
+        n => accounts.is_multiple_of(n).then_some(accounts / n),
+    }
+    .ok_or(MultisigError::MigrationInvalidAssetAccounts)?;
+    (items <= MAX_MIGRATE_ITEMS)
+        .then_some(items)
+        .ok_or(MultisigError::InvalidInstructionArgs)
+}
+
 // Last in the file: a declaration above other code would move its line numbers in the binary.
 #[cfg(kani)]
 mod proofs;
+pub mod v3;

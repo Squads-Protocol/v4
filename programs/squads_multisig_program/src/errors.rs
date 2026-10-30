@@ -1,7 +1,7 @@
 #[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
-// The 50 program errors, in code order (6000 + index). With `program` they render as an Anchor
+// The 52 program errors, in code order (6000 + index). With `program` they render as an Anchor
 // `#[error_code]` enum, which also feeds the IDL; without it, as a plain enum with the same codes
 // and messages. `#[error_code]` does not accept `cfg_attr` on variants, so the list is shared here.
 macro_rules! multisig_errors {
@@ -159,14 +159,16 @@ multisig_errors! {
     MultisigCreateDeprecated,
     #[msg("Instruction is protected: log_event runs only as a self-CPI by the program")]
     ProtectedInstruction,
-    #[msg("The successor multisig does not have the governance of the v4 multisig")]
+    #[msg("The successor multisig does not have the governance of the source multisig")]
     MigrationGovernanceMismatch,
     #[msg("The vault index hint does not name a vault of the v4 multisig")]
     MigrationInvalidVaultHint,
     #[msg("The asset accounts do not match the migration assets")]
     MigrationInvalidAssetAccounts,
-    #[msg("The SOL to keep in the v4 vault is less than the rent minimum")]
+    #[msg("The SOL to keep in the source vault is less than the rent minimum")]
     MigrationInvalidAmount,
     #[msg("The 4r multisig creation fee is larger than max_creation_fee")]
     MigrationCreationFeeTooHigh,
+    #[msg("The v3 authority index is not between 1 and 256")]
+    MigrationInvalidAuthorityIndex,
 }

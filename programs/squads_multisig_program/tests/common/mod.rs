@@ -5,6 +5,7 @@ use serde_json::Value;
 
 pub const ACCOUNTS: &str = include_str!("../fixtures/golden/accounts.txt");
 pub const INSTRUCTIONS: &str = include_str!("../fixtures/golden/instructions.txt");
+pub const V3_ACCOUNTS: &str = include_str!("../fixtures/golden/v3_accounts.txt");
 const IDL: &str = include_str!("../../../../idl/squads_multisig_4r_program.json");
 
 /// `(label, identifier, bytes)` per non-comment fixture line.
@@ -64,4 +65,28 @@ pub fn idl_account_flags(instruction: &str) -> Vec<(bool, bool, bool)> {
         .unwrap_or_else(|| panic!("{instruction} not in IDL"))
         .clone();
     flatten(ix["accounts"].as_array().expect("accounts"))
+}
+
+/// The discriminator of the IDL instruction `name`.
+pub fn idl_discriminator(name: &str) -> Vec<u8> {
+    idl()["instructions"]
+        .as_array()
+        .expect("instructions")
+        .iter()
+        .find(|ix| ix["name"] == name)
+        .unwrap_or_else(|| panic!("{name} not in IDL"))["discriminator"]
+        .as_array()
+        .expect("discriminator")
+        .iter()
+        .map(|byte| byte.as_u64().expect("byte") as u8)
+        .collect()
+}
+
+/// `(writable, signer, optional)` of each account of `instruction`, as `idl_account_flags` gives them.
+pub fn flags(instruction: &solana_instruction::Instruction) -> Vec<(bool, bool, bool)> {
+    instruction
+        .accounts
+        .iter()
+        .map(|meta| (meta.is_writable, meta.is_signer, false))
+        .collect()
 }

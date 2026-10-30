@@ -10,7 +10,7 @@ check those parts.
 | --- | --- | --- |
 | `Multisig.tla` | One multisig: members, permissions, threshold, time lock, config authority, stale index; vault, config, and batch transactions; proposals and votes; execution, including inner instructions that the vault signs; rent reclaim; one spending limit | `state/{multisig,proposal,batch}.rs`, `instructions/proposal_*.rs`, `instructions/{vault,config}_transaction_*.rs`, `instructions/batch_*.rs`, `instructions/multisig_config.rs`, `instructions/transaction_accounts_close.rs`, `utils/executable_transaction_message.rs` |
 | `SpendingLimit.tla` | The budget arithmetic of one spending limit over real times: lazy reset, `last_reset` alignment, one-time limits | `instructions/spending_limit_use.rs`, `state/spending_limit.rs` |
-| `Migration.tla` | The move from v4: one v4 multisig, its 4r successor, config changes on both sides, a squatter, the creation fee and its approved cap, and the assets of one v4 vault | `migration.rs`, `instructions/multisig_create_from.rs`, `instructions/migrate/`, `instructions/program_config.rs` |
+| `Migration.tla` | The move from v4 or v3: one source multisig, its 4r successor, config changes on both sides, a squatter, the creation fee and its approved cap, and the assets of one source vault (v4 vault or v3 authority) | `migration.rs`, `migration/v3.rs`, `instructions/multisig_create_from.rs`, `instructions/multisig_create_from_v3.rs`, `instructions/migrate/`, `instructions/program_config.rs` |
 | `MigrationStake.tla` | One stake account and `multisig_migrate_stakes`: the staker, withdrawer and lockup custodian roles, the Stake program signer rules, lockups that start and end, and the order of the CPIs | `instructions/migrate/stakes.rs` |
 
 ## The consensus contract
@@ -62,13 +62,14 @@ Spending limits:
   member of the multisig.
 - Each reset window moves at most `amount`.
 
-Migration from v4 (`Migration.tla`, `MigrationStake.tla`; the safety argument is
-`MIGRATION_SAFETY.md`):
+Migration from v4 or v3 (`Migration.tla`, `MigrationStake.tla`; the safety argument is
+`MIGRATION_SAFETY.md`). The model is the same for both lineages: v3 also keeps approved
+transactions after a config change, and both creation instructions read the source at execution.
 
-- Only `multisig_create_from`, signed by a v4 vault, creates the successor. Nobody can sign as its
-  `create_key` (the v4 multisig PDA).
+- Only `multisig_create_from` (signed by a v4 vault) or `multisig_create_from_v3` (signed by a v3
+  authority) creates the successor. Nobody can sign as its `create_key` (the source multisig PDA).
 - Each `multisig_migrate_*` instruction moves an item only while the successor has the same
-  governance as the v4 multisig (`check_same_governance`).
+  governance as the source multisig (`check_same_governance`, `check_same_governance_v3`).
 - The v4 vault pays a creation fee only up to the `max_creation_fee` that the members approved,
   although the program config authority can change the fee at any time.
 - A stake migration never fails for a missing signature, gives roles only to the successor vault,
@@ -230,10 +231,10 @@ fix used it to stop re-entry. Protected accounts replace it. The model has no `E
 | `Tick` | `Clock::unix_timestamp` minus the Approved timestamp |
 | `Valid` | `Multisig::invariant` |
 | `ApproveCreate` | The v4 members approve `multisig_create_from` with `max_creation_fee` (the planners use the fee at planning time) |
-| `CreateFrom` | `multisig_create_from`: Anchor `init` at the successor PDA; `migration::mirror` reads v4 at execution; the fee is read at execution and must not exceed `max_creation_fee` (`MigrationCreationFeeTooHigh`) |
+| `CreateFrom` | `multisig_create_from` (`multisig_create_from_v3`): Anchor `init` at the successor PDA; `migration::mirror` (`mirror_v3`) reads the source at execution; the fee is read at execution and must not exceed `max_creation_fee` (`MigrationCreationFeeTooHigh`) |
 | `SetFee` | `program_config_set_multisig_creation_fee` |
-| `Squat` | `multisig_create_v2` at the successor address; disabled because v4 never signs as a multisig PDA |
-| `Migrate` | any `multisig_migrate_*` instruction: successor must exist, `migration::check_same_governance` (in `MigrationAccounts::begin`), then the move |
+| `Squat` | `multisig_create_v2` at the successor address; disabled because v4 never signs as a multisig PDA, and v3 signs as one only in CPIs to itself |
+| `Migrate` | any `multisig_migrate_*` or `multisig_migrate_v3_*` instruction: successor must exist, the governance check (`MigrationAccounts::begin` or `MigrationAccountsV3::begin`), then the move |
 | `V4Config`, `SuccConfig` | any config change of either multisig (config transaction or config authority) |
 | `MigrationStake!Migrate` | `MultisigMigrateStakes::migrate_stake`: staker, then the custodian first (no lockup in force, vault also withdrawer), then the withdrawer (skip `Locked`), then the custodian (lockup in force) |
 | `MigrationStake!Act`, `Expire` | Stake `Authorize` and `SetLockup` by any holder outside the migration; the end of a lockup |

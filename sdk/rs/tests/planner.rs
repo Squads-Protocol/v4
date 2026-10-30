@@ -422,6 +422,70 @@ fn chunks_within_the_limits_like_the_ts_planner() {
 }
 
 #[test]
+fn v3_chunks_like_the_ts_planner() {
+    // Arrange
+    let groups = token_groups(12);
+    let input = ChunkInput {
+        source: V3MigrationSource {
+            source_multisig: key(2),
+            authority_index: 1,
+            program_id: None,
+        },
+        events: true,
+        address_lookup_tables: &[],
+        limits: MigrationLimits::V3,
+    };
+
+    // Act
+    let items = chunk_migration_groups(&groups, &input).expect("chunks");
+
+    // Assert: the same item sizes as sdk/multisig-4r/test/unit/v3.test.ts.
+    assert_eq!(item_counts(&items), vec![4, 4, 4]);
+    assert_eq!(items[0].message_bytes, 1047);
+    assert!(items
+        .iter()
+        .all(|item| item.message_bytes <= MigrationLimits::V3.max_message_bytes));
+}
+
+#[test]
+fn v3_items_are_v3_migrate_instructions_of_the_authority() {
+    // Arrange
+    let source = V3MigrationSource {
+        source_multisig: key(2),
+        authority_index: 3,
+        program_id: None,
+    };
+    let invalid = V3MigrationSource {
+        authority_index: 0,
+        ..source
+    };
+
+    // Act
+    let instruction = MigrationGroup::Sol { keep: 0 }
+        .instruction(&source)
+        .expect("builds");
+    let refused = MigrationGroup::Sol { keep: 0 }.instruction(&invalid);
+
+    // Assert: the v3 discriminator, then `authority_index` (u32), `keep` and no memo.
+    let expected = [
+        &squads_multisig_4r::discriminator::instruction::MULTISIG_MIGRATE_V3_SOL[..],
+        &3u32.to_le_bytes(),
+        &0u64.to_le_bytes(),
+        &[0],
+    ]
+    .concat();
+    assert_eq!(instruction.data, expected);
+    assert_eq!(
+        instruction.accounts[1].pubkey,
+        squads_multisig_4r::v3::get_v3_authority_pda(&key(2), 3).0
+    );
+    assert!(matches!(
+        refused,
+        Err(squads_multisig_4r::error::ClientError::Plan(_))
+    ));
+}
+
+#[test]
 fn chunks_more_per_item_with_a_lookup_table() {
     // Arrange
     let groups = token_groups(24);
@@ -588,4 +652,82 @@ fn parses_a_lookup_table_account() {
         })
     );
     assert_eq!(parse_lookup_table(key(3), &[0; 56]), None);
+}
+
+/// A wallet: an address on the curve (`key(n)` may be on or off it).
+fn wallet() -> Address {
+    (0..=u8::MAX)
+        .map(key)
+        .find(|candidate| candidate.is_on_curve())
+        .expect("an on-curve key")
+}
+
+#[test]
+fn member_report_is_none_low_or_high_like_the_ts_planner() {
+    // Arrange: a v3 authority is a PDA, off the curve.
+    let pda = squads_multisig_4r::v3::get_v3_authority_pda(&key(5), 1).0;
+    let members = |keys: &[Address]| -> Vec<ReportedMember> {
+        keys.iter()
+            .map(|key| ReportedMember {
+                key: *key,
+                votes: true,
+            })
+            .collect()
+    };
+    let known = std::collections::HashSet::from([pda]);
+    let none_known = std::collections::HashSet::new();
+
+    // Act
+    let none = member_signing_report(&members(&[wallet()]), 1, &none_known);
+    let low = member_signing_report(&members(&[wallet(), pda]), 1, &known);
+    let high = member_signing_report(&members(&[wallet(), pda]), 2, &none_known);
+
+    // Assert
+    assert_eq!(none.risk, MemberRisk::None);
+    assert!(member_report_warnings(&none).is_empty());
+    assert_eq!(low.risk, MemberRisk::Low);
+    assert_eq!(
+        low.off_curve,
+        vec![OffCurveMember {
+            key: pda,
+            known_vault: true
+        }]
+    );
+    assert_eq!((high.risk, high.on_curve_voters), (MemberRisk::High, 1));
+    assert_eq!(
+        high.off_curve,
+        vec![OffCurveMember {
+            key: pda,
+            known_vault: false
+        }]
+    );
+    assert!(member_report_warnings(&high)[0].contains("(risk HIGH: the 1 wallet voters"));
+}
+
+#[test]
+fn member_report_counts_only_wallets_that_vote() {
+    // Arrange: a v4 member without Vote permission does not count.
+    let pda = squads_multisig_4r::pda::get_vault_pda(&key(2), 0, None).0;
+    let members = [
+        ReportedMember {
+            key: wallet(),
+            votes: false,
+        },
+        ReportedMember {
+            key: pda,
+            votes: true,
+        },
+    ];
+    let vaults: std::collections::HashSet<Address> =
+        vault_addresses(&key(2), &squads_multisig_4r::ID)
+            .into_iter()
+            .collect();
+
+    // Act
+    let report = member_signing_report(&members, 1, &vaults);
+
+    // Assert
+    assert_eq!((report.on_curve_voters, report.risk), (0, MemberRisk::High));
+    assert!(report.off_curve[0].known_vault);
+    assert_eq!(v3_authority_addresses(&key(2)).len(), 256);
 }

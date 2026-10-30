@@ -31,6 +31,12 @@ npm install @sqds/multisig-4r @solana/kit
   accounts), and the planner `planV4Migration` with `withMigrationLookupTables`,
   `getV4MigrationProposal`, `getV4VaultTransactionExecuteInstruction` and
   `getV4BatchExecuteInstructions`. See section 11 of `V4.5_REVISED.md`.
+- **Migration from v3** (`multisigCreateFromV3` and one `multisigMigrateV3*` instruction for each
+  asset class): the same `getMigrate*Instruction` builders with a source of `lineage: "v3"` and an
+  `authorityIndex` (1 to 256; authority `N` moves to vault `N - 1`), the planner `planV3Migration`
+  (it throws `V3DelegateMembersError` for v3 roles delegate members), `getV3MigrationProposal` and
+  `getV3ExecuteInstructions`, and a v3 client (`v3.ts`: PDAs, account decoders, v3 instructions).
+  See section 11.7 of `V4.5_REVISED.md`.
 - **Address lookup tables** (no extra package): `getCreateLookupTablesTransactions`,
   `getExtendLookupTableInstruction`, `getDeactivateLookupTableInstruction`,
   `getCloseLookupTableInstruction` and `getLookupTableAddresses`.

@@ -22,6 +22,14 @@
 (* One Migrate step stands for one item of any asset class; the six        *)
 (* instructions share the successor and governance checks                 *)
 (* (MigrationAccounts::begin). MigrationStake.tla models the stake roles.  *)
+(*                                                                         *)
+(* The same model covers the v3 lineage (migration/v3.rs,                  *)
+(* multisig_create_from_v3.rs, instructions/migrate/v3.rs): "v4" stands    *)
+(* for the v3 multisig and its authority. v3 also keeps approvals after a  *)
+(* config change (ExecuteReady transactions do not go stale), mirror_v3    *)
+(* reads v3 at execution, check_same_governance_v3 runs before each move   *)
+(* (MigrationAccountsV3::begin), and nobody can squat: v3 signs as its      *)
+(* multisig PDA only in CPIs to itself.                                    *)
 (***************************************************************************)
 EXTENDS Naturals
 

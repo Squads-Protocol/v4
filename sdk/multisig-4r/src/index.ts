@@ -5,3 +5,5 @@ export * from "./lookupTables";
 export * from "./message";
 export * from "./migration";
 export * from "./planner";
+export * from "./v3";
+export * from "./v3Migration";

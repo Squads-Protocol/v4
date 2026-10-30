@@ -3,6 +3,7 @@ import {
   getAddressDecoder,
   getAddressEncoder,
   getBase58Decoder,
+  isOffCurveAddress,
   type Address,
   type Base58EncodedBytes,
   type Instruction,
@@ -40,6 +41,7 @@ import {
   type Multisig,
 } from "./generated";
 import { getLookupTableAddresses } from "./lookupTables";
+import { measureV3Item } from "./v3";
 import {
   compileTransactionMessage,
   getAccountsForExecute,
@@ -141,6 +143,15 @@ export type MigrationLimits = {
 export const DEFAULT_MIGRATION_LIMITS: Required<MigrationLimits> = {
   maxMessageBytes: 800,
   maxMessageAccounts: 30,
+  maxInstructionTrace: 64,
+};
+/**
+ * Limits for a v3 transaction instruction. `maxMessageBytes` is the wire size of its add and execute
+ * transactions (room for a separate fee payer and compute budget instructions under 1232 bytes).
+ */
+export const V3_MIGRATION_LIMITS: Required<MigrationLimits> = {
+  maxMessageBytes: 1060,
+  maxMessageAccounts: 60,
   maxInstructionTrace: 64,
 };
 /** Limits with lookup tables: the 64 account locks of the execute transaction bind first. */
@@ -304,9 +315,21 @@ export async function getV4VaultInventory(
   },
 ): Promise<V4VaultInventory> {
   const vaultIndex = input.vaultIndex ?? 0;
+  const vault = await vaultOf(input.sourceMultisig, vaultIndex, LEGACY_V4_PROGRAM_ADDRESS);
+  return getVaultInventory(rpc, { ...input, vault, vaultIndex });
+}
+
+/**
+ * Every token account, stake, vote account, program and mint that the source `vault` (a v4 vault
+ * or a v3 authority) holds or controls. `vaultIndex` is the successor vault index.
+ */
+export async function getVaultInventory(
+  rpc: Rpc<SolanaRpcApi>,
+  input: { vault: Address; vaultIndex: number; scans?: InventoryScans; extraMints?: readonly Address[] },
+): Promise<V4VaultInventory> {
+  const { vault, vaultIndex } = input;
   const scans = { tokenRoles: true, stakes: true, voteAccounts: true, programs: true, mints: true, ...input.scans };
   const extraMints = input.extraMints ?? [];
-  const vault = await vaultOf(input.sourceMultisig, vaultIndex, LEGACY_V4_PROGRAM_ADDRESS);
   const vaultBytes = addressEncoder.encode(vault);
   const warnings: string[] = [];
   const scan = async <T>(name: string, enabled: boolean, run: () => Promise<T[]>): Promise<T[]> => {
@@ -559,9 +582,13 @@ function groupInstruction(source: MigrationSource, group: MigrationGroup): Promi
 }
 
 async function migrationItem(input: ChunkInput, group: MigrationGroup): Promise<MigrationItem> {
-  const sourceVault = await vaultOf(input.sourceMultisig, input.vaultIndex ?? 0, LEGACY_V4_PROGRAM_ADDRESS);
   const migrate = await groupInstruction(input, group);
   const instruction = input.events === false ? migrate : withEvents(migrate);
+  if (input.lineage === "v3") {
+    const sizes = await measureV3Item(input.sourceMultisig, instruction, input.addressLookupTables);
+    return { group, instruction, ...sizes, instructionTrace: migrationInstructionTrace(group, input.events !== false) };
+  }
+  const sourceVault = await vaultOf(input.sourceMultisig, input.vaultIndex ?? 0, LEGACY_V4_PROGRAM_ADDRESS);
   const message = { vault: sourceVault, instructions: [instruction], addressLookupTables: input.addressLookupTables };
   const compiled = compileTransactionMessage(message);
   const loaded = compiled.addressTableLookups.reduce(
@@ -619,6 +646,50 @@ export async function chunkMigrationGroups(groups: readonly MigrationGroup[], in
   return items;
 }
 
+/** One member of a multisig, as the member report reads it: the key and whether it votes. */
+export type ReportedMember = { readonly key: Address; readonly votes: boolean };
+
+/**
+ * Off-curve members (only a program signs for them; a known vault signs 4r instructions). `risk` is
+ * `"high"` when the on-curve voters alone cannot reach the threshold. It never blocks a plan.
+ */
+export type MemberSigningReport = {
+  readonly offCurve: readonly { readonly key: Address; readonly knownVault: boolean }[];
+  readonly onCurveVoters: number;
+  readonly threshold: number;
+  readonly risk: "none" | "low" | "high";
+};
+
+/** The member report of a successor with `members` and `threshold`. `knownVaults`: vault addresses. */
+export function memberSigningReport(
+  members: readonly ReportedMember[],
+  threshold: number,
+  knownVaults: ReadonlySet<Address>,
+): MemberSigningReport {
+  const offCurve = members
+    .filter((member) => isOffCurveAddress(member.key))
+    .map((member) => ({ key: member.key, knownVault: knownVaults.has(member.key) }));
+  const onCurveVoters = members.filter((member) => member.votes && !isOffCurveAddress(member.key)).length;
+  const risk = offCurve.length === 0 ? "none" : onCurveVoters >= threshold ? "low" : "high";
+  return { offCurve, onCurveVoters, threshold, risk };
+}
+
+/** The warning text of a member report, or nothing when every member is a wallet. */
+export function memberReportWarnings(report: MemberSigningReport): string[] {
+  if (report.risk === "none") return [];
+  const keys = report.offCurve.map((member) => `${member.key}${member.knownVault ? " (vault)" : ""}`).join(", ");
+  const level =
+    report.risk === "high"
+      ? `HIGH: the ${report.onCurveVoters} wallet voters cannot reach the threshold ${report.threshold} alone`
+      : `low: the ${report.onCurveVoters} wallet voters reach the threshold ${report.threshold} alone`;
+  return [`members that only a program can sign for: ${keys}. Confirm that each can sign 4r instructions (risk ${level})`];
+}
+
+/** The vault addresses (indexes 0 to 255) of `multisig` under `programAddress`. */
+export async function vaultAddresses(multisig: Address, programAddress: Address): Promise<Address[]> {
+  return Promise.all(Array.from({ length: 256 }, (_, index) => vaultOf(multisig, index, programAddress)));
+}
+
 /** The governance that the migrate instructions compare. `configAuthority` is already mapped. */
 function sameGovernance(source: Multisig, successor: Multisig, configAuthority: Address): boolean {
   const members = (multisig: Multisig) => multisig.members.map((m) => `${m.key}:${m.permissions.mask}`).join();
@@ -650,6 +721,8 @@ export type V4MigrationPlan = {
   readonly items: readonly MigrationItem[];
   /** The lookup tables that the vault messages use (empty: none). */
   readonly addressLookupTables: AddressLookupTables;
+  /** Members that only a program can sign for; a warning, never a block. */
+  readonly memberReport: MemberSigningReport;
   readonly warnings: readonly string[];
 };
 
@@ -733,9 +806,19 @@ export async function planV4Migration(rpc: Rpc<SolanaRpcApi>, input: PlanInput):
     limits,
   });
   const newTokenAccounts = await countNewTokenAccounts(rpc, groups, vault);
+  const knownVaults = new Set([
+    ...(await vaultAddresses(sourceMultisig, LEGACY_V4_PROGRAM_ADDRESS)),
+    ...(await vaultAddresses(successor, programAddress)),
+  ]);
+  const memberReport = memberSigningReport(
+    source.members.map((member) => ({ key: member.key, votes: (member.permissions.mask & 2) !== 0 })),
+    source.threshold,
+    knownVaults,
+  );
   const warnings = [
     ...inventory.warnings,
     ...notes,
+    ...memberReportWarnings(memberReport),
     ...(governanceMatches === false ? ["the successor governance differs from v4: the migrate instructions fail until they agree"] : []),
     ...(inventory.lamports < newTokenAccounts * ATA_RENT_ESTIMATE
       ? [`the v4 vault has too little SOL for ${newTokenAccounts} new token accounts of the successor; fund it first`]
@@ -757,12 +840,13 @@ export async function planV4Migration(rpc: Rpc<SolanaRpcApi>, input: PlanInput):
     groups,
     items,
     addressLookupTables,
+    memberReport,
     warnings,
   };
 }
 
 /** The successor token accounts that the migration creates (the v4 vault pays their rent). */
-async function countNewTokenAccounts(rpc: Rpc<SolanaRpcApi>, groups: readonly MigrationGroup[], vault: Address): Promise<bigint> {
+export async function countNewTokenAccounts(rpc: Rpc<SolanaRpcApi>, groups: readonly MigrationGroup[], vault: Address): Promise<bigint> {
   const destinations = await Promise.all(
     groups.flatMap((group) =>
       group.class === "tokens" ? group.items.map((item) => findAssociatedTokenAddress(vault, item.mint, group.tokenProgram)) : [],

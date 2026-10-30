@@ -9,8 +9,11 @@ use solana_stake_interface::stake_flags::StakeFlags;
 use solana_stake_interface::state::{Authorized, Lockup, Meta, Stake, StakeStateV2};
 use solana_vote_interface::state::{VoteStateV3, VoteStateV4, VoteStateVersions};
 use spl_token_2022_interface::extension::{
-    confidential_mint_burn::ConfidentialMintBurn, confidential_transfer::ConfidentialTransferMint,
-    confidential_transfer_fee::ConfidentialTransferFeeConfig,
+    confidential_mint_burn::ConfidentialMintBurn,
+    confidential_transfer::{ConfidentialTransferAccount, ConfidentialTransferMint, EncryptedBalance},
+    confidential_transfer_fee::{
+        ConfidentialTransferFeeAmount, ConfidentialTransferFeeConfig, EncryptedWithheldAmount,
+    },
     default_account_state::DefaultAccountState, group_member_pointer::GroupMemberPointer,
     group_pointer::GroupPointer, immutable_owner::ImmutableOwner,
     interest_bearing_mint::InterestBearingConfig, memo_transfer::MemoTransfer,
@@ -217,6 +220,81 @@ pub fn token_account_bytes(spec: &TokenAccountSpec) -> Vec<u8> {
             .expect("memo transfer");
         state.init_account_type().expect("account type");
     }
+    state.base = spec.account;
+    state.pack_base();
+    data
+}
+
+/// A Token-2022 account with the confidential transfer extensions: which ciphertexts are not empty.
+/// `fee_withheld` is `None` without the `ConfidentialTransferFeeAmount` extension.
+#[derive(Clone, Debug)]
+pub struct ConfidentialAccountSpec {
+    pub account: Account,
+    pub pending_lo: bool,
+    pub pending_hi: bool,
+    pub available: bool,
+    pub fee_withheld: Option<bool>,
+}
+
+impl ConfidentialAccountSpec {
+    /// Token-2022 `CloseAccount` accepts it: every confidential ciphertext is empty.
+    pub fn closable(&self) -> bool {
+        !(self.pending_lo || self.pending_hi || self.available) && self.fee_withheld != Some(true)
+    }
+}
+
+pub fn confidential_account() -> impl Strategy<Value = ConfidentialAccountSpec> {
+    let flags = (any::<bool>(), any::<bool>(), any::<bool>());
+    let fee = prop_oneof![Just(None), any::<bool>().prop_map(Some)];
+    (token_account(), flags, fee).prop_map(
+        |(spec, (pending_lo, pending_hi, available), fee_withheld)| ConfidentialAccountSpec {
+            account: spec.account,
+            pending_lo,
+            pending_hi,
+            available,
+            fee_withheld,
+        },
+    )
+}
+
+pub fn confidential_account_bytes(spec: &ConfidentialAccountSpec) -> Vec<u8> {
+    let ciphertext = |filled: bool| match filled {
+        true => [1; 64],
+        false => [0; 64],
+    };
+    let extensions: Vec<_> = [ExtensionType::ConfidentialTransferAccount]
+        .into_iter()
+        .chain(
+            spec.fee_withheld
+                .map(|_| ExtensionType::ConfidentialTransferFeeAmount),
+        )
+        .collect();
+    let len =
+        ExtensionType::try_calculate_account_len::<Account>(&extensions).expect("account length");
+    let mut data = vec![0; len];
+    let mut state =
+        StateWithExtensionsMut::<Account>::unpack_uninitialized(&mut data).expect("account");
+    let account = state
+        .init_extension::<ConfidentialTransferAccount>(true)
+        .expect("confidential transfer account");
+    account.pending_balance_lo = EncryptedBalance {
+        0: ciphertext(spec.pending_lo),
+    };
+    account.pending_balance_hi = EncryptedBalance {
+        0: ciphertext(spec.pending_hi),
+    };
+    account.available_balance = EncryptedBalance {
+        0: ciphertext(spec.available),
+    };
+    if let Some(withheld) = spec.fee_withheld {
+        state
+            .init_extension::<ConfidentialTransferFeeAmount>(true)
+            .expect("confidential transfer fee amount")
+            .withheld_amount = EncryptedWithheldAmount {
+            0: ciphertext(withheld),
+        };
+    }
+    state.init_account_type().expect("account type");
     state.base = spec.account;
     state.pack_base();
     data

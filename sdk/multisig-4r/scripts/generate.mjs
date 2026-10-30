@@ -82,8 +82,10 @@ const pdas = [
   pdaNode({ name: "transactionBuffer", seeds: [seed("multisig"), variablePdaSeedNode("multisig", publicKeyTypeNode()), seed("transaction_buffer"), variablePdaSeedNode("creator", publicKeyTypeNode()), variablePdaSeedNode("bufferIndex", u8())] }),
 ];
 
-// The shared accounts of the `multisig_migrate_*` instructions read `vault_index`, the first field
-// of each instruction's `args`. Name the seed by its path in `args` so that Codama can resolve it.
+// The shared accounts of the `multisig_migrate_*` instructions read `vault_index` (v4) or
+// `authority_index` (v3), the first field of each instruction's `args`. Name the seed by its path
+// in `args` so that Codama can resolve it. The v3 successor vault (`authority_index - 1`) has no
+// IDL seeds, so callers pass it.
 const withArgSeedPaths = (accounts) =>
   accounts.map((account) =>
     account.accounts
@@ -94,7 +96,9 @@ const withArgSeedPaths = (accounts) =>
             pda: {
               ...account.pda,
               seeds: account.pda.seeds.map((seed) =>
-                seed.kind === "arg" && seed.path === "vault_index" ? { ...seed, path: "args.vault_index" } : seed,
+                seed.kind === "arg" && ["vault_index", "authority_index"].includes(seed.path)
+                  ? { ...seed, path: `args.${seed.path}` }
+                  : seed,
               ),
             },
           }

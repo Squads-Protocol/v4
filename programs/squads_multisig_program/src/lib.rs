@@ -193,6 +193,65 @@ pub mod squads_multisig_4r_program {
         MultisigMigratePrograms::multisig_migrate_programs(ctx, args)
     }
 
+    /// Create the successor of a v3 multisig: its members with every permission, its threshold.
+    /// A v3 authority signs, through a v3 transaction.
+    pub fn multisig_create_from_v3(
+        ctx: Context<MultisigCreateFromV3>,
+        args: MultisigCreateFromV3Args,
+    ) -> Result<()> {
+        MultisigCreateFromV3::multisig_create_from_v3(ctx, args)
+    }
+
+    /// Migration from v3: move the SOL of v3 authority N to the successor vault N - 1. Every
+    /// `multisig_migrate_v3_*` instruction runs in a v3 transaction and needs the same governance.
+    pub fn multisig_migrate_v3_sol<'info>(
+        ctx: Context<'info, MultisigMigrateV3Sol<'info>>,
+        args: MigrateV3SolArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Sol::multisig_migrate_v3_sol(ctx, args)
+    }
+
+    /// Migration from v3: move whole token balances to the successor vault's token accounts.
+    pub fn multisig_migrate_v3_tokens<'info>(
+        ctx: Context<'info, MultisigMigrateV3Tokens<'info>>,
+        args: MigrateV3TokensArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Tokens::multisig_migrate_v3_tokens(ctx, args)
+    }
+
+    /// Migration from v3: move token account owner, mint and Token-2022 extension and metadata
+    /// authorities to the successor vault.
+    pub fn multisig_migrate_v3_token_authorities<'info>(
+        ctx: Context<'info, MultisigMigrateV3TokenAuthorities<'info>>,
+        args: MigrateV3TokenAuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3TokenAuthorities::multisig_migrate_v3_token_authorities(ctx, args)
+    }
+
+    /// Migration from v3: move stake staker, withdrawer and custodian roles to the successor vault.
+    pub fn multisig_migrate_v3_stakes<'info>(
+        ctx: Context<'info, MultisigMigrateV3Stakes<'info>>,
+        args: MigrateV3AuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Stakes::multisig_migrate_v3_stakes(ctx, args)
+    }
+
+    /// Migration from v3: move vote account withdrawer roles to the successor vault.
+    pub fn multisig_migrate_v3_vote_accounts<'info>(
+        ctx: Context<'info, MultisigMigrateV3VoteAccounts<'info>>,
+        args: MigrateV3AuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3VoteAccounts::multisig_migrate_v3_vote_accounts(ctx, args)
+    }
+
+    /// Migration from v3: move loader-v3 program upgrade authorities to the successor vault.
+    pub fn multisig_migrate_v3_programs<'info>(
+        ctx: Context<'info, MultisigMigrateV3Programs<'info>>,
+        args: MigrateV3AuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Programs::multisig_migrate_v3_programs(ctx, args)
+    }
+
     /// Add a new member to the controlled multisig.
     pub fn multisig_add_member(
         ctx: Context<MultisigConfig>,

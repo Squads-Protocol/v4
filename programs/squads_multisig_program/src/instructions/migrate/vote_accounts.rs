@@ -34,69 +34,79 @@ impl<'info> MultisigMigrateVoteAccounts<'info> {
         args: MigrateAuthoritiesArgs,
     ) -> Result<()> {
         let accounts = &ctx.accounts;
-        let items = accounts.migration.begin(
+        let migration = accounts.migration.begin(
             ctx.remaining_accounts,
             1,
+            args.vault_index,
             args.config_authority_vault_index,
         )?;
-        let outcomes = items
-            .accounts
-            .iter()
-            .map(|vote| accounts.migrate_withdrawer(vote))
-            .collect::<Result<Vec<_>>>()?;
-        accounts.migration.emit(
-            items.events,
-            MigrationScope::VoteAccounts,
-            args.vault_index,
-            &outcomes,
-            args.memo,
-        )
-    }
-
-    fn migrate_withdrawer(&self, vote: &AccountInfo<'info>) -> Result<MigrationOutcome> {
-        let outcome = |result| MigrationOutcome {
-            kind: MigrationAssetKind::VoteWithdrawer,
-            account: vote.key(),
-            result,
-        };
-        let withdrawer = match *vote.owner == VOTE_PROGRAM_ID {
-            true => vote_withdrawer(&vote.try_borrow_data()?),
-            false => None,
-        };
-        let source_vault = self.migration.source_vault.to_account_info();
-        match withdrawer {
-            None => return Ok(outcome(skipped(MigrationSkipReason::Missing))),
-            Some(withdrawer) if withdrawer != source_vault.key() => {
-                return Ok(outcome(skipped(MigrationSkipReason::NotAuthority)))
-            }
-            Some(_) => {}
-        }
-        // Vote `Authorize` (bincode: variant 1, new authority, `VoteAuthorize::Withdrawer` = 1). The
-        // unchecked variant: the new authority cannot sign during v4 execution.
-        let data = [
-            1u32.to_le_bytes().as_slice(),
-            self.migration.vault.key.as_ref(),
-            1u32.to_le_bytes().as_slice(),
-        ]
-        .concat();
-        invoke(
-            &Instruction {
-                program_id: VOTE_PROGRAM_ID,
-                accounts: vec![
-                    AccountMeta::new(vote.key(), false),
-                    AccountMeta::new_readonly(self.clock.key(), false),
-                    AccountMeta::new_readonly(source_vault.key(), true),
-                ],
-                data,
-            },
-            &[vote.clone(), self.clock.to_account_info(), source_vault],
-        )?;
-        Ok(outcome(moved(0, false)))
+        let outcomes = migrate_vote_accounts(&migration, &accounts.clock.to_account_info())?;
+        migration.emit(MigrationScope::VoteAccounts, &outcomes, args.memo)
     }
 }
 
+/// Moves the withdrawer of each item account (a vote account) of `migration`.
+#[cfg(feature = "program")]
+pub(crate) fn migrate_vote_accounts<'info>(
+    migration: &MigrationCall<'_, 'info>,
+    clock: &AccountInfo<'info>,
+) -> Result<Vec<MigrationOutcome>> {
+    migration
+        .items
+        .iter()
+        .map(|vote| migrate_withdrawer(migration, clock, vote))
+        .collect()
+}
+
+#[cfg(feature = "program")]
+fn migrate_withdrawer<'info>(
+    migration: &MigrationCall<'_, 'info>,
+    clock: &AccountInfo<'info>,
+    vote: &AccountInfo<'info>,
+) -> Result<MigrationOutcome> {
+    let outcome = |result| MigrationOutcome {
+        kind: MigrationAssetKind::VoteWithdrawer,
+        account: vote.key(),
+        result,
+    };
+    let withdrawer = match *vote.owner == VOTE_PROGRAM_ID {
+        true => vote_withdrawer(&vote.try_borrow_data()?),
+        false => None,
+    };
+    let source_vault = migration.source_vault.clone();
+    match withdrawer {
+        None => return Ok(outcome(skipped(MigrationSkipReason::Missing))),
+        Some(withdrawer) if withdrawer != source_vault.key() => {
+            return Ok(outcome(skipped(MigrationSkipReason::NotAuthority)))
+        }
+        Some(_) => {}
+    }
+    // Vote `Authorize` (bincode: variant 1, new authority, `VoteAuthorize::Withdrawer` = 1). The
+    // unchecked variant: the new authority cannot sign during the source execution.
+    let data = [
+        1u32.to_le_bytes().as_slice(),
+        migration.vault.key.as_ref(),
+        1u32.to_le_bytes().as_slice(),
+    ]
+    .concat();
+    invoke(
+        &Instruction {
+            program_id: VOTE_PROGRAM_ID,
+            accounts: vec![
+                AccountMeta::new(vote.key(), false),
+                AccountMeta::new_readonly(clock.key(), false),
+                AccountMeta::new_readonly(source_vault.key(), true),
+            ],
+            data,
+        },
+        &[vote.clone(), clock.clone(), source_vault],
+    )?;
+    Ok(outcome(moved(0, false)))
+}
+
 /// The authorized withdrawer of a vote account. `VoteStateVersions` tags 1 (`V1_14_11`), 2 (`V3`) and
-/// 3 (`V4`) store it after the tag (u32) and `node_pubkey`; tag 0 (`Uninitialized`) has none.
+/// 3 (`V4`) store it after the tag (u32) and `node_pubkey`. Tag 0 (`V0_23_5`, also the layout of an
+/// uninitialized account) stores it at another offset; the reader returns `None`, so it is skipped.
 #[cfg(feature = "program")]
 pub(super) fn vote_withdrawer(data: &[u8]) -> Option<Pubkey> {
     let tag = u32::from_le_bytes(data.get(..4)?.try_into().ok()?);

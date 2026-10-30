@@ -6,7 +6,7 @@ const goldenDir = join(__dirname, "..", "..", "..", "..", "programs", "squads_mu
 export type Fixture = { label: string; id: string; bytes: Uint8Array };
 
 /** Parses `<label> <id> <hex>` lines of a golden fixture file. */
-export function readFixtures(file: "accounts.txt" | "instructions.txt"): Fixture[] {
+export function readFixtures(file: "accounts.txt" | "instructions.txt" | "v3_accounts.txt"): Fixture[] {
   return readFileSync(join(goldenDir, file), "utf8")
     .split("\n")
     .map((line) => line.trim())

@@ -1,16 +1,20 @@
-//! Migration planner for v4 -> 4r: lists what a v4 vault holds, groups it by asset class, and
-//! splits each group into batch items that fit a v4 batch transaction. The same rules as
-//! `planner.ts` in `@sqds/multisig-4r`. The RPC part (feature `fetch`) reads the chain and sends
-//! nothing.
+//! Migration planner for v4 or v3 -> 4r: lists what a source vault holds, groups it by asset
+//! class, and splits each group into items that fit a v4 batch entry or a v3 instruction. The same
+//! rules as `planner.ts` in `@sqds/multisig-4r`. The RPC part (feature `fetch`) reads the chain and
+//! sends nothing.
+
+use std::collections::HashSet;
 
 use solana_address::Address;
 use solana_instruction::Instruction;
 use squads_multisig_4r_program::builders::{
-    self, MigrationAccounts, MultisigMigratePrograms, MultisigMigrateSol, MultisigMigrateStakes,
-    MultisigMigrateTokenAuthorities, MultisigMigrateTokens, MultisigMigrateVoteAccounts,
+    self, MigrationAccounts, MigrationAccountsV3, MigrationLineage, MultisigMigratePrograms,
+    MultisigMigrateSol, MultisigMigrateStakes, MultisigMigrateTokenAuthorities,
+    MultisigMigrateTokens, MultisigMigrateVoteAccounts,
 };
 use squads_multisig_4r_program::instructions::{
     MigrateAuthoritiesArgs, MigrateSolArgs, MigrateTokenAuthoritiesArgs, MigrateTokensArgs,
+    MigrateV3AuthoritiesArgs, MigrateV3SolArgs, MigrateV3TokenAuthoritiesArgs, MigrateV3TokensArgs,
     TokenAuthorityKind,
 };
 use squads_multisig_4r_program::message::{
@@ -24,6 +28,7 @@ use squads_multisig_4r_program::LEGACY_V4_PROGRAM_ID;
 
 use crate::error::{ClientError, ClientResult};
 use crate::lookup_tables::lookup_table_addresses;
+use crate::v3::{get_v3_authority_pda, measure_v3_item, MAX_AUTHORITY_INDEX};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InventoryToken {
@@ -67,7 +72,8 @@ pub struct InventoryMint {
     pub authorities: Vec<TokenAuthorityKind>,
 }
 
-/// What one v4 vault holds or controls.
+/// What one source vault (a v4 vault or a v3 authority) holds or controls. `vault_index` is the
+/// successor vault index.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct V4VaultInventory {
     pub vault_index: u8,
@@ -119,6 +125,13 @@ impl MigrationLimits {
     pub const LOOKUP_TABLES: Self = Self {
         max_message_bytes: 800,
         max_message_accounts: 52,
+        max_instruction_trace: 64,
+    };
+    /// A v3 instruction: `max_message_bytes` is the wire size of its add and execute transactions
+    /// (room for a separate fee payer and compute budget instructions under 1232 bytes).
+    pub const V3: Self = Self {
+        max_message_bytes: 1060,
+        max_message_accounts: 60,
         max_instruction_trace: 64,
     };
 }
@@ -222,31 +235,18 @@ impl MigrationGroup {
         }
     }
 
-    /// The `multisig_migrate_*` instruction of this group (without the event account).
-    pub fn instruction(&self, source: &MigrationSource) -> ClientResult<Instruction> {
-        let migration = MigrationAccounts::new(
-            source.source_multisig,
-            source.vault_index,
-            source.program_id.as_ref(),
-        );
-        let program_id = source.program_id.as_ref();
-        let authorities = MigrateAuthoritiesArgs {
-            vault_index: source.vault_index,
-            config_authority_vault_index: source.config_authority_vault_index,
-            memo: None,
-        };
+    /// The `multisig_migrate_*` (or `multisig_migrate_v3_*`) instruction of this group, without
+    /// the event account.
+    pub fn instruction<S: MigrationSourceLineage>(&self, source: &S) -> ClientResult<Instruction> {
+        let migration = source.migration_accounts()?;
+        let program_id = source.program_id();
         Ok(match self {
             Self::Tokens {
                 token_program,
                 close_source,
                 items,
             } => MultisigMigrateTokens::new(migration, *token_program).instruction(
-                MigrateTokensArgs {
-                    vault_index: source.vault_index,
-                    config_authority_vault_index: source.config_authority_vault_index,
-                    close_source: *close_source,
-                    memo: None,
-                },
+                source.tokens_args(*close_source),
                 items,
                 program_id,
             )?,
@@ -255,43 +255,66 @@ impl MigrationGroup {
                 items,
             } => {
                 let accounts: Vec<Address> = items.iter().map(|item| item.account).collect();
+                let kinds = items.iter().map(|item| item.kind).collect();
                 MultisigMigrateTokenAuthorities::new(migration, *token_program).instruction(
-                    MigrateTokenAuthoritiesArgs {
-                        vault_index: source.vault_index,
-                        config_authority_vault_index: source.config_authority_vault_index,
-                        items: items.iter().map(|item| item.kind).collect(),
-                        memo: None,
-                    },
+                    source.token_authorities_args(kinds),
                     &accounts,
                     program_id,
                 )?
             }
             Self::Stakes(stakes) => MultisigMigrateStakes::new(migration).instruction(
-                authorities,
+                source.authorities_args(),
                 stakes,
                 program_id,
             )?,
             Self::VoteAccounts(votes) => MultisigMigrateVoteAccounts::new(migration).instruction(
-                authorities,
+                source.authorities_args(),
                 votes,
                 program_id,
             )?,
             Self::Programs(program_data) => MultisigMigratePrograms::new(migration).instruction(
-                authorities,
+                source.authorities_args(),
                 program_data,
                 program_id,
             )?,
-            Self::Sol { keep } => MultisigMigrateSol::new(migration).instruction(
-                MigrateSolArgs {
-                    vault_index: source.vault_index,
-                    config_authority_vault_index: source.config_authority_vault_index,
-                    keep: *keep,
-                    memo: None,
-                },
-                program_id,
-            )?,
+            Self::Sol { keep } => MultisigMigrateSol::new(migration)
+                .instruction(source.sol_args(*keep), program_id)?,
         })
     }
+}
+
+/// The size of one item: the bytes and the accounts that the limits compare.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ItemSize {
+    pub message_bytes: usize,
+    pub message_accounts: usize,
+}
+
+type SolArgs<S> = <<S as MigrationSourceLineage>::Accounts as MigrationLineage>::SolArgs;
+type TokensArgs<S> = <<S as MigrationSourceLineage>::Accounts as MigrationLineage>::TokensArgs;
+type TokenAuthoritiesArgs<S> =
+    <<S as MigrationSourceLineage>::Accounts as MigrationLineage>::TokenAuthoritiesArgs;
+type AuthoritiesArgs<S> =
+    <<S as MigrationSourceLineage>::Accounts as MigrationLineage>::AuthoritiesArgs;
+
+/// A migration source: [`MigrationSource`] (a v4 vault) or [`V3MigrationSource`] (a v3
+/// authority). It builds the migrate instructions of its lineage and measures one item.
+pub trait MigrationSourceLineage: Copy {
+    type Accounts: MigrationLineage;
+
+    /// The 4r program; `None` for the mainnet ID.
+    fn program_id(&self) -> Option<&Address>;
+    fn migration_accounts(&self) -> ClientResult<Self::Accounts>;
+    fn sol_args(&self, keep: u64) -> SolArgs<Self>;
+    fn tokens_args(&self, close_source: bool) -> TokensArgs<Self>;
+    fn token_authorities_args(&self, items: Vec<TokenAuthorityKind>) -> TokenAuthoritiesArgs<Self>;
+    fn authorities_args(&self) -> AuthoritiesArgs<Self>;
+    /// The size of one item with `instruction` (the migrate instruction, events included).
+    fn measure(
+        &self,
+        instruction: &Instruction,
+        tables: &[AddressLookupTableAccount],
+    ) -> ClientResult<ItemSize>;
 }
 
 /// The v4 multisig and vault that the migrate instructions move from.
@@ -303,6 +326,161 @@ pub struct MigrationSource {
     pub config_authority_vault_index: Option<u8>,
     /// The 4r program; default the mainnet ID.
     pub program_id: Option<Address>,
+}
+
+impl MigrationSourceLineage for MigrationSource {
+    type Accounts = MigrationAccounts;
+
+    fn program_id(&self) -> Option<&Address> {
+        self.program_id.as_ref()
+    }
+
+    fn migration_accounts(&self) -> ClientResult<MigrationAccounts> {
+        Ok(MigrationAccounts::new(
+            self.source_multisig,
+            self.vault_index,
+            self.program_id.as_ref(),
+        ))
+    }
+
+    fn sol_args(&self, keep: u64) -> MigrateSolArgs {
+        MigrateSolArgs {
+            vault_index: self.vault_index,
+            config_authority_vault_index: self.config_authority_vault_index,
+            keep,
+            memo: None,
+        }
+    }
+
+    fn tokens_args(&self, close_source: bool) -> MigrateTokensArgs {
+        MigrateTokensArgs {
+            vault_index: self.vault_index,
+            config_authority_vault_index: self.config_authority_vault_index,
+            close_source,
+            memo: None,
+        }
+    }
+
+    fn token_authorities_args(
+        &self,
+        items: Vec<TokenAuthorityKind>,
+    ) -> MigrateTokenAuthoritiesArgs {
+        MigrateTokenAuthoritiesArgs {
+            vault_index: self.vault_index,
+            config_authority_vault_index: self.config_authority_vault_index,
+            items,
+            memo: None,
+        }
+    }
+
+    fn authorities_args(&self) -> MigrateAuthoritiesArgs {
+        MigrateAuthoritiesArgs {
+            vault_index: self.vault_index,
+            config_authority_vault_index: self.config_authority_vault_index,
+            memo: None,
+        }
+    }
+
+    /// The compiled vault message of a v4 batch entry: its bytes and its accounts, loaded ones too.
+    fn measure(
+        &self,
+        instruction: &Instruction,
+        tables: &[AddressLookupTableAccount],
+    ) -> ClientResult<ItemSize> {
+        let source_vault = get_vault_pda(
+            &self.source_multisig,
+            self.vault_index,
+            Some(&LEGACY_V4_PROGRAM_ID),
+        )
+        .0;
+        let instructions = std::slice::from_ref(instruction);
+        let message = compile_transaction_message(&source_vault, instructions, tables)?;
+        let lookups: Vec<_> = message.address_table_lookups.into();
+        let loaded: usize = lookups
+            .iter()
+            .map(|lookup| lookup.writable_indexes.len() + lookup.readonly_indexes.len())
+            .sum();
+        Ok(ItemSize {
+            message_bytes: transaction_message_bytes(&source_vault, instructions, tables)?.len(),
+            message_accounts: message.account_keys.len() + loaded,
+        })
+    }
+}
+
+/// The v3 multisig and authority (1 to 256) that the `multisig_migrate_v3_*` instructions move
+/// from. Authority `N` moves to the successor vault `N - 1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct V3MigrationSource {
+    pub source_multisig: Address,
+    pub authority_index: u32,
+    /// The 4r program; default the mainnet ID.
+    pub program_id: Option<Address>,
+}
+
+impl MigrationSourceLineage for V3MigrationSource {
+    type Accounts = MigrationAccountsV3;
+
+    fn program_id(&self) -> Option<&Address> {
+        self.program_id.as_ref()
+    }
+
+    fn migration_accounts(&self) -> ClientResult<MigrationAccountsV3> {
+        MigrationAccountsV3::new(
+            self.source_multisig,
+            self.authority_index,
+            self.program_id.as_ref(),
+        )
+        .ok_or_else(|| invalid_authority_index(self.authority_index))
+    }
+
+    fn sol_args(&self, keep: u64) -> MigrateV3SolArgs {
+        MigrateV3SolArgs {
+            authority_index: self.authority_index,
+            keep,
+            memo: None,
+        }
+    }
+
+    fn tokens_args(&self, close_source: bool) -> MigrateV3TokensArgs {
+        MigrateV3TokensArgs {
+            authority_index: self.authority_index,
+            close_source,
+            memo: None,
+        }
+    }
+
+    fn token_authorities_args(
+        &self,
+        items: Vec<TokenAuthorityKind>,
+    ) -> MigrateV3TokenAuthoritiesArgs {
+        MigrateV3TokenAuthoritiesArgs {
+            authority_index: self.authority_index,
+            items,
+            memo: None,
+        }
+    }
+
+    fn authorities_args(&self) -> MigrateV3AuthoritiesArgs {
+        MigrateV3AuthoritiesArgs {
+            authority_index: self.authority_index,
+            memo: None,
+        }
+    }
+
+    /// The larger wire size of the v3 add and execute transactions, and the execute accounts.
+    fn measure(
+        &self,
+        instruction: &Instruction,
+        tables: &[AddressLookupTableAccount],
+    ) -> ClientResult<ItemSize> {
+        Ok(measure_v3_item(&self.source_multisig, instruction, tables))
+    }
+}
+
+pub(crate) fn invalid_authority_index(authority_index: u32) -> ClientError {
+    ClientError::Plan(format!(
+        "v3 authority index {authority_index} is not between 1 and {MAX_AUTHORITY_INDEX}"
+    ))
 }
 
 /// The groups of an inventory, in the order that a migration moves them: tokens, token
@@ -436,48 +614,39 @@ pub struct MigrationItem {
 
 /// What [`chunk_migration_groups`] needs to build and measure each instruction.
 #[derive(Debug, Clone, Copy)]
-pub struct ChunkInput<'a> {
-    pub source: MigrationSource,
+pub struct ChunkInput<'a, S = MigrationSource> {
+    pub source: S,
     pub events: bool,
     pub address_lookup_tables: &'a [AddressLookupTableAccount],
     pub limits: MigrationLimits,
 }
 
-fn migration_item(input: &ChunkInput, group: MigrationGroup) -> ClientResult<MigrationItem> {
-    let source = &input.source;
-    let source_vault = get_vault_pda(
-        &source.source_multisig,
-        source.vault_index,
-        Some(&LEGACY_V4_PROGRAM_ID),
-    )
-    .0;
-    let migrate = group.instruction(source)?;
+fn migration_item<S: MigrationSourceLineage>(
+    input: &ChunkInput<S>,
+    group: MigrationGroup,
+) -> ClientResult<MigrationItem> {
+    let migrate = group.instruction(&input.source)?;
     let instruction = match input.events {
         true => builders::with_events(migrate),
         false => migrate,
     };
-    let instructions = std::slice::from_ref(&instruction);
-    let tables = input.address_lookup_tables;
-    let message = compile_transaction_message(&source_vault, instructions, tables)?;
-    let lookups: Vec<_> = message.address_table_lookups.into();
-    let loaded: usize = lookups
-        .iter()
-        .map(|lookup| lookup.writable_indexes.len() + lookup.readonly_indexes.len())
-        .sum();
+    let size = input
+        .source
+        .measure(&instruction, input.address_lookup_tables)?;
     Ok(MigrationItem {
         instruction_trace: migration_instruction_trace(&group, input.events),
         group,
-        message_bytes: transaction_message_bytes(&source_vault, instructions, tables)?.len(),
-        message_accounts: message.account_keys.len() + loaded,
+        message_bytes: size.message_bytes,
+        message_accounts: size.message_accounts,
         instruction,
     })
 }
 
-/// Splits each group into batch items. Each item is the longest run of the group's items whose
-/// compiled vault message stays within the limits. The order does not change.
-pub fn chunk_migration_groups(
+/// Splits each group into items. Each item is the longest run of the group's items whose size
+/// ([`MigrationSourceLineage::measure`]) stays within the limits. The order does not change.
+pub fn chunk_migration_groups<S: MigrationSourceLineage>(
     groups: &[MigrationGroup],
-    input: &ChunkInput,
+    input: &ChunkInput<S>,
 ) -> ClientResult<Vec<MigrationItem>> {
     let fits = |item: &MigrationItem| {
         item.message_bytes <= input.limits.max_message_bytes
@@ -515,6 +684,116 @@ pub fn chunk_migration_groups(
     })
 }
 
+/// One member of a multisig, as the member report reads it: the key and whether it votes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReportedMember {
+    pub key: Address,
+    pub votes: bool,
+}
+
+/// A member that is off the curve: only a program signs for it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OffCurveMember {
+    pub key: Address,
+    /// A vault of the source or the successor (it signs 4r instructions through its multisig).
+    pub known_vault: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemberRisk {
+    /// Every member is a wallet.
+    None,
+    /// The wallet voters reach the threshold alone.
+    Low,
+    /// The wallet voters cannot reach the threshold alone.
+    High,
+}
+
+/// Off-curve members of a successor. A warning; it never blocks a plan.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemberSigningReport {
+    pub off_curve: Vec<OffCurveMember>,
+    pub on_curve_voters: usize,
+    pub threshold: u16,
+    pub risk: MemberRisk,
+}
+
+/// The member report of a successor with `members` and `threshold`. `known_vaults`: vault
+/// addresses of the source and the successor.
+pub fn member_signing_report(
+    members: &[ReportedMember],
+    threshold: u16,
+    known_vaults: &HashSet<Address>,
+) -> MemberSigningReport {
+    // `is_on_curve` needs the `curve25519` feature of solana-address; the program crate enables it.
+    let off_curve: Vec<OffCurveMember> = members
+        .iter()
+        .filter(|member| !member.key.is_on_curve())
+        .map(|member| OffCurveMember {
+            key: member.key,
+            known_vault: known_vaults.contains(&member.key),
+        })
+        .collect();
+    let on_curve_voters = members
+        .iter()
+        .filter(|member| member.votes && member.key.is_on_curve())
+        .count();
+    let risk = match (
+        off_curve.is_empty(),
+        on_curve_voters >= usize::from(threshold),
+    ) {
+        (true, _) => MemberRisk::None,
+        (false, true) => MemberRisk::Low,
+        (false, false) => MemberRisk::High,
+    };
+    MemberSigningReport {
+        off_curve,
+        on_curve_voters,
+        threshold,
+        risk,
+    }
+}
+
+/// The warning text of a member report, or nothing when every member is a wallet.
+pub fn member_report_warnings(report: &MemberSigningReport) -> Vec<String> {
+    let (voters, threshold) = (report.on_curve_voters, report.threshold);
+    let level = match report.risk {
+        MemberRisk::None => return Vec::new(),
+        MemberRisk::High => {
+            format!("HIGH: the {voters} wallet voters cannot reach the threshold {threshold} alone")
+        }
+        MemberRisk::Low => {
+            format!("low: the {voters} wallet voters reach the threshold {threshold} alone")
+        }
+    };
+    let keys = report
+        .off_curve
+        .iter()
+        .map(|member| match member.known_vault {
+            true => format!("{} (vault)", member.key),
+            false => member.key.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    vec![format!(
+        "members that only a program can sign for: {keys}. Confirm that each can sign 4r instructions (risk {level})"
+    )]
+}
+
+/// The vault addresses (indexes 0 to 255) of `multisig` under `program_id`.
+pub fn vault_addresses(multisig: &Address, program_id: &Address) -> Vec<Address> {
+    (0..=u8::MAX)
+        .map(|index| get_vault_pda(multisig, index, Some(program_id)).0)
+        .collect()
+}
+
+/// The v3 authorities (indexes 1 to 256) of `multisig`: the ones with a successor vault.
+pub fn v3_authority_addresses(multisig: &Address) -> Vec<Address> {
+    (1..=MAX_AUTHORITY_INDEX)
+        .map(|index| get_v3_authority_pda(multisig, index).0)
+        .collect()
+}
+
 /// A migration plan for one v4 vault.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct V4MigrationPlan {
@@ -534,6 +813,8 @@ pub struct V4MigrationPlan {
     pub items: Vec<MigrationItem>,
     /// The lookup tables that the vault messages use (empty: none).
     pub address_lookup_tables: Vec<AddressLookupTableAccount>,
+    /// Members that only a program can sign for; a warning, never a block.
+    pub member_report: MemberSigningReport,
     pub warnings: Vec<String>,
 }
 
@@ -823,7 +1104,7 @@ mod fetch {
         RpcFilterType::Memcmp(Memcmp::new_raw_bytes(offset, bytes.to_vec()))
     }
 
-    fn push_new<T, K: PartialEq>(found: &mut Vec<T>, item: T, key: impl Fn(&T) -> K) {
+    pub(crate) fn push_new<T, K: PartialEq>(found: &mut Vec<T>, item: T, key: impl Fn(&T) -> K) {
         if !found.iter().any(|known| key(known) == key(&item)) {
             found.push(item);
         }
@@ -839,6 +1120,19 @@ mod fetch {
         extra_mints: &[Address],
     ) -> ClientResult<V4VaultInventory> {
         let vault = get_vault_pda(source_multisig, vault_index, V4).0;
+        fetch_vault_inventory(rpc, &vault, vault_index, scans, extra_mints).await
+    }
+
+    /// The inventory of the source `vault` (a v4 vault or a v3 authority). `vault_index` is the
+    /// successor vault index.
+    pub async fn fetch_vault_inventory(
+        rpc: &RpcClient,
+        vault: &Address,
+        vault_index: u8,
+        scans: InventoryScans,
+        extra_mints: &[Address],
+    ) -> ClientResult<V4VaultInventory> {
+        let vault = *vault;
         let key = vault.to_bytes();
         let mut warnings = Vec::new();
         let mut scan = |name: &str, result: ClientResult<Vec<(Address, Vec<u8>)>>| {
@@ -1077,37 +1371,27 @@ mod fetch {
                 limits: input.limits.unwrap_or(default_limits),
             },
         )?;
-        let destinations = groups
+        let new_token_accounts = count_new_token_accounts(rpc, &groups, &vault).await?;
+        let known_vaults: HashSet<Address> =
+            vault_addresses(&source_multisig, &LEGACY_V4_PROGRAM_ID)
+                .into_iter()
+                .chain(vault_addresses(&successor, &program_id))
+                .collect();
+        let members: Vec<ReportedMember> = source
+            .members
             .iter()
-            .flat_map(|group| match group {
-                MigrationGroup::Tokens {
-                    token_program,
-                    items,
-                    ..
-                } => items
-                    .iter()
-                    .map(|item| get_associated_token_address(&vault, &item.mint, token_program))
-                    .collect(),
-                _ => Vec::new(),
+            .map(|member| ReportedMember {
+                key: member.key,
+                votes: member.permissions.mask & 2 != 0,
             })
-            .fold(Vec::new(), |mut found, address| {
-                push_new(&mut found, address, |a| *a);
-                found
-            });
-        let new_token_accounts = match destinations.is_empty() {
-            true => 0,
-            false => rpc
-                .get_multiple_accounts(&destinations)
-                .await?
-                .iter()
-                .filter(|account| account.is_none())
-                .count() as u64,
-        };
+            .collect();
+        let member_report = member_signing_report(&members, source.threshold, &known_vaults);
         let warnings = inventory
             .warnings
             .iter()
             .cloned()
             .chain(notes)
+            .chain(member_report_warnings(&member_report))
             .chain((governance_matches == Some(false)).then(|| {
                 "the successor governance differs from v4: the migrate instructions fail until they agree".to_string()
             }))
@@ -1128,8 +1412,47 @@ mod fetch {
             groups,
             items,
             address_lookup_tables: input.address_lookup_tables.to_vec(),
+            member_report,
             warnings,
         })
+    }
+
+    /// The successor token accounts that the token groups create (the source vault pays their rent).
+    pub async fn count_new_token_accounts(
+        rpc: &RpcClient,
+        groups: &[MigrationGroup],
+        vault: &Address,
+    ) -> ClientResult<u64> {
+        let destinations = groups
+            .iter()
+            .flat_map(|group| match group {
+                MigrationGroup::Tokens {
+                    token_program,
+                    items,
+                    ..
+                } => items
+                    .iter()
+                    .map(|item| get_associated_token_address(vault, &item.mint, token_program))
+                    .collect(),
+                _ => Vec::new(),
+            })
+            .fold(Vec::new(), |mut found, address| {
+                push_new(&mut found, address, |a| *a);
+                found
+            });
+        if destinations.is_empty() {
+            return Ok(0);
+        }
+        let mut missing = 0;
+        for chunk in destinations.chunks(100) {
+            missing += rpc
+                .get_multiple_accounts(chunk)
+                .await?
+                .iter()
+                .filter(|account| account.is_none())
+                .count() as u64;
+        }
+        Ok(missing)
     }
 
     /// The v4 proposals of a plan: the transactions to send in order, and the v4 transaction indexes.

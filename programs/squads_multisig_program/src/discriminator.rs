@@ -30,12 +30,20 @@ pub mod instruction {
     /// Deprecated: the program rejects it with `MultisigCreateDeprecated`.
     pub const MULTISIG_CREATE: [u8; 8] = [122, 77, 80, 159, 84, 88, 90, 197];
     pub const MULTISIG_CREATE_FROM: [u8; 8] = [12, 150, 232, 176, 3, 189, 132, 132];
+    pub const MULTISIG_CREATE_FROM_V3: [u8; 8] = [203, 22, 106, 157, 9, 7, 246, 54];
     pub const MULTISIG_CREATE_V2: [u8; 8] = [50, 221, 199, 93, 40, 245, 139, 233];
     pub const MULTISIG_MIGRATE_PROGRAMS: [u8; 8] = [159, 93, 209, 8, 21, 235, 195, 212];
     pub const MULTISIG_MIGRATE_SOL: [u8; 8] = [42, 116, 96, 147, 175, 65, 237, 197];
     pub const MULTISIG_MIGRATE_STAKES: [u8; 8] = [149, 25, 249, 211, 157, 111, 17, 244];
     pub const MULTISIG_MIGRATE_TOKENS: [u8; 8] = [55, 25, 214, 187, 88, 213, 208, 198];
     pub const MULTISIG_MIGRATE_TOKEN_AUTHORITIES: [u8; 8] = [89, 28, 200, 210, 144, 124, 99, 47];
+    pub const MULTISIG_MIGRATE_V3_PROGRAMS: [u8; 8] = [251, 71, 37, 72, 15, 36, 171, 193];
+    pub const MULTISIG_MIGRATE_V3_SOL: [u8; 8] = [145, 118, 113, 56, 29, 250, 124, 35];
+    pub const MULTISIG_MIGRATE_V3_STAKES: [u8; 8] = [162, 28, 202, 51, 204, 135, 232, 218];
+    pub const MULTISIG_MIGRATE_V3_TOKENS: [u8; 8] = [182, 94, 202, 152, 217, 1, 164, 145];
+    pub const MULTISIG_MIGRATE_V3_TOKEN_AUTHORITIES: [u8; 8] =
+        [221, 80, 131, 110, 92, 12, 108, 147];
+    pub const MULTISIG_MIGRATE_V3_VOTE_ACCOUNTS: [u8; 8] = [209, 80, 45, 68, 29, 232, 82, 52];
     pub const MULTISIG_MIGRATE_VOTE_ACCOUNTS: [u8; 8] = [123, 111, 0, 6, 188, 150, 83, 67];
     pub const MULTISIG_REMOVE_MEMBER: [u8; 8] = [217, 117, 177, 210, 182, 145, 218, 72];
     pub const MULTISIG_REMOVE_SPENDING_LIMIT: [u8; 8] = [228, 198, 136, 111, 123, 4, 178, 113];

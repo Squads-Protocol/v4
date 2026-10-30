@@ -5,7 +5,7 @@ mod common;
 
 use std::str::FromStr;
 
-use common::{fixtures, idl, idl_account_flags, ACCOUNTS};
+use common::{fixtures, flags, idl_account_flags, idl_discriminator, ACCOUNTS};
 use solana_address::Address;
 use squads_multisig_4r_program::account::ProgramAccount;
 use squads_multisig_4r_program::discriminator::{account, instruction};
@@ -48,28 +48,6 @@ fn account_data(multisig: &Multisig) -> Vec<u8> {
         &[0; 64],
     ]
     .concat()
-}
-
-fn idl_discriminator(name: &str) -> Vec<u8> {
-    idl()["instructions"]
-        .as_array()
-        .expect("instructions")
-        .iter()
-        .find(|ix| ix["name"] == name)
-        .unwrap_or_else(|| panic!("{name} not in IDL"))["discriminator"]
-        .as_array()
-        .expect("discriminator")
-        .iter()
-        .map(|byte| byte.as_u64().expect("byte") as u8)
-        .collect()
-}
-
-fn flags(instruction: &solana_instruction::Instruction) -> Vec<(bool, bool, bool)> {
-    instruction
-        .accounts
-        .iter()
-        .map(|meta| (meta.is_writable, meta.is_signer, false))
-        .collect()
 }
 
 /// A successor with exactly the config that `multisig_create_from` gives it.
