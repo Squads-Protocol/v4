@@ -59,13 +59,16 @@ $10,000 USD in locked SOL tokens (locked for 12 months):
 Squads V4 on-chain program (`SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf`) is in scope for the bounty program.
 ### Out of Scope
 The following components are out of scope for the bounty program: 
-* any encrypted credentials, auth tokens, etc. checked into the repo 
+* any encrypted credentials, auth tokens, etc. checked into the repo. 
 * bugs in dependencies, please take them upstream! 
-* attacks that require social engineering 
-* any files, modules or libraries other than the ones mentioned above 
-* any points listed as an already known weaknesses 
-* any points listed in the audit reports 
+* attacks that require social engineering. 
+* any files, modules or libraries other than the ones mentioned above. 
+* any points listed as already known weaknesses, including but not limited to those in the Known Issues section below.
+* any points listed in the audit reports. 
 * any points fixed in a newer version.
+### Known Issues
+* Multisigs with more than 105 members cannot create new proposals because the `Proposal` account exceeds Solana's 10,240-byte allocation limit for inner instructions. For autonomous multisigs, this can leave the multisig permanently unable to create proposals or recover.
+Users and integrations should enforce a maximum of 105 members. Reports that rely on this known limitation are out of scope and are not eligible for a bug bounty.
 ### Eligibility
 The participant submitting the bug report shall follow the process outlined within this document. 
 Multiple submissions for the same class of exploit are still eligible for compensation, though may be compensated at a lower rate, however these will be assessed on a case-by-case basis. 
