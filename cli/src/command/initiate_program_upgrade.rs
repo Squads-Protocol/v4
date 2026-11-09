@@ -14,7 +14,7 @@ use solana_sdk::message::VersionedMessage;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 
-use squads_multisig::anchor_lang::InstructionData;
+use squads_multisig::anchor_lang::{AnchorSerialize, InstructionData};
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
 use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
@@ -27,8 +27,10 @@ use squads_multisig::squads_multisig_program::instruction::ProposalCreate as Pro
 use squads_multisig::squads_multisig_program::instruction::VaultTransactionCreate as VaultTransactionCreateData;
 use squads_multisig::squads_multisig_program::ProposalCreateArgs;
 use squads_multisig::squads_multisig_program::ProposalVoteArgs;
+use squads_multisig::squads_multisig_program::TransactionMessage;
 use squads_multisig::squads_multisig_program::VaultTransactionCreateArgs;
 use squads_multisig::state::Permission;
+use squads_multisig::vault_transaction::VaultTransactionMessageExt;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
@@ -158,7 +160,7 @@ impl InitiateProgramUpgrade {
         );
 
         let upgrade_program_message =
-            Message::try_compile(&vault_pda.0, &[instruction], &[], blockhash).unwrap();
+            TransactionMessage::try_compile(&vault_pda.0, &[instruction], &[]).unwrap();
 
         let payer = fee_payer.unwrap_or(transaction_creator);
 
@@ -180,7 +182,7 @@ impl InitiateProgramUpgrade {
                         ephemeral_signers: 0,
                         vault_index,
                         memo: memo.clone(),
-                        transaction_message: upgrade_program_message.serialize(),
+                        transaction_message: upgrade_program_message.try_to_vec().unwrap(),
                     },
                 }
                 .data(),
