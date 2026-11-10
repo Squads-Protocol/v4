@@ -23,7 +23,8 @@ export function multisigChangeThreshold({
 }: {
   blockhash: string;
   multisigPda: PublicKey;
-  spendingLimit: PublicKey;
+  /** Unused. */
+  spendingLimit?: PublicKey;
   configAuthority: PublicKey;
   rentPayer: PublicKey;
   newThreshold: number;

@@ -373,6 +373,65 @@ describe("Multisig SDK", () => {
     });
   });
 
+  describe("multisig_change_threshold for a controlled multisig", () => {
+    let multisigPda: PublicKey;
+    let configAuthority: Keypair;
+    let wrongConfigAuthority: Keypair;
+    before(async () => {
+      configAuthority = await generateFundedKeypair(connection);
+      wrongConfigAuthority = await generateFundedKeypair(connection);
+
+      // Create new controlled multisig.
+      multisigPda = (
+        await createControlledMultisig({
+          connection,
+          createKey: Keypair.generate(),
+          members,
+          threshold: 1,
+          configAuthority: configAuthority.publicKey,
+          timeLock: 0,
+          programId,
+        })
+      )[0];
+    });
+
+    it("error: invalid authority", async () => {
+      const rentPayer = await generateFundedKeypair(connection);
+      await assert.rejects(
+        multisig.rpc.multisigChangeThreshold({
+          connection,
+          multisigPda,
+          configAuthority: wrongConfigAuthority.publicKey,
+          rentPayer,
+          newThreshold: 2,
+          signers: [wrongConfigAuthority],
+          programId,
+        }),
+        /Attempted to perform an unauthorized action/
+      );
+    });
+
+    it("change `threshold` for the controlled multisig", async () => {
+      const rentPayer = await generateFundedKeypair(connection);
+      const signature = await multisig.rpc.multisigChangeThreshold({
+        connection,
+        multisigPda,
+        configAuthority: configAuthority.publicKey,
+        rentPayer,
+        newThreshold: 2,
+        signers: [configAuthority],
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+
+      const multisigAccount = await Multisig.fromAccountAddress(
+        connection,
+        multisigPda
+      );
+      assert.strictEqual(multisigAccount.threshold, 2);
+    });
+  });
+
   describe("multisig_set_config_authority", () => {
     let multisigPda: PublicKey;
     let configAuthority: Keypair;
