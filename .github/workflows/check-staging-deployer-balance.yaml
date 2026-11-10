@@ -4,19 +4,29 @@
 name: Check Staging Deployer Balance
 
 on:
-  pull_request:
+  # `pull_request_target` runs in the context of the base repository, so the
+  # staging upgrade-authority secret is available. Check out the trusted base
+  # commit only; never execute code from the pull request head here.
+  pull_request_target:
     branches:
       - main
     paths:
       - 'programs/squads_multisig_program/**'
 
+permissions:
+  contents: read
+
 jobs:
   check-balance:
     if: contains(github.event.pull_request.labels.*.name, 'deploy-staging')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout trusted base commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
 
       - name: Setup Solana
         uses: ./.github/actions/setup-solana/
@@ -26,24 +36,28 @@ jobs:
           UPGRADE_AUTHORITY_KEYPAIR: ${{ secrets.UPGRADE_AUTHORITY_KEYPAIR_STAGING }}
           RPC_URL: ${{ secrets.RPC_URL_MAINNET }}
         run: |
-          # Write the keypair to a file so it can be used with solana-keygen
-          echo $UPGRADE_AUTHORITY_KEYPAIR > ./upgrade-authority.json && chmod 600 ./upgrade-authority.json
-          
+          set -euo pipefail
+
+          keypair_path="$RUNNER_TEMP/upgrade-authority.json"
+          trap 'rm -f "$keypair_path"' EXIT
+
+          # Write the keypair outside the workspace and always remove it.
+          printf '%s' "$UPGRADE_AUTHORITY_KEYPAIR" > "$keypair_path"
+          chmod 600 "$keypair_path"
+
           # Extract the public key from the keypair file
-          PUBLIC_KEY=$(solana-keygen pubkey ./upgrade-authority.json)
-          
-          # Remove the keypair file
-          rm ./upgrade-authority.json
-          
+          PUBLIC_KEY=$(solana-keygen pubkey "$keypair_path")
+
           # Fetch the balance of the public key
-          BALANCE=$(solana balance $PUBLIC_KEY --url $RPC_URL | awk '{print $1}')
-          
+          BALANCE=$(solana balance "$PUBLIC_KEY" --url "$RPC_URL" | awk '{print $1}')
+
           MIN_BALANCE=10
-          
-          # Check if the balance is less than the minimum balance using floating point comparison with `bc`
-          if (( $(echo "$BALANCE < $MIN_BALANCE" | bc -l) )); then
-            echo "Balance of $PUBLIC_KEY is $BALANCE, which is less than the minimum balance of $MIN_BALANCE"
+
+          # Compare as numbers without relying on `bc`, which is not installed
+          # on every runner image.
+          if ! awk -v balance="$BALANCE" -v min="$MIN_BALANCE" 'BEGIN { exit !(balance + 0 >= min + 0) }'; then
+            echo "Balance of $PUBLIC_KEY is $BALANCE, which is less than the minimum balance of $MIN_BALANCE" >&2
             exit 1
           fi
-          
+
           echo "Balance of $PUBLIC_KEY is $BALANCE SOL"

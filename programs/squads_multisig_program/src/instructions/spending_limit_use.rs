@@ -109,8 +109,10 @@ impl SpendingLimitUse<'_> {
             require!(mint.is_none(), MultisigError::InvalidMint);
         } else {
             // SpendingLimit is for an SPL token, `mint` must match `spending_limit.mint`.
+            // V4R-1 Fix: Replaced .unwrap() with .ok_or() to prevent panicking on missing optional accounts[cite: 12, 42]
+            let mint = mint.as_ref().ok_or(MultisigError::MissingAccount)?;
             require!(
-                spending_limit.mint == mint.as_ref().unwrap().key(),
+                spending_limit.mint == mint.key(),
                 MultisigError::InvalidMint
             );
         }
@@ -147,18 +149,27 @@ impl SpendingLimitUse<'_> {
 
         // Reset `spending_limit.remaining_amount` if the `spending_limit.period` has passed.
         if let Some(reset_period) = spending_limit.period.to_seconds() {
-            let passed_since_last_reset = now.checked_sub(spending_limit.last_reset).unwrap();
+            // V4R-2 Fix: Removed panic paths by bubbling up proper error variants[cite: 12, 42]
+            let passed_since_last_reset = now
+                .checked_sub(spending_limit.last_reset)
+                .ok_or(MultisigError::InvalidInstructionArgs)?;
 
             if passed_since_last_reset > reset_period {
                 spending_limit.remaining_amount = spending_limit.amount;
 
-                let periods_passed = passed_since_last_reset.checked_div(reset_period).unwrap();
+                let periods_passed = passed_since_last_reset
+                    .checked_div(reset_period)
+                    .ok_or(MultisigError::InvalidInstructionArgs)?;
 
                 // last_reset = last_reset + periods_passed * reset_period,
                 spending_limit.last_reset = spending_limit
                     .last_reset
-                    .checked_add(periods_passed.checked_mul(reset_period).unwrap())
-                    .unwrap();
+                    .checked_add(
+                        periods_passed
+                            .checked_mul(reset_period)
+                            .ok_or(MultisigError::InvalidInstructionArgs)?,
+                    )
+                    .ok_or(MultisigError::InvalidInstructionArgs)?;
             }
         }
 
