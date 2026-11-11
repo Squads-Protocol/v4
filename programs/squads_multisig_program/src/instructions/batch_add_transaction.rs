@@ -1,16 +1,31 @@
+#[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use crate::events::{
+    self, BatchTransactionEvent, BatchTransactionEventKind, LogAuthority, MultisigEvent,
+};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
+#[cfg(feature = "program")]
 use crate::state::*;
+#[cfg(feature = "program")]
 use crate::TransactionMessage;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct BatchAddTransactionArgs {
     /// Number of ephemeral signing PDAs required by the transaction.
     pub ephemeral_signers: u8,
     pub transaction_message: Vec<u8>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: BatchAddTransactionArgs)]
 pub struct BatchAddTransaction<'info> {
@@ -73,6 +88,7 @@ pub struct BatchAddTransaction<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl BatchAddTransaction<'_> {
     fn validate(&self) -> Result<()> {
         let Self {
@@ -140,10 +156,23 @@ impl BatchAddTransaction<'_> {
         // Increment the batch size.
         batch.size = batch.size.checked_add(1).expect("overflow");
 
-        // Logs for indexing.
-        msg!("batch index: {}", batch.index);
-        msg!("batch size: {}", batch.size);
-
-        Ok(())
+        let batch = &ctx.accounts.batch;
+        let transaction = &ctx.accounts.transaction;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(&ctx.accounts.multisig),
+            || {
+                vec![MultisigEvent::BatchTransaction(BatchTransactionEvent {
+                    kind: BatchTransactionEventKind::Add,
+                    multisig: batch.multisig,
+                    batch: batch.key(),
+                    transaction: transaction.key(),
+                    batch_index: batch.index,
+                    transaction_index: batch.size,
+                    member: Some(ctx.accounts.member.key()),
+                    snapshot: Some(Cow::Borrowed(transaction)),
+                })]
+            },
+        )
     }
 }

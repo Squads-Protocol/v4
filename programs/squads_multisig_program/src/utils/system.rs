@@ -26,7 +26,7 @@ pub fn create_account<'a, 'info>(
         // If the account has no lamports, we create it with system program's create_account instruction.
         anchor_lang::system_program::create_account(
             CpiContext::new(
-                system_program.clone(),
+                system_program.key(),
                 anchor_lang::system_program::CreateAccount {
                     from: payer.clone(),
                     to: new_account.clone(),
@@ -56,7 +56,7 @@ pub fn create_account<'a, 'info>(
         if required_lamports > 0 {
             anchor_lang::system_program::transfer(
                 CpiContext::new(
-                    system_program.clone(),
+                    system_program.key(),
                     anchor_lang::system_program::Transfer {
                         from: payer.clone(),
                         to: new_account.clone(),
@@ -69,7 +69,7 @@ pub fn create_account<'a, 'info>(
         // Allocate space.
         anchor_lang::system_program::allocate(
             CpiContext::new(
-                system_program.to_account_info(),
+                system_program.key(),
                 anchor_lang::system_program::Allocate {
                     account_to_allocate: new_account.clone(),
                 },
@@ -85,7 +85,7 @@ pub fn create_account<'a, 'info>(
         // Assign to the owner_program.
         anchor_lang::system_program::assign(
             CpiContext::new(
-                system_program.to_account_info(),
+                system_program.key(),
                 anchor_lang::system_program::Assign {
                     account_to_assign: new_account.clone(),
                 },
@@ -111,5 +111,5 @@ pub fn close<'info>(info: AccountInfo<'info>, sol_destination: AccountInfo<'info
     **info.lamports.borrow_mut() = 0;
 
     info.assign(&system_program::ID);
-    info.realloc(0, false).map_err(Into::into)
+    info.resize(0).map_err(Into::into)
 }

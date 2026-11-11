@@ -8,6 +8,7 @@ use solana_program::instruction::Instruction;
 use solana_program::program::invoke_signed;
 
 use crate::errors::*;
+use crate::events::is_log_event_call;
 use crate::state::*;
 
 /// Sanitized and validated combination of a `MsTransactionMessage` and `AccountInfo`s it references.
@@ -194,13 +195,13 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
             .map(Vec::as_slice)
             .collect::<Vec<&[&[u8]]>>();
         // Add the vault seeds.
-        signer_seeds.push(&vault_seeds);
+        signer_seeds.push(vault_seeds);
 
-        // NOTE: `self.to_instructions_and_accounts()` calls `take()` on
+        // NOTE: `self.into_instructions_and_accounts()` calls `take()` on
         // `self.message.instructions`, therefore after this point no more
         // references or usages of `self.message` should be made to avoid
         // faulty behavior.
-        for (ix, account_infos) in self.to_instructions_and_accounts().iter() {
+        for (ix, account_infos) in self.into_instructions_and_accounts().iter() {
             // Make sure we don't pass protected accounts as writable to CPI calls.
             for account_meta in ix.accounts.iter().filter(|m| m.is_writable) {
                 require!(
@@ -208,7 +209,12 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
                     MultisigError::ProtectedAccount
                 );
             }
-            invoke_signed(&ix, &account_infos, &signer_seeds)?;
+            // Only the program itself may emit events.
+            require!(
+                !is_log_event_call(&ix.program_id, &ix.data, &crate::ID),
+                MultisigError::ProtectedInstruction
+            );
+            invoke_signed(ix, account_infos, &signer_seeds)?;
         }
         Ok(())
     }
@@ -252,7 +258,7 @@ impl<'a, 'info> ExecutableTransactionMessage<'a, 'info> {
         index < self.loaded_writable_accounts.len()
     }
 
-    pub fn to_instructions_and_accounts(mut self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {
+    pub fn into_instructions_and_accounts(mut self) -> Vec<(Instruction, Vec<AccountInfo<'info>>)> {
         let mut executable_instructions = vec![];
 
         for ms_compiled_instruction in core::mem::take(&mut self.message.instructions) {

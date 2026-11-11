@@ -1,0 +1,7 @@
+# The Solana platform-tools `rustc` is a `-dev` build, so it accepts `#![feature(...)]` like a
+# nightly. Build scripts that probe the compiler (thiserror: `error_generic_member_access`) then
+# turn on unstable features in the deployed program. An empty allow list makes each probe fail
+# and makes any `#![feature]` in the program's dependency graph a compile error.
+# Only the on-chain target gets this flag; host builds use the stable toolchain.
+[target.'cfg(target_os = "solana")']
+rustflags = ["-Zallow-features="]

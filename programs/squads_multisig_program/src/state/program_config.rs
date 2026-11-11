@@ -1,10 +1,19 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 
 /// Global program configuration account.
-#[account]
-#[derive(InitSpace)]
+#[cfg_attr(feature = "program", account)]
+#[cfg_attr(
+    not(feature = "program"),
+    derive(BorshSerialize, BorshDeserialize, Clone)
+)]
+#[cfg_attr(feature = "program", derive(InitSpace))]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ProgramConfig {
     /// The authority which can update the config.
     pub authority: Pubkey,
@@ -18,6 +27,10 @@ pub struct ProgramConfig {
 }
 
 impl ProgramConfig {
+    /// Serialized size without the 8-byte discriminator.
+    pub const LEN: usize = 32 + 8 + 32 + 64;
+
+    #[cfg(feature = "program")]
     pub fn invariant(&self) -> Result<()> {
         // authority must be non-default.
         require_keys_neq!(

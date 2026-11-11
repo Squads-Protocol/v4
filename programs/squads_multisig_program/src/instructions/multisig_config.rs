@@ -1,50 +1,69 @@
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
 
+#[cfg(feature = "program")]
 use crate::errors::*;
+#[cfg(feature = "program")]
+use std::borrow::Cow;
+
+#[cfg(feature = "program")]
+use crate::events::{
+    self, ConfigAuthorityChangeEvent, ConfigSource, LogAuthority, MultisigConfigEvent,
+    MultisigEvent,
+};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 use crate::state::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigAddMemberArgs {
     pub new_member: Member,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigRemoveMemberArgs {
     pub old_member: Pubkey,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigChangeThresholdArgs {
     pub new_threshold: u16,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigSetTimeLockArgs {
     pub time_lock: u32,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigSetConfigAuthorityArgs {
     pub config_authority: Pubkey,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigSetRentCollectorArgs {
     pub rent_collector: Option<Pubkey>,
     /// Memo is used for indexing only.
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct MultisigConfig<'info> {
     #[account(
@@ -67,6 +86,7 @@ pub struct MultisigConfig<'info> {
     pub system_program: Option<Program<'info, System>>,
 }
 
+#[cfg(feature = "program")]
 impl MultisigConfig<'_> {
     fn validate(&self) -> Result<()> {
         require_keys_eq!(
@@ -78,13 +98,36 @@ impl MultisigConfig<'_> {
         Ok(())
     }
 
+    fn emit_config_event(
+        ctx: &Context<Self>,
+        action: ConfigAction,
+        memo: Option<String>,
+    ) -> Result<()> {
+        let multisig = &ctx.accounts.multisig;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::MultisigConfig(MultisigConfigEvent {
+                    multisig: multisig.key(),
+                    source: ConfigSource::ConfigAuthority {
+                        authority: ctx.accounts.config_authority.key(),
+                    },
+                    actions: Cow::Owned(vec![action]),
+                    memo,
+                    snapshot: Some(Cow::Borrowed(multisig)),
+                })]
+            },
+        )
+    }
+
     /// Add a member/key to the multisig and reallocate space if necessary.
     ///
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
     ///       Uncontrolled Mustisigs should use `config_transaction_create` instead.
     #[access_control(ctx.accounts.validate())]
     pub fn multisig_add_member(ctx: Context<Self>, args: MultisigAddMemberArgs) -> Result<()> {
-        let MultisigAddMemberArgs { new_member, .. } = args;
+        let MultisigAddMemberArgs { new_member, memo } = args;
 
         let multisig = &mut ctx.accounts.multisig;
 
@@ -94,7 +137,7 @@ impl MultisigConfig<'_> {
             MultisigError::DuplicateMember
         );
 
-        multisig.add_member(new_member);
+        multisig.add_member(new_member.clone());
 
         // Make sure the multisig account can fit the newly set rent_collector.
         Multisig::realloc_if_needed(
@@ -114,7 +157,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        Ok(())
+        Self::emit_config_event(&ctx, ConfigAction::AddMember { new_member }, memo)
     }
 
     /// Remove a member/key from the multisig.
@@ -139,7 +182,13 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        Ok(())
+        Self::emit_config_event(
+            &ctx,
+            ConfigAction::RemoveMember {
+                old_member: args.old_member,
+            },
+            args.memo,
+        )
     }
 
     /// NOTE: This instruction must be called only by the `config_authority` if one is set (Controlled Multisig).
@@ -149,7 +198,10 @@ impl MultisigConfig<'_> {
         ctx: Context<Self>,
         args: MultisigChangeThresholdArgs,
     ) -> Result<()> {
-        let MultisigChangeThresholdArgs { new_threshold, .. } = args;
+        let MultisigChangeThresholdArgs {
+            new_threshold,
+            memo,
+        } = args;
 
         let multisig = &mut ctx.accounts.multisig;
 
@@ -159,7 +211,7 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        Ok(())
+        Self::emit_config_event(&ctx, ConfigAction::ChangeThreshold { new_threshold }, memo)
     }
 
     /// Set the `time_lock` config parameter for the multisig.
@@ -176,7 +228,13 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        Ok(())
+        Self::emit_config_event(
+            &ctx,
+            ConfigAction::SetTimeLock {
+                new_time_lock: args.time_lock,
+            },
+            args.memo,
+        )
     }
 
     /// Set the multisig `config_authority`.
@@ -196,7 +254,22 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        events::emit(
+            events::enabled(ctx.remaining_accounts),
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::ConfigAuthorityChange(
+                    ConfigAuthorityChangeEvent {
+                        multisig: multisig.key(),
+                        authority: ctx.accounts.config_authority.key(),
+                        new_config_authority: args.config_authority,
+                        memo: args.memo,
+                        snapshot: Some(Cow::Borrowed(multisig)),
+                    },
+                )]
+            },
+        )
     }
 
     /// Set the multisig `rent_collector` and reallocate space if necessary.
@@ -231,6 +304,12 @@ impl MultisigConfig<'_> {
 
         multisig.invariant()?;
 
-        Ok(())
+        Self::emit_config_event(
+            &ctx,
+            ConfigAction::SetRentCollector {
+                new_rent_collector: args.rent_collector,
+            },
+            args.memo,
+        )
     }
 }

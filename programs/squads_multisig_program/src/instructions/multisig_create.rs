@@ -1,19 +1,30 @@
 #![allow(deprecated)]
-use anchor_lang::prelude::*;
-use anchor_lang::system_program;
-use solana_program::native_token::LAMPORTS_PER_SOL;
+#[cfg(feature = "program")]
+use std::borrow::Cow;
 
+#[cfg(feature = "program")]
+use anchor_lang::prelude::*;
+#[cfg(feature = "program")]
+use anchor_lang::system_program;
+
+#[cfg(feature = "program")]
 use crate::errors::MultisigError;
+#[cfg(feature = "program")]
+use crate::events::{self, LogAuthority, MultisigCreateEvent, MultisigEvent};
+#[cfg(not(feature = "program"))]
+use crate::prelude::*;
 use crate::state::*;
 
 // Dummy Account context for multisigCreate, since Anchor doesn't allow empty instructions.
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 pub struct Deprecated<'info> {
     ///CHECK: Dummy Account
-    pub null: AccountInfo<'info>,
+    pub null: UncheckedAccount<'info>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(feature = "program", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(not(feature = "program"), derive(BorshSerialize, BorshDeserialize))]
 pub struct MultisigCreateArgsV2 {
     /// The authority that can configure the multisig: add/remove members, change the threshold, etc.
     /// Should be set to `None` for autonomous multisigs.
@@ -31,6 +42,7 @@ pub struct MultisigCreateArgsV2 {
     pub memo: Option<String>,
 }
 
+#[cfg(feature = "program")]
 #[derive(Accounts)]
 #[instruction(args: MultisigCreateArgsV2)]
 pub struct MultisigCreateV2<'info> {
@@ -41,7 +53,7 @@ pub struct MultisigCreateV2<'info> {
     /// The treasury where the creation fee is transferred to.
     /// CHECK: validation is performed in the `MultisigCreate::validate()` method.
     #[account(mut)]
-    pub treasury: AccountInfo<'info>,
+    pub treasury: UncheckedAccount<'info>,
 
     #[account(
         init,
@@ -63,6 +75,7 @@ pub struct MultisigCreateV2<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[cfg(feature = "program")]
 impl MultisigCreateV2<'_> {
     fn validate(&self) -> Result<()> {
         //region treasury
@@ -102,7 +115,7 @@ impl MultisigCreateV2<'_> {
         if creation_fee > 0 {
             system_program::transfer(
                 CpiContext::new(
-                    ctx.accounts.system_program.to_account_info(),
+                    ctx.accounts.system_program.key(),
                     system_program::Transfer {
                         from: ctx.accounts.creator.to_account_info(),
                         to: ctx.accounts.treasury.to_account_info(),
@@ -110,9 +123,26 @@ impl MultisigCreateV2<'_> {
                 ),
                 creation_fee,
             )?;
-            msg!("Creation fee: {}", creation_fee / LAMPORTS_PER_SOL);
         }
 
-        Ok(())
+        let enabled = events::enabled(ctx.remaining_accounts);
+        if enabled {
+            // `log_event` checks the discriminator, so the new account must be written first.
+            ctx.accounts.multisig.exit(&crate::ID)?;
+        }
+        let multisig = &ctx.accounts.multisig;
+        events::emit(
+            enabled,
+            || LogAuthority::multisig(multisig),
+            || {
+                vec![MultisigEvent::MultisigCreate(MultisigCreateEvent {
+                    multisig: multisig.key(),
+                    create_key: ctx.accounts.create_key.key(),
+                    creator: ctx.accounts.creator.key(),
+                    memo: args.memo,
+                    snapshot: Some(Cow::Borrowed(multisig)),
+                })]
+            },
+        )
     }
 }

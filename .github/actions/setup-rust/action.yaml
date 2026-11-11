@@ -1,19 +1,16 @@
 name: "Setup Rust"
-description: "Setup Rust toolchain"
+description: "Install the Rust toolchain pinned in rust-toolchain.toml"
 runs:
   using: "composite"
   steps:
     - name: Cache Rust toolchain
-      id: rust-toolchain-cache
-      uses: actions/cache@v3
+      uses: actions/cache@v6
       with:
         path: ~/.rustup
-        key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain') }}
+        key: rust-toolchain-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
 
-    - if: ${{ steps.rust-toolchain-cache.outputs.cache-hit != 'true' }}
-      name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        components: rustfmt, clippy
+    - name: Install the pinned toolchain
+      shell: bash
+      run: |
+        rustup toolchain install --profile minimal
+        rustup component add rustfmt clippy

@@ -1,12 +1,12 @@
 use std::io::{Read, Write};
 use std::marker::PhantomData;
 
-use anchor_lang::prelude::*;
+use crate::prelude::*;
 
 /// Concise serialization schema for vectors where the length can be represented
 /// by any type `L` (typically unsigned integer like `u8` or `u16`)
-/// that implements AnchorDeserialize and can be converted to `u32`.
-#[derive(Clone, Debug, Default)]
+/// that implements BorshDeserialize and can be converted to `u32`.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SmallVec<L, T>(Vec<T>, PhantomData<L>);
 
 impl<L, T> SmallVec<L, T> {
@@ -31,7 +31,7 @@ impl<L, T> From<Vec<T>> for SmallVec<L, T> {
     }
 }
 
-impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u8, T> {
+impl<T: BorshSerialize> BorshSerialize for SmallVec<u8, T> {
     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
         let len = u8::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?;
         // Write the length of the vector as u8.
@@ -42,7 +42,7 @@ impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u8, T> {
     }
 }
 
-impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u16, T> {
+impl<T: BorshSerialize> BorshSerialize for SmallVec<u16, T> {
     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
         let len = u16::try_from(self.len()).map_err(|_| std::io::ErrorKind::InvalidInput)?;
         // Write the length of the vector as u16.
@@ -53,10 +53,10 @@ impl<T: AnchorSerialize> AnchorSerialize for SmallVec<u16, T> {
     }
 }
 
-impl<L, T> AnchorDeserialize for SmallVec<L, T>
+impl<L, T> BorshDeserialize for SmallVec<L, T>
 where
-    L: AnchorDeserialize + Into<u32>,
-    T: AnchorDeserialize,
+    L: BorshDeserialize + Into<u32>,
+    T: BorshDeserialize,
 {
     /// This implementation almost exactly matches standard implementation of
     /// `Vec<T>::deserialize` except that it uses `L` instead of `u32` for the length,
@@ -92,10 +92,7 @@ mod hint {
 /// Helper method that is used to serialize a slice of data (without the length marker).
 /// Copied from borsh::ser::serialize_slice.
 #[inline]
-fn serialize_slice<T: AnchorSerialize, W: Write>(
-    data: &[T],
-    writer: &mut W,
-) -> std::io::Result<()> {
+fn serialize_slice<T: BorshSerialize, W: Write>(data: &[T], writer: &mut W) -> std::io::Result<()> {
     if let Some(u8_slice) = T::u8_slice(data) {
         writer.write_all(u8_slice)?;
     } else {
@@ -145,8 +142,8 @@ mod test {
             let pubkey2 = Pubkey::new_unique();
             let mut input = &[
                 &[0x02], // len (2)
-                &pubkey1.try_to_vec().unwrap()[..],
-                &pubkey2.try_to_vec().unwrap()[..],
+                &borsh::to_vec(&pubkey1).unwrap()[..],
+                &borsh::to_vec(&pubkey2).unwrap()[..],
             ]
             .concat()[..];
 
@@ -174,8 +171,8 @@ mod test {
             let pubkey2 = Pubkey::new_unique();
             let mut input = &[
                 &[0x02, 0x00], // len (2)
-                &pubkey1.try_to_vec().unwrap()[..],
-                &pubkey2.try_to_vec().unwrap()[..],
+                &borsh::to_vec(&pubkey1).unwrap()[..],
+                &borsh::to_vec(&pubkey2).unwrap()[..],
             ]
             .concat()[..];
 

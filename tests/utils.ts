@@ -23,7 +23,7 @@ export function getTestProgramId() {
         readFileSync(
           path.join(
             __dirname,
-            "../target/deploy/squads_multisig_program-keypair.json"
+            "../target/deploy/squads_multisig_4r_program-keypair.json"
           ),
           "utf-8"
         )

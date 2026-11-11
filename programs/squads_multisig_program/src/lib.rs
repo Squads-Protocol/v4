@@ -1,3 +1,6 @@
+//! Squads Multisig 4r. The core (account types, instruction args and builders, PDAs, messages,
+//! errors) is always compiled and needs no Anchor. The default `program` feature adds the Anchor
+//! program; clients use `default-features = false`.
 #![allow(clippy::result_large_err)]
 #![deny(arithmetic_overflow)]
 #![deny(unused_must_use)]
@@ -5,41 +8,81 @@
 // #![deny(clippy::integer_arithmetic)]
 
 // Re-export anchor_lang for convenience.
-pub use anchor_lang;
+#[cfg(feature = "program")]
+pub use ::anchor_lang;
+#[cfg(feature = "program")]
 use anchor_lang::prelude::*;
-#[cfg(not(feature = "no-entrypoint"))]
+// The build has an entrypoint: Anchor's, or ours (`custom-entrypoint`) when it is not a CPI client.
+#[cfg(all(
+    feature = "program",
+    any(
+        not(feature = "no-entrypoint"),
+        all(feature = "custom-entrypoint", not(feature = "cpi"))
+    )
+))]
 use solana_security_txt::security_txt;
 
+#[cfg(feature = "program")]
 pub use instructions::ProgramConfig;
 pub use instructions::*;
 pub use state::*;
 pub use utils::SmallVec;
 
+pub mod account;
+#[cfg(feature = "program")]
 pub mod allocator;
+pub mod builders;
+pub mod discriminator;
+#[cfg(all(feature = "custom-entrypoint", not(feature = "cpi")))]
+mod entrypoint;
+pub mod error;
 pub mod errors;
+pub mod events;
 pub mod instructions;
+pub mod message;
+pub mod migration;
+pub mod pda;
+pub mod prelude;
 pub mod state;
 mod utils;
 
-#[cfg(not(feature = "no-entrypoint"))]
+#[cfg(all(
+    feature = "program",
+    any(
+        not(feature = "no-entrypoint"),
+        all(feature = "custom-entrypoint", not(feature = "cpi"))
+    )
+))]
 security_txt! {
-    name: "Squads Multisig Program",
+    name: "Squads Multisig 4r Program",
     project_url: "https://squads.so",
     contacts: "email:disclosure@sqds.io,email:contact@osec.io",
     policy: "https://github.com/Squads-Protocol/v4/blob/main/SECURITY.md",
     preferred_languages: "en",
     source_code: "https://github.com/squads-protocol/v4",
-    auditors: "OtterSec, Neodyme"
+    auditors: "4r: pending. Squads v4 code base: OtterSec, Neodyme, Certora, Trail of Bits"
 }
 
-#[cfg(not(feature = "testing"))]
-declare_id!("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
+#[cfg(all(feature = "program", not(feature = "testing")))]
+declare_id!("SMS4Rd3C3P1V2PdGRSdZCVQ5fPJk7NsV7vAVoUgSvT5");
 
-#[cfg(feature = "testing")]
+#[cfg(all(feature = "program", feature = "testing"))]
 declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
 
+#[cfg(all(not(feature = "program"), not(feature = "testing")))]
+solana_address::declare_id!("SMS4Rd3C3P1V2PdGRSdZCVQ5fPJk7NsV7vAVoUgSvT5");
+
+#[cfg(all(not(feature = "program"), feature = "testing"))]
+solana_address::declare_id!("GyhGAqjokLwF9UXdQ2dR5Zwiup242j4mX4J1tSMKyAmD");
+
+/// The frozen Squads v4 program. It has the same account and instruction layout, so the core
+/// builders, PDA helpers and decoders work with v4 when given this ID as `program_id`.
+pub const LEGACY_V4_PROGRAM_ID: solana_address::Address =
+    solana_address::Address::from_str_const("SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf");
+
+#[cfg(feature = "program")]
 #[program]
-pub mod squads_multisig_program {
+pub mod squads_multisig_4r_program {
     use errors::MultisigError;
 
     use super::*;
@@ -88,6 +131,125 @@ pub mod squads_multisig_program {
         args: MultisigCreateArgsV2,
     ) -> Result<()> {
         MultisigCreateV2::multisig_create(ctx, args)
+    }
+
+    /// Create the successor of a v4 multisig, with the same config. A v4 vault signs, through a
+    /// v4 vault transaction.
+    pub fn multisig_create_from(
+        ctx: Context<MultisigCreateFrom>,
+        args: MultisigCreateFromArgs,
+    ) -> Result<()> {
+        MultisigCreateFrom::multisig_create_from(ctx, args)
+    }
+
+    /// Migration from v4: move the SOL of a v4 vault to the successor vault with the same index.
+    /// Every `multisig_migrate_*` instruction runs in a v4 vault transaction and needs the same
+    /// governance on both multisigs.
+    pub fn multisig_migrate_sol<'info>(
+        ctx: Context<'info, MultisigMigrateSol<'info>>,
+        args: MigrateSolArgs,
+    ) -> Result<()> {
+        MultisigMigrateSol::multisig_migrate_sol(ctx, args)
+    }
+
+    /// Migration from v4: move whole token balances to the successor vault's token accounts.
+    pub fn multisig_migrate_tokens<'info>(
+        ctx: Context<'info, MultisigMigrateTokens<'info>>,
+        args: MigrateTokensArgs,
+    ) -> Result<()> {
+        MultisigMigrateTokens::multisig_migrate_tokens(ctx, args)
+    }
+
+    /// Migration from v4: move token account owner, mint and Token-2022 extension and metadata
+    /// authorities to the successor vault.
+    pub fn multisig_migrate_token_authorities<'info>(
+        ctx: Context<'info, MultisigMigrateTokenAuthorities<'info>>,
+        args: MigrateTokenAuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateTokenAuthorities::multisig_migrate_token_authorities(ctx, args)
+    }
+
+    /// Migration from v4: move stake staker and withdrawer roles to the successor vault.
+    pub fn multisig_migrate_stakes<'info>(
+        ctx: Context<'info, MultisigMigrateStakes<'info>>,
+        args: MigrateAuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateStakes::multisig_migrate_stakes(ctx, args)
+    }
+
+    /// Migration from v4: move vote account withdrawer roles to the successor vault.
+    pub fn multisig_migrate_vote_accounts<'info>(
+        ctx: Context<'info, MultisigMigrateVoteAccounts<'info>>,
+        args: MigrateAuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateVoteAccounts::multisig_migrate_vote_accounts(ctx, args)
+    }
+
+    /// Migration from v4: move loader-v3 program upgrade authorities to the successor vault.
+    pub fn multisig_migrate_programs<'info>(
+        ctx: Context<'info, MultisigMigratePrograms<'info>>,
+        args: MigrateAuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigratePrograms::multisig_migrate_programs(ctx, args)
+    }
+
+    /// Create the successor of a v3 multisig: its members with every permission, its threshold.
+    /// A v3 authority signs, through a v3 transaction.
+    pub fn multisig_create_from_v3(
+        ctx: Context<MultisigCreateFromV3>,
+        args: MultisigCreateFromV3Args,
+    ) -> Result<()> {
+        MultisigCreateFromV3::multisig_create_from_v3(ctx, args)
+    }
+
+    /// Migration from v3: move the SOL of v3 authority N to the successor vault N - 1. Every
+    /// `multisig_migrate_v3_*` instruction runs in a v3 transaction and needs the same governance.
+    pub fn multisig_migrate_v3_sol<'info>(
+        ctx: Context<'info, MultisigMigrateV3Sol<'info>>,
+        args: MigrateV3SolArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Sol::multisig_migrate_v3_sol(ctx, args)
+    }
+
+    /// Migration from v3: move whole token balances to the successor vault's token accounts.
+    pub fn multisig_migrate_v3_tokens<'info>(
+        ctx: Context<'info, MultisigMigrateV3Tokens<'info>>,
+        args: MigrateV3TokensArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Tokens::multisig_migrate_v3_tokens(ctx, args)
+    }
+
+    /// Migration from v3: move token account owner, mint and Token-2022 extension and metadata
+    /// authorities to the successor vault.
+    pub fn multisig_migrate_v3_token_authorities<'info>(
+        ctx: Context<'info, MultisigMigrateV3TokenAuthorities<'info>>,
+        args: MigrateV3TokenAuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3TokenAuthorities::multisig_migrate_v3_token_authorities(ctx, args)
+    }
+
+    /// Migration from v3: move stake staker, withdrawer and custodian roles to the successor vault.
+    pub fn multisig_migrate_v3_stakes<'info>(
+        ctx: Context<'info, MultisigMigrateV3Stakes<'info>>,
+        args: MigrateV3AuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Stakes::multisig_migrate_v3_stakes(ctx, args)
+    }
+
+    /// Migration from v3: move vote account withdrawer roles to the successor vault.
+    pub fn multisig_migrate_v3_vote_accounts<'info>(
+        ctx: Context<'info, MultisigMigrateV3VoteAccounts<'info>>,
+        args: MigrateV3AuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3VoteAccounts::multisig_migrate_v3_vote_accounts(ctx, args)
+    }
+
+    /// Migration from v3: move loader-v3 program upgrade authorities to the successor vault.
+    pub fn multisig_migrate_v3_programs<'info>(
+        ctx: Context<'info, MultisigMigrateV3Programs<'info>>,
+        args: MigrateV3AuthoritiesArgs,
+    ) -> Result<()> {
+        MultisigMigrateV3Programs::multisig_migrate_v3_programs(ctx, args)
     }
 
     /// Add a new member to the controlled multisig.
@@ -165,7 +327,7 @@ pub mod squads_multisig_program {
     /// Execute a config transaction.
     /// The transaction must be `Approved`.
     pub fn config_transaction_execute<'info>(
-        ctx: Context<'_, '_, 'info, 'info, ConfigTransactionExecute<'info>>,
+        ctx: Context<'info, ConfigTransactionExecute<'info>>,
     ) -> Result<()> {
         ConfigTransactionExecute::config_transaction_execute(ctx)
     }
@@ -202,7 +364,7 @@ pub mod squads_multisig_program {
     /// Create a new vault transaction from a completed transaction buffer.
     /// Finalized buffer hash must match `final_buffer_hash`
     pub fn vault_transaction_create_from_buffer<'info>(
-        ctx: Context<'_, '_, 'info, 'info, VaultTransactionCreateFromBuffer<'info>>,
+        ctx: Context<'info, VaultTransactionCreateFromBuffer<'info>>,
         args: VaultTransactionCreateArgs,
     ) -> Result<()> {
         VaultTransactionCreateFromBuffer::vault_transaction_create_from_buffer(ctx, args)
@@ -268,7 +430,7 @@ pub mod squads_multisig_program {
     /// The previous implemenation still works if the proposal size is in line with the
     /// threshold size.
     pub fn proposal_cancel_v2<'info>(
-        ctx: Context<'_, '_, 'info, 'info, ProposalCancelV2<'info>>,
+        ctx: Context<'info, ProposalCancelV2<'info>>,
         args: ProposalVoteArgs,
     ) -> Result<()> {
         ProposalCancelV2::proposal_cancel_v2(ctx, args)
@@ -320,5 +482,10 @@ pub mod squads_multisig_program {
     /// in the `batch` are already closed: `batch.size == 0`.
     pub fn batch_accounts_close(ctx: Context<BatchAccountsClose>) -> Result<()> {
         BatchAccountsClose::batch_accounts_close(ctx)
+    }
+
+    /// Carry an event in the instruction data. Only the program itself calls it, through a CPI.
+    pub fn log_event(ctx: Context<LogEvent>, args: LogEventArgs) -> Result<()> {
+        LogEvent::log_event(ctx, args)
     }
 }

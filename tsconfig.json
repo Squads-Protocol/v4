@@ -10,6 +10,8 @@
     "esModuleInterop": true,
     "strict": true,
   },
+  // sdk/multisig-4r is a standalone package with its own tsconfig and TypeScript 5.
+  "exclude": ["node_modules", "sdk/multisig-4r", "target"],
   // Most ts-node options can be specified here using their programmatic names.
   "ts-node": {
     // It is faster to skip typechecking.

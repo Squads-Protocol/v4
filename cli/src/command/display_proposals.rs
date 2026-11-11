@@ -2,14 +2,15 @@ use std::str::FromStr;
 
 use clap::Args;
 use colored::Colorize;
+use solana_rpc_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::clock::Clock;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::sysvar;
-use squads_multisig::anchor_lang::AccountDeserialize;
-use squads_multisig::pda::{get_proposal_pda, get_transaction_pda};
-use squads_multisig::solana_rpc_client::nonblocking::rpc_client::RpcClient;
-use squads_multisig::squads_multisig_program::state::{Batch, ConfigTransaction, VaultTransaction};
-use squads_multisig::state::{Multisig, Proposal, ProposalStatus};
+use squads_multisig_4r::pda::{get_proposal_pda, get_transaction_pda};
+use squads_multisig_4r::rpc::decode_checked;
+use squads_multisig_4r::state::{
+    Batch, ConfigTransaction, Multisig, Proposal, ProposalStatus, VaultTransaction,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TxKind {
@@ -57,8 +58,7 @@ impl DisplayProposals {
             limit,
         } = self;
 
-        let program_id =
-            program_id.unwrap_or_else(|| "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf".to_string());
+        let program_id = program_id.unwrap_or_else(|| squads_multisig_4r::ID.to_string());
 
         let program_id = Pubkey::from_str(&program_id).expect("Invalid program ID");
 
@@ -90,7 +90,7 @@ impl DisplayProposals {
             .ok_or_else(|| eyre::eyre!("Clock sysvar not found"))?;
 
         let multisig_account =
-            Multisig::try_deserialize(&mut multisig_account_data.data.as_slice())
+            decode_checked::<Multisig>(&multisig, multisig_account_data, Some(&program_id))
                 .map_err(|e| eyre::eyre!("Failed to deserialize multisig: {}", e))?;
 
         let clock: Clock = bincode::deserialize(&clock_account_data.data)
@@ -134,21 +134,24 @@ impl DisplayProposals {
             };
 
             let proposal = match accounts[0].as_ref() {
-                Some(account) => match Proposal::try_deserialize(&mut account.data.as_slice()) {
-                    Ok(proposal) => proposal,
-                    // Account exists but failed to deserialize - skip
-                    Err(_) => continue,
-                },
+                Some(account) => {
+                    match decode_checked::<Proposal>(&proposal_pda.0, account, Some(&program_id)) {
+                        Ok(proposal) => proposal,
+                        // Account exists but failed to deserialize - skip
+                        Err(_) => continue,
+                    }
+                }
                 // Account doesn't exist - skip
                 None => continue,
             };
 
             let kind = accounts[1].as_ref().and_then(|tx_acc| {
-                if Batch::try_deserialize(&mut tx_acc.data.as_slice()).is_ok() {
+                let (tx_key, owner) = (&transaction_pda.0, Some(&program_id));
+                if decode_checked::<Batch>(tx_key, tx_acc, owner).is_ok() {
                     Some(TxKind::Batch)
-                } else if VaultTransaction::try_deserialize(&mut tx_acc.data.as_slice()).is_ok() {
+                } else if decode_checked::<VaultTransaction>(tx_key, tx_acc, owner).is_ok() {
                     Some(TxKind::Vault)
-                } else if ConfigTransaction::try_deserialize(&mut tx_acc.data.as_slice()).is_ok() {
+                } else if decode_checked::<ConfigTransaction>(tx_key, tx_acc, owner).is_ok() {
                     Some(TxKind::Config)
                 } else {
                     None

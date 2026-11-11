@@ -1,6 +1,13 @@
+use std::borrow::Cow;
+
 use anchor_lang::prelude::*;
 
 use crate::errors::*;
+use crate::events::{
+    self, proposal_event, ConfigSource, LogAuthority, MultisigConfigEvent, MultisigEvent,
+    ProposalEventKind, SpendingLimitEvent, SpendingLimitEventKind, TransactionEvent,
+    TransactionEventKind,
+};
 use crate::id;
 use crate::state::*;
 use crate::utils::*;
@@ -100,12 +107,20 @@ impl<'info> ConfigTransactionExecute<'info> {
     /// Execute the multisig transaction.
     /// The transaction must be `Approved`.
     #[access_control(ctx.accounts.validate())]
-    pub fn config_transaction_execute(ctx: Context<'_, '_, 'info, 'info, Self>) -> Result<()> {
+    pub fn config_transaction_execute(ctx: Context<'info, Self>) -> Result<()> {
         let multisig = &mut ctx.accounts.multisig;
         let transaction = &ctx.accounts.transaction;
         let proposal = &mut ctx.accounts.proposal;
 
         let rent = Rent::get()?;
+
+        let events_enabled = events::enabled(ctx.remaining_accounts);
+        let source = ConfigSource::ConfigTransaction {
+            transaction: transaction.key(),
+            transaction_index: transaction.index,
+        };
+        // Spending limits are created or closed in the loop, so their events are collected there.
+        let mut spending_limit_events = Vec::new();
 
         // Execute the actions one by one.
         for action in transaction.actions.iter() {
@@ -212,6 +227,19 @@ impl<'info> ConfigTransactionExecute<'info> {
 
                     spending_limit
                         .try_serialize(&mut &mut spending_limit_info.data.borrow_mut()[..])?;
+
+                    if events_enabled {
+                        spending_limit_events.push(MultisigEvent::SpendingLimit(
+                            SpendingLimitEvent {
+                                kind: SpendingLimitEventKind::Add,
+                                multisig: multisig.key(),
+                                spending_limit: spending_limit_key,
+                                source: source.clone(),
+                                memo: None,
+                                snapshot: Some(Cow::Owned(spending_limit)),
+                            },
+                        ));
+                    }
                 }
 
                 ConfigAction::RemoveSpendingLimit {
@@ -241,6 +269,19 @@ impl<'info> ConfigTransactionExecute<'info> {
                     );
 
                     spending_limit.close(rent_payer.to_account_info())?;
+
+                    if events_enabled {
+                        spending_limit_events.push(MultisigEvent::SpendingLimit(
+                            SpendingLimitEvent {
+                                kind: SpendingLimitEventKind::Remove,
+                                multisig: multisig.key(),
+                                spending_limit: *spending_limit_key,
+                                source: source.clone(),
+                                memo: None,
+                                snapshot: Some(Cow::Owned(spending_limit.into_inner())),
+                            },
+                        ));
+                    }
 
                     // We don't need to invalidate prior transactions here because adding
                     // a spending limit doesn't affect the consensus parameters of the multisig.
@@ -277,6 +318,39 @@ impl<'info> ConfigTransactionExecute<'info> {
             timestamp: Clock::get()?.unix_timestamp,
         };
 
-        Ok(())
+        let multisig = &ctx.accounts.multisig;
+        let member = ctx.accounts.member.key();
+        events::emit(
+            events_enabled,
+            || LogAuthority::multisig(multisig),
+            || {
+                std::iter::once(MultisigEvent::MultisigConfig(MultisigConfigEvent {
+                    multisig: multisig.key(),
+                    source,
+                    actions: Cow::Borrowed(&transaction.actions),
+                    memo: None,
+                    snapshot: Some(Cow::Borrowed(multisig)),
+                }))
+                .chain(spending_limit_events)
+                .chain([
+                    MultisigEvent::Transaction(TransactionEvent {
+                        kind: TransactionEventKind::Execute,
+                        multisig: multisig.key(),
+                        transaction: transaction.key(),
+                        transaction_index: transaction.index,
+                        member: Some(member),
+                        memo: None,
+                        content: None,
+                    }),
+                    proposal_event(
+                        ProposalEventKind::Execute,
+                        &ctx.accounts.proposal,
+                        Some(member),
+                        None,
+                    ),
+                ])
+                .collect()
+            },
+        )
     }
 }

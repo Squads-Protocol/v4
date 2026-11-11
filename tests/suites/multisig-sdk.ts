@@ -105,7 +105,7 @@ describe("Multisig SDK", () => {
           sendOptions: { skipPreflight: true },
           programId,
         }),
-        /Transaction signature verification failure/
+        /Transaction signature verification failure|Transaction did not pass signature verification/
       );
     });
 
