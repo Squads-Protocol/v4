@@ -14,7 +14,7 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::transaction::VersionedTransaction;
 
 use spl_associated_token_account::get_associated_token_address_with_program_id;
-use spl_token::instruction::transfer;
+use spl_token_2022::instruction::transfer_checked;
 use squads_multisig::anchor_lang::{AnchorSerialize, InstructionData};
 use squads_multisig::client::get_multisig;
 use squads_multisig::pda::{get_proposal_pda, get_transaction_pda, get_vault_pda};
@@ -180,13 +180,15 @@ impl InitiateTransfer {
 
         let transfer_message = TransactionMessage::try_compile(
             &vault_pda.0,
-            &[transfer(
+            &[transfer_checked(
                 &token_program_id,
                 &sender_ata,
+                &token_mint,
                 &recipient_ata,
                 &vault_pda.0,
                 &[&vault_pda.0],
                 token_amount_u64,
+                decimals,
             )
             .unwrap()],
             &[],
