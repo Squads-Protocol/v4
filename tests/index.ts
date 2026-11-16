@@ -24,4 +24,3 @@ import "./suites/multisig-sdk";
 // // Uncomment to enable the heapTest instruction testing
 // //import "./suites/instructions/heapTest";
 // import "./suites/examples/custom-heap";
-

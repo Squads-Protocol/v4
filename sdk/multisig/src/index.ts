@@ -12,6 +12,8 @@ export * as rpc from "./rpc";
 export * as transactions from "./transactions";
 /** Instructions for the multisig program. */
 export * as instructions from "./instructions/index.js";
+/** Builders and chainable actions for the multisig program. */
+export * from "./actions/index.js";
 /** Additional types */
 export * as types from "./types.js";
 /** Utils for the multisig program. */
