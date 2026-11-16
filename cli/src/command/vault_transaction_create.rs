@@ -31,6 +31,14 @@ use squads_multisig::state::Permission;
 
 use crate::utils::{create_signer_from_path, send_and_confirm_transaction};
 
+/// Decode a base58 string into the raw `transaction_message` byte vector
+/// that the on-chain `vault_transaction_create` instruction expects.
+fn parse_base58_transaction_message(s: &str) -> Result<Vec<u8>, String> {
+    solana_sdk::bs58::decode(s)
+        .into_vec()
+        .map_err(|e| format!("invalid base58 in --transaction-message: {e}"))
+}
+
 /// Create a new vault transaction and activate its proposal for voting.
 #[derive(Args)]
 pub struct VaultTransactionCreate {
@@ -57,7 +65,15 @@ pub struct VaultTransactionCreate {
     #[arg(long)]
     vault_index: u8,
 
-    #[arg(long)]
+    /// Base58-encoded `VaultTransactionMessage` bytes. Build the message
+    /// (for example via `transactionMessageBeet` in the TS SDK or by
+    /// serializing `VaultTransactionMessage` server-side), bs58-encode
+    /// the byte vector, and pass it here as a single string.
+    ///
+    /// `Vec<u8>` cannot be used as a direct clap argument: clap parses
+    /// one byte per `--transaction-message` invocation, so a real
+    /// multi-byte message cannot be supplied that way.
+    #[arg(long, value_parser = parse_base58_transaction_message)]
     transaction_message: Vec<u8>,
 
     /// Memo to be included in the transaction
