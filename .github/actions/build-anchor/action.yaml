@@ -26,12 +26,15 @@ runs:
       if: inputs.replace_program_id == 'true'
       env:
         PROGRAM_ID: ${{ inputs.program_id }}
+        PROGRAM_NAME: ${{ inputs.program }}
       run: |
-        sed -i "s/declare_id!(\".*\")/declare_id!(\"${PROGRAM_ID}\")/g" ./programs/${{ inputs.program }}/src/lib.rs
+        sed -i "s/declare_id!(\".*\")/declare_id!(\"${PROGRAM_ID}\")/g" ./programs/${PROGRAM_NAME}/src/lib.rs
       shell: bash
 
     - name: Build with Anchor
-      run: ~/.cargo/bin/anchor build -p ${{ inputs.program }}
+      env:
+        PROGRAM_NAME: ${{ inputs.program }}
+      run: ~/.cargo/bin/anchor build -p "$PROGRAM_NAME"
       shell: bash
 
     - name: Store .so files
