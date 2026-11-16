@@ -8,6 +8,7 @@ import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import BN from "bn.js";
 import { createSpendingLimitUseInstruction, PROGRAM_ID } from "../generated";
 import { getVaultPda } from "../pda";
 
@@ -30,7 +31,7 @@ export function spendingLimitUse({
   /** Provide if `spendingLimit` is for an SPL token, omit if it's for SOL. */
   mint?: PublicKey;
   vaultIndex: number;
-  amount: number;
+  amount: number | bigint;
   decimals: number;
   destination: PublicKey;
   tokenProgram?: PublicKey;
@@ -72,7 +73,13 @@ export function spendingLimitUse({
       destinationTokenAccount,
       tokenProgram: mint ? tokenProgram : undefined,
     },
-    { args: { amount, decimals, memo: memo ?? null } },
+    {
+      args: {
+        amount: new BN(amount.toString()),
+        decimals,
+        memo: memo ?? null,
+      },
+    },
     programId
   );
 }

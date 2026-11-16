@@ -22,6 +22,7 @@
     "build": "yarn build:js && yarn build:types",
     "generate": "yarn solita",
     "ts": "tsc --noEmit",
+    "test:types": "tsc --noEmit -p tsconfig.test-d.json",
     "prepare:canary": "yarn build && npm version --prerelease --preid=canary"
   },
   "dependencies": {
