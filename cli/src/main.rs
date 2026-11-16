@@ -6,6 +6,7 @@ mod command;
 pub mod utils;
 
 #[derive(Parser)]
+#[command(version)]
 struct App {
     #[command(subcommand)]
     command: Command,
