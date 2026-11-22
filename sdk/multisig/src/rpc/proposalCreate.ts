@@ -39,6 +39,7 @@ export async function proposalCreate({
     multisigPda,
     transactionIndex,
     creator: creator.publicKey,
+    rentPayer: rentPayer?.publicKey,
     isDraft,
     programId,
   });

@@ -1536,6 +1536,56 @@ describe("Multisig SDK", () => {
         /Proposal is stale/
       );
     });
+
+    it("rent payer pays for the proposal account", async () => {
+      const transactionIndex = 3n;
+      const rentPayer = await generateFundedKeypair(connection);
+
+      let signature = await multisig.rpc.configTransactionCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda,
+        transactionIndex,
+        creator: members.proposer.publicKey,
+        actions: [{ __kind: "ChangeThreshold", newThreshold: 1 }],
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+
+      const creatorBalanceBefore = await connection.getBalance(
+        members.voter.publicKey
+      );
+      const rentPayerBalanceBefore = await connection.getBalance(
+        rentPayer.publicKey
+      );
+
+      signature = await multisig.rpc.proposalCreate({
+        connection,
+        feePayer: members.proposer,
+        multisigPda,
+        transactionIndex,
+        creator: members.voter,
+        rentPayer,
+        programId,
+      });
+      await connection.confirmTransaction(signature);
+
+      const [proposalPda] = multisig.getProposalPda({
+        multisigPda,
+        transactionIndex,
+        programId,
+      });
+      const proposalRent = await connection.getBalance(proposalPda);
+      assert.ok(proposalRent > 0);
+      assert.strictEqual(
+        await connection.getBalance(rentPayer.publicKey),
+        rentPayerBalanceBefore - proposalRent
+      );
+      assert.strictEqual(
+        await connection.getBalance(members.voter.publicKey),
+        creatorBalanceBefore
+      );
+    });
   });
 
   describe("proposal_approve", () => {
